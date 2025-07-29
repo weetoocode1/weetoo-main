@@ -58,8 +58,8 @@ const information: { title: string; href: string; description: string }[] = [
 
 const broker: { title: string; href: string; description: string }[] = [
   {
-    title: "Coin Futures Exchange Comparison",
-    href: "/coin-futures",
+    title: "Broker Comparison",
+    href: "/broker",
     description:
       "Compare Korean crypto exchanges - fees, features, security, and trading pairs",
   },
