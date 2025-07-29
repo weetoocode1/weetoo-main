@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
       "lh3.googleusercontent.com",
       "elraqghnwdysyqskvqgn.supabase.co",
       "eethmghfrmkfjxeqjngd.supabase.co",
+      "xmsnugwzpxrqzcmyplsd.supabase.co",
       "f1.tokenpost.kr",
     ],
   },

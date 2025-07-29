@@ -22,16 +22,63 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { LeaderboardTableProps, Post } from "@/types/post";
 
+// Cache for storing fetched posts
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// Get cache from localStorage
+const getCache = (key: string) => {
+  if (typeof window === "undefined") return null;
+  try {
+    const cached = localStorage.getItem(`leaderboard-cache-${key}`);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Date.now() - parsed.timestamp < CACHE_DURATION) {
+        return parsed.data;
+      }
+    }
+  } catch (error) {
+    console.error("Cache read error:", error);
+  }
+  return null;
+};
+
+// Set cache to localStorage
+const setCache = (key: string, data: Post[]) => {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(
+      `leaderboard-cache-${key}`,
+      JSON.stringify({
+        data,
+        timestamp: Date.now(),
+      })
+    );
+  } catch (error) {
+    console.error("Cache write error:", error);
+  }
+};
+
 export function LeaderboardTable({ board }: LeaderboardTableProps) {
   const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch posts from API
   useEffect(() => {
     const fetchPosts = async () => {
+      // Check cache first - if we have data, show it immediately
+      const cacheKey = `${board}-leaderboard`;
+      const cached = getCache(cacheKey);
+
+      if (cached) {
+        setPosts(cached);
+        return; // No loading state needed for cached data
+      }
+
+      // If no cache, fetch data
+      setLoading(true);
+
       try {
-        setLoading(true);
         // Convert board parameter to database format
         const boardParam = board.replace("-board", "");
         const response = await fetch(
@@ -41,6 +88,10 @@ export function LeaderboardTable({ board }: LeaderboardTableProps) {
           throw new Error("Failed to fetch posts");
         }
         const data = await response.json();
+
+        // Cache the data
+        setCache(cacheKey, data);
+
         setPosts(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch posts");
@@ -157,7 +208,7 @@ export function LeaderboardTable({ board }: LeaderboardTableProps) {
         accessorKey: "createdAt",
         cell: ({ row }) => (
           <span className="text-xs text-muted-foreground">
-            {new Date(row.original.createdAt).toLocaleDateString()}
+            {row.original.createdAt}
           </span>
         ),
         size: 120,

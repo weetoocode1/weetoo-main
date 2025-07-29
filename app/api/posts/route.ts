@@ -75,7 +75,11 @@ export async function GET(req: NextRequest) {
       views: post.views || 0,
       likes: post.likes || 0,
       comments: post.comments || 0,
-      createdAt: new Date(post.created_at).toLocaleDateString(),
+      createdAt: new Date(post.created_at).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
       author: {
         id: post.author?.id,
         name:
@@ -90,5 +94,4 @@ export async function GET(req: NextRequest) {
     })) || [];
 
   return NextResponse.json(formattedData, { status: 200 });
-  return NextResponse.json(data, { status: 200 });
 }

@@ -63,7 +63,10 @@ export function Header() {
         >
           <Link href="/login">Login</Link>
         </Button>
-        <Button className="cursor-pointer shadow-none h-8" asChild>
+        <Button
+          className="cursor-pointer shadow-none h-8 md:block hidden"
+          asChild
+        >
           <Link href="/register">Register</Link>
         </Button>
       </>
@@ -86,10 +89,14 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-2">
-          <WeetooMarketDialog />
-          <KorCoinsRechargeDialog />
-          <CustomerSupportDialog />
-          <ThemeToggle />
+          {isLoggedIn && (
+            <>
+              <WeetooMarketDialog />
+              <KorCoinsRechargeDialog />
+              <CustomerSupportDialog />
+              <ThemeToggle />
+            </>
+          )}
           {renderAuthSection()}
 
           {/* Mobile Menu Button */}
