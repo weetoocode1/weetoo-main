@@ -270,221 +270,225 @@ export const PartnerExchangeComparison = () => {
         </div>
       </div>
 
-      <div className="bg-background border border-border/35">
-        {/* Table Header */}
-        <div
-          className={`grid gap-4 p-4 border-b border-border/50 ${
-            isSuperAdmin ? "grid-cols-10" : "grid-cols-9"
-          }`}
-        >
-          <div className="font-medium text-sm text-muted-foreground text-center">
-            #
-          </div>
-          <div className="font-medium text-sm text-muted-foreground">
-            Exchange
-          </div>
-          <div className="font-medium text-sm text-muted-foreground text-center">
-            Score
-          </div>
-          <div className="font-medium text-sm text-muted-foreground text-center">
-            Cashback Rate
-          </div>
-          <div className="font-medium text-sm text-muted-foreground text-center">
-            Trading Discount
-          </div>
-          <div className="font-medium text-sm text-muted-foreground text-center">
-            Limit Price
-          </div>
-          <div className="font-medium text-sm text-muted-foreground text-center">
-            Market Price
-          </div>
-          <div className="font-medium text-sm text-muted-foreground text-center">
-            Avg Rebate per User
-          </div>
-          <div className="font-medium text-sm text-muted-foreground text-center">
-            Tags
-          </div>
-          {isSuperAdmin && (
+      <div className="bg-background border border-border/35 overflow-x-auto">
+        <div className="min-w-[1200px]">
+          {/* Table Header */}
+          <div
+            className={`grid gap-12 md:gap-4 p-4 border-b border-border/50 ${
+              isSuperAdmin ? "grid-cols-10" : "grid-cols-9"
+            }`}
+          >
             <div className="font-medium text-sm text-muted-foreground text-center">
-              Actions
+              #
             </div>
-          )}
-        </div>
+            <div className="font-medium text-sm text-muted-foreground">
+              Exchange
+            </div>
+            <div className="font-medium text-sm text-muted-foreground text-center">
+              Score
+            </div>
+            <div className="font-medium text-sm text-muted-foreground text-center">
+              Cashback Rate
+            </div>
+            <div className="font-medium text-sm text-muted-foreground text-center">
+              Trading Discount
+            </div>
+            <div className="font-medium text-sm text-muted-foreground text-center">
+              Limit Price
+            </div>
+            <div className="font-medium text-sm text-muted-foreground text-center">
+              Market Price
+            </div>
+            <div className="font-medium text-sm text-muted-foreground text-center">
+              Avg Rebate per User
+            </div>
+            <div className="font-medium text-sm text-muted-foreground text-center">
+              Tags
+            </div>
+            {isSuperAdmin && (
+              <div className="font-medium text-sm text-muted-foreground text-center">
+                Actions
+              </div>
+            )}
+          </div>
 
-        {/* Table Rows */}
-        <div className="divide-y divide-border/35">
-          {filteredAndSortedExchanges.map((exchange, index) => {
-            const score = calculateScore(exchange);
+          {/* Table Rows */}
+          <div className="divide-y divide-border/35">
+            {filteredAndSortedExchanges.map((exchange, index) => {
+              const score = calculateScore(exchange);
 
-            return (
-              <div
-                key={exchange.id}
-                className={`grid gap-4 p-4 hover:bg-muted/10 transition-colors duration-200 ${
-                  isSuperAdmin ? "grid-cols-10" : "grid-cols-9"
-                }`}
-              >
-                {/* Row Number */}
-                <div className="flex items-center justify-center">
-                  <div className="relative">
-                    <span className="text-3xl font-mono font-bold text-muted-foreground">
-                      {(index + 1).toString().padStart(2, "0")}
-                    </span>
-                    {index < 3 && (
-                      <Crown
-                        className={`absolute -top-2 -right-2 w-4 h-4 ${
-                          index === 0
-                            ? "text-yellow-500"
-                            : index === 1
-                            ? "text-gray-400"
-                            : "text-amber-600"
-                        }`}
-                      />
-                    )}
-                  </div>
-                </div>
-                {/* Exchange Name */}
-                <div className="flex items-center gap-3">
-                  {exchange.logoImage ? (
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-sm overflow-hidden">
-                      <img
-                        src={exchange.logoImage}
-                        alt={`${exchange.name} logo`}
-                        className="w-10 h-10 object-contain"
-                        draggable={false}
-                      />
-                    </div>
-                  ) : (
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm"
-                      style={{ backgroundColor: exchange.logoColor }}
-                    >
-                      {exchange.logo}
-                    </div>
-                  )}
-                  <div>
-                    <div className="font-semibold text-foreground">
-                      {exchange.name}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {exchange.website}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Score */}
-                <div className="flex items-center justify-center">
-                  <div className="flex flex-col items-center">
-                    <div className="text-2xl font-bold text-foreground">
-                      {score}
-                    </div>
-                    <div className="text-xs text-muted-foreground">points</div>
-                  </div>
-                </div>
-
-                {/* Cashback Rate */}
-                <div className="flex items-center justify-center">
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                      <span className="text-sm font-semibold text-foreground">
-                        {exchange.paybackRate}%
+              return (
+                <div
+                  key={exchange.id}
+                  className={`grid gap-12 md:gap-4 p-4 hover:bg-muted/10 transition-colors duration-200 ${
+                    isSuperAdmin ? "grid-cols-10" : "grid-cols-9"
+                  }`}
+                >
+                  {/* Row Number */}
+                  <div className="flex items-center justify-center">
+                    <div className="relative">
+                      <span className="text-3xl font-mono font-bold text-muted-foreground">
+                        {(index + 1).toString().padStart(2, "0")}
                       </span>
+                      {index < 3 && (
+                        <Crown
+                          className={`absolute -top-2 -right-2 w-4 h-4 ${
+                            index === 0
+                              ? "text-yellow-500"
+                              : index === 1
+                              ? "text-gray-400"
+                              : "text-amber-600"
+                          }`}
+                        />
+                      )}
                     </div>
-                    <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  </div>
+                  {/* Exchange Name */}
+                  <div className="flex flex-col md:flex-row items-center md:items-start gap-2 md:gap-3 min-w-0">
+                    {exchange.logoImage ? (
+                      <div className="w-12 h-12 md:w-10 md:h-10 rounded-full flex-shrink-0 flex items-center justify-center shadow-sm overflow-hidden">
+                        <img
+                          src={exchange.logoImage}
+                          alt={`${exchange.name} logo`}
+                          className="w-12 h-12 md:w-10 md:h-10 object-contain"
+                          draggable={false}
+                        />
+                      </div>
+                    ) : (
                       <div
-                        className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full transition-all duration-300"
-                        style={{
-                          width: `${Math.min(exchange.paybackRate, 100)}%`,
-                        }}
-                      ></div>
+                        className="w-12 h-12 md:w-10 md:h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold text-base md:text-sm shadow-sm"
+                        style={{ backgroundColor: exchange.logoColor }}
+                      >
+                        {exchange.logo}
+                      </div>
+                    )}
+                    <div className="text-center md:text-left min-w-0 md:flex-1">
+                      <div className="font-semibold text-foreground text-sm truncate">
+                        {exchange.name}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {exchange.website}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Trading Discount */}
-                <div className="flex items-center justify-center">
-                  <div className="flex items-center gap-1">
-                    <span className="text-lg font-semibold text-foreground">
-                      {exchange.tradingDiscount}
-                    </span>
-                    <span className="text-sm text-muted-foreground">off</span>
-                  </div>
-                </div>
-
-                {/* Limit Price */}
-                <div className="flex items-center justify-center">
-                  <span className="text-sm font-medium text-foreground">
-                    {exchange.limitOrderFee}
-                  </span>
-                </div>
-
-                {/* Market Price */}
-                <div className="flex items-center justify-center">
-                  <span className="text-sm font-medium text-foreground">
-                    {exchange.marketOrderFee}
-                  </span>
-                </div>
-
-                {/* Average Rebate per User */}
-                <div className="flex items-center justify-center">
-                  <div className="flex items-center gap-3">
-                    <User className="w-6 h-6 text-green-600 dark:text-green-400" />
-                    <div className="flex flex-col items-start">
-                      <div className="text-lg font-bold text-green-600 dark:text-green-400">
-                        {exchange.averageRebatePerUser}
+                  {/* Score */}
+                  <div className="flex items-center justify-center">
+                    <div className="flex flex-col items-center">
+                      <div className="text-2xl font-bold text-foreground">
+                        {score}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        per user
+                        points
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Tags */}
-                <div className="flex items-center justify-center gap-1.5">
-                  {exchange.tags.map((tag, tagIndex) => {
-                    const tagConfig = {
-                      TOP: "px-3 py-1 text-xs font-semibold text-white bg-gradient-to-r from-yellow-500 to-amber-500 shadow-sm",
-                      HIGH: "px-3 py-1 text-xs font-semibold text-white bg-gradient-to-r from-orange-500 to-red-500 shadow-sm",
-                      PREMIUM:
-                        "px-3 py-1 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 to-indigo-500 shadow-sm",
-                      LEADER:
-                        "px-3 py-1 text-xs font-semibold text-white bg-gradient-to-r from-purple-500 to-pink-500 shadow-sm",
-                      TRENDING:
-                        "px-3 py-1 text-xs font-semibold text-white bg-gradient-to-r from-green-500 to-teal-500 shadow-sm",
-                      FAST: "px-3 py-1 text-xs font-semibold text-white bg-gradient-to-r from-cyan-500 to-blue-500 shadow-sm",
-                      BASIC:
-                        "px-3 py-1 text-xs font-semibold text-gray-700 bg-gray-100 border border-gray-200 dark:text-gray-300 dark:bg-gray-800 dark:border-gray-700",
-                    };
-
-                    const tagStyle =
-                      tagConfig[tag as keyof typeof tagConfig] ||
-                      tagConfig.BASIC;
-
-                    return (
-                      <span key={tagIndex} className={tagStyle}>
-                        {tag}
-                      </span>
-                    );
-                  })}
-                </div>
-
-                {/* Actions for Super Admin */}
-                {isSuperAdmin && (
-                  <div className="flex items-center justify-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleEdit(exchange)}
-                      className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
-                    >
-                      <Edit3 className="h-4 w-4" />
-                    </Button>
+                  {/* Cashback Rate */}
+                  <div className="flex items-center justify-center">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span className="text-sm font-semibold text-foreground">
+                          {exchange.paybackRate}%
+                        </span>
+                      </div>
+                      <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full transition-all duration-300"
+                          style={{
+                            width: `${Math.min(exchange.paybackRate, 100)}%`,
+                          }}
+                        ></div>
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
-            );
-          })}
+
+                  {/* Trading Discount */}
+                  <div className="flex items-center justify-center">
+                    <div className="flex items-center gap-1">
+                      <span className="text-lg font-semibold text-foreground">
+                        {exchange.tradingDiscount}
+                      </span>
+                      <span className="text-sm text-muted-foreground">off</span>
+                    </div>
+                  </div>
+
+                  {/* Limit Price */}
+                  <div className="flex items-center justify-center">
+                    <span className="text-sm font-medium text-foreground">
+                      {exchange.limitOrderFee}
+                    </span>
+                  </div>
+
+                  {/* Market Price */}
+                  <div className="flex items-center justify-center">
+                    <span className="text-sm font-medium text-foreground">
+                      {exchange.marketOrderFee}
+                    </span>
+                  </div>
+
+                  {/* Average Rebate per User */}
+                  <div className="flex items-center justify-center">
+                    <div className="flex items-center gap-3">
+                      <User className="w-6 h-6 text-green-600 dark:text-green-400" />
+                      <div className="flex flex-col items-start">
+                        <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                          {exchange.averageRebatePerUser}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          per user
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tags */}
+                  <div className="flex items-center justify-center gap-1.5 pl-4 md:pl-0">
+                    {exchange.tags.map((tag, tagIndex) => {
+                      const tagConfig = {
+                        TOP: "px-3 py-1 text-xs font-semibold text-white bg-gradient-to-r from-yellow-500 to-amber-500 shadow-sm",
+                        HIGH: "px-3 py-1 text-xs font-semibold text-white bg-gradient-to-r from-orange-500 to-red-500 shadow-sm",
+                        PREMIUM:
+                          "px-3 py-1 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 to-indigo-500 shadow-sm",
+                        LEADER:
+                          "px-3 py-1 text-xs font-semibold text-white bg-gradient-to-r from-purple-500 to-pink-500 shadow-sm",
+                        TRENDING:
+                          "px-3 py-1 text-xs font-semibold text-white bg-gradient-to-r from-green-500 to-teal-500 shadow-sm",
+                        FAST: "px-3 py-1 text-xs font-semibold text-white bg-gradient-to-r from-cyan-500 to-blue-500 shadow-sm",
+                        BASIC:
+                          "px-3 py-1 text-xs font-semibold text-gray-700 bg-gray-100 border border-gray-200 dark:text-gray-300 dark:bg-gray-800 dark:border-gray-700",
+                      };
+
+                      const tagStyle =
+                        tagConfig[tag as keyof typeof tagConfig] ||
+                        tagConfig.BASIC;
+
+                      return (
+                        <span key={tagIndex} className={tagStyle}>
+                          {tag}
+                        </span>
+                      );
+                    })}
+                  </div>
+
+                  {/* Actions for Super Admin */}
+                  {isSuperAdmin && (
+                    <div className="flex items-center justify-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleEdit(exchange)}
+                        className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
