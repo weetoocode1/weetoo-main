@@ -1,0 +1,278 @@
+export type Exchange = {
+  id: string;
+  name: string;
+  logo: string;
+  logoColor: string;
+  logoImage?: string; // Optional field for image logos
+  website: string;
+  paybackRate: number;
+  tradingDiscount: string;
+  limitOrderFee: string;
+  marketOrderFee: string;
+  event: string;
+  averageRebatePerUser: string;
+  tags: string[];
+  description?: string;
+  features?: string[];
+};
+
+export const EXCHANGES: Exchange[] = [
+  {
+    id: "bybit",
+    name: "Bybit",
+    logo: "B",
+    logoColor: "#F7931A",
+    logoImage: "/broker/bybit.png",
+    website: "bybit.com",
+    paybackRate: 75,
+    tradingDiscount: "15%",
+    limitOrderFee: "0.024%",
+    marketOrderFee: "0.045%",
+    event: "20% Deposit Credit",
+    averageRebatePerUser: "$2,450",
+    tags: ["TOP", "LEADER"],
+    description: "Bybit is a leading cryptocurrency derivatives exchange.",
+    features: [
+      "High leverage and fast execution",
+      "Various futures trading options",
+      "User-friendly interface",
+    ],
+  },
+  {
+    id: "okx",
+    name: "OKX",
+    logo: "O",
+    logoColor: "#FF6B35",
+    logoImage: "/broker/okx.png",
+    website: "okx.com",
+    paybackRate: 70,
+    tradingDiscount: "12%",
+    limitOrderFee: "0.024%",
+    marketOrderFee: "0.045%",
+    event: "20% Deposit Credit",
+    averageRebatePerUser: "$2,180",
+    tags: ["HIGH", "TRENDING"],
+    description:
+      "OKX is a world-class cryptocurrency exchange supporting spot, futures, and options trading.",
+    features: [
+      "Stable platform with various trading tools",
+      "Diverse financial products",
+      "Global user base",
+    ],
+  },
+  {
+    id: "bitget",
+    name: "Bitget",
+    logo: "B",
+    logoColor: "#00D4AA",
+    logoImage: "/broker/bitget.png",
+    website: "bitget.com",
+    paybackRate: 65,
+    tradingDiscount: "10%",
+    limitOrderFee: "0.024%",
+    marketOrderFee: "0.045%",
+    event: "20% Deposit Credit",
+    averageRebatePerUser: "$1,950",
+    tags: ["PREMIUM", "FAST"],
+    description:
+      "Bitget is a global cryptocurrency exchange offering futures trading and copy trading services.",
+    features: [
+      "High payback rate and various events",
+      "Copy trading functionality",
+      "Support for various cryptocurrencies",
+    ],
+  },
+  {
+    id: "bingx",
+    name: "BingX",
+    logo: "B",
+    logoColor: "#FFD93D",
+    logoImage: "/broker/bingx.png",
+    website: "bingx.com",
+    paybackRate: 60,
+    tradingDiscount: "8%",
+    limitOrderFee: "0.024%",
+    marketOrderFee: "0.045%",
+    event: "20% Deposit Credit",
+    averageRebatePerUser: "$1,680",
+    tags: ["PREMIUM"],
+    description:
+      "BingX is an innovative cryptocurrency exchange offering social trading and copy trading features.",
+    features: [
+      "Social trading functionality",
+      "High payback benefits",
+      "Various trading tools",
+    ],
+  },
+  {
+    id: "deepcoin",
+    name: "DeepCoin",
+    logo: "D",
+    logoImage: "/broker/deepcoin.png",
+    logoColor: "#8B5CF6",
+    website: "deepcoin.com",
+    paybackRate: 55,
+    tradingDiscount: "5%",
+    limitOrderFee: "0.024%",
+    marketOrderFee: "0.045%",
+    event: "20% Deposit Credit",
+    averageRebatePerUser: "$1,420",
+    tags: ["BASIC"],
+    description:
+      "DeepCoin is a global digital asset exchange providing professional cryptocurrency trading services.",
+    features: [
+      "High payback rate",
+      "Stable trading system",
+      "Support for various cryptocurrencies",
+    ],
+  },
+  {
+    id: "orangex",
+    name: "OrangeX",
+    logo: "O",
+    logoImage: "/broker/orangex.webp",
+    logoColor: "#FF8C00",
+    website: "orangex.com",
+    paybackRate: 50,
+    tradingDiscount: "3%",
+    limitOrderFee: "0.024%",
+    marketOrderFee: "0.045%",
+    event: "20% Deposit Credit",
+    averageRebatePerUser: "$1,150",
+    tags: ["BASIC"],
+    description:
+      "OrangeX is a cryptocurrency exchange with innovative trading features.",
+    features: [
+      "Innovative trading features",
+      "User-friendly platform",
+      "Global accessibility",
+    ],
+  },
+  {
+    id: "blofin",
+    name: "Blofin",
+    logo: "B",
+    logoColor: "#4F46E5",
+    logoImage: "/broker/blofin.png",
+    website: "blofin.com",
+    paybackRate: 45,
+    tradingDiscount: "2%",
+    limitOrderFee: "0.024%",
+    marketOrderFee: "0.045%",
+    event: "20% Deposit Credit",
+    averageRebatePerUser: "$980",
+    tags: ["BASIC"],
+    description:
+      "Blofin is a cryptocurrency exchange focused on derivatives trading.",
+    features: [
+      "Derivatives trading focus",
+      "Advanced trading tools",
+      "Professional platform",
+    ],
+  },
+  {
+    id: "lbank",
+    name: "LBank",
+    logo: "L",
+    logoImage: "/broker/lbank.png",
+    logoColor: "#10B981",
+    website: "lbank.com",
+    paybackRate: 40,
+    tradingDiscount: "1%",
+    limitOrderFee: "0.024%",
+    marketOrderFee: "0.045%",
+    event: "20% Deposit Credit",
+    averageRebatePerUser: "$850",
+    tags: ["BASIC"],
+    description:
+      "LBank is a global cryptocurrency exchange with comprehensive trading services.",
+    features: [
+      "Comprehensive trading services",
+      "Global accessibility",
+      "Diverse cryptocurrency support",
+    ],
+  },
+  {
+    id: "gateio",
+    name: "Gate.io",
+    logo: "G",
+    logoColor: "#6366F1",
+    logoImage: "/broker/gate.png",
+    website: "gate.io",
+    paybackRate: 35,
+    tradingDiscount: "0%",
+    limitOrderFee: "0.024%",
+    marketOrderFee: "0.045%",
+    event: "20% Deposit Credit",
+    averageRebatePerUser: "$720",
+    tags: ["BASIC"],
+    description:
+      "Gate.io is a cryptocurrency exchange known for its wide range of altcoins.",
+    features: ["Wide range of altcoins", "Stable platform", "Global user base"],
+  },
+  {
+    id: "xt",
+    name: "XT",
+    logo: "X",
+    logoColor: "#1DD1A1",
+    website: "xt.com",
+    paybackRate: 30,
+    tradingDiscount: "0%",
+    limitOrderFee: "0.024%",
+    marketOrderFee: "0.045%",
+    event: "20% Deposit Credit",
+    averageRebatePerUser: "$650",
+    tags: ["BASIC"],
+    description:
+      "XT is a global digital asset trading platform offering various cryptocurrency trading services.",
+    features: [
+      "High payback benefits",
+      "Support for various altcoins",
+      "Global service provision",
+    ],
+  },
+  {
+    id: "tapbit",
+    name: "Tapbit",
+    logo: "T",
+    logoImage: "/broker/tapbit.png",
+    logoColor: "#F59E0B",
+    website: "tapbit.com",
+    paybackRate: 25,
+    tradingDiscount: "0%",
+    limitOrderFee: "0.024%",
+    marketOrderFee: "0.045%",
+    event: "20% Deposit Credit",
+    averageRebatePerUser: "$580",
+    tags: ["BASIC"],
+    description:
+      "Tapbit is a cryptocurrency exchange with a user-friendly interface and various trading options.",
+    features: [
+      "User-friendly interface",
+      "High payback benefits",
+      "Various trading options",
+    ],
+  },
+  {
+    id: "mexc",
+    name: "MEXC",
+    logo: "M",
+    logoColor: "#3B82F6",
+    logoImage: "/broker/mexc.png",
+    website: "mexc.com",
+    paybackRate: 20,
+    tradingDiscount: "0%",
+    limitOrderFee: "0.024%",
+    marketOrderFee: "0.045%",
+    event: "20% Deposit Credit",
+    averageRebatePerUser: "$520",
+    tags: ["BASIC"],
+    description:
+      "MEXC is a global cryptocurrency exchange offering spot and futures trading.",
+    features: [
+      "Global cryptocurrency exchange",
+      "Spot and futures trading",
+      "Wide range of cryptocurrencies",
+    ],
+  },
+];
