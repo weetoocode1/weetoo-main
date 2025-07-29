@@ -1,4 +1,3 @@
-import { EXCHANGES } from "@/components/exchange/exchanges-data";
 import { PartnerExchangeComparison } from "@/components/exchange/partner-exchange-comparison";
 import { TopExchangeCards } from "@/components/exchange/top-exchange-cards";
 import { Metadata } from "next";
@@ -33,7 +32,7 @@ export default function PartnerExchange() {
             </div>
           </div>
         </div>
-        <TopExchangeCards exchanges={EXCHANGES} />
+        <TopExchangeCards />
       </div>
       <PartnerExchangeComparison />
     </div>
