@@ -129,7 +129,7 @@ export function HeroSection() {
   const handleScroll = () => {
     if (!marqueeRef.current || isDragging || scrollTimeoutRef.current) return;
 
-    const { scrollLeft, scrollWidth, clientWidth } = marqueeRef.current;
+    const { scrollLeft } = marqueeRef.current;
     const roomWidth = 320 + 24; // card width + gap
     const totalRooms = 10; // number of original rooms
     const totalWidth = totalRooms * roomWidth;
