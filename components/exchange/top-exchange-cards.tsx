@@ -342,6 +342,58 @@ const TraderCard = memo(
 );
 TraderCard.displayName = "TraderCard";
 
+const MobileCard = memo(
+  ({ data, exchange }: { data: CardData; exchange?: Exchange }) => {
+    return (
+      <div className="bg-background border border-border rounded-lg p-4 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center text-white font-bold text-lg">
+              {data.name.charAt(0)}
+            </div>
+            <div>
+              <h3 className="font-bold text-lg">{data.name}</h3>
+              <p className="text-sm text-muted-foreground">{data.username}</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-2xl font-bold text-emerald-600">
+              +{data.totalReturn}%
+            </div>
+            <div className="text-xs text-muted-foreground">Payback Rate</div>
+          </div>
+        </div>
+
+        {exchange && (
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Payback Rate:</span>
+              <span className="font-semibold">{exchange.paybackRate}%</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Trading Discount:</span>
+              <span className="font-semibold">{exchange.tradingDiscount}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Limit Order Fee:</span>
+              <span className="font-semibold">{exchange.limitOrderFee}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Market Order Fee:</span>
+              <span className="font-semibold">{exchange.marketOrderFee}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Event:</span>
+              <span className="font-semibold">{exchange.event}</span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+);
+MobileCard.displayName = "MobileCard";
+
 interface TopExchangeCardsProps {
   exchanges?: Exchange[];
 }
@@ -371,20 +423,43 @@ export const TopExchangeCards = ({
   }
 
   return (
-    <div
-      className="relative min-h-[700px] flex items-center justify-center gap-12 px-8 mb-16"
-      style={{ perspective: "1200px" }}
-    >
-      {CARD_DATA.map((cardData) => {
-        const exchangeIndex = cardData.rank - 1;
-        const exchange = displayExchanges[exchangeIndex];
+    <div className="relative min-h-[700px] px-4 mb-16">
+      {/* Desktop Layout */}
+      <div
+        className="hidden md:flex items-center justify-center gap-12"
+        style={{ perspective: "1200px" }}
+      >
+        {CARD_DATA.map((cardData) => {
+          const exchangeIndex = cardData.rank - 1;
+          const exchange = displayExchanges[exchangeIndex];
 
-        if (!exchange || cardData.rank > 3) return null;
+          if (!exchange || cardData.rank > 3) return null;
 
-        return (
-          <TraderCard key={cardData.rank} data={cardData} exchange={exchange} />
-        );
-      })}
+          return (
+            <TraderCard
+              key={cardData.rank}
+              data={cardData}
+              exchange={exchange}
+            />
+          );
+        })}
+      </div>
+
+      {/* Mobile Layout */}
+      <div className="md:hidden space-y-4">
+        {CARD_DATA.map((cardData) => {
+          const exchangeIndex = cardData.rank - 1;
+          const exchange = displayExchanges[exchangeIndex];
+
+          if (!exchange || cardData.rank > 3) return null;
+
+          return (
+            <div key={cardData.rank} className="w-full">
+              <MobileCard data={cardData} exchange={exchange} />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
