@@ -12,10 +12,15 @@ import Autoplay from "embla-carousel-autoplay";
 import { motion } from "motion/react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function HeroSection() {
   const { theme } = useTheme();
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const marqueeRef = useRef<HTMLDivElement>(null);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const colorTheme = theme === "dark" ? "dark" : "light";
@@ -57,8 +62,90 @@ export function HeroSection() {
       );
       if (prevScript) prevScript.remove();
       if (container) container.innerHTML = "";
+      // Clear timeout on unmount
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
     };
   }, [theme]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setStartX(e.pageX - (marqueeRef.current?.offsetLeft || 0));
+    setScrollLeft(marqueeRef.current?.scrollLeft || 0);
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    // Add a small delay before allowing scroll reset
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    scrollTimeoutRef.current = setTimeout(() => {
+      // Allow scroll reset after a brief delay
+    }, 100);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const x = e.pageX - (marqueeRef.current?.offsetLeft || 0);
+    const walk = (x - startX) * 2; // Multiply by 2 for faster scrolling
+    if (marqueeRef.current) {
+      marqueeRef.current.scrollLeft = scrollLeft - walk;
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true);
+    setStartX(e.touches[0].pageX - (marqueeRef.current?.offsetLeft || 0));
+    setScrollLeft(marqueeRef.current?.scrollLeft || 0);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const x = e.touches[0].pageX - (marqueeRef.current?.offsetLeft || 0);
+    const walk = (x - startX) * 2;
+    if (marqueeRef.current) {
+      marqueeRef.current.scrollLeft = scrollLeft - walk;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    // Add a small delay before allowing scroll reset
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    scrollTimeoutRef.current = setTimeout(() => {
+      // Allow scroll reset after a brief delay
+    }, 100);
+  };
+
+  const handleScroll = () => {
+    if (!marqueeRef.current || isDragging || scrollTimeoutRef.current) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = marqueeRef.current;
+    const roomWidth = 320 + 24; // card width + gap
+    const totalRooms = 10; // number of original rooms
+    const totalWidth = totalRooms * roomWidth;
+
+    // Only reset scroll position when not actively dragging and no timeout is active
+    if (!isDragging && !scrollTimeoutRef.current) {
+      // If we've scrolled past the first set of rooms, reset to the beginning of the second set
+      if (scrollLeft >= totalWidth) {
+        marqueeRef.current.scrollLeft = scrollLeft - totalWidth;
+      }
+      // If we've scrolled backwards past the beginning, jump to the end of the second set
+      else if (scrollLeft <= 0) {
+        marqueeRef.current.scrollLeft = scrollLeft + totalWidth;
+      }
+    }
+  };
 
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-br from-blue-50 via-blue-100 to-blue-50 dark:from-black dark:via-gray-900 dark:to-black md:pt-10">
@@ -454,9 +541,24 @@ export function HeroSection() {
                             Live Rooms
                           </Badge>
                         </div>
+
                         <div
-                          className="marquee-track flex items-center gap-6 pl-36"
-                          style={{ height: "300px" }}
+                          ref={marqueeRef}
+                          className="marquee-track flex items-center gap-6 pl-36 overflow-x-auto scrollbar-hide"
+                          style={{
+                            height: "300px",
+                            cursor: isDragging ? "grabbing" : "grab",
+                            userSelect: "none",
+                            scrollBehavior: isDragging ? "auto" : "smooth",
+                          }}
+                          onMouseDown={handleMouseDown}
+                          onMouseLeave={handleMouseLeave}
+                          onMouseUp={handleMouseUp}
+                          onMouseMove={handleMouseMove}
+                          onTouchStart={handleTouchStart}
+                          onTouchMove={handleTouchMove}
+                          onTouchEnd={handleTouchEnd}
+                          onScroll={handleScroll}
                         >
                           <div className="marquee-inner flex items-center gap-6">
                             {(() => {
@@ -542,7 +644,13 @@ export function HeroSection() {
                                   participants: 17,
                                 },
                               ];
-                              const allRooms = [...rooms, ...rooms];
+                              // Create multiple sets to ensure seamless looping
+                              const allRooms = [
+                                ...rooms,
+                                ...rooms,
+                                ...rooms,
+                                ...rooms,
+                              ];
                               return allRooms.map((room, idx) => (
                                 <motion.div
                                   key={idx}
@@ -644,8 +752,8 @@ export function HeroSection() {
                           </div>
                         </div>
                         {/* Marquee animation overlay for fade effect */}
-                        <div className="pointer-events-none absolute top-0 left-0 w-[70%] h-full bg-gradient-to-r from-blue-50/0 to-transparent dark:from-black/0 z-20" />
-                        <div className="pointer-events-none absolute top-0 right-0 w-[70%] h-full bg-gradient-to-l from-blue-50/0 to-transparent dark:from-black/0 z-20" />
+                        <div className="pointer-events-none absolute top-0 left-0 w-[15%] h-full bg-gradient-to-r from-blue-50/20 to-transparent dark:from-gray-900/10 z-20" />
+                        <div className="pointer-events-none absolute top-0 right-0 w-[15%] h-full bg-gradient-to-l from-blue-50/20 to-transparent dark:from-gray-900/10 z-20" />
                       </div>
                     </div>
                   </motion.div>
