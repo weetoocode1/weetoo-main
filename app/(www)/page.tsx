@@ -26,16 +26,12 @@ export default function Home() {
 
   return (
     <div className="h-full">
-      {/* Hero Section */}
       <HeroSection />
 
-      {/* Rankings Section */}
       <RankingsSection />
 
-      {/* Boards Section */}
       <CommunityBoardsSection boardData={boardData} />
 
-      {/* CTA Section */}
       <CTASection />
     </div>
   );
