@@ -1,17 +1,23 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
+import { updateExchanges, useExchangeStore } from "@/hooks/use-exchange-store";
 import {
-  Crown,
-  User,
-  TrendingUp,
-  Star,
-  Zap,
-  Award,
-  Target,
   ArrowUpDown,
+  Award,
+  Crown,
+  Edit3,
+  Star,
+  Target,
+  TrendingUp,
+  User,
+  Zap,
 } from "lucide-react";
-import { EXCHANGES, type Exchange } from "./exchanges-data";
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import { ExchangeEditDialog } from "./exchange-edit-dialog";
+import { type Exchange } from "./exchanges-data";
 
 // Calculate score based on objective metrics
 const calculateScore = (exchange: Exchange): number => {
@@ -40,9 +46,59 @@ const calculateScore = (exchange: Exchange): number => {
 
 export const PartnerExchangeComparison = () => {
   const [activeFilter, setActiveFilter] = useState("all");
+  const { isSuperAdmin } = useAuth();
+  const [selectedExchange, setSelectedExchange] = useState<Exchange | null>(
+    null
+  );
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const { exchanges, loading } = useExchangeStore();
+
+  const handleEdit = (exchange: Exchange) => {
+    setSelectedExchange(exchange);
+    setDialogOpen(true);
+  };
+
+  const handleSave = async (updatedExchange: Exchange) => {
+    try {
+      console.log("Saving exchange:", updatedExchange);
+
+      // Call the API to save the exchange data
+      const response = await fetch("/api/exchanges", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ exchange: updatedExchange }),
+      });
+
+      console.log("API response status:", response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("API error:", errorData);
+        throw new Error(
+          `Failed to save exchange: ${errorData.error || response.statusText}`
+        );
+      }
+
+      const result = await response.json();
+      console.log("API success:", result);
+
+      // Update the exchanges array with the new data
+      const updatedExchanges = exchanges.map((exchange) =>
+        exchange.id === updatedExchange.id ? updatedExchange : exchange
+      );
+      updateExchanges(updatedExchanges);
+
+      toast.success(`Updated ${updatedExchange.name} successfully`);
+    } catch (error) {
+      console.error("Error saving exchange:", error);
+      toast.error("Failed to save exchange. Please try again.");
+    }
+  };
 
   const filteredAndSortedExchanges = useMemo(() => {
-    let filtered = [...EXCHANGES];
+    let filtered = [...exchanges];
 
     switch (activeFilter) {
       case "recommended":
@@ -96,8 +152,21 @@ export const PartnerExchangeComparison = () => {
         break;
     }
 
+    // Always sort by score for filters that don't have their own sorting
+    if (
+      ![
+        "highest-cashback",
+        "highest-rebate",
+        "highest-discount",
+        "lowest-cashback",
+        "best-score",
+      ].includes(activeFilter)
+    ) {
+      filtered.sort((a, b) => calculateScore(b) - calculateScore(a));
+    }
+
     return filtered;
-  }, [activeFilter]);
+  }, [activeFilter, exchanges]);
 
   const filterOptions = [
     { id: "all", label: "All Exchanges", icon: ArrowUpDown },
@@ -110,6 +179,69 @@ export const PartnerExchangeComparison = () => {
     { id: "best-score", label: "Best Score", icon: Zap },
     { id: "trending", label: "Trending", icon: TrendingUp },
   ];
+
+  if (loading) {
+    return (
+      <div className="w-full max-w-[1600px] mx-auto mb-20">
+        {/* Filter Toolbox Skeleton */}
+        <div className="p-4 border-b border-border/30">
+          <div className="flex flex-wrap gap-2">
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={i}
+                className="h-9 w-24 bg-muted animate-pulse rounded-md"
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Table Skeleton */}
+        <div className="bg-background border border-border/35">
+          {/* Table Header Skeleton */}
+          <div
+            className={`grid gap-4 p-4 border-b border-border/50 ${
+              isSuperAdmin ? "grid-cols-10" : "grid-cols-9"
+            }`}
+          >
+            {[...Array(isSuperAdmin ? 10 : 9)].map((_, i) => (
+              <div key={i} className="h-4 bg-muted animate-pulse rounded" />
+            ))}
+          </div>
+
+          {/* Table Rows Skeleton */}
+          <div className="divide-y divide-border/35">
+            {[...Array(12)].map((_, rowIndex) => (
+              <div
+                key={rowIndex}
+                className={`grid gap-4 p-4 ${
+                  isSuperAdmin ? "grid-cols-10" : "grid-cols-9"
+                }`}
+              >
+                {[...Array(isSuperAdmin ? 10 : 9)].map((_, colIndex) => (
+                  <div
+                    key={colIndex}
+                    className={`h-6 bg-muted animate-pulse rounded ${
+                      colIndex === 0
+                        ? "w-8"
+                        : colIndex === 1
+                        ? "w-32"
+                        : colIndex === 2
+                        ? "w-12"
+                        : colIndex === 8
+                        ? "w-20"
+                        : colIndex === 9
+                        ? "w-16"
+                        : "w-20"
+                    }`}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-[1600px] mx-auto mb-20">
@@ -140,7 +272,11 @@ export const PartnerExchangeComparison = () => {
 
       <div className="bg-background border border-border/35">
         {/* Table Header */}
-        <div className="grid grid-cols-9 gap-4 p-4 border-b border-border/50">
+        <div
+          className={`grid gap-4 p-4 border-b border-border/50 ${
+            isSuperAdmin ? "grid-cols-10" : "grid-cols-9"
+          }`}
+        >
           <div className="font-medium text-sm text-muted-foreground text-center">
             #
           </div>
@@ -168,16 +304,24 @@ export const PartnerExchangeComparison = () => {
           <div className="font-medium text-sm text-muted-foreground text-center">
             Tags
           </div>
+          {isSuperAdmin && (
+            <div className="font-medium text-sm text-muted-foreground text-center">
+              Actions
+            </div>
+          )}
         </div>
 
         {/* Table Rows */}
         <div className="divide-y divide-border/35">
           {filteredAndSortedExchanges.map((exchange, index) => {
             const score = calculateScore(exchange);
+
             return (
               <div
                 key={exchange.id}
-                className="grid grid-cols-9 gap-4 p-4 hover:bg-muted/10 transition-colors duration-200"
+                className={`grid gap-4 p-4 hover:bg-muted/10 transition-colors duration-200 ${
+                  isSuperAdmin ? "grid-cols-10" : "grid-cols-9"
+                }`}
               >
                 {/* Row Number */}
                 <div className="flex items-center justify-center">
@@ -324,11 +468,33 @@ export const PartnerExchangeComparison = () => {
                     );
                   })}
                 </div>
+
+                {/* Actions for Super Admin */}
+                {isSuperAdmin && (
+                  <div className="flex items-center justify-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleEdit(exchange)}
+                      className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
+                    >
+                      <Edit3 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
       </div>
+
+      {/* Exchange Edit Dialog */}
+      <ExchangeEditDialog
+        exchange={selectedExchange}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSave={handleSave}
+      />
     </div>
   );
 };

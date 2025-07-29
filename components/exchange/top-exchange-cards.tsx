@@ -8,6 +8,7 @@ import { motion } from "motion/react";
 import { memo, useMemo } from "react";
 import { type CardData, createCardData } from "./card-data";
 import { type Exchange } from "./exchanges-data";
+import { useExchangeStore } from "@/hooks/use-exchange-store";
 
 const cardVariants = {
   hidden: { opacity: 0, scale: 0.8, y: 100 },
@@ -342,12 +343,32 @@ const TraderCard = memo(
 TraderCard.displayName = "TraderCard";
 
 interface TopExchangeCardsProps {
-  exchanges: Exchange[];
+  exchanges?: Exchange[];
 }
 
-export const TopExchangeCards = ({ exchanges }: TopExchangeCardsProps) => {
+export const TopExchangeCards = ({
+  exchanges: propExchanges,
+}: TopExchangeCardsProps) => {
+  const { exchanges, loading } = useExchangeStore();
+
+  // Use prop exchanges if provided, otherwise use fetched exchanges
+  const displayExchanges = propExchanges || exchanges;
+
   // Create card data from the top 3 exchanges
-  const CARD_DATA = createCardData(exchanges);
+  const CARD_DATA = createCardData(displayExchanges);
+
+  if (loading) {
+    return (
+      <div className="relative min-h-[700px] flex items-center justify-center gap-12 px-8 mb-16">
+        <div className="flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading top exchanges...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -356,7 +377,7 @@ export const TopExchangeCards = ({ exchanges }: TopExchangeCardsProps) => {
     >
       {CARD_DATA.map((cardData) => {
         const exchangeIndex = cardData.rank - 1;
-        const exchange = exchanges[exchangeIndex];
+        const exchange = displayExchanges[exchangeIndex];
 
         if (!exchange || cardData.rank > 3) return null;
 
