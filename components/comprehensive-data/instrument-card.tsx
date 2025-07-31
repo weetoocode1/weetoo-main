@@ -18,6 +18,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useTranslations } from "next-intl";
 
 // Global Set to track which cards have already animated
 const animatedCards = new Set<string>();
@@ -178,6 +179,7 @@ export const InstrumentCard = memo(function InstrumentCard({
   klines: Kline[];
   isLoading: boolean;
 }) {
+  const t = useTranslations("comprehensiveData");
   // Keep previous klines data to prevent chart flicker
   const prevKlines = useRef<Kline[]>([]);
   if (klines && klines.length > 0) {
@@ -305,7 +307,7 @@ export const InstrumentCard = memo(function InstrumentCard({
       <div className="px-6 py-5">
         {isLoading ? (
           <div className="h-16 flex items-center justify-center text-xs text-muted-foreground">
-            Loading...
+            {t("loading")}
           </div>
         ) : (
           <>
@@ -316,7 +318,7 @@ export const InstrumentCard = memo(function InstrumentCard({
                   {price}
                 </span>
                 <span className="text-xs text-muted-foreground font-medium">
-                  USD
+                  {t("usd")}
                 </span>
               </div>
               {/* Change value and 24h */}
@@ -332,13 +334,15 @@ export const InstrumentCard = memo(function InstrumentCard({
                   {isPositiveChange ? "+" : ""}
                   {changeValue}
                 </span>
-                <span className="text-xs text-muted-foreground ml-1">24h</span>
+                <span className="text-xs text-muted-foreground ml-1">
+                  {t("twentyFourHour")}
+                </span>
               </div>
             </div>
             {/* Chart Section */}
             <MiniChart data={chartData} />
             <div className="text-xs text-muted-foreground text-center mt-1">
-              Hour (24h local time)
+              {t("hour24hLocalTime")}
             </div>
           </>
         )}
@@ -348,13 +352,17 @@ export const InstrumentCard = memo(function InstrumentCard({
       {/* Footer */}
       <div className="flex justify-between items-center px-6 py-4 bg-[var(--color-card)]">
         <div>
-          <p className="text-xs text-muted-foreground mb-1">24H High</p>
+          <p className="text-xs text-muted-foreground mb-1">
+            {t("twentyFourHourHigh")}
+          </p>
           <p className="text-sm font-semibold text-foreground">
             {isLoading ? "-" : high24h}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-xs text-muted-foreground mb-1">24H Low</p>
+          <p className="text-xs text-muted-foreground mb-1">
+            {t("twentyFourHourLow")}
+          </p>
           <p className="text-sm font-semibold text-foreground">
             {isLoading ? "-" : low24h}
           </p>

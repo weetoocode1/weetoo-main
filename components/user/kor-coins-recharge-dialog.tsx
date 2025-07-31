@@ -21,8 +21,10 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 import { Icons } from "../icons";
+import { useTranslations } from "next-intl";
 
 export function KorCoinsRechargeDialog() {
+  const t = useTranslations("korCoinsRecharge");
   const [korCoinsAmount, setKorCoinsAmount] = useState("");
   const [userKorCoins, setUserKorCoins] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -113,14 +115,14 @@ export function KorCoinsRechargeDialog() {
                     </div>
                   )}
                   <span className="whitespace-nowrap sr-only">
-                    KOR Coins Recharge
+                    {t("korCoinsRecharge")}
                   </span>
                 </span>
               </TooltipTrigger>
               <TooltipContent side="bottom">
                 {loading
-                  ? "Loading..."
-                  : `KOR Coins: ${(userKorCoins ?? 0).toLocaleString()}`}
+                  ? t("loading")
+                  : `${t("korCoins")}: ${(userKorCoins ?? 0).toLocaleString()}`}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -146,12 +148,9 @@ export function KorCoinsRechargeDialog() {
                     )}
                   </div>
                 )}
-                KOR Coins Recharge
+                {t("korCoinsRecharge")}
               </DialogTitle>
-              <DialogDescription>
-                Recharge your KOR Coins to participate in trading and
-                competitions.
-              </DialogDescription>
+              <DialogDescription>{t("rechargeDescription")}</DialogDescription>
             </DialogHeader>
             <Separator className="my-3" />
             <div className="space-y-4">
@@ -160,12 +159,12 @@ export function KorCoinsRechargeDialog() {
                   htmlFor="kor-coins-amount"
                   className="font-semibold text-sm text-muted-foreground"
                 >
-                  Amount of KOR Coins
+                  {t("amountOfKorCoins")}
                 </Label>
                 <Input
                   id="kor-coins-amount"
                   type="number"
-                  placeholder="Enter amount..."
+                  placeholder={t("enterAmount")}
                   value={korCoinsAmount}
                   onChange={(e) => setKorCoinsAmount(e.target.value)}
                   className={cn(
@@ -200,7 +199,7 @@ export function KorCoinsRechargeDialog() {
                 <div className="rounded-xl bg-muted/60 border border-border p-3 flex flex-col gap-1.5 shadow-sm">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground font-medium">
-                      Deposit Amount (incl. VAT)
+                      {t("depositAmountInclVat")}
                     </span>
                     <span className="flex flex-col items-end text-right min-w-[100px]">
                       <span className="text-lg font-bold text-primary tabular-nums">
@@ -209,19 +208,19 @@ export function KorCoinsRechargeDialog() {
                           : "-"}
                       </span>
                       <span className="text-xs font-medium text-muted-foreground ml-1">
-                        KOR Coins
+                        {t("korCoins")}
                       </span>
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">
-                      (10% VAT included
+                      ({t("vatIncluded")}
                       {korCoinsAmount &&
                       !isNaN(Number(korCoinsAmount)) &&
                       Number(korCoinsAmount) > 0
                         ? `, +${Math.round(
                             Number(korCoinsAmount) * 0.1
-                          ).toLocaleString()} KOR Coins`
+                          ).toLocaleString()} ${t("korCoins")}`
                         : ""}
                       )
                     </span>
@@ -229,7 +228,7 @@ export function KorCoinsRechargeDialog() {
                   </div>
                   <div className="flex items-center justify-between mt-1">
                     <span className="text-xs text-muted-foreground font-medium">
-                      Cash to be Charged
+                      {t("cashToBeCharged")}
                     </span>
                     <span className="flex flex-col items-end text-right min-w-[100px]">
                       <span className="text-base font-semibold tabular-nums">
@@ -238,19 +237,19 @@ export function KorCoinsRechargeDialog() {
                           : "-"}
                       </span>
                       <span className="text-xs font-medium text-muted-foreground ml-1">
-                        KOR Coins
+                        {t("korCoins")}
                       </span>
                     </span>
                   </div>
                   <div className="my-2 border-t border-dashed border-border" />
                   <div className="flex flex-col gap-1">
                     <span className="text-xs text-muted-foreground font-medium">
-                      Bank Info
+                      {t("bankInfo")}
                     </span>
                     <span className="font-medium text-sm tracking-wide">
-                      Hana Bank{" "}
-                      <span className="font-mono">830501-04-245285</span> Kornet
-                      Co., Ltd.
+                      {t("hanaBank")}{" "}
+                      <span className="font-mono">830501-04-245285</span>{" "}
+                      {t("kornetCoLtd")}
                     </span>
                   </div>
                 </div>
@@ -262,13 +261,13 @@ export function KorCoinsRechargeDialog() {
                     htmlFor="depositor-name"
                     className="font-semibold text-sm"
                   >
-                    Depositor&apos;s Name{" "}
+                    {t("depositorsName")}{" "}
                     <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="depositor-name"
                     type="text"
-                    placeholder="Enter depositor's name"
+                    placeholder={t("enterDepositorsName")}
                     required
                     className={cn("w-full h-10")}
                   />
@@ -278,13 +277,15 @@ export function KorCoinsRechargeDialog() {
                     htmlFor="mobile-number"
                     className="font-semibold text-sm"
                   >
-                    Mobile Number{" "}
-                    <span className="text-muted-foreground">(optional)</span>
+                    {t("mobileNumber")}{" "}
+                    <span className="text-muted-foreground">
+                      ({t("optional")})
+                    </span>
                   </Label>
                   <Input
                     id="mobile-number"
                     type="tel"
-                    placeholder="Enter mobile number"
+                    placeholder={t("enterMobileNumber")}
                     className={cn("w-full h-10")}
                   />
                 </div>
@@ -292,7 +293,7 @@ export function KorCoinsRechargeDialog() {
               {/* Caution Section Placeholder */}
               <div className="mt-2">
                 <p className="text-xs text-red-500 font-medium text-center">
-                  No refunds after deposit is processed.
+                  {t("noRefundsAfterDeposit")}
                 </p>
               </div>
             </div>
@@ -305,7 +306,7 @@ export function KorCoinsRechargeDialog() {
                 "w-full h-10 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold rounded-lg py-2.5 text-base transition-colors shadow-sm"
               )}
             >
-              Recharge Now
+              {t("rechargeNow")}
             </Button>
           </div>
         </div>

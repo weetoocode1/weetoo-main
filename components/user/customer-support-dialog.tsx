@@ -14,8 +14,10 @@ import {
 } from "@/components/ui/tooltip";
 import Link from "next/link";
 import { Icons } from "../icons";
+import { useTranslations } from "next-intl";
 
 export function CustomerSupportDialog() {
+  const t = useTranslations("customerSupport");
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -26,11 +28,13 @@ export function CustomerSupportDialog() {
                 <span className="flex items-center gap-2">
                   <Icons.customerSupport className="w-4 h-4 text-muted-foreground" />
                   <span className="whitespace-nowrap sr-only">
-                    Customer Support
+                    {t("customerSupport")}
                   </span>
                 </span>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Customer Support</TooltipContent>
+              <TooltipContent side="bottom">
+                {t("customerSupport")}
+              </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </Button>
@@ -39,7 +43,7 @@ export function CustomerSupportDialog() {
         <DialogHeader>
           <DialogTitle className="text-lg font-bold mb-2 flex items-center gap-2">
             <Icons.customerSupport className="w-5 h-5 text-muted-foreground" />
-            Customer Support
+            {t("customerSupport")}
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-4">
@@ -66,14 +70,15 @@ export function CustomerSupportDialog() {
             </span>
             <div className="flex-1">
               <div className="font-semibold text-base">
-                KakaoTalk 1:1 Consultation
+                {t("kakaoTalkConsultation")}
               </div>
               <div className="text-xs text-gray-600 dark:text-gray-300">
-                Click to Go
+                {t("clickToGo")}
               </div>
               <div className="text-xs mt-1 text-gray-500 dark:text-gray-400">
-                Deposit/Withdrawal <span className="mx-1">|</span> Inconvenience{" "}
-                <span className="mx-1">|</span> Related Inquiries
+                {t("depositWithdrawal")} <span className="mx-1">|</span>{" "}
+                {t("inconvenience")} <span className="mx-1">|</span>{" "}
+                {t("relatedInquiries")}
               </div>
             </div>
           </Link>
@@ -101,14 +106,15 @@ export function CustomerSupportDialog() {
             </span>
             <div className="flex-1">
               <div className="font-semibold text-base">
-                Telegram 1:1 Consultation
+                {t("telegramConsultation")}
               </div>
               <div className="text-xs text-gray-600 dark:text-gray-300">
-                Click to Go
+                {t("clickToGo")}
               </div>
               <div className="text-xs mt-1 text-gray-500 dark:text-gray-400">
-                Deposit/Withdrawal <span className="mx-1">|</span> Inconvenience
-                <span className="mx-1">|</span> Related Inquiries
+                {t("depositWithdrawal")} <span className="mx-1">|</span>{" "}
+                {t("inconvenience")}
+                <span className="mx-1">|</span> {t("relatedInquiries")}
               </div>
             </div>
           </Link>

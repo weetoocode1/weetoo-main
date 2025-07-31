@@ -1,10 +1,13 @@
+"use client";
+
+import { LanguageProvider } from "@/providers/language-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
 import { Toaster } from "sonner";
+import { useEffect, useState } from "react";
+import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,32 +19,74 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Weetoo - We Trade",
-  description:
-    "Weetoo is a platform for the trading simulation of cryptocurrencies, stocks, and forex. Join us to learn, practice, and compete in a risk-free environment.",
-};
+import enMessages from "../locales/en.json";
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const [currentLang, setCurrentLang] = useState("en");
+
+  // Update language when component mounts or language changes
+  useEffect(() => {
+    const savedLocale = localStorage.getItem("locale") || "en";
+    setCurrentLang(savedLocale);
+
+    // Update HTML lang attribute
+    document.documentElement.lang = savedLocale;
+
+    // Listen for language changes
+    const handleLanguageChange = () => {
+      const newLocale = localStorage.getItem("locale") || "en";
+      setCurrentLang(newLocale);
+      document.documentElement.lang = newLocale;
+    };
+
+    window.addEventListener("storage", handleLanguageChange);
+
+    // Also listen for custom events if language changes within the same window
+    const handleCustomLanguageChange = (event: CustomEvent) => {
+      const newLocale = event.detail?.locale || "en";
+      setCurrentLang(newLocale);
+      document.documentElement.lang = newLocale;
+    };
+
+    window.addEventListener(
+      "languageChanged",
+      handleCustomLanguageChange as EventListener
+    );
+
+    return () => {
+      window.removeEventListener("storage", handleLanguageChange);
+      window.removeEventListener(
+        "languageChanged",
+        handleCustomLanguageChange as EventListener
+      );
+    };
+  }, []);
+
   return (
     <html
-      lang="en"
+      lang={currentLang}
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full`}
     >
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta charSet="utf-8" />
+      </head>
       <body className={`antialiased h-full`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
+        <LanguageProvider messages={enMessages}>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>
+        </LanguageProvider>
         <Toaster richColors position="top-center" />
         <SpeedInsights />
         <Analytics />

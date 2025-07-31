@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Award, Star, UserPlus } from "lucide-react";
 import { motion } from "motion/react";
 import { memo, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { type CardData, createCardData } from "./card-data";
 import { type Exchange } from "./exchanges-data";
 import { useExchangeStore } from "@/hooks/use-exchange-store";
@@ -28,6 +29,7 @@ const cardVariants = {
 
 const TraderCard = memo(
   ({ data, exchange }: { data: CardData; exchange?: Exchange }) => {
+    const t = useTranslations("exchange");
     const cardStyles = useMemo(() => {
       const baseStyles = {
         boxShadow: "",
@@ -204,8 +206,8 @@ const TraderCard = memo(
                 </div>
                 <div className="text-xs text-muted-foreground font-medium">
                   {data.rank === 1 || data.rank === 2 || data.rank === 3
-                    ? "Payback Rate"
-                    : "Total Return"}
+                    ? t("paybackRate")
+                    : t("totalReturn")}
                 </div>
               </div>
             </div>
@@ -259,7 +261,7 @@ const TraderCard = memo(
               <div className="space-y-3 flex-1 mt-4">
                 <div className="flex items-center justify-between py-2 border-b border-border/30">
                   <span className="font-medium text-muted-foreground">
-                    Payback Rate
+                    {t("paybackRate")}
                   </span>
                   <span className="font-bold text-foreground">
                     {exchange.paybackRate}%
@@ -267,7 +269,7 @@ const TraderCard = memo(
                 </div>
                 <div className="flex items-center justify-between py-2 border-b border-border/30">
                   <span className="font-medium text-muted-foreground">
-                    Trading Discount
+                    {t("tradingDiscount")}
                   </span>
                   <span className="font-bold text-foreground">
                     {exchange.tradingDiscount}
@@ -275,7 +277,7 @@ const TraderCard = memo(
                 </div>
                 <div className="flex items-center justify-between py-2 border-b border-border/30">
                   <span className="font-medium text-muted-foreground">
-                    Limit Order Fee
+                    {t("limitOrderFee")}
                   </span>
                   <span className="font-bold text-foreground">
                     {exchange.limitOrderFee}
@@ -283,7 +285,7 @@ const TraderCard = memo(
                 </div>
                 <div className="flex items-center justify-between py-2 border-b border-border/30">
                   <span className="font-medium text-muted-foreground">
-                    Market Order Fee
+                    {t("marketOrderFee")}
                   </span>
                   <span className="font-bold text-foreground">
                     {exchange.marketOrderFee}
@@ -291,7 +293,7 @@ const TraderCard = memo(
                 </div>
                 <div className="flex items-center justify-between py-2">
                   <span className="font-medium text-muted-foreground">
-                    Event
+                    {t("event")}
                   </span>
                   <span className="font-bold text-foreground">
                     {exchange.event}
@@ -307,7 +309,7 @@ const TraderCard = memo(
                 } transition-all duration-300`}
                 variant="outline"
               >
-                <UserPlus className="w-4 h-4 mr-2" /> Follow Trader
+                <UserPlus className="w-4 h-4 mr-2" /> {t("followTrader")}
               </Button>
             )}
           </div>
@@ -344,6 +346,7 @@ TraderCard.displayName = "TraderCard";
 
 const MobileCard = memo(
   ({ data, exchange }: { data: CardData; exchange?: Exchange }) => {
+    const t = useTranslations("exchange");
     return (
       <div className="bg-background border border-border rounded-lg p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
@@ -360,30 +363,38 @@ const MobileCard = memo(
             <div className="text-2xl font-bold text-emerald-600">
               +{data.totalReturn}%
             </div>
-            <div className="text-xs text-muted-foreground">Payback Rate</div>
+            <div className="text-xs text-muted-foreground">
+              {t("paybackRate")}
+            </div>
           </div>
         </div>
 
         {exchange && (
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Payback Rate:</span>
+              <span className="text-muted-foreground">{t("paybackRate")}:</span>
               <span className="font-semibold">{exchange.paybackRate}%</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Trading Discount:</span>
+              <span className="text-muted-foreground">
+                {t("tradingDiscount")}:
+              </span>
               <span className="font-semibold">{exchange.tradingDiscount}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Limit Order Fee:</span>
+              <span className="text-muted-foreground">
+                {t("limitOrderFee")}:
+              </span>
               <span className="font-semibold">{exchange.limitOrderFee}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Market Order Fee:</span>
+              <span className="text-muted-foreground">
+                {t("marketOrderFee")}:
+              </span>
               <span className="font-semibold">{exchange.marketOrderFee}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Event:</span>
+              <span className="text-muted-foreground">{t("event")}:</span>
               <span className="font-semibold">{exchange.event}</span>
             </div>
           </div>
@@ -401,6 +412,7 @@ interface TopExchangeCardsProps {
 export const TopExchangeCards = ({
   exchanges: propExchanges,
 }: TopExchangeCardsProps) => {
+  const t = useTranslations("exchange");
   const { exchanges, loading } = useExchangeStore();
 
   // Use prop exchanges if provided, otherwise use fetched exchanges
@@ -415,7 +427,7 @@ export const TopExchangeCards = ({
         <div className="flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading top exchanges...</p>
+            <p className="text-muted-foreground">{t("loadingTopExchanges")}</p>
           </div>
         </div>
       </div>

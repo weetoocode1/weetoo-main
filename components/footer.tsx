@@ -6,8 +6,10 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 export function Footer() {
+  const t = useTranslations("footer");
   return (
     <footer className="w-full bg-gradient-to-b from-background to-background/95 border-t border-border/50">
       {/* Main Footer */}
@@ -21,9 +23,7 @@ export function Footer() {
                 </span>
               </Link>
               <p className="text-sm text-muted-foreground leading-relaxed max-w-md">
-                Solomon Partners (WEE TOO_We are investors) is a margin
-                trading/overseas futures information site for the general
-                public.
+                {t("companyDescription")}
               </p>
             </div>
 
@@ -32,7 +32,7 @@ export function Footer() {
                 <ShieldAlert className="w-5 h-5 text-primary" />
                 <div>
                   <p className="text-sm font-medium text-foreground">
-                    Representative
+                    {t("representative")}
                   </p>
                   <p className="text-sm text-muted-foreground">Koh Hak-jin</p>
                 </div>
@@ -41,7 +41,7 @@ export function Footer() {
                 <Building2 className="w-5 h-5 text-primary" />
                 <div>
                   <p className="text-sm font-medium text-foreground">
-                    Registration
+                    {t("registration")}
                   </p>
                   <p className="text-sm text-muted-foreground">850-53-00866</p>
                 </div>
@@ -51,7 +51,7 @@ export function Footer() {
 
           <div className="lg:col-span-3 space-y-8">
             <h2 className="text-sm font-semibold text-foreground">
-              Quick Links
+              {t("quickLinks")}
             </h2>
             <div className="grid grid-cols-1 gap-3">
               <Link
@@ -59,7 +59,7 @@ export function Footer() {
                 className="group flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
               >
                 <span className="text-sm text-muted-foreground group-hover:text-foreground">
-                  Terms of Use
+                  {t("termsOfUse")}
                 </span>
                 <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
               </Link>
@@ -68,7 +68,7 @@ export function Footer() {
                 className="group flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
               >
                 <span className="text-sm text-muted-foreground group-hover:text-foreground">
-                  Privacy Policy
+                  {t("privacyPolicy")}
                 </span>
                 <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
               </Link>
@@ -77,7 +77,7 @@ export function Footer() {
                 className="group flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
               >
                 <span className="text-sm text-muted-foreground group-hover:text-foreground">
-                  Customer Center
+                  {t("customerCenter")}
                 </span>
                 <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
               </Link>
@@ -86,7 +86,7 @@ export function Footer() {
                 className="group flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
               >
                 <span className="text-sm text-muted-foreground group-hover:text-foreground">
-                  Community
+                  {t("community")}
                 </span>
                 <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
               </Link>
@@ -95,20 +95,24 @@ export function Footer() {
 
           <div className="lg:col-span-4 space-y-8">
             <h3 className="text-sm font-semibold text-foreground">
-              Contact Us
+              {t("contactUs")}
             </h3>
             <div className="space-y-4">
               <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
                 <Phone className="w-5 h-5 mt-1 text-primary" />
                 <div>
-                  <p className="text-sm font-medium text-foreground">Phone</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {t("phone")}
+                  </p>
                   <p className="text-sm text-muted-foreground">070-8670-4032</p>
                 </div>
               </div>
               <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
                 <MapPin className="w-5 h-5 mt-1 text-primary" />
                 <div>
-                  <p className="text-sm font-medium text-foreground">Address</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {t("address")}
+                  </p>
                   <p className="text-sm text-muted-foreground">
                     3012-53, 30th floor, Building A,
                     <br />
@@ -128,42 +132,17 @@ export function Footer() {
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="space-y-4">
             <h3 className="text-base font-semibold text-foreground text-center">
-              Investment Risk Notice
+              {t("investmentRiskNotice")}
             </h3>
             <div className="prose prose-sm text-muted-foreground max-w-none">
               <p className="mb-3 text-sm leading-relaxed">
-                Solomon Partners (WEE TOO_We are investors) is a margin
-                trading/overseas futures information site for the general
-                public, so it does not provide services such as &apos;investment
-                brokerage&apos; or &apos;investment consulting and agency&apos;,
-                and the trading history provided by our company is simulated
-                investment content. Please note that actual CFD trading is a
-                high-risk, high-return financial derivative product, and all
-                losses are attributed to the trader.
+                {t("riskNoticeParagraph1")}
               </p>
               <p className="mb-3 text-sm leading-relaxed">
-                Risk Disclaimer: Solomon Partners (WEE TOO_We are Investors) is
-                not responsible for any loss or damage caused by reliance on the
-                information contained in this website, including market news,
-                analysis, trading signals and Forex broker reviews. The data
-                contained in this website is not necessarily real-time or
-                accurate and the analysis is the opinion of the author and does
-                not represent a recommendation by Solomon Partners (WEE TOO_We
-                are Investors) or its staff.
+                {t("riskNoticeParagraph2")}
               </p>
               <p className="text-sm leading-relaxed">
-                Trading currency on margin carries a high level of risk and is
-                not suitable for all investors. Leveraged products can result in
-                losses exceeding the initial deposit and your capital is at
-                risk. Before deciding to trade Forex or any other financial
-                product, you should carefully consider your investment
-                objectives, level of experience and risk appetite. We work hard
-                to provide valuable information on all the brokers we review. In
-                order to provide this free service, we receive advertising fees
-                from overseas brokers, including some of those listed on this
-                page and in our rankings. While we do our best to ensure that
-                all data is up to date, we recommend that you verify the
-                information directly with the overseas broker.
+                {t("riskNoticeParagraph3")}
               </p>
             </div>
           </div>
@@ -175,8 +154,7 @@ export function Footer() {
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex justify-center">
             <p className="text-sm text-muted-foreground text-center">
-              © {new Date().getFullYear()} Solomon Partners (WEE TOO_We are
-              investors). All rights reserved.
+              © {new Date().getFullYear()} {t("copyrightText")}
             </p>
           </div>
         </div>

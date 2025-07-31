@@ -10,12 +10,16 @@ import {
 } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
 import { motion } from "motion/react";
+import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { tradingRooms } from "./rooms-data";
 
 export function HeroSection() {
   const { theme } = useTheme();
+  const t = useTranslations("hero");
+  const b = useTranslations("brokers");
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
@@ -126,26 +130,13 @@ export function HeroSection() {
     }, 100);
   };
 
-  const handleScroll = () => {
-    if (!marqueeRef.current || isDragging || scrollTimeoutRef.current) return;
-
-    const { scrollLeft } = marqueeRef.current;
-    const roomWidth = 320 + 24; // card width + gap
-    const totalRooms = 10; // number of original rooms
-    const totalWidth = totalRooms * roomWidth;
-
-    // Only reset scroll position when not actively dragging and no timeout is active
-    if (!isDragging && !scrollTimeoutRef.current) {
-      // If we've scrolled past the first set of rooms, reset to the beginning of the second set
-      if (scrollLeft >= totalWidth) {
-        marqueeRef.current.scrollLeft = scrollLeft - totalWidth;
-      }
-      // If we've scrolled backwards past the beginning, jump to the end of the second set
-      else if (scrollLeft <= 0) {
-        marqueeRef.current.scrollLeft = scrollLeft + totalWidth;
-      }
-    }
-  };
+  // Create multiple sets to ensure seamless looping
+  const allRooms = [
+    ...tradingRooms,
+    ...tradingRooms,
+    ...tradingRooms,
+    ...tradingRooms,
+  ];
 
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-br from-blue-50 via-blue-100 to-blue-50 dark:from-black dark:via-gray-900 dark:to-black md:pt-10">
@@ -171,7 +162,7 @@ export function HeroSection() {
           image="/broker/bitget.png"
           color="#00eaff"
           text="Bitget"
-          subtext="70% Payback"
+          subtext={`70% ${b("payback")}`}
           size={90}
           className="absolute top-[30%] left-[-15%] z-30 md:block hidden"
         />
@@ -179,7 +170,7 @@ export function HeroSection() {
           image="/broker/bybit.png"
           color="#f3c13a"
           text="Bybit"
-          subtext="45% Payback"
+          subtext={`45% ${b("payback")}`}
           size={80}
           className="absolute top-[40%] right-[-15%] z-30 md:block hidden"
         />
@@ -187,7 +178,7 @@ export function HeroSection() {
           image="/broker/gate.png"
           color="#e6007a"
           text="Gate"
-          subtext="80% Payback"
+          subtext={`80% ${b("payback")}`}
           size={75}
           className="absolute bottom-[12%] left-[-20%] z-30 md:block hidden"
         />
@@ -195,7 +186,7 @@ export function HeroSection() {
           image="/broker/mexc.png"
           color="#1ecb98"
           text="Mexc"
-          subtext="50% Payback"
+          subtext={`50% ${b("payback")}`}
           size={70}
           className="absolute bottom-[12%] right-[-20%] z-30 md:block hidden"
         />
@@ -203,7 +194,7 @@ export function HeroSection() {
           image="/broker/bingx.png"
           color="#2d7cff"
           text="BingX"
-          subtext="60% Payback"
+          subtext={`60% ${b("payback")}`}
           size={65}
           className="absolute top-[8%] right-[-20%] z-30 md:block hidden"
         />
@@ -211,7 +202,7 @@ export function HeroSection() {
           image="/broker/blofin.png"
           color="#4e9cff"
           text="Blofin"
-          subtext="70% Payback"
+          subtext={`70% ${b("payback")}`}
           size={60}
           className="absolute top-[3%] left-[-20%] z-30 md:block hidden"
         />
@@ -219,7 +210,7 @@ export function HeroSection() {
           image="/broker/okx.png"
           color="#222"
           text="OKX"
-          subtext="50% Payback"
+          subtext={`50% ${b("payback")}`}
           size={70}
           className="absolute top-[-6%] left-1/2 -translate-x-1/2 z-30 md:block hidden"
         />
@@ -341,16 +332,15 @@ export function HeroSection() {
                               />
                             </svg>
                             <span className="uppercase tracking-widest text-xs font-semibold text-gray-400 dark:text-gray-500">
-                              TRADE SMARTER, TOGETHER
+                              {t("tradeSmarter")}
                             </span>
                           </div>
                           <div className="max-w-[400px] w-full">
                             <h2 className="w-full text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-4 text-left">
-                              Experience Next-Gen Trading with Weetoo
+                              {t("experienceNextGen")}
                             </h2>
                             <p className="w-full text-xs sm:text-sm md:text-base lg:text-lg text-gray-500 dark:text-gray-300 mb-4 sm:mb-8 text-left">
-                              Join a vibrant community, learn, compete, and grow
-                              your trading skills risk-free.
+                              {t("joinCommunity")}
                             </p>
                           </div>
                           <Button
@@ -358,7 +348,7 @@ export function HeroSection() {
                             size="lg"
                             className="w-full md:w-auto rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold shadow-none h-12"
                           >
-                            <Link href="/trading">Get Started</Link>
+                            <Link href="/trading">{t("getStarted")}</Link>
                           </Button>
                         </div>
                         {/* Right-side image illustration (only on md and up) */}
@@ -410,16 +400,15 @@ export function HeroSection() {
                               />
                             </svg>
                             <span className="uppercase tracking-widest text-xs font-semibold text-green-600 dark:text-green-400">
-                              LATEST NEWS
+                              {t("latestNews")}
                             </span>
                           </div>
                           <div className="max-w-[400px] w-full">
                             <h2 className="w-full text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-4 text-left">
-                              Stay Ahead with Real-Time Market News
+                              {t("stayAhead")}
                             </h2>
                             <p className="w-full text-xs sm:text-sm md:text-base lg:text-lg text-gray-500 dark:text-gray-300 mb-4 sm:mb-8 text-left">
-                              Get the latest updates, trends, and insights from
-                              the world of trading and finance.
+                              {t("getLatestUpdates")}
                             </p>
                           </div>
                           <Button
@@ -427,7 +416,7 @@ export function HeroSection() {
                             size="lg"
                             className="w-full md:w-auto rounded-lg bg-green-600 hover:bg-green-700 text-white text-base font-semibold shadow-none h-12"
                           >
-                            <Link href="/news">Read News</Link>
+                            <Link href="/news">{t("readNews")}</Link>
                           </Button>
                         </div>
                         {/* Right-side image illustration (only on md and up) */}
@@ -472,16 +461,15 @@ export function HeroSection() {
                               <circle cx="14" cy="11" r="1" fill="#F472B6" />
                             </svg>
                             <span className="uppercase tracking-widest text-xs font-semibold text-pink-600 dark:text-pink-400">
-                              COMMUNITY POWER
+                              {t("communityPower")}
                             </span>
                           </div>
                           <div className="max-w-[400px] w-full">
                             <h2 className="w-full text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-4 text-left">
-                              Connect, Share, and Grow Together
+                              {t("connectShare")}
                             </h2>
                             <p className="w-full text-xs sm:text-sm md:text-base lg:text-lg text-gray-500 dark:text-gray-300 mb-4 sm:mb-8 text-left">
-                              Join discussions, ask questions, and collaborate
-                              with traders from around the world.
+                              {t("joinDiscussions")}
                             </p>
                           </div>
                           <Button
@@ -490,7 +478,7 @@ export function HeroSection() {
                             className="w-full md:w-auto rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-base font-semibold shadow-none h-12"
                           >
                             <Link href="/board/free-board">
-                              Visit Community
+                              {t("visitCommunity")}
                             </Link>
                           </Button>
                         </div>
@@ -538,18 +526,19 @@ export function HeroSection() {
                       <div className="relative overflow-hidden">
                         <div className="absolute left-0 top-4 z-10">
                           <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
-                            Live Rooms
+                            {t("liveRooms")}
                           </Badge>
                         </div>
 
                         <div
                           ref={marqueeRef}
-                          className="marquee-track flex items-center gap-6 pl-36 overflow-x-auto scrollbar-hide"
+                          className={`marquee-track flex items-center gap-6 pl-36 overflow-hidden ${
+                            isDragging ? "paused" : ""
+                          }`}
                           style={{
                             height: "300px",
                             cursor: isDragging ? "grabbing" : "grab",
                             userSelect: "none",
-                            scrollBehavior: isDragging ? "auto" : "smooth",
                           }}
                           onMouseDown={handleMouseDown}
                           onMouseLeave={handleMouseLeave}
@@ -558,180 +547,89 @@ export function HeroSection() {
                           onTouchStart={handleTouchStart}
                           onTouchMove={handleTouchMove}
                           onTouchEnd={handleTouchEnd}
-                          onScroll={handleScroll}
                         >
                           <div className="marquee-inner flex items-center gap-6">
-                            {(() => {
-                              const rooms = [
-                                {
-                                  name: "BTC Strategy Discussion",
-                                  creator: { name: "Alex Thompson" },
-                                  symbol: "BTCUSDT",
-                                  category: "Chat",
-                                  isPublic: true,
-                                  participants: 24,
-                                },
-                                {
-                                  name: "ETH Technical Analysis",
-                                  creator: { name: "Sarah Kim" },
-                                  symbol: "ETHUSDT",
-                                  category: "Voice",
-                                  isPublic: true,
-                                  participants: 18,
-                                },
-                                {
-                                  name: "Futures Trading Strategies",
-                                  creator: { name: "Emma Wilson" },
-                                  symbol: "BTCUSDT",
-                                  category: "Chat",
-                                  isPublic: true,
-                                  participants: 15,
-                                },
-                                {
-                                  name: "Day Trading Strategies",
-                                  creator: { name: "William Taylor" },
-                                  symbol: "BNBUSDT",
-                                  category: "Voice",
-                                  isPublic: true,
-                                  participants: 19,
-                                },
-                                {
-                                  name: "VIP BTC Room",
-                                  creator: { name: "David Lee" },
-                                  symbol: "BTCUSDT",
-                                  category: "Voice",
-                                  isPublic: false,
-                                  participants: 9,
-                                },
-                                {
-                                  name: "ETH Swing Group",
-                                  creator: { name: "Olivia Brown" },
-                                  symbol: "ETHUSDT",
-                                  category: "Chat",
-                                  isPublic: true,
-                                  participants: 27,
-                                },
-                                {
-                                  name: "BNB Quick Trades",
-                                  creator: { name: "Sophia Garcia" },
-                                  symbol: "BNBUSDT",
-                                  category: "Chat",
-                                  isPublic: false,
-                                  participants: 12,
-                                },
-                                {
-                                  name: "BTCUSDT Morning Brief",
-                                  creator: { name: "Grace Hall" },
-                                  symbol: "BTCUSDT",
-                                  category: "Chat",
-                                  isPublic: true,
-                                  participants: 21,
-                                },
-                                {
-                                  name: "ETHUSDT Pro Signals",
-                                  creator: { name: "Ethan Wright" },
-                                  symbol: "ETHUSDT",
-                                  category: "Chat",
-                                  isPublic: false,
-                                  participants: 14,
-                                },
-                                {
-                                  name: "BNBUSDT Insights",
-                                  creator: { name: "Nina Patel" },
-                                  symbol: "BNBUSDT",
-                                  category: "Voice",
-                                  isPublic: true,
-                                  participants: 17,
-                                },
-                              ];
-                              // Create multiple sets to ensure seamless looping
-                              const allRooms = [
-                                ...rooms,
-                                ...rooms,
-                                ...rooms,
-                                ...rooms,
-                              ];
-                              return allRooms.map((room, idx) => (
-                                <motion.div
-                                  key={idx}
-                                  whileHover={{
-                                    scale: 1.035,
-                                    boxShadow: "0 6px 28px 0 rgba(0,0,0,0.15)",
-                                  }}
-                                  whileTap={{ scale: 0.97 }}
-                                  className={`flex flex-col justify-between min-w-[320px] max-w-[320px] h-[190px] rounded-2xl border transition-all duration-200 relative overflow-hidden p-6 shadow-lg 
+                            {allRooms.map((room, idx) => (
+                              <motion.div
+                                key={idx}
+                                whileHover={{
+                                  scale: 1.035,
+                                  boxShadow: "0 6px 28px 0 rgba(0,0,0,0.15)",
+                                }}
+                                whileTap={{ scale: 0.97 }}
+                                className={`flex flex-col justify-between min-w-[320px] max-w-[320px] h-[190px] rounded-2xl border transition-all duration-200 relative overflow-hidden p-6 shadow-lg 
                                     ${
                                       theme === "light"
                                         ? "bg-gradient-to-b from-white/90 to-blue-50/80 border-gray-200 text-gray-900"
                                         : "bg-gradient-to-b from-gray-900/60 to-gray-800/80 dark:from-gray-900/80 dark:to-gray-900/60 border-gray-700/40 text-white"
                                     }
                                   `}
-                                >
-                                  <div className="flex items-center justify-between w-full mb-3">
-                                    <span className="text-sm font-bold px-3 py-1.5 rounded-full bg-red-500 text-white">
-                                      LIVE
-                                    </span>
-                                    <span
-                                      className={`text-sm font-semibold px-3 py-1.5 rounded-full 
+                              >
+                                <div className="flex items-center justify-between w-full mb-3">
+                                  <span className="text-sm font-bold px-3 py-1.5 rounded-full bg-red-500 text-white">
+                                    {t("live")}
+                                  </span>
+                                  <span
+                                    className={`text-sm font-semibold px-3 py-1.5 rounded-full 
                                       ${
                                         theme === "light"
                                           ? "bg-gray-100 text-gray-700"
                                           : "bg-gray-800/80 text-gray-100 dark:bg-gray-700/80 dark:text-gray-200"
                                       }`}
-                                    >
-                                      {room.participants} participants
-                                    </span>
-                                  </div>
-                                  <div className="flex flex-col flex-1 justify-start items-start text-left">
-                                    <div
-                                      className={`text-xl font-bold leading-tight mb-1 truncate w-full 
+                                  >
+                                    {room.participants} {t("participants")}
+                                  </span>
+                                </div>
+                                <div className="flex flex-col flex-1 justify-start items-start text-left">
+                                  <div
+                                    className={`text-xl font-bold leading-tight mb-1 truncate w-full 
                                       ${
                                         theme === "light"
                                           ? "text-gray-900"
                                           : "text-white"
                                       }`}
-                                    >
-                                      {room.name}
-                                    </div>
-                                    <div
-                                      className={`text-sm mb-3 truncate w-full 
+                                  >
+                                    {room.name}
+                                  </div>
+                                  <div
+                                    className={`text-sm mb-3 truncate w-full 
                                       ${
                                         theme === "light"
                                           ? "text-gray-500"
                                           : "text-gray-400"
                                       }`}
-                                    >
-                                      by {room.creator.name}
-                                    </div>
-                                    <div
-                                      className={`flex flex-wrap gap-2 mt-auto pt-2 border-t ${
-                                        theme === "light"
-                                          ? "border-gray-200"
-                                          : "border-gray-700/30"
-                                      }`}
-                                    >
-                                      <span
-                                        className={`text-xs font-medium px-3 py-1 rounded-full tracking-wide 
+                                  >
+                                    {t("by")} {room.creator.name}
+                                  </div>
+                                  <div
+                                    className={`flex flex-wrap gap-2 mt-auto pt-2 border-t ${
+                                      theme === "light"
+                                        ? "border-gray-200"
+                                        : "border-gray-700/30"
+                                    }`}
+                                  >
+                                    <span
+                                      className={`text-xs font-medium px-3 py-1 rounded-full tracking-wide 
                                         ${
                                           theme === "light"
                                             ? "bg-blue-100 text-blue-700"
                                             : "bg-blue-600/20 text-blue-400"
                                         }`}
-                                      >
-                                        {room.symbol}
-                                      </span>
-                                      <span
-                                        className={`text-xs font-medium px-3 py-1 rounded-full tracking-wide 
+                                    >
+                                      {room.symbol}
+                                    </span>
+                                    <span
+                                      className={`text-xs font-medium px-3 py-1 rounded-full tracking-wide 
                                         ${
                                           theme === "light"
                                             ? "bg-purple-100 text-purple-700"
                                             : "bg-purple-600/20 text-purple-300"
                                         }`}
-                                      >
-                                        {room.category}
-                                      </span>
-                                      <span
-                                        className={`text-xs font-medium px-3 py-1 rounded-full tracking-wide 
+                                    >
+                                      {room.category}
+                                    </span>
+                                    <span
+                                      className={`text-xs font-medium px-3 py-1 rounded-full tracking-wide 
                                         ${
                                           room.isPublic
                                             ? theme === "light"
@@ -741,14 +639,15 @@ export function HeroSection() {
                                             ? "bg-yellow-100 text-yellow-700"
                                             : "bg-yellow-600/20 text-yellow-200"
                                         }`}
-                                      >
-                                        {room.isPublic ? "Public" : "Private"}
-                                      </span>
-                                    </div>
+                                    >
+                                      {room.isPublic
+                                        ? t("public")
+                                        : t("private")}
+                                    </span>
                                   </div>
-                                </motion.div>
-                              ));
-                            })()}
+                                </div>
+                              </motion.div>
+                            ))}
                           </div>
                         </div>
                         {/* Marquee animation overlay for fade effect */}

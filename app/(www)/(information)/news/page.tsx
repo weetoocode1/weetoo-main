@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { NewsList } from "@/components/news/news-list";
+import { NewsClient } from "./page-client";
 
 export const metadata: Metadata = {
   title: "News | Weetoo",
@@ -8,9 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function News() {
-  return (
-    <div className="container flex flex-col gap-10 mx-auto py-4 pb-10 px-4">
-      <NewsList />
-    </div>
-  );
+  return <NewsClient />;
 }

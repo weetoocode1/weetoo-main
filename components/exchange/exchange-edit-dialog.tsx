@@ -19,6 +19,7 @@ import {
 import { Edit3, Info, Save, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { type Exchange } from "./exchanges-data";
 
 interface ExchangeEditDialogProps {
@@ -34,6 +35,7 @@ export function ExchangeEditDialog({
   onOpenChange,
   onSave,
 }: ExchangeEditDialogProps) {
+  const t = useTranslations("exchange");
   const [editedExchange, setEditedExchange] = useState<Exchange | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -110,7 +112,7 @@ export function ExchangeEditDialog({
         <DialogHeader className="flex-shrink-0 pb-4">
           <DialogTitle className="flex items-center gap-2">
             <Edit3 className="w-5 h-5" />
-            Edit Exchange: {exchange.name}
+            {t("editExchange")}: {exchange.name}
           </DialogTitle>
         </DialogHeader>
 
@@ -120,11 +122,11 @@ export function ExchangeEditDialog({
             {/* Score Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold border-b pb-2">
-                Score Information
+                {t("scoreInformation")}
               </h3>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Label>Current Score</Label>
+                  <Label>{t("currentScore")}</Label>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -138,7 +140,9 @@ export function ExchangeEditDialog({
                       </TooltipTrigger>
                       <TooltipContent side="right" className="w-64">
                         <div className="space-y-2">
-                          <div className="font-semibold">Score Calculation</div>
+                          <div className="font-semibold">
+                            {t("scoreCalculation")}
+                          </div>
                           <div className="text-xs space-y-1">
                             <div className="flex justify-between">
                               <span>
@@ -149,7 +153,7 @@ export function ExchangeEditDialog({
                               </span>
                             </div>
                             <div className="flex justify-between">
-                              <span>Trading Discount:</span>
+                              <span>{t("tradingDiscount")}:</span>
                               <span className="font-mono">
                                 +{scoreBreakdown.discountPoints} pts
                               </span>
@@ -178,14 +182,14 @@ export function ExchangeEditDialog({
                               </span>
                             </div>
                             <div className="flex justify-between">
-                              <span>Event Bonus:</span>
+                              <span>{t("eventBonus")}:</span>
                               <span className="font-mono">
                                 +{scoreBreakdown.eventPoints} pts
                               </span>
                             </div>
                             <div className="border-t pt-1 mt-1">
                               <div className="flex justify-between font-semibold">
-                                <span>Total:</span>
+                                <span>{t("total")}:</span>
                                 <span className="font-mono">
                                   {scoreBreakdown.totalScore} pts
                                 </span>
@@ -198,11 +202,10 @@ export function ExchangeEditDialog({
                   </TooltipProvider>
                 </div>
                 <div className="text-2xl font-bold text-foreground">
-                  {scoreBreakdown.totalScore} points
+                  {scoreBreakdown.totalScore} {t("points")}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Score is automatically calculated based on payback rate,
-                  trading discount, fees, and events
+                  {t("scoreAutoCalculated")}
                 </div>
               </div>
             </div>
@@ -210,11 +213,11 @@ export function ExchangeEditDialog({
             {/* Trading Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold border-b pb-2">
-                Trading Information
+                {t("tradingInformation")}
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="paybackRate">Payback Rate (%)</Label>
+                  <Label htmlFor="paybackRate">{t("paybackRatePercent")}</Label>
                   <Input
                     id="paybackRate"
                     type="number"
@@ -231,7 +234,9 @@ export function ExchangeEditDialog({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="tradingDiscount">Trading Discount</Label>
+                  <Label htmlFor="tradingDiscount">
+                    {t("tradingDiscount")}
+                  </Label>
                   <Input
                     id="tradingDiscount"
                     value={editedExchange.tradingDiscount}
@@ -244,7 +249,7 @@ export function ExchangeEditDialog({
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="limitOrderFee">Limit Order Fee</Label>
+                  <Label htmlFor="limitOrderFee">{t("limitOrderFee")}</Label>
                   <Input
                     id="limitOrderFee"
                     value={editedExchange.limitOrderFee}
@@ -255,7 +260,7 @@ export function ExchangeEditDialog({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="marketOrderFee">Market Order Fee</Label>
+                  <Label htmlFor="marketOrderFee">{t("marketOrderFee")}</Label>
                   <Input
                     id="marketOrderFee"
                     value={editedExchange.marketOrderFee}
@@ -268,7 +273,7 @@ export function ExchangeEditDialog({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="averageRebatePerUser">
-                  Average Rebate per User
+                  {t("averageRebatePerUser")}
                 </Label>
                 <Input
                   id="averageRebatePerUser"
@@ -292,7 +297,7 @@ export function ExchangeEditDialog({
             className="h-10 cursor-pointer"
           >
             <X className="w-4 h-4 mr-2" />
-            Cancel
+            {t("cancel")}
           </Button>
           <Button
             onClick={handleSave}
@@ -300,7 +305,7 @@ export function ExchangeEditDialog({
             className="h-10 cursor-pointer"
           >
             <Save className="w-4 h-4 mr-2" />
-            {isLoading ? "Saving..." : "Save Changes"}
+            {isLoading ? t("saving") : t("saveChanges")}
           </Button>
         </div>
       </DialogContent>

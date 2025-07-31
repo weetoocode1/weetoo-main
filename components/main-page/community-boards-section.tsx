@@ -4,6 +4,7 @@ import { TopPostsDisplay } from "@/components/board/top-posts-display";
 import { Badge } from "@/components/ui/badge";
 import { Post } from "@/types/post";
 import { motion } from "motion/react";
+import { useTranslations } from "next-intl";
 
 interface CommunityBoardsSectionProps {
   boardData: {
@@ -16,6 +17,7 @@ interface CommunityBoardsSectionProps {
 export function CommunityBoardsSection({
   boardData,
 }: CommunityBoardsSectionProps) {
+  const t = useTranslations("communityBoards");
   // Free Board Images
   const freeBoardImages = [
     "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=400&q=80",
@@ -47,13 +49,13 @@ export function CommunityBoardsSection({
           viewport={{ once: true }}
         >
           <Badge className="mb-4 bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20 px-4 py-1.5 text-sm">
-            Community Boards
+            {t("communityBoards")}
           </Badge>
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Trading Community
+            {t("tradingCommunity")}
           </h2>
           <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto px-4 sm:px-0">
-            Join our vibrant community of traders and share your insights.
+            {t("communityDescription")}
           </p>
         </motion.div>
 
@@ -61,9 +63,9 @@ export function CommunityBoardsSection({
           {/* Free Board */}
           <TopPostsDisplay
             board="free-board"
-            boardDisplayName="Free Board"
+            boardDisplayName={t("freeBoard")}
             badgeColor="bg-green-200 text-green-800 border border-green-300 dark:bg-green-500/15 dark:text-green-400 dark:border-green-500/25"
-            badgeText="Public"
+            badgeText={t("public")}
             demoImages={freeBoardImages}
             preloadedPosts={boardData["free-board"]}
           />
@@ -71,9 +73,9 @@ export function CommunityBoardsSection({
           {/* Education Board */}
           <TopPostsDisplay
             board="education-board"
-            boardDisplayName="Education Board"
+            boardDisplayName={t("educationBoard")}
             badgeColor="bg-blue-200 text-blue-800 border border-blue-300 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/25"
-            badgeText="Learning"
+            badgeText={t("learning")}
             demoImages={educationBoardImages}
             preloadedPosts={boardData["education-board"]}
           />
@@ -81,9 +83,9 @@ export function CommunityBoardsSection({
           {/* Profit Board */}
           <TopPostsDisplay
             board="profit-board"
-            boardDisplayName="Profit Board"
+            boardDisplayName={t("profitBoard")}
             badgeColor="bg-purple-200 text-purple-800 border border-purple-300 dark:bg-purple-500/15 dark:text-purple-400 dark:border-purple-500/25"
-            badgeText="Success"
+            badgeText={t("success")}
             demoImages={profitBoardImages}
             preloadedPosts={boardData["profit-board"]}
           />

@@ -1,3 +1,5 @@
+"use client";
+
 import { Post } from "@/types/post";
 import { useEffect, useState } from "react";
 

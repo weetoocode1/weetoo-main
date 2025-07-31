@@ -1,38 +1,58 @@
-"use client";
+import { Metadata } from "next";
+import { HomeClient } from "./page-client";
+import { seoKeywords } from "./seo-keywords";
 
-import {
-  CommunityBoardsSection,
-  CTASection,
-  HeroSection,
-  RankingsSection,
-  useBoardData,
-} from "@/components/main-page";
-import { createClient } from "@/lib/supabase/client";
-import { useEffect } from "react";
+export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "https://www.weetoo.net"
+  ),
+  title: seoKeywords.title,
+  description: seoKeywords.description,
+  keywords: seoKeywords.keywords.join(", "),
+  authors: [{ name: "Weetoo Team" }],
+  creator: "Weetoo",
+  publisher: "Weetoo",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  openGraph: {
+    ...seoKeywords.openGraph,
+    images: [
+      {
+        url: "/logo.png",
+        width: 1200,
+        height: 630,
+        alt: "Weetoo Trading Platform",
+      },
+    ],
+  },
+  twitter: seoKeywords.twitter,
+  alternates: {
+    canonical: "/",
+  },
+  category: "Finance",
+  classification: "Trading Platform",
+  other: {
+    "application-name": "Weetoo",
+    "apple-mobile-web-app-title": "Weetoo",
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "default",
+    "format-detection": "telephone=no",
+    "mobile-web-app-capable": "yes",
+    "msapplication-TileColor": "#000000",
+    "msapplication-config": "/browserconfig.xml",
+    "theme-color": "#000000",
+  },
+};
 
 export default function Home() {
-  const { boardData } = useBoardData();
-
-  // Log Supabase user/session on mount
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getSession().then(({ data, error }) => {
-      console.log("[Home] Supabase session:", { data, error });
-    });
-    supabase.auth.getUser().then(({ data, error }) => {
-      console.log("[Home] Supabase user:", { data, error });
-    });
-  }, []);
-
-  return (
-    <div className="h-full">
-      <HeroSection />
-
-      <RankingsSection />
-
-      <CommunityBoardsSection boardData={boardData} />
-
-      <CTASection />
-    </div>
-  );
+  return <HomeClient />;
 }

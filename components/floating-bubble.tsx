@@ -53,11 +53,11 @@ export const FloatingBubble: React.FC<FloatingBubbleProps> = ({
           isHovered ? "opacity-100" : "opacity-0"
         )}
       >
-        <span className="text-white font-bold text-xs leading-tight">
+        <span className="text-primary font-bold text-xs leading-tight">
           {text}
         </span>
         {subtext && (
-          <span className="text-blue-300 font-semibold text-xs leading-tight">
+          <span className="dark:text-blue-300 text-blue-500 font-semibold text-xs leading-tight">
             {subtext}
           </span>
         )}

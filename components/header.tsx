@@ -1,5 +1,6 @@
 "use client";
 
+import { LanguageToggle } from "@/components/language-toggle";
 import { Menu } from "@/components/menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import {
 import { UserDropdown } from "@/components/user/user-dropdown";
 import { createClient } from "@/lib/supabase/client";
 import { Menu as MenuIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -23,6 +25,7 @@ import { WeetooMarketDialog } from "@/components/user/weetoo-market-dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 export function Header() {
+  const t = useTranslations("header");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const router = useRouter();
@@ -61,13 +64,13 @@ export function Header() {
           className="cursor-pointer shadow-none h-8"
           asChild
         >
-          <Link href="/login">Login</Link>
+          <Link href="/login">{t("login")}</Link>
         </Button>
         <Button
           className="cursor-pointer shadow-none h-8 md:block hidden"
           asChild
         >
-          <Link href="/register">Register</Link>
+          <Link href="/register">{t("register")}</Link>
         </Button>
       </>
     );
@@ -89,6 +92,9 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-2">
+          <div className="hidden md:block">
+            <LanguageToggle />
+          </div>
           {isLoggedIn && (
             <>
               <WeetooMarketDialog />

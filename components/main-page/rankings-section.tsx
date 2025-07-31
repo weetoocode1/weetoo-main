@@ -2,8 +2,10 @@
 
 import { Badge } from "@/components/ui/badge";
 import { motion } from "motion/react";
+import { useTranslations } from "next-intl";
 
 export function RankingsSection() {
+  const t = useTranslations("rankings");
   return (
     <section className="py-12 sm:py-16 md:py-24 relative overflow-hidden bg-gradient-to-b from-blue-50 to-blue-100 dark:from-black dark:to-gray-900">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.05),transparent_50%)]"></div>
@@ -16,14 +18,13 @@ export function RankingsSection() {
           viewport={{ once: true }}
         >
           <Badge className="mb-4 bg-green-100 text-green-700 border border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20 px-4 py-1.5 text-sm">
-            Top Performers
+            {t("topPerformers")}
           </Badge>
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Community Leaderboards
+            {t("communityLeaderboards")}
           </h2>
           <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto px-4 sm:px-0">
-            See who&apos;s leading the pack in different categories and get
-            inspired to climb the ranks.
+            {t("leaderboardsDescription")}
           </p>
         </motion.div>
 
@@ -55,10 +56,10 @@ export function RankingsSection() {
                 </div>
                 <div>
                   <h3 className="text-gray-900 dark:text-white font-semibold text-lg">
-                    Return Rate
+                    {t("returnRate")}
                   </h3>
                   <p className="text-gray-500 dark:text-slate-400 text-sm">
-                    Weekly Performance
+                    {t("weeklyPerformance")}
                   </p>
                 </div>
               </div>
@@ -156,10 +157,10 @@ export function RankingsSection() {
                 </div>
                 <div>
                   <h3 className="text-gray-900 dark:text-white font-semibold text-lg">
-                    Virtual Money
+                    {t("virtualMoney")}
                   </h3>
                   <p className="text-gray-500 dark:text-slate-400 text-sm">
-                    Total Holdings
+                    {t("totalHoldings")}
                   </p>
                 </div>
               </div>
@@ -257,10 +258,10 @@ export function RankingsSection() {
                 </div>
                 <div>
                   <h3 className="text-gray-900 dark:text-white font-semibold text-lg">
-                    Activity (XP)
+                    {t("activityXp")}
                   </h3>
                   <p className="text-gray-500 dark:text-slate-400 text-sm">
-                    Monthly Points
+                    {t("monthlyPoints")}
                   </p>
                 </div>
               </div>
@@ -358,10 +359,10 @@ export function RankingsSection() {
                 </div>
                 <div>
                   <h3 className="text-gray-900 dark:text-white font-semibold text-lg">
-                    Sponsored
+                    {t("sponsored")}
                   </h3>
                   <p className="text-gray-500 dark:text-slate-400 text-sm">
-                    Kor Coins
+                    {t("korCoins")}
                   </p>
                 </div>
               </div>
@@ -459,10 +460,10 @@ export function RankingsSection() {
                 </div>
                 <div>
                   <h3 className="text-gray-900 dark:text-white font-semibold text-lg">
-                    Most Followed
+                    {t("mostFollowed")}
                   </h3>
                   <p className="text-gray-500 dark:text-slate-400 text-sm">
-                    Social Ranking
+                    {t("socialRanking")}
                   </p>
                 </div>
               </div>

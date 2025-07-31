@@ -20,6 +20,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { AddCompetitionDialog } from "./add-competition-dialog";
 import { ManagePermissionsDialog } from "./manage-permissions-dialog";
 
@@ -51,6 +52,7 @@ interface Permission {
 const ITEMS_PER_PAGE = 12;
 
 export function OngoingEvents() {
+  const t = useTranslations("investmentCompetition");
   const [currentPage, setCurrentPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
@@ -247,12 +249,12 @@ export function OngoingEvents() {
   // Helper function to get competition status display (real-time)
   const getCompetitionStatus = (competition: Competition) => {
     if (isCompetitionInProgress(competition)) {
-      return "In Progress";
+      return t("inProgress");
     }
     if (isCompetitionStarted(competition)) {
-      return "Active";
+      return t("active");
     }
-    return "Active"; // Before start time
+    return t("active"); // Before start time
   };
 
   // Helper function to check if user can join competition (real-time)
@@ -342,10 +344,11 @@ export function OngoingEvents() {
         <div className="flex flex-col items-center justify-center py-12">
           <div className="text-center space-y-4">
             <div className="text-6xl mb-4">🏆</div>
-            <h3 className="text-xl font-semibold">No Ongoing Competitions</h3>
+            <h3 className="text-xl font-semibold">
+              {t("noOngoingCompetitions")}
+            </h3>
             <p className="text-muted-foreground max-w-md">
-              There are currently no active competitions. Check back later for
-              new opportunities to test your trading skills!
+              {t("noCompetitionsDescription")}
             </p>
           </div>
         </div>
@@ -380,22 +383,22 @@ export function OngoingEvents() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">
                   <span className="text-2xl mr-2">🏆</span>
-                  {item.data?.name || "Unknown Competition"}
+                  {item.data?.name || t("unknownCompetition")}
                 </CardTitle>
               </div>
               <CardDescription>
-                {item.data?.description || "No description available"}
+                {item.data?.description || t("noDescriptionAvailable")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-sm text-muted-foreground space-y-2">
                 <p>
-                  <strong>Start:</strong>{" "}
+                  <strong>{t("start")}:</strong>{" "}
                   {item.data ? formatDate(item.data.start_date) : "N/A"} at{" "}
                   {item.data?.start_time || "N/A"}
                 </p>
                 <p>
-                  <strong>End:</strong>{" "}
+                  <strong>{t("end")}:</strong>{" "}
                   {item.data ? formatDate(item.data.end_date) : "N/A"} at{" "}
                   {item.data?.end_time || "N/A"}
                 </p>
@@ -408,14 +411,14 @@ export function OngoingEvents() {
                   className="rounded-none w-full h-10"
                   onClick={() => handleCompetitionClick(item.data!)}
                 >
-                  Join Competition
+                  {t("joinCompetition")}
                 </Button>
               ) : (
                 <Badge
                   variant="outline"
                   className="text-green-500 w-full rounded-none flex items-center justify-center text-sm h-10"
                 >
-                  {item.data ? getCompetitionStatus(item.data) : "Unknown"}
+                  {item.data ? getCompetitionStatus(item.data) : t("unknown")}
                 </Badge>
               )}
             </div>

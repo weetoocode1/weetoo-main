@@ -25,6 +25,7 @@ import { Shield, Users, ChevronDownIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ScrollArea } from "../ui/scroll-area";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface ManagePermissionsDialogProps {
   open: boolean;
@@ -51,6 +52,7 @@ export function ManagePermissionsDialog({
   onOpenChange,
   onPermissionsChange,
 }: ManagePermissionsDialogProps) {
+  const t = useTranslations("investmentCompetition");
   const [, setSearchValue] = useState("");
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [usersWithAccess, setUsersWithAccess] = useState<string[]>([]);
@@ -78,12 +80,12 @@ export function ManagePermissionsDialog({
         console.error("Failed to fetch users:", data.error);
         // Don't show toast error if we have data
         if (!data.users || data.users.length === 0) {
-          toast.error("Failed to fetch users");
+          toast.error(t("failedToFetchUsers"));
         }
       }
     } catch (error) {
       console.error("Error fetching users:", error);
-      toast.error("Failed to fetch users");
+      toast.error(t("failedToFetchUsers"));
     } finally {
       setLoading(false);
     }
@@ -101,12 +103,12 @@ export function ManagePermissionsDialog({
         console.error("Failed to fetch permissions:", data.error);
         // Don't show toast error if we have data
         if (!data.permissions || data.permissions.length === 0) {
-          toast.error("Failed to fetch permissions");
+          toast.error(t("failedToFetchPermissions"));
         }
       }
     } catch (error) {
       console.error("Error fetching permissions:", error);
-      toast.error("Failed to fetch permissions");
+      toast.error(t("failedToFetchPermissions"));
     } finally {
       setPermissionsLoading(false);
     }
@@ -134,7 +136,7 @@ export function ManagePermissionsDialog({
       });
 
       if (response.ok) {
-        toast.success("Permission granted successfully");
+        toast.success(t("permissionGrantedSuccessfully"));
         fetchPermissions(); // Refresh the permissions list
         onOpenChange(false);
         setSearchValue("");
@@ -142,11 +144,11 @@ export function ManagePermissionsDialog({
         onPermissionsChange?.(); // Notify parent of permission change
       } else {
         const error = await response.json();
-        toast.error(error.error || "Failed to grant permission");
+        toast.error(error.error || t("failedToGrantPermission"));
       }
     } catch (error) {
       console.error("Error granting permission:", error);
-      toast.error("Failed to grant permission");
+      toast.error(t("failedToGrantPermission"));
     }
   };
 
@@ -164,16 +166,16 @@ export function ManagePermissionsDialog({
       });
 
       if (response.ok) {
-        toast.success("Permission revoked successfully");
+        toast.success(t("permissionRevokedSuccessfully"));
         fetchPermissions(); // Refresh the permissions list
         onPermissionsChange?.(); // Notify parent of permission change
       } else {
         const error = await response.json();
-        toast.error(error.error || "Failed to revoke permission");
+        toast.error(error.error || t("failedToRevokePermission"));
       }
     } catch (error) {
       console.error("Error revoking permission:", error);
-      toast.error("Failed to revoke permission");
+      toast.error(t("failedToRevokePermission"));
     }
   };
 
@@ -182,22 +184,20 @@ export function ManagePermissionsDialog({
       <DialogTrigger asChild>
         <Button size="sm" variant="outline" className="rounded-none h-10">
           <Shield className="w-4 h-4 mr-2" />
-          Manage Permissions
+          {t("managePermissions")}
         </Button>
       </DialogTrigger>
       <DialogContent className="rounded-none max-w-lg">
         <DialogHeader>
-          <DialogTitle>Manage Competition Permissions</DialogTitle>
-          <DialogDescription>
-            Grant or revoke permission to create competitions for users.
-          </DialogDescription>
+          <DialogTitle>{t("manageCompetitionPermissions")}</DialogTitle>
+          <DialogDescription>{t("grantOrRevokePermission")}</DialogDescription>
         </DialogHeader>
 
         <Separator />
 
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="user-search">Select User</Label>
+            <Label htmlFor="user-search">{t("selectUser")}</Label>
             <Popover modal={true}>
               <PopoverTrigger asChild>
                 <Button
@@ -207,19 +207,19 @@ export function ManagePermissionsDialog({
                 >
                   {selectedUser
                     ? allUsers.find((user) => user.id === selectedUser)?.name
-                    : "Search for a user..."}
+                    : t("searchForUser")}
                   <ChevronDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[465px] p-0 rounded-none">
                 <Command>
                   <CommandInput
-                    placeholder="Search users..."
+                    placeholder={t("searchUsers")}
                     className="h-10 rounded-none !bg-transparent"
                   />
                   <CommandList>
                     <ScrollArea className="h-48">
-                      <CommandEmpty>No user found.</CommandEmpty>
+                      <CommandEmpty>{t("noUserFound")}</CommandEmpty>
                       <CommandGroup>
                         {allUsers.map((user) => (
                           <CommandItem
@@ -262,7 +262,7 @@ export function ManagePermissionsDialog({
 
           {/* Users with Access */}
           <div className="flex flex-col gap-2">
-            <Label>Users with Access</Label>
+            <Label>{t("usersWithAccess")}</Label>
             <div className="border rounded-none bg-background">
               {usersWithAccess.length > 0 ? (
                 <div className="h-[180px]">
@@ -301,7 +301,7 @@ export function ManagePermissionsDialog({
                             onClick={() => handleRevokeAccess(userId)}
                             className="rounded-none text-red-600 hover:text-red-700 hover:bg-red-50"
                           >
-                            Revoke
+                            {t("revoke")}
                           </Button>
                         </div>
                       );
@@ -312,7 +312,7 @@ export function ManagePermissionsDialog({
                 <div className="h-[180px] flex items-center justify-center">
                   <div className="text-center text-muted-foreground">
                     <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p>No users have access yet.</p>
+                    <p>{t("noUsersHaveAccessYet")}</p>
                   </div>
                 </div>
               )}
@@ -326,14 +326,14 @@ export function ManagePermissionsDialog({
               onClick={handlePermissionsCancel}
               className="rounded-none"
             >
-              Cancel
+              {t("cancel")}
             </Button>
             <Button
               onClick={handlePermissionsSubmit}
               className="rounded-none"
               disabled={!selectedUser}
             >
-              Grant Permission
+              {t("grantPermission")}
             </Button>
           </div>
         </div>
