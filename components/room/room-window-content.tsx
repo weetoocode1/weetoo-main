@@ -1,7 +1,7 @@
 "use client";
 
 import { Chat } from "@/components/room/chat";
-import LightweightChart from "@/components/room/lightweight-chart";
+// import LightweightChart from "@/components/room/lightweight-chart";
 import { LivektParticipantAudio } from "@/components/room/livekit-participant-audio";
 import { MarketOverview } from "@/components/room/market-overview";
 import { OrderBook } from "@/components/room/order-book";
@@ -10,12 +10,11 @@ import { TradeHistoryTabs } from "@/components/room/trade-history-tabs";
 import { TradingForm } from "@/components/room/trading-form";
 import { Separator } from "@/components/ui/separator";
 import { useBinanceFutures } from "@/hooks/use-binance-futures";
-import { usePositions } from "@/hooks/use-positions";
 import { createClient } from "@/lib/supabase/client";
-import { useTheme } from "next-themes";
 import React, { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { TradingOverviewContainer } from "./trading-overview-container";
+import { TradingViewChartComponent } from "./trading-view-chart";
 
 function RoomJoiner({ roomId }: { roomId: string }) {
   useEffect(() => {
@@ -63,16 +62,16 @@ export function RoomWindowContent({
   onCurrentPrice?: (price: number | undefined) => void;
 }) {
   const fetcher = (url: string) => fetch(url).then((res) => res.json());
-  const { data } = useSWR(
+
+  // Separate SWR calls for different data needs
+  const { data: marketData } = useSWR(
     `/api/market-data?symbol=${symbol}&include=all`,
     fetcher,
-    { refreshInterval: 1000 }
+    { refreshInterval: 1000 } // Keep market data fresh for other components
   );
 
-  const { theme } = useTheme();
-
   // Check if current user is the host
-  const [isHost, setIsHost] = useState(false);
+  const [, setIsHost] = useState(false);
 
   useEffect(() => {
     const checkIfHost = async () => {
@@ -90,34 +89,34 @@ export function RoomWindowContent({
   // Notify parent of current price
   React.useEffect(() => {
     if (onCurrentPrice) {
-      onCurrentPrice(data?.ticker?.lastPrice);
+      onCurrentPrice(marketData?.ticker?.lastPrice);
     }
-  }, [data?.ticker?.lastPrice, onCurrentPrice]);
+  }, [marketData?.ticker?.lastPrice, onCurrentPrice]);
 
   // Fetch open interest and funding data from binance futures directly (client-side)
   const { openInterest, fundingRate, nextFundingTime } =
     useBinanceFutures(symbol);
   // Merge with existing data
   const mergedData = {
-    ...data,
+    ...marketData,
     openInterest,
     lastFundingRate: fundingRate,
     nextFundingTime,
   };
 
   // Fetch open positions for the chart
-  const { openPositions } = usePositions(roomId) as {
-    openPositions: Array<{
-      id: string;
-      symbol: string;
-      side: string;
-      quantity: number;
-      entry_price: number;
-      initial_margin?: number;
-      stop_loss?: number;
-      take_profit?: number;
-    }>;
-  };
+  // const { openPositions } = usePositions(roomId) as {
+  //   openPositions: Array<{
+  //     id: string;
+  //     symbol: string;
+  //     side: string;
+  //     quantity: number;
+  //     entry_price: number;
+  //     initial_margin?: number;
+  //     stop_loss?: number;
+  //     take_profit?: number;
+  //   }>;
+  // };
 
   // Debug: Log when openPositions changes
   // console.log(
@@ -160,23 +159,14 @@ export function RoomWindowContent({
                 ref={chartOuterRef}
                 className="max-w-[972px] border-border border h-full w-full bg-background"
               >
-                <LightweightChart
-                  key={`${symbol}-${openPositions?.length || 0}`}
-                  theme={theme === "dark" ? "dark" : "light"}
-                  symbol={symbol}
-                  openPositions={openPositions}
-                  ticker={data?.ticker}
-                  roomId={roomId}
-                  hostId={hostId}
-                  isHost={isHost}
-                />
+                <TradingViewChartComponent symbol={symbol} />
               </div>
               <div className="flex-1 border border-border h-full w-full bg-background p-2">
-                <OrderBook symbol={symbol} data={data} />
+                <OrderBook symbol={symbol} data={marketData} />
               </div>
               <div className="flex-1 border border-border h-full w-full bg-background p-2">
                 <TradingForm
-                  currentPrice={data?.ticker?.lastPrice}
+                  currentPrice={marketData?.ticker?.lastPrice}
                   virtualBalance={virtualBalance}
                   hostId={hostId}
                   roomId={roomId}
@@ -187,7 +177,7 @@ export function RoomWindowContent({
             <div className="flex flex-1 w-full border">
               <TradeHistoryTabs
                 roomId={roomId}
-                currentPrice={data?.ticker?.lastPrice}
+                currentPrice={marketData?.ticker?.lastPrice}
                 hostId={hostId}
               />
             </div>
