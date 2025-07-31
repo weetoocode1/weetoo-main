@@ -26,6 +26,7 @@ interface MarketDataResponse {
     high: number;
     low: number;
     close: number;
+    volume: number;
   }>;
   candlesError?: string;
 }
@@ -122,13 +123,14 @@ export async function GET(req: NextRequest) {
         .then(async (res) => {
           if (!res.ok) throw new Error("Failed to fetch candles");
           const klines = await res.json();
-          // Transform to { time, open, high, low, close }
+          // Transform to { time, open, high, low, close, volume }
           candles = (klines as BinanceKline[]).map((k) => ({
             time: Math.floor(k[0] / 1000), // open time in seconds
             open: Number(k[1]),
             high: Number(k[2]),
             low: Number(k[3]),
             close: Number(k[4]),
+            volume: Number(k[5]), // Add volume data
           }));
           responses.candles = candles;
         })
