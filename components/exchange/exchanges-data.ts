@@ -174,7 +174,7 @@ export const EXCHANGES: Exchange[] = [
     id: "lbank",
     name: "LBank",
     logo: "L",
-    logoImage: "/broker/lbank.png",
+    logoImage: "/broker/Lbank.png",
     logoColor: "#10B981",
     website: "lbank.com",
     paybackRate: 40,

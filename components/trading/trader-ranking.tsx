@@ -1,6 +1,7 @@
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -118,30 +119,34 @@ const cardVariants = {
 // };
 
 // OnlineIndicator copied from kor-coins-ranking
-const OnlineIndicator = memo(({ isOnline }: { isOnline: boolean }) => (
-  <div className="flex items-center gap-1.5 mt-1">
-    <div
-      className={
-        isOnline
-          ? "w-2 h-2 rounded-full bg-green-500 animate-pulse"
-          : "w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-600"
-      }
-    />
-    <span
-      className={
-        isOnline
-          ? "text-xs text-green-600 dark:text-green-400"
-          : "text-xs text-muted-foreground"
-      }
-    >
-      {isOnline ? "Online" : "Offline"}
-    </span>
-  </div>
-));
+const OnlineIndicator = memo(({ isOnline }: { isOnline: boolean }) => {
+  const t = useTranslations("traderRanking");
+  return (
+    <div className="flex items-center gap-1.5 mt-1">
+      <div
+        className={
+          isOnline
+            ? "w-2 h-2 rounded-full bg-green-500 animate-pulse"
+            : "w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-600"
+        }
+      />
+      <span
+        className={
+          isOnline
+            ? "text-xs text-green-600 dark:text-green-400"
+            : "text-xs text-muted-foreground"
+        }
+      >
+        {isOnline ? t("online") : t("offline")}
+      </span>
+    </div>
+  );
+});
 OnlineIndicator.displayName = "OnlineIndicator";
 
 // Memoized card component
 const TraderCard = memo(({ data }: { data: CardData }) => {
+  const t = useTranslations("traderRanking");
   const cardStyles = useMemo(() => {
     const baseStyles = {
       boxShadow: "",
@@ -287,7 +292,7 @@ const TraderCard = memo(({ data }: { data: CardData }) => {
                 +{data.totalReturn}%
               </div>
               <div className="text-xs text-muted-foreground font-medium">
-                Total Return
+                {t("totalReturn")}
               </div>
             </div>
           </div>
@@ -347,7 +352,7 @@ const TraderCard = memo(({ data }: { data: CardData }) => {
             } transition-all duration-300`}
             variant="outline"
           >
-            <UserPlus className="w-4 h-4 mr-2" /> Follow Trader
+            <UserPlus className="w-4 h-4 mr-2" /> {t("followTrader")}
           </Button>
 
           <div
@@ -368,7 +373,7 @@ const TraderCard = memo(({ data }: { data: CardData }) => {
                     data.rank === 1 ? "w-4 h-4" : "w-3.5 h-3.5"
                   } text-emerald-400`}
                 />
-                <span className="font-medium">Portfolio</span>
+                <span className="font-medium">{t("portfolio")}</span>
               </div>
               <span
                 className={`${
@@ -393,7 +398,7 @@ const TraderCard = memo(({ data }: { data: CardData }) => {
                     data.rank === 1 ? "w-4 h-4" : "w-3.5 h-3.5"
                   } text-blue-400`}
                 />
-                <span className="font-medium">Win Rate</span>
+                <span className="font-medium">{t("winRate")}</span>
               </div>
               <span
                 className={`${
@@ -418,7 +423,7 @@ const TraderCard = memo(({ data }: { data: CardData }) => {
                     data.rank === 1 ? "w-4 h-4" : "w-3.5 h-3.5"
                   } text-purple-400`}
                 />
-                <span className="font-medium">Trades</span>
+                <span className="font-medium">{t("trades")}</span>
               </div>
               <span
                 className={`${
@@ -443,7 +448,7 @@ const TraderCard = memo(({ data }: { data: CardData }) => {
                     data.rank === 1 ? "w-4 h-4" : "w-3.5 h-3.5"
                   } text-emerald-400`}
                 />
-                <span className="font-medium">Win Streak</span>
+                <span className="font-medium">{t("winStreak")}</span>
               </div>
               <span
                 className={`${
@@ -487,6 +492,7 @@ const TraderCard = memo(({ data }: { data: CardData }) => {
 TraderCard.displayName = "TraderCard";
 
 export const TraderRanking = memo(() => {
+  const t = useTranslations("traderRanking");
   return (
     <div className="space-y-16 mb-20">
       <div
@@ -501,7 +507,7 @@ export const TraderRanking = memo(() => {
       {/* Full Leaderboard Table Section */}
       <div className="mt-12">
         <h2 className="text-2xl font-semibold mb-6 text-center sm:text-left">
-          Full Leaderboard
+          {t("fullLeaderboard")}
         </h2>
         <TraderRankingTable />
       </div>

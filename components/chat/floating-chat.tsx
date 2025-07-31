@@ -531,7 +531,7 @@ export function FloatingChat() {
                 </h3>
                 <span className="ml-2 flex items-center gap-1 text-[0.8rem] font-semibold text-primary">
                   <span className="opacity-60 font-normal">|</span>
-                  <span>Resets in {timeUntilReset} (UTC)</span>
+                  <span>Reset in {timeUntilReset} (UTC)</span>
                 </span>
               </div>
               <div className="flex items-center gap-1 min-w-0 flex-shrink-0">

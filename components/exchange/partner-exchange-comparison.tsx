@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { ExchangeEditDialog } from "./exchange-edit-dialog";
 import { type Exchange } from "./exchanges-data";
 
@@ -45,6 +46,7 @@ const calculateScore = (exchange: Exchange): number => {
 };
 
 export const PartnerExchangeComparison = () => {
+  const t = useTranslations("exchange");
   const [activeFilter, setActiveFilter] = useState("all");
   const { isSuperAdmin } = useAuth();
   const [selectedExchange, setSelectedExchange] = useState<Exchange | null>(
@@ -169,15 +171,15 @@ export const PartnerExchangeComparison = () => {
   }, [activeFilter, exchanges]);
 
   const filterOptions = [
-    { id: "all", label: "All Exchanges", icon: ArrowUpDown },
-    { id: "recommended", label: "Recommended", icon: Star },
-    { id: "highest-cashback", label: "Highest Cashback", icon: TrendingUp },
-    { id: "highest-rebate", label: "Highest Rebate", icon: Award },
-    { id: "highest-discount", label: "Highest Discount", icon: Target },
-    { id: "lowest-cashback", label: "Lowest Cashback", icon: TrendingUp },
-    { id: "no-discount", label: "No Discount", icon: Target },
-    { id: "best-score", label: "Best Score", icon: Zap },
-    { id: "trending", label: "Trending", icon: TrendingUp },
+    { id: "all", label: t("allExchanges"), icon: ArrowUpDown },
+    { id: "recommended", label: t("recommended"), icon: Star },
+    { id: "highest-cashback", label: t("highestCashback"), icon: TrendingUp },
+    { id: "highest-rebate", label: t("highestRebate"), icon: Award },
+    { id: "highest-discount", label: t("highestDiscount"), icon: Target },
+    { id: "lowest-cashback", label: t("lowestCashback"), icon: TrendingUp },
+    { id: "no-discount", label: t("noDiscount"), icon: Target },
+    { id: "best-score", label: t("bestScore"), icon: Zap },
+    { id: "trending", label: t("trending"), icon: TrendingUp },
   ];
 
   if (loading) {
@@ -282,32 +284,32 @@ export const PartnerExchangeComparison = () => {
               #
             </div>
             <div className="font-medium text-sm text-muted-foreground">
-              Exchange
+              {t("exchange")}
             </div>
             <div className="font-medium text-sm text-muted-foreground text-center">
-              Score
+              {t("score")}
             </div>
             <div className="font-medium text-sm text-muted-foreground text-center">
-              Cashback Rate
+              {t("cashbackRate")}
             </div>
             <div className="font-medium text-sm text-muted-foreground text-center">
-              Trading Discount
+              {t("tradingDiscount")}
             </div>
             <div className="font-medium text-sm text-muted-foreground text-center">
-              Limit Price
+              {t("limitPrice")}
             </div>
             <div className="font-medium text-sm text-muted-foreground text-center">
-              Market Price
+              {t("marketPrice")}
             </div>
             <div className="font-medium text-sm text-muted-foreground text-center">
-              Avg Rebate per User
+              {t("avgRebatePerUser")}
             </div>
             <div className="font-medium text-sm text-muted-foreground text-center">
-              Tags
+              {t("tags")}
             </div>
             {isSuperAdmin && (
               <div className="font-medium text-sm text-muted-foreground text-center">
-                Actions
+                {t("actions")}
               </div>
             )}
           </div>
@@ -379,7 +381,7 @@ export const PartnerExchangeComparison = () => {
                         {score}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        points
+                        {t("points")}
                       </div>
                     </div>
                   </div>
@@ -410,7 +412,9 @@ export const PartnerExchangeComparison = () => {
                       <span className="text-lg font-semibold text-foreground">
                         {exchange.tradingDiscount}
                       </span>
-                      <span className="text-sm text-muted-foreground">off</span>
+                      <span className="text-sm text-muted-foreground">
+                        {t("off")}
+                      </span>
                     </div>
                   </div>
 
@@ -437,7 +441,7 @@ export const PartnerExchangeComparison = () => {
                           {exchange.averageRebatePerUser}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          per user
+                          {t("perUser")}
                         </div>
                       </div>
                     </div>

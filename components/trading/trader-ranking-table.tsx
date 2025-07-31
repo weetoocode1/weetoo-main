@@ -10,6 +10,7 @@ import {
   type PaginationState,
   type SortingState,
 } from "@tanstack/react-table";
+import { useTranslations } from "next-intl";
 import {
   Award,
   ChevronDownIcon,
@@ -361,6 +362,7 @@ const ROW_BACKGROUNDS = {
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 50] as const;
 
 export const TraderRankingTable = memo(() => {
+  const t = useTranslations("traderRanking");
   const [sorting, setSorting] = useState<SortingState>([
     { id: "rank", desc: false },
   ]);
@@ -379,7 +381,7 @@ export const TraderRankingTable = memo(() => {
   const columns = useMemo<ColumnDef<RankedTrader>[]>(
     () => [
       {
-        header: "Rank",
+        header: t("rank"),
         accessorKey: "rank",
         cell: ({ row }) => (
           <div className="flex justify-center">
@@ -389,7 +391,7 @@ export const TraderRankingTable = memo(() => {
         size: 100,
       },
       {
-        header: "Trader",
+        header: t("trader"),
         accessorKey: "trader",
         cell: ({ row }) => (
           <TraderCell
@@ -402,7 +404,7 @@ export const TraderRankingTable = memo(() => {
         size: 280,
       },
       {
-        header: "Total Return",
+        header: t("totalReturn"),
         accessorKey: "totalReturn",
         cell: ({ row }) => {
           const value = row.getValue("totalReturn") as number;
@@ -415,7 +417,7 @@ export const TraderRankingTable = memo(() => {
         size: 140,
       },
       {
-        header: "Win Rate",
+        header: t("winRate"),
         accessorKey: "winRate",
         cell: ({ row }) => (
           <div className="flex items-center gap-2">
@@ -426,7 +428,7 @@ export const TraderRankingTable = memo(() => {
         size: 120,
       },
       {
-        header: "Trades",
+        header: t("trades"),
         accessorKey: "trades",
         cell: ({ row }) => (
           <div className="flex items-center gap-2">
@@ -437,7 +439,7 @@ export const TraderRankingTable = memo(() => {
         size: 120,
       },
       {
-        header: "Portfolio",
+        header: t("portfolio"),
         accessorKey: "portfolioValue",
         cell: ({ row }) => (
           <div className="flex items-center gap-2 font-semibold text-foreground">
@@ -453,7 +455,7 @@ export const TraderRankingTable = memo(() => {
         size: 160,
       },
     ],
-    []
+    [t]
   );
 
   const table = useReactTable({
@@ -586,7 +588,7 @@ export const TraderRankingTable = memo(() => {
             htmlFor="rows-per-page-ranking"
             className="max-sm:sr-only text-sm font-medium"
           >
-            Rows per page
+            {t("rowsPerPage")}
           </Label>
           <Select
             value={pagination.pageSize.toString()}
@@ -610,7 +612,8 @@ export const TraderRankingTable = memo(() => {
 
         <div className="text-muted-foreground flex grow justify-end text-sm whitespace-nowrap">
           <span className="font-medium">
-            Page {pagination.pageIndex + 1} of {table.getPageCount()}
+            {t("page")} {pagination.pageIndex + 1} {t("of")}{" "}
+            {table.getPageCount()}
           </span>
         </div>
 

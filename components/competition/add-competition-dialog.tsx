@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { CalendarIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { Calendar } from "../ui/calendar";
 import {
   Dialog,
@@ -35,6 +36,7 @@ export function AddCompetitionDialog({
   open,
   onOpenChange,
 }: AddCompetitionDialogProps) {
+  const t = useTranslations("investmentCompetition");
   // Helper function to format date
   const formatDate = (date: Date | undefined) => {
     if (!date) {
@@ -172,12 +174,12 @@ export function AddCompetitionDialog({
 
   const handleSubmit = async () => {
     if (!competitionName.trim()) {
-      toast.error("Please enter a competition name");
+      toast.error(t("pleaseEnterCompetitionName"));
       return;
     }
 
     if (!competitionDescription.trim()) {
-      toast.error("Please enter a competition description");
+      toast.error(t("pleaseEnterCompetitionDescription"));
       return;
     }
 
@@ -190,7 +192,7 @@ export function AddCompetitionDialog({
         competitionAMPM
       )
     ) {
-      toast.error("Start time cannot be in the past");
+      toast.error(t("startTimeCannotBeInPast"));
       return;
     }
 
@@ -203,7 +205,7 @@ export function AddCompetitionDialog({
         competitionEndAMPM
       )
     ) {
-      toast.error("End time cannot be in the past");
+      toast.error(t("endTimeCannotBeInPast"));
       return;
     }
 
@@ -239,7 +241,7 @@ export function AddCompetitionDialog({
     endDateTime.setHours(endHour24, endMinute, 0, 0);
 
     if (endDateTime <= startDateTime) {
-      toast.error("End date/time must be after start date/time");
+      toast.error(t("endDateTimeMustBeAfterStart"));
       return;
     }
 
@@ -261,16 +263,16 @@ export function AddCompetitionDialog({
       });
 
       if (response.ok) {
-        toast.success("Competition created successfully!");
+        toast.success(t("competitionCreatedSuccessfully"));
         onOpenChange(false);
         resetForm();
       } else {
         const error = await response.json();
-        toast.error(error.error || "Failed to create competition");
+        toast.error(error.error || t("failedToCreateCompetition"));
       }
     } catch (error) {
       console.error("Error creating competition:", error);
-      toast.error("Failed to create competition");
+      toast.error(t("failedToCreateCompetition"));
     }
   };
 
@@ -299,26 +301,24 @@ export function AddCompetitionDialog({
       <DialogTrigger asChild>
         <Button size="sm" className="rounded-none h-10">
           <PlusIcon className="w-4 h-4" />
-          Add New Competition
+          {t("addNewCompetition")}
         </Button>
       </DialogTrigger>
       <DialogContent className="rounded-none">
         <DialogHeader>
-          <DialogTitle>Add New Competition</DialogTitle>
-          <DialogDescription>
-            Create a new competition to join.
-          </DialogDescription>
+          <DialogTitle>{t("addNewCompetition")}</DialogTitle>
+          <DialogDescription>{t("createNewCompetition")}</DialogDescription>
         </DialogHeader>
 
         <Separator />
 
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="competition-name">Competition Name</Label>
+            <Label htmlFor="competition-name">{t("competitionName")}</Label>
             <Input
               id="competition-name"
               type="text"
-              placeholder="Enter competition name"
+              placeholder={t("enterCompetitionName")}
               className="rounded-none h-10 !bg-transparent"
               value={competitionName}
               onChange={(e) => setCompetitionName(e.target.value)}
@@ -326,11 +326,11 @@ export function AddCompetitionDialog({
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="competition-description">
-              Competition Description
+              {t("competitionDescription")}
             </Label>
             <Textarea
               id="competition-description"
-              placeholder="Enter competition description"
+              placeholder={t("enterCompetitionDescription")}
               className="rounded-none h-24 resize-none !bg-transparent"
               value={competitionDescription}
               onChange={(e) => setCompetitionDescription(e.target.value)}
@@ -345,11 +345,11 @@ export function AddCompetitionDialog({
                     : "text-muted-foreground"
                 }
               >
-                {wordCount}/200 words
+                {wordCount}/200 {t("words")}
               </span>
               {isOverLimit && (
                 <span className="text-red-500 font-medium">
-                  Word limit exceeded
+                  {t("wordLimitExceeded")}
                 </span>
               )}
             </div>
@@ -359,7 +359,7 @@ export function AddCompetitionDialog({
           <div className="flex gap-4">
             <div className="flex flex-col gap-3 w-full">
               <Label htmlFor="start-date-picker" className="px-1">
-                Start Date
+                {t("startDate")}
               </Label>
               <div className="relative flex gap-2">
                 <Input
@@ -423,7 +423,7 @@ export function AddCompetitionDialog({
             </div>
             <div className="flex flex-col gap-3">
               <Label htmlFor="start-time-picker" className="px-1">
-                Start Time
+                {t("startTime")}
               </Label>
               <div className="flex gap-2">
                 <Input
@@ -505,7 +505,7 @@ export function AddCompetitionDialog({
               </div>
               {isStartTimeInPast && (
                 <p className="text-xs text-red-500">
-                  Start time cannot be in the past
+                  {t("startTimeCannotBeInPast")}
                 </p>
               )}
             </div>
@@ -515,7 +515,7 @@ export function AddCompetitionDialog({
           <div className="flex gap-4">
             <div className="flex flex-col gap-3 w-full">
               <Label htmlFor="end-date-picker" className="px-1">
-                End Date
+                {t("endDate")}
               </Label>
               <div className="relative flex gap-2">
                 <Input
@@ -579,7 +579,7 @@ export function AddCompetitionDialog({
             </div>
             <div className="flex flex-col gap-3">
               <Label htmlFor="end-time-picker" className="px-1">
-                End Time
+                {t("endTime")}
               </Label>
               <div className="flex gap-2">
                 <Input
@@ -657,7 +657,7 @@ export function AddCompetitionDialog({
               </div>
               {isEndTimeInPast && (
                 <p className="text-xs text-red-500">
-                  End time cannot be in the past
+                  {t("endTimeCannotBeInPast")}
                 </p>
               )}
             </div>
@@ -665,7 +665,7 @@ export function AddCompetitionDialog({
 
           {/* Competition URL */}
           <div className="flex flex-col gap-2">
-            <Label htmlFor="competition-url">Competition URL</Label>
+            <Label htmlFor="competition-url">{t("competitionUrl")}</Label>
             <Input
               id="competition-url"
               type="url"
@@ -683,10 +683,10 @@ export function AddCompetitionDialog({
               onClick={handleCancel}
               className="rounded-none"
             >
-              Cancel
+              {t("cancel")}
             </Button>
             <Button onClick={handleSubmit} className="rounded-none">
-              Create Competition
+              {t("createCompetition")}
             </Button>
           </div>
         </div>

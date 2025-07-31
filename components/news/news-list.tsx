@@ -8,11 +8,13 @@ import { useNews } from "@/hooks/use-news";
 import { ArrowRight, Calendar, Search, RefreshCw } from "lucide-react";
 import Image from "next/image";
 import { memo, useCallback, useMemo, useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { type NewsArticle } from "./news-data";
 
 // Enhanced News Card with improved design and 4-column layout
 const NewsCard = memo(
   ({ article, index }: { article: NewsArticle; index: number }) => {
+    const t = useTranslations("news");
     return (
       <div className="group">
         <div className="border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 bg-background hover:border-indigo-300 dark:hover:border-indigo-600 hover:-translate-y-1 h-full">
@@ -30,7 +32,7 @@ const NewsCard = memo(
                 <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
                   <div className="text-white text-center">
                     <div className="text-2xl mb-2">📰</div>
-                    <div className="text-xs font-medium">News</div>
+                    <div className="text-xs font-medium">{t("news")}</div>
                   </div>
                 </div>
               )}
@@ -76,7 +78,7 @@ const NewsCard = memo(
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-all duration-200 group/link hover:gap-3"
               >
-                Read More
+                {t("readMore")}
                 <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover/link:translate-x-1" />
               </a>
             </div>
@@ -111,6 +113,7 @@ LoadingSkeleton.displayName = "LoadingSkeleton";
 
 // Main News List Component
 const NewsList = memo(() => {
+  const t = useTranslations("news");
   const [searchQuery, setSearchQuery] = useState("");
   const [lastArticleCount, setLastArticleCount] = useState(0);
   const [showNewArticlesNotification, setShowNewArticlesNotification] =
@@ -183,9 +186,9 @@ const NewsList = memo(() => {
       <div className="border-b pb-4 mt-2 text-center sm:text-left">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold">Latest News</h2>
+            <h2 className="text-3xl font-bold">{t("latestNews")}</h2>
             <p className="text-gray-600 dark:text-gray-400 mt-0.5">
-              Stay updated with the latest cryptocurrency developments
+              {t("stayUpdatedWithLatest")}
             </p>
           </div>
 
@@ -196,7 +199,7 @@ const NewsList = memo(() => {
                 {displayedArticles.length}
               </div>
               <div className="text-sm text-gray-500 dark:text-gray-400">
-                {displayedArticles.length === 1 ? "Article" : "Articles"}
+                {displayedArticles.length === 1 ? t("article") : t("articles")}
               </div>
             </div>
           )}
@@ -209,8 +212,9 @@ const NewsList = memo(() => {
           <div className="flex items-center gap-3">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <span className="text-green-700 dark:text-green-300 font-medium">
-              {allArticles.length - lastArticleCount} new article
-              {allArticles.length - lastArticleCount > 1 ? "s" : ""} added!
+              {allArticles.length - lastArticleCount} {t("new")} {t("article")}
+              {allArticles.length - lastArticleCount > 1 ? "s" : ""}{" "}
+              {t("added")}!
             </span>
           </div>
           <button
@@ -227,7 +231,7 @@ const NewsList = memo(() => {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
           <Input
-            placeholder="Search articles, tags, or content..."
+            placeholder={t("searchArticlesPlaceholder")}
             value={searchQuery}
             onChange={handleSearchChange}
             className="pl-12 h-12 border-gray-300 dark:border-gray-600 rounded-xl bg-background shadow-sm focus:shadow-md transition-shadow"
@@ -243,7 +247,7 @@ const NewsList = memo(() => {
           <RefreshCw
             className={`w-4 h-4 ${apiLoading ? "animate-spin" : ""}`}
           />
-          <span className="hidden sm:inline">Refresh</span>
+          <span className="hidden sm:inline">{t("refresh")}</span>
         </button>
       </div>
 
@@ -254,7 +258,7 @@ const NewsList = memo(() => {
       {error && !apiLoading && (
         <div className="text-center py-8 border border-red-200 dark:border-red-800 rounded-2xl bg-red-50 dark:bg-red-900/20">
           <p className="text-red-600 dark:text-red-400">
-            Error loading news: {error}
+            {t("errorLoadingNews")}: {error}
           </p>
         </div>
       )}
@@ -268,12 +272,12 @@ const NewsList = memo(() => {
             </div>
             <div>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                No articles found
+                {t("noArticlesFound")}
               </h3>
               <p className="text-gray-600 dark:text-gray-400">
                 {searchQuery
-                  ? "Try adjusting your search terms"
-                  : "No articles available at the moment"}
+                  ? t("tryAdjustingSearchTerms")
+                  : t("noArticlesAvailable")}
               </p>
             </div>
           </div>
@@ -296,13 +300,13 @@ const NewsList = memo(() => {
           {/* Real-time Article count */}
           {displayedArticles.length > 0 && (
             <div className="text-center text-sm text-muted-foreground mt-6">
-              <span className="font-medium">Live:</span> Showing{" "}
+              <span className="font-medium">{t("live")}:</span> {t("showing")}{" "}
               {displayedArticles.length}{" "}
-              {displayedArticles.length === 1 ? "article" : "articles"}
+              {displayedArticles.length === 1 ? t("article") : t("articles")}
               {allArticles.length > lastArticleCount &&
                 lastArticleCount > 0 && (
                   <span className="text-green-600 dark:text-green-400 ml-2">
-                    (+{allArticles.length - lastArticleCount} new)
+                    (+{allArticles.length - lastArticleCount} {t("new")})
                   </span>
                 )}
             </div>

@@ -5,8 +5,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { ShowcaseGridProps, Post } from "@/types/post";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 
 export function ShowcaseGrid({ board }: ShowcaseGridProps) {
+  const t = useTranslations("communityBoards");
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,9 +40,9 @@ export function ShowcaseGrid({ board }: ShowcaseGridProps) {
     ...(posts?.slice(0, 6) || []),
     ...Array(Math.max(0, 6 - (posts?.length || 0))).fill({
       id: "",
-      title: "Showcase",
+      title: t("showcase"),
       content: "",
-      excerpt: "No post available.",
+      excerpt: t("noPostAvailable"),
       board: "",
       views: 0,
       likes: 0,

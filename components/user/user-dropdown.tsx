@@ -11,6 +11,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
+import { useTranslations } from "next-intl";
 import {
   Coins,
   Eye,
@@ -26,6 +27,7 @@ import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
 export function UserDropdown() {
+  const t = useTranslations("userDropdown");
   const { user, loading, computed, isAdmin } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
   const router = useRouter();
@@ -158,14 +160,14 @@ export function UserDropdown() {
                   {loading ? (
                     <Skeleton className="h-3 w-10" />
                   ) : (
-                    `Level ${level}`
+                    `${t("level")} ${level}`
                   )}
                 </span>
                 <span className="text-xs font-semibold text-muted-foreground">
                   {loading ? (
                     <Skeleton className="h-3 w-10" />
                   ) : (
-                    `Level ${level + 1}`
+                    `${t("level")} ${level + 1}`
                   )}
                 </span>
               </div>
@@ -184,14 +186,16 @@ export function UserDropdown() {
                   {loading ? (
                     <Skeleton className="h-3 w-12" />
                   ) : (
-                    `${progress.toFixed(0)}% Complete`
+                    `${progress.toFixed(0)}% ${t("complete")}`
                   )}
                 </span>
                 <span className="text-red-500 font-semibold">
                   {loading ? (
                     <Skeleton className="h-3 w-20" />
                   ) : (
-                    `${expThisLevel.toLocaleString()} / ${EXP_PER_LEVEL.toLocaleString()} EXP`
+                    `${expThisLevel.toLocaleString()} / ${EXP_PER_LEVEL.toLocaleString()} ${t(
+                      "exp"
+                    )}`
                   )}
                 </span>
               </div>
@@ -201,7 +205,7 @@ export function UserDropdown() {
                   {loading ? (
                     <Skeleton className="h-3 w-10" />
                   ) : (
-                    `${exp.toLocaleString()} XP`
+                    `${exp.toLocaleString()} ${t("xp")}`
                   )}
                 </span>
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -220,7 +224,7 @@ export function UserDropdown() {
             <Link href="/profile">
               <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2.5 hover:bg-accent transition-colors">
                 <UserIcon className="w-4 h-4 mr-3 text-muted-foreground" />
-                Profile
+                {t("profile")}
               </DropdownMenuItem>
             </Link>
             {/* <Link href="/inbox">
@@ -240,7 +244,7 @@ export function UserDropdown() {
               <Link href="/admin-verification">
                 <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2.5 hover:bg-accent transition-colors">
                   <ShieldIcon className="w-4 h-4 mr-3 text-muted-foreground" />
-                  Go to Admin Dashboard
+                  {t("goToAdminDashboard")}
                 </DropdownMenuItem>
               </Link>
             )}
@@ -258,7 +262,7 @@ export function UserDropdown() {
               className="cursor-pointer rounded-lg px-3 py-2.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
             >
               <LogOutIcon className="w-4 h-4 mr-3 text-red-500" />
-              {loggingOut ? "Logging out..." : "Log Out"}
+              {loggingOut ? t("loggingOut") : t("logOut")}
             </DropdownMenuItem>
           </div>
         </DropdownMenuContent>

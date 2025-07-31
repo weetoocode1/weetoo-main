@@ -7,6 +7,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,6 +37,7 @@ interface UserData {
 }
 
 export function CreateRoom() {
+  const t = useTranslations("createRoom");
   const [open, setOpen] = useState(false);
   const [privacy, setPrivacy] = useState("public");
   const [category, setCategory] = useState("regular");
@@ -68,14 +70,12 @@ export function CreateRoom() {
           );
           const data = await res.json();
           if (data.exists) {
-            setNameError(
-              "This room name is already in use. Please choose another."
-            );
+            setNameError(t("roomNameAlreadyInUse"));
           } else {
             setNameError(null);
           }
         } catch (_e) {
-          setNameError("Could not check room name. Please try again.");
+          setNameError(t("couldNotCheckRoomName"));
         } finally {
           setCheckingName(false);
         }
@@ -218,7 +218,7 @@ export function CreateRoom() {
       .single();
     if (error || !data) {
       setSubmitting(false);
-      alert("Failed to create room. Please try again.");
+      alert(t("failedToCreateRoom"));
       return;
     }
     // Add creator as participant
@@ -238,16 +238,16 @@ export function CreateRoom() {
       <DialogTrigger asChild>
         <Button className="ml-auto cursor-pointer">
           <PlusIcon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
-          Create Room
+          {t("createRoom")}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md bg-background border border-border rounded-lg p-0 shadow-none">
         <DialogHeader className="px-6 pt-6 pb-2 gap-1">
           <DialogTitle className="font-semibold flex items-center gap-2 text-lg text-foreground">
-            Create Trading Room
+            {t("createTradingRoom")}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Set up your trading room details below.
+            {t("setUpTradingRoomDetails")}
           </DialogDescription>
         </DialogHeader>
         <div className="border-b border-border mx-6" />
@@ -261,11 +261,11 @@ export function CreateRoom() {
                 htmlFor="room-name"
                 className="font-medium text-sm text-foreground mb-1"
               >
-                Room Name <span className="text-red-500">*</span>
+                {t("roomName")} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="room-name"
-                placeholder="Enter room name"
+                placeholder={t("enterRoomName")}
                 required
                 className="text-sm h-10"
                 value={roomName}
@@ -274,7 +274,7 @@ export function CreateRoom() {
               />
               {checkingName && (
                 <span className="text-xs text-muted-foreground">
-                  Checking name...
+                  {t("checkingName")}
                 </span>
               )}
               {nameError && (
@@ -286,15 +286,15 @@ export function CreateRoom() {
                 htmlFor="privacy"
                 className="font-medium text-sm text-foreground mb-1"
               >
-                Privacy
+                {t("privacy")}
               </Label>
               <Select value={privacy} onValueChange={setPrivacy}>
                 <SelectTrigger id="privacy" className="w-full text-sm h-10">
-                  <SelectValue placeholder="Select privacy" />
+                  <SelectValue placeholder={t("selectPrivacy")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="public">Public</SelectItem>
-                  <SelectItem value="private">Private</SelectItem>
+                  <SelectItem value="public">{t("public")}</SelectItem>
+                  <SelectItem value="private">{t("private")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -304,12 +304,12 @@ export function CreateRoom() {
                   htmlFor="room-password"
                   className="font-medium text-sm text-foreground mb-1"
                 >
-                  Password <span className="text-red-500">*</span>
+                  {t("password")} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="room-password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter room password"
+                  placeholder={t("enterRoomPassword")}
                   required
                   className="text-sm pr-10 h-10"
                   value={roomPassword}
@@ -320,7 +320,9 @@ export function CreateRoom() {
                   tabIndex={-1}
                   className="absolute right-3 top-10 text-muted-foreground hover:text-foreground focus:outline-none"
                   onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={
+                    showPassword ? t("hidePassword") : t("showPassword")
+                  }
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -332,11 +334,11 @@ export function CreateRoom() {
               htmlFor="symbol"
               className="font-medium text-sm text-foreground mb-1"
             >
-              Symbol
+              {t("symbol")}
             </Label>
             <Select value={symbol} onValueChange={setSymbol}>
               <SelectTrigger id="symbol" className="w-full text-sm h-10">
-                <SelectValue placeholder="Select symbol" />
+                <SelectValue placeholder={t("selectSymbol")} />
               </SelectTrigger>
               <SelectContent className="max-h-60 overflow-y-auto">
                 {TRADING_SYMBOLS.map((symbol) => (
@@ -361,15 +363,15 @@ export function CreateRoom() {
               htmlFor="category"
               className="font-medium text-sm text-foreground mb-1"
             >
-              Room Category
+              {t("roomCategory")}
             </Label>
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger id="category" className="w-full text-sm h-10">
-                <SelectValue placeholder="Select category" />
+                <SelectValue placeholder={t("selectCategory")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="regular">Regular Room</SelectItem>
-                <SelectItem value="voice">Voice Room</SelectItem>
+                <SelectItem value="regular">{t("regularRoom")}</SelectItem>
+                <SelectItem value="voice">{t("voiceRoom")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -383,7 +385,7 @@ export function CreateRoom() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground font-medium">
-                    Available Balance
+                    {t("availableBalance")}
                   </p>
                   {loading ? (
                     <Skeleton className="h-6 w-20" />
@@ -404,7 +406,7 @@ export function CreateRoom() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-xs text-muted-foreground">Room Cost</p>
+                <p className="text-xs text-muted-foreground">{t("roomCost")}</p>
                 <p
                   className={`text-lg font-bold ${
                     canAfford
@@ -424,17 +426,18 @@ export function CreateRoom() {
               </div>
               <div className="flex-1">
                 <p className="text-xs font-medium text-foreground mb-1">
-                  Room Features:
+                  {t("roomFeatures")}:
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {category === "voice"
-                    ? "Host can speak, participants can ask questions via text chat"
-                    : "Host and participants can communicate via text chat"}
+                    ? t("voiceRoomDescription")
+                    : t("regularRoomDescription")}
                 </p>
                 {!loading && !canAfford && (
                   <p className="text-xs text-red-600 dark:text-red-400 mt-2 font-medium">
-                    ⚠️ Insufficient balance. You need{" "}
-                    {(roomCost - userKorCoins).toLocaleString()} more KOR Coins.
+                    ⚠️ {t("insufficientBalance")} {t("youNeed")}{" "}
+                    {(roomCost - userKorCoins).toLocaleString()}{" "}
+                    {t("moreKorCoins")}.
                   </p>
                 )}
               </div>
@@ -447,17 +450,17 @@ export function CreateRoom() {
               variant="outline"
               onClick={() => setOpen(false)}
             >
-              Cancel
+              {t("cancel")}
             </Button>
             <Button
               type="submit"
               disabled={loading || submitting || !!nameError || checkingName}
             >
               {submitting
-                ? "Creating..."
+                ? t("creating")
                 : loading
-                ? "Loading..."
-                : "Create Room"}
+                ? t("loading")
+                : t("createRoom")}
             </Button>
           </div>
         </form>

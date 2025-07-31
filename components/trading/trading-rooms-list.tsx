@@ -44,6 +44,7 @@ import {
   MicIcon,
   UsersIcon,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -176,6 +177,7 @@ function CreatedAtCell({ value }: { value: string }) {
 }
 
 export function TradingRoomsList() {
+  const t = useTranslations("tradingRooms");
   const id = useId();
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -287,7 +289,7 @@ export function TradingRoomsList() {
   const columns = useMemo<ColumnDef<TradingRoom>[]>(
     () => [
       {
-        header: "Room",
+        header: t("room"),
         accessorKey: "name",
         cell: ({ row }) => {
           const room = row.original;
@@ -298,7 +300,7 @@ export function TradingRoomsList() {
                 {currentUserId && room.creator.id === currentUserId && (
                   <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-0">
                     <Crown className="h-3 w-3 mr-1" />
-                    Host
+                    {t("host")}
                   </Badge>
                 )}
               </div>
@@ -313,7 +315,7 @@ export function TradingRoomsList() {
         enableHiding: false,
       },
       {
-        header: "Creator",
+        header: t("creator"),
         accessorKey: "creator",
         cell: ({ row }) => {
           const creator = row.original.creator;
@@ -334,7 +336,7 @@ export function TradingRoomsList() {
         cellProps: { className: "text-left" },
       },
       {
-        header: "P&L %",
+        header: t("pnlPercentage"),
         accessorKey: "pnlPercentage",
         cell: ({ row }) => {
           const pnl = row.original.pnlPercentage;
@@ -358,7 +360,7 @@ export function TradingRoomsList() {
         size: 90,
       },
       {
-        header: "Participants",
+        header: t("participants"),
         accessorKey: "participants",
         cell: ({ row }) => {
           const room = row.original;
@@ -374,7 +376,7 @@ export function TradingRoomsList() {
         size: 120,
       },
       {
-        header: "Type",
+        header: t("type"),
         accessorKey: "category",
         cell: ({ row }) => {
           const category = row.getValue("category") as string;
@@ -393,7 +395,7 @@ export function TradingRoomsList() {
               ) : (
                 <MessageSquareIcon className="h-3 w-3 mr-1 text-emerald-500" />
               )}
-              {category === "voice" ? "Voice" : "Chat"}
+              {category === "voice" ? t("voice") : t("chat")}
             </Badge>
           );
         },
@@ -401,7 +403,7 @@ export function TradingRoomsList() {
         filterFn: categoryFilterFn,
       },
       {
-        header: "Access",
+        header: t("access"),
         accessorKey: "isPublic",
         cell: ({ row }) => {
           const isPublic = row.getValue("isPublic") as boolean;
@@ -420,7 +422,7 @@ export function TradingRoomsList() {
               ) : (
                 <LockIcon className="h-3 w-3 mr-1 text-slate-500" />
               )}
-              {isPublic ? "Public" : "Private"}
+              {isPublic ? t("public") : t("private")}
             </Badge>
           );
         },
@@ -428,7 +430,7 @@ export function TradingRoomsList() {
         filterFn: accessFilterFn,
       },
       {
-        header: "Created",
+        header: t("created"),
         accessorKey: "createdAt",
         cell: ({ row }) => <CreatedAtCell value={row.original.createdAt} />,
         size: 140,
@@ -450,7 +452,7 @@ export function TradingRoomsList() {
               onClick={() => handleJoinRoom(row.original)}
             >
               <DoorOpenIcon />
-              Join Room
+              {t("joinRoom")}
             </Button>
           </div>
         ),
@@ -458,7 +460,7 @@ export function TradingRoomsList() {
         enableHiding: false,
       },
     ],
-    [currentUserId]
+    [currentUserId, t]
   );
 
   const table = useReactTable({
@@ -523,8 +525,8 @@ export function TradingRoomsList() {
   };
 
   const accessOptions = [
-    { value: "public", label: "Public" },
-    { value: "private", label: "Private" },
+    { value: "public", label: t("public") },
+    { value: "private", label: t("private") },
   ];
 
   const selectedAccess = useMemo(() => {
@@ -556,7 +558,7 @@ export function TradingRoomsList() {
 
   const handleJoinRoom = (room: TradingRoom) => {
     if (!currentUserId) {
-      toast.warning("Please log in to join the room.");
+      toast.warning(t("pleaseLoginToJoin"));
       return;
     }
     if (room.isPublic || room.isHosted) {
@@ -588,12 +590,12 @@ export function TradingRoomsList() {
     const result = await response.json();
 
     if (!response.ok) {
-      toast.error(result.error || "Incorrect password. Please try again.");
+      toast.error(result.error || t("incorrectPassword"));
       setPasswordDialog((d) => ({ ...d, loading: false }));
       return;
     }
 
-    toast.success("Password correct! Joining room...");
+    toast.success(t("passwordCorrect"));
     setPasswordDialog({
       open: false,
       roomId: null,
@@ -615,10 +617,10 @@ export function TradingRoomsList() {
           <div className="flex flex-col items-center justify-center px-8 py-8 gap-4">
             <div className="w-full text-center">
               <DialogTitle className="text-2xl font-bold mb-1 tracking-tight">
-                Private Room
+                {t("privateRoom")}
               </DialogTitle>
               <p className="text-muted-foreground text-sm mb-2">
-                Enter the password to join{" "}
+                {t("enterPasswordToJoin")}{" "}
                 <span className="font-semibold text-primary">
                   {passwordDialog.roomName}
                 </span>
@@ -628,7 +630,7 @@ export function TradingRoomsList() {
               <div className="relative">
                 <Input
                   type={showPassword ? "text" : "password"}
-                  placeholder="Room password"
+                  placeholder={t("roomPassword")}
                   className="h-10 pr-12 text-base"
                   value={passwordDialog.password}
                   onChange={(e) =>
@@ -648,7 +650,9 @@ export function TradingRoomsList() {
                   tabIndex={-1}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer"
                   onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={
+                    showPassword ? t("hidePassword") : t("showPassword")
+                  }
                   disabled={passwordDialog.loading}
                 >
                   {showPassword ? (
@@ -681,10 +685,10 @@ export function TradingRoomsList() {
                         d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                       />
                     </svg>
-                    Joining...
+                    {t("joining")}
                   </span>
                 ) : (
-                  "Join Room"
+                  t("joinRoom")
                 )}
               </Button>
             </div>
@@ -709,9 +713,9 @@ export function TradingRoomsList() {
                 onChange={(e) =>
                   table.getColumn("name")?.setFilterValue(e.target.value)
                 }
-                placeholder="Filter by name, symbol, or creator..."
+                placeholder={t("filterPlaceholder")}
                 type="text"
-                aria-label="Filter by name, symbol, or creator"
+                aria-label={t("filterPlaceholder")}
               />
               <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
                 <ListFilterIcon size={16} aria-hidden="true" />
@@ -719,7 +723,7 @@ export function TradingRoomsList() {
               {Boolean(table.getColumn("name")?.getFilterValue()) && (
                 <button
                   className="text-muted-foreground/80 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 absolute inset-y-0 end-0 flex h-full w-9 items-center justify-center rounded-e-md transition-[color,box-shadow] outline-none focus:z-10 focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
-                  aria-label="Clear filter"
+                  aria-label={t("clearFilter")}
                   onClick={() => {
                     table.getColumn("name")?.setFilterValue("");
                     if (inputRef.current) {
@@ -744,7 +748,7 @@ export function TradingRoomsList() {
                     size={16}
                     aria-hidden="true"
                   />
-                  Type
+                  {t("type")}
                   {selectedCategories.length > 0 && (
                     <span className="bg-background text-muted-foreground/70 -me-1 inline-flex h-5 max-h-full items-center rounded border px-1 font-[inherit] text-[0.625rem] font-medium">
                       {selectedCategories.length}
@@ -755,7 +759,7 @@ export function TradingRoomsList() {
               <PopoverContent className="w-auto min-w-36 p-3" align="start">
                 <div className="space-y-3">
                   <div className="text-muted-foreground text-xs font-medium">
-                    Filters
+                    {t("filters")}
                   </div>
                   <div className="space-y-3">
                     {uniqueCategoryValues.map((value, i) => (
@@ -771,7 +775,7 @@ export function TradingRoomsList() {
                           htmlFor={`${id}-category-${i}`}
                           className="flex grow justify-between gap-2 font-normal"
                         >
-                          {value === "voice" ? "Voice" : "Chat"}{" "}
+                          {value === "voice" ? t("voice") : t("chat")}{" "}
                           <span className="text-muted-foreground ms-2 text-xs">
                             {categoryCounts.get(value)}
                           </span>
@@ -795,7 +799,7 @@ export function TradingRoomsList() {
                     size={16}
                     aria-hidden="true"
                   />
-                  Access
+                  {t("access")}
                   {selectedAccess.length > 0 && (
                     <span className="bg-background text-muted-foreground/70 -me-1 inline-flex h-5 max-h-full items-center rounded border px-1 font-[inherit] text-[0.625rem] font-medium">
                       {selectedAccess.length}
@@ -806,7 +810,7 @@ export function TradingRoomsList() {
               <PopoverContent className="w-auto min-w-36 p-3" align="start">
                 <div className="space-y-3">
                   <div className="text-muted-foreground text-xs font-medium">
-                    Filters
+                    {t("filters")}
                   </div>
                   <div className="space-y-3">
                     {accessOptions.map((option, i) => (
@@ -846,11 +850,11 @@ export function TradingRoomsList() {
                     size={16}
                     aria-hidden="true"
                   />
-                  View
+                  {t("view")}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+                <DropdownMenuLabel>{t("toggleColumns")}</DropdownMenuLabel>
                 {table
                   .getAllColumns()
                   .filter((column) => column.getCanHide())
@@ -975,7 +979,7 @@ export function TradingRoomsList() {
                     colSpan={columns.length}
                     className="h-24 text-center"
                   >
-                    No trading rooms found.
+                    {t("noTradingRoomsFound")}
                   </TableCell>
                 </TableRow>
               )}
@@ -986,7 +990,7 @@ export function TradingRoomsList() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-8">
           <div className="flex items-center gap-3">
             <Label htmlFor={id} className="max-sm:sr-only">
-              Rows per page
+              {t("rowsPerPage")}
             </Label>
             <Select
               value={table.getState().pagination.pageSize.toString()}
@@ -995,7 +999,7 @@ export function TradingRoomsList() {
               }}
             >
               <SelectTrigger id={id} className="w-fit whitespace-nowrap">
-                <SelectValue placeholder="Select number of results" />
+                <SelectValue placeholder={t("selectNumberOfResults")} />
               </SelectTrigger>
               <SelectContent className="[&_*[role=option]]:ps-2 [&_*[role=option]]:pe-8 [&_*[role=option]>span]:start-auto [&_*[role=option]>span]:end-2">
                 {[5, 10, 25, 50].map((pageSize) => (

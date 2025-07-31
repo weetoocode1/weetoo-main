@@ -18,61 +18,32 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
-import { ChevronDown } from "lucide-react";
+import { useLanguage } from "@/providers/language-provider";
+import { ChevronDown, Globe } from "lucide-react";
+import { useTranslations } from "next-intl";
 
-const community: { title: string; href: string; description: string }[] = [
-  {
-    title: "Free Bulletin Board",
-    href: "/free-board",
-    description:
-      "Open discussions about market trends, strategies, and general trading topics",
-  },
-  {
-    title: "Profit Bulletin Board",
-    href: "/profit-board",
-    description:
-      "Share profitable trades with verified results and proven strategies",
-  },
-  {
-    title: "Education Bulletin Board",
-    href: "/education-board",
-    description:
-      "Learn from expert tutorials, guides, and educational trading content",
-  },
-];
+// Language Toggle Component for Mobile
+function LanguageToggleMobile() {
+  const { locale, setLocale } = useLanguage();
 
-const information: { title: string; href: string; description: string }[] = [
-  {
-    title: "Comprehensive Data",
-    href: "/comprehensive-data",
-    description:
-      "Access real-time market data, charts, analytics, and trading indicators",
-  },
-  {
-    title: "News",
-    href: "/news",
-    description:
-      "Stay updated with breaking crypto news, market analysis, and regulatory updates",
-  },
-];
+  const toggleLanguage = () => {
+    const newLocale = locale === "en" ? "ko" : "en";
+    setLocale(newLocale);
+  };
 
-const broker: { title: string; href: string; description: string }[] = [
-  {
-    title: "Broker Comparison",
-    href: "/broker",
-    description:
-      "Compare Korean crypto exchanges - fees, features, security, and trading pairs",
-  },
-
-  // {
-  //   title: "Overseas Futures Comparison",
-  //   href: "/overseas-futures",
-  //   description:
-  //     "Compare international exchanges - regulations, leverage, and global trading options",
-  // },
-];
+  return (
+    <button
+      onClick={toggleLanguage}
+      className="flex items-center gap-2 w-full py-2 text-sm font-medium text-left hover:bg-accent hover:text-accent-foreground rounded-md px-2 transition-colors"
+    >
+      <Globe className="h-4 w-4" />
+      <span>{locale === "en" ? "한국어" : "English"}</span>
+    </button>
+  );
+}
 
 export function Menu() {
+  const t = useTranslations("menu");
   // const pathname = usePathname();
   const [openSections, setOpenSections] = React.useState<
     Record<string, boolean>
@@ -90,6 +61,46 @@ export function Menu() {
     }));
   };
 
+  // Menu items
+  const community = [
+    {
+      title: t("freeBulletinBoard"),
+      href: "/free-board",
+      description: t("freeBulletinBoardDesc"),
+    },
+    {
+      title: t("profitBulletinBoard"),
+      href: "/profit-board",
+      description: t("profitBulletinBoardDesc"),
+    },
+    {
+      title: t("educationBulletinBoard"),
+      href: "/education-board",
+      description: t("educationBulletinBoardDesc"),
+    },
+  ];
+
+  const information = [
+    {
+      title: t("comprehensiveData"),
+      href: "/comprehensive-data",
+      description: t("comprehensiveDataDesc"),
+    },
+    {
+      title: t("news"),
+      href: "/news",
+      description: t("newsDesc"),
+    },
+  ];
+
+  const broker = [
+    {
+      title: t("brokerComparison"),
+      href: "/broker",
+      description: t("brokerComparisonDesc"),
+    },
+  ];
+
   const renderMobileMenu = () => (
     <div className="flex flex-col space-y-4">
       {/* Trading Section */}
@@ -98,7 +109,7 @@ export function Menu() {
         onOpenChange={() => toggleSection("trading")}
       >
         <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium">
-          Trading
+          {t("trading")}
           <ChevronDown
             className={cn(
               "h-4 w-4 transition-transform duration-200",
@@ -108,13 +119,13 @@ export function Menu() {
         </CollapsibleTrigger>
         <CollapsibleContent className="pl-4 space-y-2">
           <Link href="/trading" className="block py-2 text-sm">
-            Start Trading
+            {t("startTrading")}
           </Link>
           <Link href="/ranking" className="block py-2 text-sm">
-            Trader Rankings
+            {t("traderRankings")}
           </Link>
           <Link href="/kor-coins" className="block py-2 text-sm">
-            Kor Coins Rankings
+            {t("korCoinsRankings")}
           </Link>
         </CollapsibleContent>
       </Collapsible>
@@ -125,7 +136,7 @@ export function Menu() {
         onOpenChange={() => toggleSection("community")}
       >
         <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium">
-          Community
+          {t("community")}
           <ChevronDown
             className={cn(
               "h-4 w-4 transition-transform duration-200",
@@ -148,7 +159,7 @@ export function Menu() {
 
       {/* Investment Competition */}
       <Link href="/investment-competition" className="py-2 text-sm font-medium">
-        Investment Competition
+        {t("investmentCompetition")}
       </Link>
 
       {/* Information Section */}
@@ -157,7 +168,7 @@ export function Menu() {
         onOpenChange={() => toggleSection("information")}
       >
         <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium">
-          Information
+          {t("information")}
           <ChevronDown
             className={cn(
               "h-4 w-4 transition-transform duration-200",
@@ -180,8 +191,13 @@ export function Menu() {
 
       {/* Exchange Section */}
       <Link href={broker[0].href} className="py-2 text-sm font-medium">
-        Broker
+        {t("broker")}
       </Link>
+
+      {/* Language Toggle for Mobile */}
+      <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+        <LanguageToggleMobile />
+      </div>
     </div>
   );
 
@@ -189,24 +205,24 @@ export function Menu() {
     <NavigationMenu viewport={false}>
       <NavigationMenuList>
         <NavigationMenuItem>
-          <NavigationMenuTrigger>Trading</NavigationMenuTrigger>
+          <NavigationMenuTrigger>{t("trading")}</NavigationMenuTrigger>
           <NavigationMenuContent className="left-1/2 -translate-x-1/2">
             <ul className="grid gap-2 p-2 w-[300px]">
-              <ListItem href="/trading" title="Start Trading">
-                Begin live trading with real-time market data and advanced tools
+              <ListItem href="/trading" title={t("startTrading")}>
+                {t("startTradingDesc")}
               </ListItem>
-              <ListItem href="/ranking" title="Trader Rankings">
-                View top performing traders and their success rates
+              <ListItem href="/ranking" title={t("traderRankings")}>
+                {t("traderRankingsDesc")}
               </ListItem>
-              <ListItem href="/kor-coins" title="Kor Coins Rankings">
-                Track Korean cryptocurrency performance and market trends
+              <ListItem href="/kor-coins" title={t("korCoinsRankings")}>
+                {t("korCoinsRankingsDesc")}
               </ListItem>
             </ul>
           </NavigationMenuContent>
         </NavigationMenuItem>
 
         <NavigationMenuItem>
-          <NavigationMenuTrigger>Community</NavigationMenuTrigger>
+          <NavigationMenuTrigger>{t("community")}</NavigationMenuTrigger>
           <NavigationMenuContent className="left-1/2 -translate-x-1/2">
             <ul className="grid gap-2 p-2 w-[300px]">
               {community.map((item) => (
@@ -224,13 +240,13 @@ export function Menu() {
               href="/investment-competition"
               className={navigationMenuTriggerStyle()}
             >
-              Investment Competition
+              {t("investmentCompetition")}
             </Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
 
         <NavigationMenuItem>
-          <NavigationMenuTrigger>Information</NavigationMenuTrigger>
+          <NavigationMenuTrigger>{t("information")}</NavigationMenuTrigger>
           <NavigationMenuContent className="left-1/2 -translate-x-1/2">
             <ul className="w-[300px] p-2">
               {information.map((item) => (
@@ -248,7 +264,7 @@ export function Menu() {
               href={broker[0].href}
               className={navigationMenuTriggerStyle()}
             >
-              Broker
+              {t("broker")}
             </Link>
           </NavigationMenuLink>
         </NavigationMenuItem>

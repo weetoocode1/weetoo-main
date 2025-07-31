@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useCallback, memo } from "react";
+import { useTranslations } from "next-intl";
 import {
   type ColumnDef,
   flexRender,
@@ -194,6 +195,7 @@ function formatRelativeTime(dateString: string | null): string {
 
 export const KorCoinsRankingTable = memo(
   ({ users }: { users: KorCoinsUser[] }) => {
+    const t = useTranslations("rankings");
     // Use the users prop as-is (already sorted and ranked)
     const data: KorCoinsUser[] = users;
 
@@ -217,7 +219,7 @@ export const KorCoinsRankingTable = memo(
     const columns = useMemo<ColumnDef<KorCoinsUser>[]>(
       () => [
         {
-          header: "Rank",
+          header: t("rank"),
           accessorKey: "rank",
           cell: ({ row }) => (
             <div className="flex justify-center">
@@ -227,7 +229,7 @@ export const KorCoinsRankingTable = memo(
           size: 100,
         },
         {
-          header: "User",
+          header: t("user"),
           accessorKey: "id",
           cell: ({ row }) => {
             const user = row.original;
@@ -256,7 +258,7 @@ export const KorCoinsRankingTable = memo(
                         variant="secondary"
                         className="text-xs px-2 py-0.5"
                       >
-                        Top {rank}
+                        {t("top")} {rank}
                       </Badge>
                     )}
                   </div>
@@ -275,7 +277,7 @@ export const KorCoinsRankingTable = memo(
           },
         },
         {
-          header: "Kor-Coins",
+          header: t("korCoins"),
           accessorKey: "kor_coins",
           cell: ({ row }) => {
             const coins = row.getValue("kor_coins") as number;
@@ -315,7 +317,7 @@ export const KorCoinsRankingTable = memo(
                       {new Intl.NumberFormat("en-US").format(
                         row.original.weekly_gain || 0
                       )}{" "}
-                      this week
+                      {t("thisWeek")}
                     </span>
                   )}
                 </div>
@@ -325,7 +327,7 @@ export const KorCoinsRankingTable = memo(
           size: 200,
         },
         {
-          header: "Weekly Gain",
+          header: t("weeklyGain"),
           accessorKey: "weekly_gain",
           cell: ({ row }) => {
             const gain = row.getValue("weekly_gain") as number;
@@ -341,7 +343,7 @@ export const KorCoinsRankingTable = memo(
           size: 150,
         },
         {
-          header: "Last Active",
+          header: t("lastActive"),
           accessorKey: "updated_at",
           cell: ({ row }) => (
             <div className="flex items-center gap-2">
@@ -354,7 +356,7 @@ export const KorCoinsRankingTable = memo(
           size: 140,
         },
       ],
-      []
+      [t]
     );
 
     const table = useReactTable({
@@ -402,11 +404,11 @@ export const KorCoinsRankingTable = memo(
     return (
       <div className="space-y-6 select-none">
         <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
-          <h2 className="text-2xl font-semibold">Full Rankings</h2>
+          <h2 className="text-2xl font-semibold">{t("fullRankings")}</h2>
           <div className="relative w-full md:w-80">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search users..."
+              placeholder={t("searchUsers")}
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
               className="pl-10 h-10"
@@ -500,7 +502,7 @@ export const KorCoinsRankingTable = memo(
                     colSpan={columns.length}
                     className="h-24 text-center"
                   >
-                    No users found.
+                    {t("noUsersFound")}
                   </TableCell>
                 </TableRow>
               )}
@@ -515,7 +517,7 @@ export const KorCoinsRankingTable = memo(
               htmlFor="rows-per-page-korcoins"
               className="max-sm:sr-only text-sm font-medium"
             >
-              Rows per page
+              {t("rowsPerPage")}
             </Label>
             <Select
               value={pagination.pageSize.toString()}
@@ -540,8 +542,8 @@ export const KorCoinsRankingTable = memo(
           <div className="flex flex-col items-center gap-4 w-full md:flex-row md:justify-end md:w-auto md:items-center">
             <div className="text-muted-foreground text-sm whitespace-nowrap">
               <span className="font-medium">
-                Showing {table.getRowModel().rows.length} of{" "}
-                {table.getFilteredRowModel().rows.length} users
+                {t("showing")} {table.getRowModel().rows.length} {t("of")}{" "}
+                {table.getFilteredRowModel().rows.length} {t("users")}
               </span>
             </div>
 

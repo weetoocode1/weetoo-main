@@ -20,6 +20,7 @@ import { Star } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { LeaderboardTableProps, Post } from "@/types/post";
 
 // Cache for storing fetched posts
@@ -59,6 +60,7 @@ const setCache = (key: string, data: Post[]) => {
 };
 
 export function LeaderboardTable({ board }: LeaderboardTableProps) {
+  const t = useTranslations("communityBoards");
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -128,7 +130,7 @@ export function LeaderboardTable({ board }: LeaderboardTableProps) {
   const columns = useMemo<ColumnDef<Post>[]>(
     () => [
       {
-        header: "Rank",
+        header: t("rank"),
         accessorKey: "rank",
         cell: ({ row }) => (
           <span className="font-bold text-primary">
@@ -138,7 +140,7 @@ export function LeaderboardTable({ board }: LeaderboardTableProps) {
         size: 60,
       },
       {
-        header: "Title",
+        header: t("title"),
         accessorKey: "title",
         cell: ({ row }) => (
           <span className="font-semibold text-foreground line-clamp-1">
@@ -148,7 +150,7 @@ export function LeaderboardTable({ board }: LeaderboardTableProps) {
         size: 300,
       },
       {
-        header: "Author",
+        header: t("author"),
         accessorKey: "author",
         cell: ({ row }) => {
           const author = row.original.author;
@@ -174,7 +176,7 @@ export function LeaderboardTable({ board }: LeaderboardTableProps) {
         size: 180,
       },
       {
-        header: "Views",
+        header: t("views"),
         accessorKey: "views",
         cell: ({ row }) => (
           <span className="text-muted-foreground font-medium">
@@ -184,7 +186,7 @@ export function LeaderboardTable({ board }: LeaderboardTableProps) {
         size: 100,
       },
       {
-        header: "Likes",
+        header: t("likes"),
         accessorKey: "likes",
         cell: ({ row }) => (
           <span className="text-muted-foreground font-medium">
@@ -194,7 +196,7 @@ export function LeaderboardTable({ board }: LeaderboardTableProps) {
         size: 100,
       },
       {
-        header: "Comments",
+        header: t("comments"),
         accessorKey: "comments",
         cell: ({ row }) => (
           <span className="text-muted-foreground font-medium">
@@ -204,7 +206,7 @@ export function LeaderboardTable({ board }: LeaderboardTableProps) {
         size: 100,
       },
       {
-        header: "Created",
+        header: t("created"),
         accessorKey: "createdAt",
         cell: ({ row }) => (
           <span className="text-xs text-muted-foreground">
@@ -214,7 +216,7 @@ export function LeaderboardTable({ board }: LeaderboardTableProps) {
         size: 120,
       },
     ],
-    [pageIndex, pageSize]
+    [pageIndex, pageSize, t]
   );
 
   const table = useReactTable({
@@ -233,10 +235,10 @@ export function LeaderboardTable({ board }: LeaderboardTableProps) {
       <section className="mt-5">
         <div className="mb-5">
           <span className="text-lg md:text-xl font-semibold text-primary/90">
-            Top Community Posts
+            {t("topCommunityPosts")}
           </span>
           <span className="ml-2 text-muted-foreground text-sm">
-            — See what&apos;s trending and most discussed
+            — {t("seeWhatsTrending")}
           </span>
         </div>
         <div className="overflow-x-auto bg-background border shadow-lg rounded-lg">
@@ -314,14 +316,16 @@ export function LeaderboardTable({ board }: LeaderboardTableProps) {
       <section className="mt-5">
         <div className="mb-5">
           <span className="text-lg md:text-xl font-semibold text-primary/90">
-            Top Community Posts
+            {t("topCommunityPosts")}
           </span>
           <span className="ml-2 text-muted-foreground text-sm">
-            — See what&apos;s trending and most discussed
+            — {t("seeWhatsTrending")}
           </span>
         </div>
         <div className="flex items-center justify-center py-12">
-          <div className="text-red-500">Error: {error}</div>
+          <div className="text-red-500">
+            {t("error")}: {error}
+          </div>
         </div>
       </section>
     );
@@ -331,10 +335,10 @@ export function LeaderboardTable({ board }: LeaderboardTableProps) {
     <section className="mt-5">
       <div className="mb-5">
         <span className="text-lg md:text-xl font-semibold text-primary/90">
-          Top Community Posts
+          {t("topCommunityPosts")}
         </span>
         <span className="ml-2 text-muted-foreground text-sm">
-          — See what’s trending and most discussed
+          — {t("seeWhatsTrending")}
         </span>
       </div>
       <div className="overflow-x-auto bg-background border shadow-lg rounded-lg">
@@ -426,10 +430,11 @@ export function LeaderboardTable({ board }: LeaderboardTableProps) {
           onClick={() => setPageIndex(Math.max(0, pageIndex - 1))}
           disabled={pageIndex === 0}
         >
-          Previous
+          {t("previous")}
         </button>
         <span className="text-muted-foreground text-sm">
-          Page {pageIndex + 1} of {Math.ceil(leaderboardData.length / pageSize)}
+          {t("page")} {pageIndex + 1} {t("of")}{" "}
+          {Math.ceil(leaderboardData.length / pageSize)}
         </span>
         <button
           className="px-3 py-2 text-sm font-medium text-primary bg-muted border border-border hover:bg-accent/20 transition-colors rounded-md"
@@ -445,7 +450,7 @@ export function LeaderboardTable({ board }: LeaderboardTableProps) {
             pageIndex >= Math.ceil(leaderboardData.length / pageSize) - 1
           }
         >
-          Next
+          {t("next")}
         </button>
       </div>
     </section>

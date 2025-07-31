@@ -14,6 +14,7 @@ import {
   Trophy,
 } from "lucide-react";
 import { memo, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { KorCoinsRankingTable } from "./kor-coins-ranking-table";
 
 // Memoized components
@@ -66,26 +67,32 @@ const RankBadge = memo(({ rank }: { rank: number }) => {
 });
 RankBadge.displayName = "RankBadge";
 
-const OnlineIndicator = memo(({ isOnline }: { isOnline: boolean }) => (
-  <div className="flex items-center gap-1.5">
-    <div
-      className={cn(
-        "w-2 h-2 rounded-full",
-        isOnline ? "bg-green-500 animate-pulse" : "bg-gray-400 dark:bg-gray-600"
-      )}
-    />
-    <span
-      className={cn(
-        "text-xs",
-        isOnline
-          ? "text-green-600 dark:text-green-400"
-          : "text-muted-foreground"
-      )}
-    >
-      {isOnline ? "Online" : "Offline"}
-    </span>
-  </div>
-));
+const OnlineIndicator = memo(({ isOnline }: { isOnline: boolean }) => {
+  const t = useTranslations("rankings");
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <div
+        className={cn(
+          "w-2 h-2 rounded-full",
+          isOnline
+            ? "bg-green-500 animate-pulse"
+            : "bg-gray-400 dark:bg-gray-600"
+        )}
+      />
+      <span
+        className={cn(
+          "text-xs",
+          isOnline
+            ? "text-green-600 dark:text-green-400"
+            : "text-muted-foreground"
+        )}
+      >
+        {isOnline ? t("online") : t("offline")}
+      </span>
+    </div>
+  );
+});
 OnlineIndicator.displayName = "OnlineIndicator";
 
 interface KorCoinsUser {
@@ -165,6 +172,7 @@ function formatRelativeTime(dateString: string | null): string {
 }
 
 export const KorCoinsRanking = () => {
+  const t = useTranslations("rankings");
   const { users, loading } = useTopKorCoinsUsers(30);
 
   // Sort users by kor_coins descending and assign rank ONCE
@@ -259,7 +267,7 @@ export const KorCoinsRanking = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground flex items-center gap-2">
                       <TrendingUp className="w-4 h-4" />
-                      Weekly Gain
+                      {t("weeklyGain")}
                     </span>
                     <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                       +{user.weekly_gain?.toLocaleString() ?? 0}
@@ -268,7 +276,7 @@ export const KorCoinsRanking = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground flex items-center gap-2">
                       <Clock className="w-4 h-4" />
-                      Last Active
+                      {t("lastActive")}
                     </span>
                     <span className="text-sm">
                       {formatRelativeTime(user.updated_at)}

@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { motion } from "motion/react";
 import { memo, useMemo } from "react";
+import { useTranslations } from "next-intl";
 
 // Global Set to track which charts have already animated
 const animatedCharts = new Set<string>();
@@ -73,6 +74,7 @@ export const RelativePerformanceChart = memo(function RelativePerformanceChart({
 }: {
   data: PerformanceData[];
 }) {
+  const t = useTranslations("comprehensiveData");
   // Sort: positive (green) left, negative (red) right
   const sorted = useMemo(
     () => [...data].sort((a, b) => b.performance - a.performance),
@@ -103,7 +105,7 @@ export const RelativePerformanceChart = memo(function RelativePerformanceChart({
         {/* Header */}
         <div className="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800">
           <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-            24H Relative Performance vs USDT
+            {t("relativePerformanceTitle")}
           </h3>
         </div>
 
@@ -125,11 +127,11 @@ export const RelativePerformanceChart = memo(function RelativePerformanceChart({
         <div className="px-6 py-3 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900">
           <div className="flex justify-between text-xs text-neutral-600 dark:text-neutral-400">
             <span>
-              Best: {best.symbol} {best.performance > 0 ? "+" : ""}
+              {t("best")}: {best.symbol} {best.performance > 0 ? "+" : ""}
               {best.performance.toFixed(2)}%
             </span>
             <span>
-              Worst: {worst.symbol} {worst.performance > 0 ? "+" : ""}
+              {t("worst")}: {worst.symbol} {worst.performance > 0 ? "+" : ""}
               {worst.performance.toFixed(2)}%
             </span>
           </div>
