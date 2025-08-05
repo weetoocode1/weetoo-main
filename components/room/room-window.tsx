@@ -5,6 +5,7 @@ import { RoomWindowContent } from "./room-window-content";
 import { WindowTitleBar } from "./window-title-bar";
 import React, { useState } from "react";
 import { useRoomRealtimeSync } from "@/hooks/use-room-realtime-sync";
+import { useAutoThumbnail } from "@/hooks/use-auto-thumbnail";
 
 interface TradingRoomWindowProps {
   roomName: string;
@@ -38,8 +39,19 @@ export function TradingRoomWindow({
     initialIsPublic,
     initialSymbol,
   });
+
+  // Auto-update thumbnails when room is active
+  useAutoThumbnail({
+    roomId,
+    isActive: true, // Always active when user is in the room
+    intervalMs: 30000, // 30 seconds
+  });
+
   return (
-    <div className="w-full min-h-screen bg-background flex flex-col">
+    <div
+      className="w-full min-h-screen bg-background flex flex-col"
+      data-testid="trading-room-window"
+    >
       <WindowTitleBar
         roomName={roomName}
         isPublic={isPublic}

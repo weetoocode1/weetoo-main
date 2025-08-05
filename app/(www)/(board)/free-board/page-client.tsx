@@ -18,9 +18,6 @@ export function FreeBoardPageClient() {
           <h1 className="text-2xl md:text-3xl font-bold text-primary mb-0.5">
             {t("freeBoard")}
           </h1>
-          <p className="text-sm text-muted-foreground leading-snug max-w-lg">
-            {t("freeBoardDescription")}
-          </p>
         </div>
         <Link
           href="/create-post?board=free"

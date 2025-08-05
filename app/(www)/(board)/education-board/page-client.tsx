@@ -17,9 +17,6 @@ export function EducationBoardPageClient() {
           <h1 className="text-2xl md:text-3xl font-bold text-primary mb-0.5">
             {t("educationBoard")}
           </h1>
-          <p className="text-sm text-muted-foreground leading-snug max-w-lg">
-            {t("educationBoardDescription")}
-          </p>
         </div>
         <Link
           href="/create-post?board=education"

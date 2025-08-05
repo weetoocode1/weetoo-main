@@ -15,9 +15,9 @@ interface TickerData {
 
 interface MarketOverviewData {
   ticker?: TickerData;
-  openInterest?: string;
-  lastFundingRate?: string;
-  nextFundingTime?: number;
+  openInterest?: string | null;
+  lastFundingRate?: string | null;
+  nextFundingTime?: number | null;
 }
 
 export function MarketOverview({
@@ -54,7 +54,10 @@ export function MarketOverview({
   }, [nextFundingTime]);
 
   return (
-    <div className="flex items-center justify-between w-full h-full p-4 text-sm select-none">
+    <div
+      className="flex items-center justify-between w-full h-full p-4 text-sm select-none"
+      data-testid="market-overview"
+    >
       <div className="flex items-center gap-2 h-full">
         <div className="flex flex-col items-start px-2">
           <div className="flex items-center gap-1 cursor-pointer hover:bg-zinc-800 p-1 rounded-md">
@@ -67,6 +70,7 @@ export function MarketOverview({
         <div className="h-full w-[1px] bg-border mx-2"></div>
         <div className="flex flex-col items-start justify-center h-full px-2">
           <p
+            data-testid="current-price"
             className={
               ticker && parseFloat(ticker.priceChange) < 0
                 ? "text-red-500 text-base font-semibold min-w-[110px]"

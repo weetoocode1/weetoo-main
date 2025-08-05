@@ -599,7 +599,7 @@ export function HeroSection() {
                                           : "text-gray-400"
                                       }`}
                                   >
-                                    {t("by")} {room.creator.name}
+                                    {room.creator.name}
                                   </div>
                                   <div
                                     className={`flex flex-wrap gap-2 mt-auto pt-2 border-t ${

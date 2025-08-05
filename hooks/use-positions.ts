@@ -85,10 +85,13 @@ export function usePositions(roomId: string) {
 
   // Close all positions function
   const closeAllPositions = useCallback(
-    async (closePrice: number) => {
+    async (getClosePrice: (position: any) => Promise<number>) => {
       if (!openPositions || openPositions.length === 0) return;
       await Promise.all(
-        openPositions.map((pos) => closePosition(pos.id, closePrice))
+        openPositions.map(async (pos) => {
+          const closePrice = await getClosePrice(pos);
+          return closePosition(pos.id, closePrice);
+        })
       );
       mutateOpen();
       mutateClosed();

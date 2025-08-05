@@ -12,28 +12,9 @@ import {
   SearchSymbolsCallback,
   SubscribeBarsCallback,
 } from "@/public/static/charting_library/datafeed-api";
-
-interface CandleData {
-  time: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
-
-interface MarketDataResponse {
-  candles?: CandleData[];
-  candlesError?: string;
-}
+import { fetchBinanceCandles } from "@/hooks/use-binance-futures";
 
 class BinanceDatafeed implements IDatafeedChartApi, IExternalDatafeed {
-  private baseUrl: string;
-
-  constructor() {
-    this.baseUrl = "/api/market-data";
-  }
-
   onReady(callback: OnReadyCallback) {
     setTimeout(
       () =>
@@ -129,39 +110,27 @@ class BinanceDatafeed implements IDatafeedChartApi, IExternalDatafeed {
     const interval = intervalMap[resolution] || "1d";
     const symbol = symbolInfo.name;
 
-    fetch(
-      `${this.baseUrl}?symbol=${symbol}&include=candles&interval=${interval}`
-    )
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json() as Promise<MarketDataResponse>;
-      })
-      .then((data) => {
-        if (data.candlesError) {
-          throw new Error(data.candlesError);
-        }
+    // Use our centralized utility function
+    fetchBinanceCandles(symbol, interval)
+      .then((candles) => {
+        // Transform candle data to TradingView Bar format
+        const bars: Bar[] = candles.map((candle, index) => {
+          const bar = {
+            time: candle.time * 1000, // Convert to milliseconds
+            low: candle.low,
+            high: candle.high,
+            open: candle.open,
+            close: candle.close,
+            volume: candle.volume,
+          };
 
-        const bars: Bar[] = (data.candles || []).map(
-          (candle: CandleData, index: number) => {
-            const bar = {
-              time: candle.time * 1000, // Convert to milliseconds
-              low: candle.low,
-              high: candle.high,
-              open: candle.open,
-              close: candle.close,
-              volume: candle.volume || 0, // Use actual volume data from API
-            };
-
-            // Debug log for first few bars to verify volume data
-            if (index < 3) {
-              console.log("Bar data:", bar);
-            }
-
-            return bar;
+          // Debug log for first few bars to verify volume data
+          if (index < 3) {
+            console.log("Bar data:", bar);
           }
-        );
+
+          return bar;
+        });
 
         onResult(bars, { noData: bars.length === 0 });
       })

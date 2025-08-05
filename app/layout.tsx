@@ -1,6 +1,7 @@
 "use client";
 
 import { LanguageProvider } from "@/providers/language-provider";
+import { QueryProvider } from "@/providers/query-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -77,16 +78,18 @@ export default function RootLayout({
         <meta charSet="utf-8" />
       </head>
       <body className={`antialiased h-full`}>
-        <LanguageProvider messages={enMessages}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="dark"
-            enableSystem
-            disableTransitionOnChange
-          >
-            {children}
-          </ThemeProvider>
-        </LanguageProvider>
+        <QueryProvider>
+          <LanguageProvider messages={enMessages}>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="dark"
+              enableSystem
+              disableTransitionOnChange
+            >
+              {children}
+            </ThemeProvider>
+          </LanguageProvider>
+        </QueryProvider>
         <Toaster richColors position="top-center" />
         <SpeedInsights />
         <Analytics />

@@ -47,44 +47,67 @@ export function ParticipantsList({
 
   // SWR fetcher for participants
   const fetchParticipants = async () => {
-    const supabase = supabaseRef.current;
-    const { data: participantRows, error } = await supabase
-      .from("trading_room_participants")
-      .select(
-        "user_id, left_at, users(id, first_name, last_name, avatar_url, role, status)"
-      )
-      .eq("room_id", roomId)
-      .is("left_at", null);
-    if (error || !participantRows) {
+    try {
+      const supabase = supabaseRef.current;
+      const { data: participantRows, error } = await supabase
+        .from("trading_room_participants")
+        .select(
+          "user_id, left_at, users(id, first_name, last_name, avatar_url, role, status)"
+        )
+        .eq("room_id", roomId)
+        .is("left_at", null);
+
+      if (error) {
+        console.error("Error fetching participants:", error);
+        return [];
+      }
+
+      if (!participantRows) {
+        return [];
+      }
+
+      // Map joined user info
+      const mapped = (participantRows as unknown as JoinedParticipantRow[]).map(
+        (row) => {
+          const user = row.users;
+          return {
+            id: user.id,
+            name:
+              [user.first_name, user.last_name].filter(Boolean).join(" ") ||
+              "-",
+            avatar: user.avatar_url || "",
+            isOnline: user.status === "Active",
+            role: user.role || "member",
+            pending: row.left_at === null && user.id === currentUserId,
+          };
+        }
+      );
+
+      // Sort so host is at the top
+      mapped.sort((a, b) => {
+        if (a.id === hostId) return -1;
+        if (b.id === hostId) return 1;
+        return 0;
+      });
+
+      console.log("Fetched participants:", mapped.length);
+      return mapped;
+    } catch (error) {
+      console.error("Error in fetchParticipants:", error);
       return [];
     }
-    // Map joined user info
-    const mapped = (participantRows as unknown as JoinedParticipantRow[]).map(
-      (row) => {
-        const user = row.users;
-        return {
-          id: user.id,
-          name:
-            [user.first_name, user.last_name].filter(Boolean).join(" ") || "-",
-          avatar: user.avatar_url || "",
-          isOnline: user.status === "Active",
-          role: user.role || "member",
-          pending: row.left_at === null && user.id === currentUserId,
-        };
-      }
-    );
-    // Sort so host is at the top
-    mapped.sort((a, b) => {
-      if (a.id === hostId) return -1;
-      if (b.id === hostId) return 1;
-      return 0;
-    });
-    return mapped;
   };
 
   const { data: participants = [], isLoading } = useSWR(
     ["participants", roomId],
-    fetchParticipants
+    fetchParticipants,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 1000, // Reduced from default
+      keepPreviousData: true,
+      fallbackData: [], // Prevent empty state
+    }
   );
 
   // Realtime subscription: on any event, call mutate to refetch
@@ -99,15 +122,31 @@ export function ParticipantsList({
           table: "trading_room_participants",
           filter: `room_id=eq.${roomId}`,
         },
-        async (_payload) => {
-          mutate(["participants", roomId]);
+        async (payload) => {
+          console.log("Participant change detected:", payload);
+          // Force immediate revalidation
+          await mutate(["participants", roomId], undefined, {
+            revalidate: true,
+          });
         }
       )
       .subscribe();
+
     return () => {
       supabaseRef.current.removeChannel(channel);
     };
   }, [roomId]);
+
+  // Auto-join host if they're not in the participants list
+  useEffect(() => {
+    if (currentUserId && currentUserId === hostId && participants.length > 0) {
+      const isHostInList = participants.some((p) => p.id === currentUserId);
+      if (!isHostInList) {
+        console.log("Host not in participants list, auto-joining...");
+        handleJoinRoom();
+      }
+    }
+  }, [currentUserId, hostId, participants, roomId]);
 
   const handleJoinRoom = async () => {
     if (!currentUserId) {
@@ -116,37 +155,97 @@ export function ParticipantsList({
       });
       return;
     }
-    // Optimistic UI: add current user to the list instantly with pending state
+
+    console.log("Joining room as:", currentUserId);
+
+    // Get current user info for optimistic update
+    const supabase = supabaseRef.current;
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      toast.error("User session not found");
+      return;
+    }
+
+    // Get user profile for optimistic update
+    const { data: userProfile } = await supabase
+      .from("users")
+      .select("first_name, last_name, avatar_url")
+      .eq("id", currentUserId)
+      .single();
+
+    const userName = userProfile
+      ? [userProfile.first_name, userProfile.last_name]
+          .filter(Boolean)
+          .join(" ") || "You"
+      : "You";
+
+    // Optimistic UI: add current user to the list instantly
     mutate(
       ["participants", roomId],
       (current: Participant[] = []) => {
+        // Don't add if already exists
         if (current.some((p) => p.id === currentUserId)) return current;
+
+        console.log("Adding user optimistically:", userName);
         return [
           ...current,
           {
             id: currentUserId,
-            name: "You", // Optionally fetch/display real name
-            avatar: "",
+            name: userName,
+            avatar: userProfile?.avatar_url || "",
             isOnline: true,
-            role: "participant",
+            role: currentUserId === hostId ? "host" : "participant",
             pending: true,
           },
         ];
       },
-      false
+      false // Don't revalidate immediately
     );
-    // Insert to Supabase
-    const supabase = supabaseRef.current;
-    const { error } = await supabase.from("trading_room_participants").insert({
-      room_id: roomId,
-      user_id: currentUserId,
-    });
-    // After insert, revalidate to get real data
-    mutate(["participants", roomId], undefined, { revalidate: true });
-    if (error) {
+
+    try {
+      // Insert to Supabase
+      const { error } = await supabase
+        .from("trading_room_participants")
+        .insert({
+          room_id: roomId,
+          user_id: currentUserId,
+        });
+
+      if (error) {
+        console.error("Error joining room:", error);
+        // Roll back optimistic update if error
+        mutate(["participants", roomId], undefined, { revalidate: true });
+        toast.error("Failed to join room: " + error.message);
+        return;
+      }
+
+      console.log("Successfully joined room");
+
+      // Success - update the pending state to confirmed
+      mutate(
+        ["participants", roomId],
+        (current: Participant[] = []) => {
+          return current.map((p) =>
+            p.id === currentUserId ? { ...p, pending: false } : p
+          );
+        },
+        false
+      );
+
+      toast.success("Successfully joined the room!");
+
+      // Revalidate after a short delay to ensure consistency
+      setTimeout(() => {
+        mutate(["participants", roomId], undefined, { revalidate: true });
+      }, 500); // Reduced from 1000ms to 500ms
+    } catch (error) {
+      console.error("Error joining room:", error);
       // Roll back optimistic update if error
       mutate(["participants", roomId], undefined, { revalidate: true });
-      toast.error("Failed to join room.");
+      toast.error("Failed to join room");
     }
   };
 
@@ -189,27 +288,6 @@ export function ParticipantsList({
                 <div className="flex flex-col">
                   <span className="text-sm font-medium flex items-center gap-1">
                     {participant.name}
-                    {participant.pending && (
-                      <svg
-                        className="animate-spin h-3 w-3 text-muted-foreground ml-1"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                          fill="none"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                        />
-                      </svg>
-                    )}
                   </span>
                   <div className="text-xs text-muted-foreground capitalize">
                     {participant.id === hostId ? (
