@@ -2,8 +2,10 @@
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import useSWR from "swr";
 
 import { Donation } from "@/components/room/donation";
@@ -30,22 +32,94 @@ import { usePositions } from "@/hooks/use-positions";
 import { cn } from "@/lib/utils";
 import {
   GlobeIcon,
+  ImageIcon,
   LockIcon,
+  LogOutIcon,
   MicIcon,
   MicOffIcon,
   PencilIcon,
+  RefreshCwIcon,
   Volume2Icon,
+  XIcon,
 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
 import { Separator } from "../ui/separator";
 import { EditRoomForm } from "./edit-room";
+
+// Type definition for trading position
+interface TradingPosition {
+  id: string;
+  symbol: string;
+  side: string;
+  quantity: number;
+  entry_price: number;
+  pnl?: number;
+  initial_margin?: number;
+  stop_loss?: number;
+  take_profit?: number;
+  opened_at?: string;
+  closed_at?: string;
+  room_id: string;
+  user_id: string;
+}
+
+// Component to calculate unrealized PNL with symbol-specific prices
+function UnrealizedPnlCalculator({
+  openPositions,
+}: {
+  openPositions: TradingPosition[];
+}) {
+  const [unrealizedPnl, setUnrealizedPnl] = useState(0);
+
+  useEffect(() => {
+    const calculatePnl = async () => {
+      let total = 0;
+
+      for (const pos of openPositions) {
+        const entry = Number(pos.entry_price);
+        const qty = Number(pos.quantity);
+        const side = (pos.side ?? "").toLowerCase();
+
+        // Fetch current price for this position's symbol
+        try {
+          const response = await fetch(
+            `https://api.binance.us/api/v3/ticker/24hr?symbol=${pos.symbol}`
+          );
+          if (response.ok) {
+            const data = await response.json();
+            const currentPrice = parseFloat(data.lastPrice);
+
+            if (side === "long") {
+              total += (currentPrice - entry) * qty;
+            } else if (side === "short") {
+              total += (entry - currentPrice) * qty;
+            }
+          }
+        } catch (error) {
+          console.error(`Failed to fetch price for ${pos.symbol}:`, error);
+        }
+      }
+
+      setUnrealizedPnl(total);
+    };
+
+    if (openPositions.length > 0) {
+      calculatePnl();
+    } else {
+      setUnrealizedPnl(0);
+    }
+  }, [openPositions]);
+
+  return unrealizedPnl;
+}
 
 interface WindowTitleBarProps {
   roomName: string;
@@ -112,6 +186,13 @@ export function WindowTitleBar({
   const [isPublic, setIsPublic] = useState(initialIsPublic);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [updatedAt, setUpdatedAt] = useState(initialUpdatedAt);
+  const [customThumbnailUrl, setCustomThumbnailUrl] = useState<string | null>(
+    null
+  );
+  const [isUploading, setIsUploading] = useState(false);
+  const [thumbnailDialogOpen, setThumbnailDialogOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     setRoomName(initialRoomName);
@@ -122,29 +203,19 @@ export function WindowTitleBar({
   // Fetch open and closed positions for PNL calculation
   const { openPositions, closedPositions } = usePositions(roomId);
 
-  // Memoized calculation of unrealized and realized PNL
-  const { unrealizedPnl, realizedPnl } = useMemo(() => {
-    let unrealized = 0;
+  // Calculate unrealized PNL using symbol-specific prices
+  const unrealizedPnl = UnrealizedPnlCalculator({ openPositions });
+
+  // Calculate realized PNL from closed positions
+  const realizedPnl = useMemo(() => {
     let realized = 0;
-    if (Array.isArray(openPositions) && typeof currentPrice === "number") {
-      for (const pos of openPositions) {
-        const entry = Number(pos.entry_price);
-        const qty = Number(pos.quantity);
-        const side = (pos.side ?? "").toLowerCase();
-        if (side === "long") {
-          unrealized += (currentPrice - entry) * qty;
-        } else if (side === "short") {
-          unrealized += (entry - currentPrice) * qty;
-        }
-      }
-    }
     if (Array.isArray(closedPositions)) {
       for (const pos of closedPositions) {
         realized += Number(pos.pnl ?? 0);
       }
     }
-    return { unrealizedPnl: unrealized, realizedPnl: realized };
-  }, [openPositions, closedPositions, currentPrice]);
+    return realized;
+  }, [closedPositions]);
 
   useEffect(() => {
     if (!roomId) return;
@@ -179,6 +250,127 @@ export function WindowTitleBar({
       .maybeSingle();
     if (data && data.updated_at) {
       setUpdatedAt(data.updated_at);
+    }
+  };
+
+  // Fetch current thumbnail URL
+  useEffect(() => {
+    const fetchThumbnail = async () => {
+      const supabaseClient = createClient();
+      const { data } = await supabaseClient
+        .from("trading_rooms")
+        .select("thumbnail_url")
+        .eq("id", roomId)
+        .maybeSingle();
+      if (data?.thumbnail_url) {
+        setCustomThumbnailUrl(data.thumbnail_url);
+      }
+    };
+    fetchThumbnail();
+  }, [roomId]);
+
+  const handleRemoveCustomThumbnail = async () => {
+    if (!currentUserId || currentUserId !== hostId) return;
+
+    try {
+      const supabaseClient = createClient();
+
+      // Remove the thumbnail URL from the database
+      const { error: updateError } = await supabaseClient
+        .from("trading_rooms")
+        .update({ thumbnail_url: null })
+        .eq("id", roomId);
+
+      if (updateError) {
+        console.error("Error removing thumbnail URL:", updateError);
+        return;
+      }
+
+      setCustomThumbnailUrl(null);
+      setThumbnailDialogOpen(false);
+    } catch (error) {
+      console.error("Error removing custom thumbnail:", error);
+    }
+  };
+
+  const handleFileSelect = (file: File) => {
+    setSelectedFile(file);
+
+    // Create preview URL
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+  };
+
+  const handleConfirmUpload = async () => {
+    if (!selectedFile || !currentUserId || currentUserId !== hostId) return;
+
+    setIsUploading(true);
+    try {
+      const supabaseClient = createClient();
+      const fileName = `custom-thumbnail-${roomId}-${Date.now()}.png`;
+
+      // Upload the file to Supabase Storage
+      const { error: uploadError } = await supabaseClient.storage
+        .from("room-thumbnails")
+        .upload(fileName, selectedFile, {
+          contentType: "image/png",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error("Error uploading thumbnail:", uploadError);
+        return;
+      }
+
+      // Get the public URL
+      const { data: urlData } = supabaseClient.storage
+        .from("room-thumbnails")
+        .getPublicUrl(fileName);
+
+      const thumbnailUrl = urlData.publicUrl;
+
+      // Update the room's thumbnail URL in the database
+      const { error: updateError } = await supabaseClient
+        .from("trading_rooms")
+        .update({ thumbnail_url: thumbnailUrl })
+        .eq("id", roomId);
+
+      if (updateError) {
+        console.error("Error updating thumbnail URL:", updateError);
+        return;
+      }
+
+      setCustomThumbnailUrl(thumbnailUrl);
+      setThumbnailDialogOpen(false);
+      // Keep the preview to show the uploaded image
+      // setSelectedFile(null);
+      // setPreviewUrl(null);
+    } catch (error) {
+      console.error("Error uploading custom thumbnail:", error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleCancelUpload = () => {
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setThumbnailDialogOpen(false);
+  };
+
+  const handleRefreshThumbnail = async () => {
+    try {
+      const supabaseClient = createClient();
+      const { data } = await supabaseClient
+        .from("trading_rooms")
+        .select("thumbnail_url")
+        .eq("id", roomId)
+        .maybeSingle();
+      if (data?.thumbnail_url) {
+        setCustomThumbnailUrl(data.thumbnail_url);
+      }
+    } catch (error) {
+      console.error("Error refreshing thumbnail:", error);
     }
   };
 
@@ -264,6 +456,151 @@ export function WindowTitleBar({
                     }}
                     onCancel={() => setEditDialogOpen(false)}
                   />
+                </DialogContent>
+              </Dialog>
+            )}
+
+            {/* Custom Thumbnail Upload Button ONLY for Creator */}
+            {currentUserId === hostId && (
+              <Dialog
+                open={thumbnailDialogOpen}
+                onOpenChange={setThumbnailDialogOpen}
+              >
+                <DialogTrigger asChild>
+                  <span className="align-middle cursor-pointer pointer-events-auto">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>
+                            <ImageIcon className="h-4 w-4" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" align="center">
+                          {customThumbnailUrl
+                            ? "Change Custom Thumbnail"
+                            : "Upload Custom Thumbnail"}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </span>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>
+                      {customThumbnailUrl
+                        ? "Change Room Thumbnail"
+                        : "Upload Room Thumbnail"}
+                    </DialogTitle>
+                    <DialogDescription>
+                      {customThumbnailUrl
+                        ? "Upload a new image to replace the current thumbnail, or remove it to use automatic screenshots."
+                        : "Upload a custom thumbnail image. This will disable automatic screenshots for this room."}
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <label
+                        htmlFor="thumbnail"
+                        className="text-sm font-medium"
+                      >
+                        {customThumbnailUrl ? "New Thumbnail" : "Select Image"}
+                      </label>
+                      <input
+                        id="thumbnail"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleFileSelect(file);
+                          }
+                        }}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={isUploading}
+                      />
+                    </div>
+
+                    {/* Preview of selected file */}
+                    {previewUrl && (
+                      <div className="grid gap-2">
+                        <label className="text-sm font-medium">Preview</label>
+                        <div className="relative">
+                          <Image
+                            src={previewUrl}
+                            alt="Preview"
+                            width={400}
+                            height={288}
+                            className="w-full h-72 object-cover rounded-md border"
+                          />
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => {
+                              setSelectedFile(null);
+                              setPreviewUrl(null);
+                            }}
+                            className="absolute top-2 right-2 h-8 w-8 p-0"
+                          >
+                            <XIcon className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Current thumbnail preview */}
+                    {customThumbnailUrl && !previewUrl && (
+                      <div className="grid gap-2">
+                        <label className="text-sm font-medium">
+                          Current Thumbnail
+                        </label>
+                        <div className="relative">
+                          <Image
+                            src={customThumbnailUrl}
+                            alt="Current thumbnail"
+                            width={400}
+                            height={288}
+                            className="w-full h-72 object-cover rounded-md border"
+                          />
+                          <div className="absolute top-2 right-2 flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleRefreshThumbnail}
+                              className="h-8 w-8 p-0"
+                            >
+                              <RefreshCwIcon className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={handleRemoveCustomThumbnail}
+                              disabled={isUploading}
+                              className="h-8 w-8 p-0"
+                            >
+                              <XIcon className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={handleCancelUpload}
+                      disabled={isUploading}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleConfirmUpload}
+                      disabled={!selectedFile || isUploading}
+                    >
+                      {isUploading ? "Uploading..." : "Confirm Upload"}
+                    </Button>
+                  </DialogFooter>
                 </DialogContent>
               </Dialog>
             )}
@@ -447,41 +784,78 @@ export function WindowTitleBar({
             )}
           </div>
 
-          {/* Close Room Button */}
-          {currentUserId === hostId && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="h-8">
-                  Close Room
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Close Room</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to close this room? This action cannot
-                    be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={async () => {
-                      await supabase.current
-                        .from("trading_rooms")
-                        .update({ room_status: "ended" })
-                        .eq("id", roomId);
-                      router.push("/trading");
-                      if (onCloseRoom) onCloseRoom();
-                    }}
-                    className="bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60"
-                  >
+          <div className="flex items-center gap-1">
+            {/* Close Room Button */}
+            {currentUserId === hostId && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="h-8">
                     Close Room
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Close Room</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to close this room? This action
+                      cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={async () => {
+                        await supabase.current
+                          .from("trading_rooms")
+                          .update({ room_status: "ended" })
+                          .eq("id", roomId);
+                        router.push("/trading");
+                        if (onCloseRoom) onCloseRoom();
+                      }}
+                      className="bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60"
+                    >
+                      Close Room
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+
+            <Button
+              variant="destructive"
+              className="h-8"
+              onClick={async () => {
+                if (!currentUserId) return;
+
+                try {
+                  // Remove user from room participants
+                  const { error } = await supabase.current
+                    .from("trading_room_participants")
+                    .update({ left_at: new Date().toISOString() })
+                    .eq("room_id", roomId)
+                    .eq("user_id", currentUserId)
+                    .is("left_at", null);
+
+                  if (error) {
+                    console.error("Error leaving room:", error);
+                    toast.error("Failed to leave room");
+                    return;
+                  }
+
+                  // Redirect to trading page
+                  router.push("/trading");
+                  if (onCloseRoom) onCloseRoom();
+                } catch (error) {
+                  console.error("Error leaving room:", error);
+                  toast.error("Failed to leave room");
+                }
+              }}
+            >
+              <LogOutIcon className="h-4 w-4" />
+              <span className="sr-only">Leave Room</span>
+              Leave Room
+            </Button>
+          </div>
         </div>
       </div>
     </div>

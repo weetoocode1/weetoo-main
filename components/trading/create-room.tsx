@@ -30,10 +30,18 @@ import {
   SelectValue,
 } from "../ui/select";
 import { TRADING_SYMBOLS } from "@/lib/trading/symbols-config";
+import { toast } from "sonner";
 
 interface UserData {
   id: string;
   kor_coins?: number;
+}
+
+interface ExistingRoom {
+  id: string;
+  name: string;
+  room_status: string;
+  created_at: string;
 }
 
 export function CreateRoom() {
@@ -45,6 +53,8 @@ export function CreateRoom() {
   const [showPassword, setShowPassword] = useState(false);
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [existingRoom, setExistingRoom] = useState<ExistingRoom | null>(null);
+  const [, setCheckingExistingRoom] = useState(false);
   const lastSessionId = useRef<string | null>(null);
 
   const [roomName, setRoomName] = useState("");
@@ -90,6 +100,140 @@ export function CreateRoom() {
     };
   }, [roomName, checkRoomName]);
 
+  // Enhanced existing room check with localStorage persistence
+  const checkExistingRoom = async (userId: string) => {
+    setCheckingExistingRoom(true);
+    try {
+      const { data: activeRooms, error } = await supabase
+        .from("trading_rooms")
+        .select("id, name, room_status, created_at")
+        .eq("creator_id", userId)
+        .eq("room_status", "active")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error checking existing room:", error);
+        toast.error("Failed to check existing rooms. Please try again.");
+        setExistingRoom(null);
+        // Clear localStorage on error
+        localStorage.removeItem(`existing_room_${userId}`);
+        return;
+      }
+
+      if (activeRooms && activeRooms.length > 0) {
+        const room = activeRooms[0];
+        setExistingRoom(room);
+        // Store in localStorage for cross-tab persistence
+        localStorage.setItem(`existing_room_${userId}`, JSON.stringify(room));
+        return room;
+      } else {
+        setExistingRoom(null);
+        // Clear localStorage when no active room
+        localStorage.removeItem(`existing_room_${userId}`);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error checking existing room:", error);
+      setExistingRoom(null);
+      localStorage.removeItem(`existing_room_${userId}`);
+      return null;
+    } finally {
+      setCheckingExistingRoom(false);
+    }
+  };
+
+  // Load existing room from localStorage on mount
+  // const loadExistingRoomFromStorage = (userId: string) => {
+  //   try {
+  //     const stored = localStorage.getItem(`existing_room_${userId}`);
+  //     if (stored) {
+  //       const room = JSON.parse(stored);
+  //       setExistingRoom(room);
+  //       return room;
+  //     }
+  //   } catch (error) {
+  //     console.error("Error loading existing room from storage:", error);
+  //     localStorage.removeItem(`existing_room_${userId}`);
+  //   }
+  //   return null;
+  // };
+
+  // Function to close existing room
+  // const closeExistingRoom = async (roomId: string) => {
+  //   try {
+  //     const { error } = await supabase
+  //       .from("trading_rooms")
+  //       .update({ room_status: "ended" })
+  //       .eq("id", roomId);
+
+  //     if (error) {
+  //       console.error("Error closing room:", error);
+  //       toast.error("Failed to close existing room. Please try again.");
+  //       return;
+  //     }
+
+  //     // Clear localStorage and refresh the check
+  //     if (user) {
+  //       localStorage.removeItem(`existing_room_${user.id}`);
+  //     }
+  //     await checkExistingRoom(user!.id);
+  //     toast.success("Room closed successfully! You can now create a new room.");
+  //   } catch (error) {
+  //     console.error("Error closing room:", error);
+  //     toast.error("Failed to close existing room. Please try again.");
+  //   }
+  // };
+
+  // Real-time subscription to track room status changes
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`room-status-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "trading_rooms",
+          filter: `creator_id=eq.${user.id}`,
+        },
+        async (payload) => {
+          console.log("Room status change detected:", payload);
+
+          // Refresh the existing room check
+          await checkExistingRoom(user.id);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
+  // Listen for storage events (cross-tab communication)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (user?.id && e.key === `existing_room_${user.id}`) {
+        if (e.newValue) {
+          try {
+            const room = JSON.parse(e.newValue);
+            setExistingRoom(room);
+          } catch (error) {
+            console.error("Error parsing stored room:", error);
+            setExistingRoom(null);
+          }
+        } else {
+          setExistingRoom(null);
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [user?.id]);
+
   useEffect(() => {
     let mounted = true;
     const supabase = createClient();
@@ -120,6 +264,13 @@ export function CreateRoom() {
             }
             setUser(error ? null : data);
             setLoading(false);
+
+            // Load existing room from storage and verify with server
+            if (data) {
+              // const storedRoom = loadExistingRoomFromStorage(data.id);
+              // Always verify with server to ensure accuracy
+              checkExistingRoom(data.id);
+            }
           }
         });
     });
@@ -134,6 +285,7 @@ export function CreateRoom() {
         lastSessionId.current = sessionId;
         if (!sessionId) {
           setUser(null);
+          setExistingRoom(null);
           setLoading(false);
           return;
         }
@@ -149,6 +301,13 @@ export function CreateRoom() {
             }
             setUser(error ? null : data);
             setLoading(false);
+
+            // Load existing room from storage and verify with server
+            if (data) {
+              // const storedRoom = loadExistingRoomFromStorage(data.id);
+              // Always verify with server to ensure accuracy
+              checkExistingRoom(data.id);
+            }
           });
       }
     );
@@ -186,6 +345,29 @@ export function CreateRoom() {
   async function handleCreateRoom(e: React.FormEvent) {
     e.preventDefault();
     if (!user || !roomName.trim() || nameError) return;
+
+    // Double-check if user already has an active room
+    const { data: activeRooms, error: checkError } = await supabase
+      .from("trading_rooms")
+      .select("id, name, room_status")
+      .eq("creator_id", user.id)
+      .eq("room_status", "active");
+
+    if (checkError) {
+      console.error("Error checking active rooms:", checkError);
+      toast.error("Error checking existing rooms. Please try again.");
+      return;
+    }
+
+    if (activeRooms && activeRooms.length > 0) {
+      const existingRoom = activeRooms[0];
+      toast.error(
+        `You already have an active room: "${existingRoom.name}". Please close your existing room before creating a new one.`
+      );
+      setSubmitting(false);
+      return;
+    }
+
     setSubmitting(true);
     const { data: settings } = await supabase
       .from("app_settings")
@@ -218,7 +400,7 @@ export function CreateRoom() {
       .single();
     if (error || !data) {
       setSubmitting(false);
-      alert(t("failedToCreateRoom"));
+      toast.error(t("failedToCreateRoom"));
       return;
     }
     // Add creator as participant
@@ -230,16 +412,60 @@ export function CreateRoom() {
     ]);
     setSubmitting(false);
     setOpen(false);
+    toast.success("Room created successfully!");
     window.open(`/room/${data.id}`, "_blank");
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="ml-auto cursor-pointer">
-          <PlusIcon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
-          {t("createRoom")}
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="ml-auto cursor-pointer"
+                onClick={async () => {
+                  if (user) {
+                    // Always check with server first
+                    const currentRoom = await checkExistingRoom(user.id);
+                    if (currentRoom) {
+                      toast.error(
+                        `You already have an active room: "${currentRoom.name}". Please close your existing room before creating a new one.`
+                      );
+                      return;
+                    }
+                  }
+                  setOpen(true);
+                }}
+              >
+                <PlusIcon
+                  className="-ms-1 opacity-60"
+                  size={16}
+                  aria-hidden="true"
+                />
+                {t("createRoom")}
+              </Button>
+            </TooltipTrigger>
+            {existingRoom && (
+              <TooltipContent side="bottom" className="max-w-xs">
+                <div className="text-sm">
+                  <p className="font-medium mb-1">
+                    ⚠️ You already have an active room
+                  </p>
+                  <p className="text-muted-foreground">
+                    Room:{" "}
+                    <span className="font-medium">
+                      &quot;{existingRoom.name}&quot;
+                    </span>
+                  </p>
+                  <p className="text-muted-foreground mt-1">
+                    Close your existing room before creating a new one.
+                  </p>
+                </div>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
       </DialogTrigger>
       <DialogContent className="max-w-md bg-background border border-border rounded-lg p-0 shadow-none">
         <DialogHeader className="px-6 pt-6 pb-2 gap-1">
@@ -250,6 +476,7 @@ export function CreateRoom() {
             {t("setUpTradingRoomDetails")}
           </DialogDescription>
         </DialogHeader>
+
         <div className="border-b border-border mx-6" />
         <form
           className="px-6 py-6 flex flex-col gap-5"

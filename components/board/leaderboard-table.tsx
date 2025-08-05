@@ -233,14 +233,6 @@ export function LeaderboardTable({ board }: LeaderboardTableProps) {
   if (loading) {
     return (
       <section className="mt-5">
-        <div className="mb-5">
-          <span className="text-lg md:text-xl font-semibold text-primary/90">
-            {t("topCommunityPosts")}
-          </span>
-          <span className="ml-2 text-muted-foreground text-sm">
-            — {t("seeWhatsTrending")}
-          </span>
-        </div>
         <div className="overflow-x-auto bg-background border shadow-lg rounded-lg">
           <Table>
             <TableHeader>
@@ -314,14 +306,6 @@ export function LeaderboardTable({ board }: LeaderboardTableProps) {
   if (error) {
     return (
       <section className="mt-5">
-        <div className="mb-5">
-          <span className="text-lg md:text-xl font-semibold text-primary/90">
-            {t("topCommunityPosts")}
-          </span>
-          <span className="ml-2 text-muted-foreground text-sm">
-            — {t("seeWhatsTrending")}
-          </span>
-        </div>
         <div className="flex items-center justify-center py-12">
           <div className="text-red-500">
             {t("error")}: {error}
@@ -333,14 +317,6 @@ export function LeaderboardTable({ board }: LeaderboardTableProps) {
 
   return (
     <section className="mt-5">
-      <div className="mb-5">
-        <span className="text-lg md:text-xl font-semibold text-primary/90">
-          {t("topCommunityPosts")}
-        </span>
-        <span className="ml-2 text-muted-foreground text-sm">
-          — {t("seeWhatsTrending")}
-        </span>
-      </div>
       <div className="overflow-x-auto bg-background border shadow-lg rounded-lg">
         <Table>
           <TableHeader>

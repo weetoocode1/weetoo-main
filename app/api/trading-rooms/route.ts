@@ -1,35 +1,6 @@
-import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { TRADING_SYMBOLS } from "@/lib/trading/symbols-config";
-
-// interface TradingRoomDb {
-//   id: string;
-//   name: string;
-//   creator_id: string;
-//   symbol: string;
-//   category: "regular" | "voice";
-//   privacy: "public" | "private";
-//   pnl_percentage: number | null;
-//   created_at: string;
-//   room_status: string;
-// }
-
-// interface UserDb {
-//   id: string;
-//   first_name?: string;
-//   last_name?: string;
-//   avatar_url?: string;
-// }
-
-// interface ParticipantCountDb {
-//   room_id: string;
-//   user_id: string;
-// }
-
-// interface TradeDb {
-//   room_id: string;
-//   pnl: number | null;
-// }
+import { NextResponse } from "next/server";
 
 // Type for a row from the fast_trading_rooms view
 interface TradingRoomView {
@@ -47,6 +18,12 @@ interface TradingRoomView {
   total_pnl: number | null;
 }
 
+// Type for thumbnail data
+interface ThumbnailData {
+  id: string;
+  thumbnail_url: string | null;
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const page = Number(url.searchParams.get("page") || 1);
@@ -57,7 +34,7 @@ export async function GET(request: Request) {
   const supabase = await createClient();
   const start = Date.now();
 
-  // Fetch paginated rooms and total count from the view
+  // Optimized: Single query with participant count included
   const {
     data: roomsData,
     error: roomsError,
@@ -72,6 +49,40 @@ export async function GET(request: Request) {
     return NextResponse.json({ data: [], total: 0 });
   }
 
+  // Fetch thumbnail URLs in parallel with room data
+  const roomIds = roomsData.map((room) => room.id);
+  const [thumbnailResult, participantResult] = await Promise.all([
+    supabase
+      .from("trading_rooms")
+      .select("id, thumbnail_url")
+      .in("id", roomIds),
+    supabase
+      .from("trading_room_participants")
+      .select("room_id")
+      .in("room_id", roomIds)
+      .is("left_at", null),
+  ]);
+
+  // Create a map of room ID to thumbnail URL
+  const thumbnailMap = new Map<string, string | null>();
+  if (thumbnailResult.data && !thumbnailResult.error) {
+    thumbnailResult.data.forEach((item: ThumbnailData) => {
+      thumbnailMap.set(item.id, item.thumbnail_url);
+    });
+  }
+
+  // Create a map of room ID to participant count
+  const participantCountMap = new Map<string, number>();
+  if (participantResult.data && !participantResult.error) {
+    participantResult.data.forEach((participant) => {
+      const roomId = participant.room_id;
+      participantCountMap.set(
+        roomId,
+        (participantCountMap.get(roomId) || 0) + 1
+      );
+    });
+  }
+
   // Map final result to match frontend expectations
   const mapped = roomsData.map((room: TradingRoomView) => {
     const fullName =
@@ -80,12 +91,14 @@ export async function GET(request: Request) {
     const isValidDate = !isNaN(dateObj.getTime());
     const createdAt = isValidDate ? dateObj.toISOString() : "-";
     const createdAtTimestamp = isValidDate ? dateObj.getTime() : 0;
-    // You may want to fetch startingBalance from app_settings if needed for pnlPercentage
-    // For now, assume 100000 as before
     const startingBalance = 100000;
     const pnlPercent = startingBalance
       ? (Number(room.total_pnl) / startingBalance) * 100
       : 0;
+
+    // Use calculated participant count instead of view's participant count
+    const participantCount = participantCountMap.get(room.id) || 0;
+
     return {
       id: room.id,
       name: room.name,
@@ -99,13 +112,28 @@ export async function GET(request: Request) {
       createdAt,
       createdAtTimestamp,
       isPublic: room.privacy === "public",
-      participants: Number(room.participants) || 0,
+      participants: participantCount,
       pnlPercentage: pnlPercent,
+      thumbnail_url: thumbnailMap.get(room.id) || null,
     };
   });
+
   const end = Date.now();
-  console.log("API /api/trading-rooms total time (view):", end - start, "ms");
-  return NextResponse.json({ data: mapped, total: totalCount || 0 });
+  console.log(
+    "API /api/trading-rooms total time (optimized):",
+    end - start,
+    "ms"
+  );
+
+  // Add cache headers for better performance
+  return NextResponse.json(
+    { data: mapped, total: totalCount || 0 },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30",
+      },
+    }
+  );
 }
 
 // Add PATCH handler for backend validation
@@ -176,7 +204,8 @@ export async function PATCH(request: Request) {
   if (!data) {
     return new Response(
       JSON.stringify({
-        error: "Room was updated elsewhere. Please refresh and try again.",
+        error:
+          "Room was updated recently. Please refresh the page and try again.",
       }),
       { status: 409 }
     );

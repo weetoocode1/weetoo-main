@@ -13,11 +13,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
+import { VIRTUAL_BALANCE_KEY } from "@/hooks/use-virtual-balance";
 import { createClient } from "@/lib/supabase/client";
 import { MinusIcon, PlusIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import useSWR, { mutate } from "swr";
-import { VIRTUAL_BALANCE_KEY } from "@/hooks/use-virtual-balance";
 
 export function TradingForm({
   currentPrice,
@@ -77,6 +77,17 @@ export function TradingForm({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPrice]);
+
+  // Reset order price when symbol changes
+  useEffect(() => {
+    if (orderType === "limit" && currentPrice) {
+      setOrderPrice(Number(currentPrice).toFixed(2));
+    }
+    // Clear quantity and amount when symbol changes since they are symbol-specific
+    setOrderQuantity("");
+    setOrderAmount("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [symbol, currentPrice]);
 
   // Handle % buttons
   const handlePercentClick = (percent: number) => {
@@ -513,9 +524,9 @@ export function TradingForm({
       {/* Order Inputs */}
       <div className="flex flex-col gap-3 mb-3">
         <div>
-          <label className="block text-muted-foreground mb-1 text-xs">
+          <Label className="block text-muted-foreground mb-1 text-xs">
             Order Price (USDT)
-          </label>
+          </Label>
           <div className="flex items-center bg-secondary border border-border rounded-md px-3 py-1.5 relative">
             <Input
               type="number"
@@ -546,9 +557,9 @@ export function TradingForm({
         </div>
 
         <div>
-          <label className="block text-muted-foreground mb-1 text-xs">
-            Order Quantity (BTCUSDT)
-          </label>
+          <Label className="block text-muted-foreground mb-1 text-xs">
+            Order Quantity ({symbol})
+          </Label>
           <div className="flex items-center bg-secondary border border-border rounded-md px-3 py-1.5">
             <Input
               type="number"
@@ -557,15 +568,15 @@ export function TradingForm({
               className="w-full bg-transparent border-0 p-0 h-6 text-xs focus-visible:ring-0 no-spinner"
               readOnly={!isHost}
             />
-            <span className="text-muted-foreground text-xs">BTCUSDT</span>
+            <span className="text-muted-foreground text-xs">{symbol}</span>
           </div>
         </div>
 
         {orderType === "limit" && (
           <div>
-            <label className="block text-muted-foreground mb-1 text-xs">
+            <Label className="block text-muted-foreground mb-1 text-xs">
               Order Amount (USDT)
-            </label>
+            </Label>
             <div
               className={`flex items-center bg-secondary border rounded-md px-3 py-1.5 ${
                 !hasEnoughBalance ? "border-red-500" : "border-border"
@@ -714,7 +725,7 @@ export function TradingForm({
                   <span className="text-muted-foreground font-medium text-[15px]">
                     Trading Pair
                   </span>
-                  <span className="font-semibold text-[15px]">BTCUSDT</span>
+                  <span className="font-semibold text-[15px]">{symbol}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground font-medium text-[15px]">

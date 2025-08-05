@@ -96,7 +96,7 @@ export function Menu() {
   const broker = [
     {
       title: t("brokerComparison"),
-      href: "/broker",
+      href: "/exchange",
       description: t("brokerComparisonDesc"),
     },
   ];
@@ -126,6 +126,15 @@ export function Menu() {
           </Link>
           <Link href="/kor-coins" className="block py-2 text-sm">
             {t("korCoinsRankings")}
+          </Link>
+          <Link href="/most-activity" className="block py-2 text-sm">
+            {t("mostActivity")}
+          </Link>
+          <Link href="/sponsored" className="block py-2 text-sm">
+            {t("sponsored")}
+          </Link>
+          <Link href="/most-followed" className="block py-2 text-sm">
+            {t("mostFollowed")}
           </Link>
         </CollapsibleContent>
       </Collapsible>
@@ -207,7 +216,7 @@ export function Menu() {
         <NavigationMenuItem>
           <NavigationMenuTrigger>{t("trading")}</NavigationMenuTrigger>
           <NavigationMenuContent className="left-1/2 -translate-x-1/2">
-            <ul className="grid gap-2 p-2 w-[300px]">
+            <ul className="grid p-2 w-[325px]">
               <ListItem href="/trading" title={t("startTrading")}>
                 {t("startTradingDesc")}
               </ListItem>
@@ -216,6 +225,15 @@ export function Menu() {
               </ListItem>
               <ListItem href="/kor-coins" title={t("korCoinsRankings")}>
                 {t("korCoinsRankingsDesc")}
+              </ListItem>
+              <ListItem href="/most-activity" title={t("mostActivity")}>
+                {t("mostActivityDesc")}
+              </ListItem>
+              <ListItem href="/sponsored" title={t("sponsored")}>
+                {t("sponsoredDesc")}
+              </ListItem>
+              <ListItem href="/most-followed" title={t("mostFollowed")}>
+                {t("mostFollowedDesc")}
               </ListItem>
             </ul>
           </NavigationMenuContent>

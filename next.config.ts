@@ -9,15 +9,39 @@ const nextConfig: NextConfig = {
     viewTransition: true,
   },
   images: {
-    domains: [
-      "source.unsplash.com",
-      "images.unsplash.com",
-      "picsum.photos",
-      "lh3.googleusercontent.com",
-      "elraqghnwdysyqskvqgn.supabase.co",
-      "eethmghfrmkfjxeqjngd.supabase.co",
-      "xmsnugwzpxrqzcmyplsd.supabase.co",
-      "f1.tokenpost.kr",
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "source.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "picsum.photos",
+      },
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+      },
+      {
+        protocol: "https",
+        hostname: "elraqghnwdysyqskvqgn.supabase.co",
+      },
+      {
+        protocol: "https",
+        hostname: "eethmghfrmkfjxeqjngd.supabase.co",
+      },
+      {
+        protocol: "https",
+        hostname: "xmsnugwzpxrqzcmyplsd.supabase.co",
+      },
+      {
+        protocol: "https",
+        hostname: "f1.tokenpost.kr",
+      },
     ],
   },
 };

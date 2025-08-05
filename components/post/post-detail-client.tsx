@@ -1,11 +1,11 @@
 "use client";
 
 import { CommentsSection } from "@/components/post/comments-section";
+import { FollowButton } from "@/components/post/follow-button";
 import { LikeButton } from "@/components/post/like-button";
 import { SharePost } from "@/components/post/share-post";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Carousel,
   CarouselContent,
@@ -58,6 +58,7 @@ export default function PostDetailClient({
   const [current, setCurrent] = React.useState(0);
   const [currentUser, setCurrentUser] = React.useState<User | null>(null);
   const [commentCount, setCommentCount] = React.useState(post.comments);
+  const [mounted, setMounted] = React.useState(false);
 
   // Get current user with caching
   React.useEffect(() => {
@@ -112,15 +113,12 @@ export default function PostDetailClient({
     });
   }, [api]);
 
-  useTrackPostView(post.id);
-
-  // Format post.createdAt on the client only
-  const [formattedCreatedAt, setFormattedCreatedAt] = React.useState("...");
+  // Set mounted to true after component mounts
   React.useEffect(() => {
-    if (post.createdAt) {
-      setFormattedCreatedAt(new Date(post.createdAt).toLocaleString());
-    }
-  }, [post.createdAt]);
+    setMounted(true);
+  }, []);
+
+  useTrackPostView(post.id);
 
   if (!post) return <div className="text-center py-20">Post not found.</div>;
 
@@ -131,8 +129,17 @@ export default function PostDetailClient({
 
   // Determine if the user has viewed the post (sessionStorage)
   const hasViewed =
+    mounted &&
     typeof window !== "undefined" &&
     sessionStorage.getItem(`viewed_post_${post.id}`);
+
+  // Format date only on client side to avoid hydration issues
+  const formattedCreatedAt =
+    mounted && post.createdAt
+      ? new Date(post.createdAt).toLocaleString()
+      : post.createdAt
+      ? new Date(post.createdAt).toISOString().split("T")[0] // Fallback to date only
+      : "";
 
   return (
     <div className="bg-background text-foreground">
@@ -176,9 +183,10 @@ export default function PostDetailClient({
                   </div>
                 </div>
                 {currentUser && currentUser.id !== post.author.id && (
-                  <Button variant="outline" size="sm" className="w-fit">
-                    Follow
-                  </Button>
+                  <FollowButton
+                    targetUserId={post.author.id}
+                    className="w-fit"
+                  />
                 )}
               </div>
             </div>

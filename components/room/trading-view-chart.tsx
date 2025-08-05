@@ -44,14 +44,14 @@ export const TradingViewChartComponent = React.memo(
     }, []);
 
     return (
-      <>
+      <div data-testid="trading-view-chart" className="w-full h-full">
         <Script
           src="/static/datafeeds/udf/dist/bundle.js"
           strategy="lazyOnload"
           onReady={handleScriptReady}
         />
         {isScriptReady && <TradingViewChart key={symbol} {...widgetProps} />}
-      </>
+      </div>
     );
   }
 );

@@ -1,679 +1,433 @@
 "use client";
 
-import {
-  flexRender,
-  getCoreRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-  type ColumnDef,
-  type PaginationState,
-  type SortingState,
-} from "@tanstack/react-table";
-import { useTranslations } from "next-intl";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 import {
   Award,
-  ChevronDownIcon,
-  ChevronFirstIcon,
-  ChevronLastIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ChevronUpIcon,
-  Crown,
   DollarSign,
-  Star,
+  Medal,
   Target,
   TrendingUp,
+  Trophy,
 } from "lucide-react";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo } from "react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-} from "@/components/ui/pagination";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { cn } from "@/lib/utils";
+type TimeFrame = "daily" | "weekly" | "monthly";
 
-interface RankedTrader {
-  rank: number;
-  trader: {
-    name: string;
-    username: string;
-    avatar: string;
-  };
-  totalReturn: number;
-  winRate: number;
-  trades: number;
-  portfolioValue: number;
-  winStreak?: number;
-  isHost?: boolean;
+interface TraderData {
+  id: string;
+  nickname: string;
+  avatar_url: string | null;
+  level: number;
+  total_pnl: number;
+  virtual_balance: number;
+  total_return: number;
+  total_trades: number;
+  winning_trades: number;
+  closed_trades: number;
+  win_rate: number;
+  portfolio_value: number;
   isOnline: boolean;
 }
 
-// Move mock data outside component to prevent recreation on every render
-const MOCK_RANKED_TRADERS: RankedTrader[] = [
-  {
-    rank: 1,
-    trader: {
-      name: "Alexander Chen",
-      username: "@alexchen",
-      avatar: "",
-    },
-    totalReturn: 247.8,
-    winRate: 94.2,
-    trades: 542,
-    portfolioValue: 2847300,
-    winStreak: 23,
-    isOnline: true,
-  },
-  {
-    rank: 2,
-    trader: {
-      name: "Sarah Kim",
-      username: "@sarahkim",
-      avatar: "",
-    },
-    totalReturn: 98.6,
-    winRate: 79.1,
-    trades: 287,
-    portfolioValue: 986200,
-    winStreak: 8,
-    isOnline: false,
-  },
-  {
-    rank: 3,
-    trader: {
-      name: "Michael Chen",
-      username: "@michaelc",
-      avatar: "",
-    },
-    totalReturn: 76.3,
-    winRate: 77.8,
-    trades: 198,
-    portfolioValue: 763400,
-    winStreak: 5,
-    isOnline: true,
-  },
-  {
-    rank: 4,
-    trader: {
-      name: "Olivia Martinez",
-      username: "@oliviam",
-      avatar: "",
-    },
-    totalReturn: 65.2,
-    winRate: 75.0,
-    trades: 150,
-    portfolioValue: 652000,
-    winStreak: 4,
-    isOnline: true,
-  },
-  {
-    rank: 5,
-    trader: {
-      name: "James Wilson",
-      username: "@jamesw",
-      avatar: "",
-    },
-    totalReturn: 60.8,
-    winRate: 72.5,
-    trades: 210,
-    portfolioValue: 608000,
-    winStreak: 6,
-    isHost: true,
-    isOnline: true,
-  },
-  {
-    rank: 6,
-    trader: {
-      name: "Isabella Garcia",
-      username: "@isabellag",
-      avatar: "",
-    },
-    totalReturn: 55.1,
-    winRate: 70.1,
-    trades: 180,
-    portfolioValue: 551000,
-    winStreak: 3,
-    isOnline: true,
-  },
-  {
-    rank: 7,
-    trader: {
-      name: "Ethan Rodriguez",
-      username: "@ethanr",
-      avatar: "",
-    },
-    totalReturn: 50.5,
-    winRate: 68.9,
-    trades: 120,
-    portfolioValue: 505000,
-    winStreak: 2,
-    isOnline: false,
-  },
-  {
-    rank: 8,
-    trader: {
-      name: "Ava Smith",
-      username: "@avas",
-      avatar: "",
-    },
-    totalReturn: 48.3,
-    winRate: 67.0,
-    trades: 250,
-    portfolioValue: 483000,
-    winStreak: 7,
-    isOnline: true,
-  },
-  {
-    rank: 9,
-    trader: {
-      name: "Noah Johnson",
-      username: "@noahj",
-      avatar: "",
-    },
-    totalReturn: 45.9,
-    winRate: 65.5,
-    trades: 190,
-    portfolioValue: 459000,
-    winStreak: 1,
-    isHost: true,
-    isOnline: false,
-  },
-  {
-    rank: 10,
-    trader: {
-      name: "Sophia Brown",
-      username: "@sophiab",
-      avatar: "",
-    },
-    totalReturn: 42.1,
-    winRate: 63.2,
-    trades: 160,
-    portfolioValue: 421000,
-    winStreak: 3,
-    isOnline: true,
-  },
-  {
-    rank: 11,
-    trader: {
-      name: "Liam Davis",
-      username: "@liamd",
-      avatar: "",
-    },
-    totalReturn: 40.0,
-    winRate: 61.0,
-    trades: 130,
-    portfolioValue: 400000,
-    winStreak: 2,
-    isOnline: false,
-  },
-  {
-    rank: 12,
-    trader: {
-      name: "Chloe Miller",
-      username: "@chloem",
-      avatar: "",
-    },
-    totalReturn: 38.5,
-    winRate: 60.5,
-    trades: 220,
-    portfolioValue: 385000,
-    winStreak: 1,
-    isOnline: true,
-  },
-  {
-    rank: 13,
-    trader: {
-      name: "Lucas Wilson",
-      username: "@lucasw",
-      avatar: "",
-    },
-    totalReturn: 35.2,
-    winRate: 58.3,
-    trades: 175,
-    portfolioValue: 352000,
-    winStreak: 4,
-    isOnline: false,
-  },
-];
+// const rankIcons = {
+//   1: Trophy,
+//   2: Medal,
+//   3: Award,
+// };
 
-// Memoized components for better performance
-const RankBadge = memo(({ rank }: { rank: number }) => {
-  switch (rank) {
-    case 1:
-      return (
-        <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700 font-bold px-3 py-1">
-          <Award className="w-3.5 h-3.5 mr-1" />#{rank}
-        </Badge>
-      );
-    case 2:
-      return (
-        <Badge className="bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-900/30 dark:text-slate-300 dark:border-slate-700 font-bold px-3 py-1">
-          <Award className="w-3.5 h-3.5 mr-1" />#{rank}
-        </Badge>
-      );
-    case 3:
-      return (
-        <Badge className="bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700 font-bold px-3 py-1">
-          <Star className="w-3.5 h-3.5 mr-1" />#{rank}
-        </Badge>
-      );
-    default:
-      return (
-        <div className="w-12 text-center">
-          <span className="font-semibold text-muted-foreground">#{rank}</span>
-        </div>
-      );
-  }
-});
-RankBadge.displayName = "RankBadge";
+const rankStyles = {
+  1: {
+    gradient: "from-yellow-400 via-yellow-500 to-yellow-600",
+    border: "border-yellow-500/40",
+    shadow: "shadow-[0_0_40px_rgba(234,179,8,0.25)]",
+    badge: "bg-yellow-500/20 text-yellow-300 border-yellow-500/40",
+    icon: "text-yellow-400",
+    glow: "shadow-[0_0_20px_rgba(234,179,8,0.3)]",
+  },
+  2: {
+    gradient: "from-slate-300 via-slate-400 to-slate-500",
+    border: "border-slate-400/40",
+    shadow: "shadow-[0_0_35px_rgba(148,163,184,0.2)]",
+    badge: "bg-slate-500/20 text-slate-300 border-slate-400/40",
+    icon: "text-slate-400",
+    glow: "shadow-[0_0_15px_rgba(148,163,184,0.25)]",
+  },
+  3: {
+    gradient: "from-amber-600 via-amber-700 to-amber-800",
+    border: "border-amber-600/40",
+    shadow: "shadow-[0_0_35px_rgba(217,119,6,0.2)]",
+    badge: "bg-amber-600/20 text-amber-300 border-amber-600/40",
+    icon: "text-amber-500",
+    glow: "shadow-[0_0_15px_rgba(217,119,6,0.25)]",
+  },
+};
 
-// OnlineIndicator copied from kor-coins-ranking
-const OnlineIndicator = memo(({ isOnline }: { isOnline: boolean }) => (
-  <div className="flex items-center gap-1.5 mt-1">
-    <div
-      className={
-        isOnline
-          ? "w-2 h-2 rounded-full bg-green-500 animate-pulse"
-          : "w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-600"
-      }
-    />
-    <span
-      className={
-        isOnline
-          ? "text-xs text-green-600 dark:text-green-400"
-          : "text-xs text-muted-foreground"
-      }
-    >
-      {isOnline ? "Online" : "Offline"}
-    </span>
-  </div>
-));
-OnlineIndicator.displayName = "OnlineIndicator";
-
-const TraderCell = memo(
+export const TraderRankingTable = memo(
   ({
-    trader,
-    rank,
-    isHost,
-    isOnline,
+    traders,
+    selectedTimeFrame,
+    onTimeFrameChange,
   }: {
-    trader: RankedTrader["trader"];
-    rank: number;
-    isHost?: boolean;
-    isOnline: boolean;
-  }) => (
-    <div className="flex items-center gap-3 py-1">
-      <Avatar className="h-10 w-10 ring-2 ring-border">
-        <AvatarImage src={trader.avatar || ""} alt={trader.name} />
-        <AvatarFallback className="bg-muted text-muted-foreground font-medium">
-          {trader.name
-            .split(" ")
-            .map((n) => n[0])
-            .join("")}
-        </AvatarFallback>
-      </Avatar>
-      <div>
-        <div className="font-semibold text-foreground flex items-center gap-2">
-          {trader.name}
-          {isHost && <Crown className="h-3.5 w-3.5 text-amber-500" />}
-          {rank <= 3 && (
-            <Badge variant="secondary" className="text-xs px-2 py-0.5">
-              Top {rank}
-            </Badge>
-          )}
-        </div>
-        <div className="text-sm text-muted-foreground">{trader.username}</div>
-        <OnlineIndicator isOnline={isOnline} />
-      </div>
-    </div>
-  )
-);
-TraderCell.displayName = "TraderCell";
+    traders: TraderData[];
+    selectedTimeFrame: TimeFrame;
+    onTimeFrameChange: (timeFrame: TimeFrame) => void;
+  }) => {
+    // const t = useTranslations("traderRanking");
 
-// Static row background classes to avoid recalculation
-const ROW_BACKGROUNDS = {
-  1: "bg-gradient-to-r from-yellow-50/80 to-amber-50/60 dark:from-yellow-950/30 dark:to-amber-950/20 border-l-4 border-l-yellow-400",
-  2: "bg-gradient-to-r from-slate-50/80 to-gray-50/60 dark:from-slate-950/30 dark:to-gray-950/20 border-l-4 border-l-slate-400",
-  3: "bg-gradient-to-r from-orange-50/80 to-amber-50/60 dark:from-orange-950/30 dark:to-amber-950/20 border-l-4 border-l-orange-500",
-  default: "hover:bg-muted/50 transition-colors",
-} as const;
+    // Add ranks to traders
+    const rankedTraders = traders.map((trader, index) => ({
+      ...trader,
+      rank: index + 1,
+    }));
 
-const PAGE_SIZE_OPTIONS = [5, 10, 20, 50] as const;
-
-export const TraderRankingTable = memo(() => {
-  const t = useTranslations("traderRanking");
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: "rank", desc: false },
-  ]);
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 10,
-  });
-
-  const getRowBackgroundClass = useCallback((rank: number) => {
     return (
-      ROW_BACKGROUNDS[rank as keyof typeof ROW_BACKGROUNDS] ||
-      ROW_BACKGROUNDS.default
-    );
-  }, []);
-
-  const columns = useMemo<ColumnDef<RankedTrader>[]>(
-    () => [
-      {
-        header: t("rank"),
-        accessorKey: "rank",
-        cell: ({ row }) => (
-          <div className="flex justify-center">
-            <RankBadge rank={row.getValue("rank")} />
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold text-foreground">
+              Full Leaderboard
+            </h2>
+            <p className="text-muted-foreground">
+              Complete ranking of all active traders •{" "}
+              {selectedTimeFrame.charAt(0).toUpperCase() +
+                selectedTimeFrame.slice(1)}{" "}
+              Rankings
+            </p>
           </div>
-        ),
-        size: 100,
-      },
-      {
-        header: t("trader"),
-        accessorKey: "trader",
-        cell: ({ row }) => (
-          <TraderCell
-            trader={row.original.trader}
-            rank={row.original.rank}
-            isHost={row.original.isHost}
-            isOnline={row.original.isOnline}
-          />
-        ),
-        size: 280,
-      },
-      {
-        header: t("totalReturn"),
-        accessorKey: "totalReturn",
-        cell: ({ row }) => {
-          const value = row.getValue("totalReturn") as number;
-          return (
-            <div className="font-semibold text-emerald-600 dark:text-emerald-400 text-base">
-              +{value.toFixed(1)}%
-            </div>
-          );
-        },
-        size: 140,
-      },
-      {
-        header: t("winRate"),
-        accessorKey: "winRate",
-        cell: ({ row }) => (
-          <div className="flex items-center gap-2">
-            <Target className="w-4 h-4 text-blue-500" />
-            <span className="font-medium">{row.getValue("winRate")}%</span>
-          </div>
-        ),
-        size: 120,
-      },
-      {
-        header: t("trades"),
-        accessorKey: "trades",
-        cell: ({ row }) => (
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-purple-500" />
-            <span className="font-medium">{row.getValue("trades")}</span>
-          </div>
-        ),
-        size: 120,
-      },
-      {
-        header: t("portfolio"),
-        accessorKey: "portfolioValue",
-        cell: ({ row }) => (
-          <div className="flex items-center gap-2 font-semibold text-foreground">
-            <DollarSign className="w-4 h-4 text-gray-500" />
-            <span>
-              $
-              {new Intl.NumberFormat("en-US").format(
-                row.getValue("portfolioValue")
-              )}
-            </span>
-          </div>
-        ),
-        size: 160,
-      },
-    ],
-    [t]
-  );
 
-  const table = useReactTable({
-    data: MOCK_RANKED_TRADERS,
-    columns,
-    state: {
-      sorting,
-      pagination,
-    },
-    onSortingChange: setSorting,
-    onPaginationChange: setPagination,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    enableSortingRemoval: false,
-  });
-
-  const handlePageSizeChange = useCallback(
-    (value: string) => {
-      table.setPageSize(Number(value));
-    },
-    [table]
-  );
-
-  const handleFirstPage = useCallback(() => table.firstPage(), [table]);
-  const handlePreviousPage = useCallback(() => table.previousPage(), [table]);
-  const handleNextPage = useCallback(() => table.nextPage(), [table]);
-  const handleLastPage = useCallback(() => table.lastPage(), [table]);
-
-  return (
-    <div className="space-y-6">
-      <div className="bg-background overflow-hidden rounded-xl border shadow-sm">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow
-                key={headerGroup.id}
-                className="hover:bg-transparent border-b bg-muted/30"
-              >
-                {headerGroup.headers.map((header) => (
-                  <TableHead
-                    key={header.id}
-                    style={{ width: `${header.getSize()}px` }}
-                    className="h-12 font-semibold text-foreground"
-                  >
-                    {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                      <div
-                        className={cn(
-                          "flex h-full cursor-pointer items-center gap-2 select-none hover:text-foreground transition-colors",
-                          header.index === 0
-                            ? "justify-center"
-                            : "justify-start"
-                        )}
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                        {{
-                          asc: (
-                            <ChevronUpIcon
-                              className="shrink-0 opacity-60"
-                              size={16}
-                            />
-                          ),
-                          desc: (
-                            <ChevronDownIcon
-                              className="shrink-0 opacity-60"
-                              size={16}
-                            />
-                          ),
-                        }[header.column.getIsSorted() as string] ?? null}
-                      </div>
-                    ) : (
-                      <div
-                        className={cn(
-                          header.index === 0 ? "text-center" : "text-left"
-                        )}
-                      >
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                      </div>
-                    )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
+          {/* Time Frame Tabs */}
+          <div className="bg-muted/30 rounded-lg p-1 backdrop-blur-sm border border-border/50">
+            {(["daily", "weekly", "monthly"] as TimeFrame[]).map(
+              (timeFrame) => (
+                <button
+                  key={timeFrame}
+                  onClick={() => onTimeFrameChange(timeFrame)}
                   className={cn(
-                    "border-b last:border-b-0",
-                    getRowBackgroundClass(row.original.rank)
+                    "px-3 sm:px-6 py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200",
+                    selectedTimeFrame === timeFrame
+                      ? "bg-muted text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="py-4 px-4">
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No traders found.
-                </TableCell>
-              </TableRow>
+                  {timeFrame.charAt(0).toUpperCase() + timeFrame.slice(1)}
+                </button>
+              )
             )}
-          </TableBody>
-        </Table>
+          </div>
+        </div>
+
+        <div className="bg-background/60 backdrop-blur-sm rounded-2xl border border-border/50 overflow-hidden shadow-xl">
+          {/* Table Header */}
+          <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-5 bg-gradient-to-r from-muted/40 via-muted/30 to-muted/40 border-b border-border/50 font-semibold text-sm text-muted-foreground">
+            <div className="col-span-1">Rank</div>
+            <div className="col-span-3">Trader</div>
+            <div className="col-span-2">Total Return</div>
+            <div className="col-span-2">Win Rate</div>
+            <div className="col-span-2">Trades</div>
+            <div className="col-span-2">Portfolio</div>
+          </div>
+
+          {/* Desktop Table Rows */}
+          <div className="hidden md:block divide-y divide-border/50">
+            {rankedTraders.map((trader) => {
+              const isTop3 = trader.rank <= 3;
+              const rankStyle = isTop3
+                ? rankStyles[trader.rank as keyof typeof rankStyles]
+                : null;
+
+              return (
+                <div
+                  key={`${trader.id}-${trader.rank}`}
+                  className={cn(
+                    "grid grid-cols-12 gap-4 px-6 py-5 hover:bg-muted/20 transition-all duration-300 group relative",
+                    isTop3 &&
+                      "bg-gradient-to-r from-muted/20 via-muted/10 to-muted/20"
+                  )}
+                >
+                  {/* Background glow for top 3 */}
+                  {isTop3 && (
+                    <div
+                      className={cn(
+                        "absolute inset-0 opacity-20",
+                        rankStyle?.shadow
+                      )}
+                    />
+                  )}
+
+                  {/* Rank */}
+                  <div className="col-span-1 flex items-center">
+                    {isTop3 ? (
+                      <div
+                        className={cn(
+                          "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 shadow-lg",
+                          rankStyle?.border,
+                          rankStyle?.badge
+                        )}
+                      >
+                        {trader.rank === 1 ? (
+                          <Trophy className="w-5 h-5 text-yellow-500" />
+                        ) : trader.rank === 2 ? (
+                          <Medal className="w-5 h-5 text-slate-400" />
+                        ) : (
+                          <Award className="w-5 h-5 text-amber-500" />
+                        )}
+                      </div>
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center text-sm font-bold text-foreground">
+                        {trader.rank}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Trader */}
+                  <div className="col-span-3 flex items-center gap-4">
+                    <Avatar
+                      className={cn(
+                        "ring-2 ring-border/30",
+                        isTop3 ? "w-12 h-12" : "w-10 h-10"
+                      )}
+                    >
+                      <AvatarImage
+                        src={trader.avatar_url || undefined}
+                        alt={trader.nickname}
+                      />
+                      <AvatarFallback
+                        className={cn(
+                          "font-semibold",
+                          isTop3 ? "text-base" : "text-sm",
+                          isTop3
+                            ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground"
+                            : "bg-muted/60"
+                        )}
+                      >
+                        {trader.nickname?.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div
+                        className={cn(
+                          "font-semibold text-foreground",
+                          isTop3 ? "text-base" : "text-sm"
+                        )}
+                      >
+                        {trader.nickname}
+                      </div>
+                      {isTop3 && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Top Performer
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Total Return */}
+                  <div className="col-span-2 flex items-center">
+                    <div
+                      className={cn(
+                        "font-semibold text-emerald-600 dark:text-emerald-400",
+                        isTop3 ? "text-base" : "text-sm"
+                      )}
+                    >
+                      +{trader.total_return.toFixed(2)}%
+                    </div>
+                  </div>
+
+                  {/* Win Rate */}
+                  <div className="col-span-2 flex items-center gap-2">
+                    <Target className="w-4 h-4 text-blue-500" />
+                    <span
+                      className={cn(
+                        "font-medium",
+                        isTop3 ? "text-base" : "text-sm"
+                      )}
+                    >
+                      {trader.win_rate.toFixed(2)}%
+                    </span>
+                  </div>
+
+                  {/* Trades */}
+                  <div className="col-span-2 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-purple-500" />
+                    <span
+                      className={cn(
+                        "font-medium",
+                        isTop3 ? "text-base" : "text-sm"
+                      )}
+                    >
+                      {trader.total_trades}
+                    </span>
+                  </div>
+
+                  {/* Portfolio */}
+                  <div className="col-span-2 flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-gray-500" />
+                    <span
+                      className={cn(
+                        "font-semibold text-foreground",
+                        isTop3 ? "text-base" : "text-sm"
+                      )}
+                    >
+                      $
+                      {new Intl.NumberFormat("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }).format(trader.portfolio_value)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Mobile Table Rows */}
+          <div className="md:hidden divide-y divide-border/50">
+            {rankedTraders.map((trader) => {
+              const isTop3 = trader.rank <= 3;
+              const rankStyle = isTop3
+                ? rankStyles[trader.rank as keyof typeof rankStyles]
+                : null;
+
+              return (
+                <div
+                  key={`${trader.id}-${trader.rank}`}
+                  className={cn(
+                    "p-4 hover:bg-muted/20 transition-all duration-300 group relative",
+                    isTop3 &&
+                      "bg-gradient-to-r from-muted/20 via-muted/10 to-muted/20"
+                  )}
+                >
+                  {/* Background glow for top 3 */}
+                  {isTop3 && (
+                    <div
+                      className={cn(
+                        "absolute inset-0 opacity-20",
+                        rankStyle?.shadow
+                      )}
+                    />
+                  )}
+
+                  <div className="relative z-10">
+                    {/* Header with Rank and Trader */}
+                    <div className="flex items-center gap-3 mb-3">
+                      {/* Rank */}
+                      <div className="flex items-center">
+                        {isTop3 ? (
+                          <div
+                            className={cn(
+                              "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 shadow-lg",
+                              rankStyle?.border,
+                              rankStyle?.badge
+                            )}
+                          >
+                            {trader.rank === 1 ? (
+                              <Trophy className="w-4 h-4 text-yellow-500" />
+                            ) : trader.rank === 2 ? (
+                              <Medal className="w-4 h-4 text-slate-400" />
+                            ) : (
+                              <Award className="w-4 h-4 text-amber-500" />
+                            )}
+                          </div>
+                        ) : (
+                          <div className="w-6 h-6 rounded-full bg-muted/50 flex items-center justify-center text-xs font-bold text-foreground">
+                            {trader.rank}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Trader */}
+                      <div className="flex items-center gap-3 flex-1">
+                        <Avatar
+                          className={cn(
+                            "ring-2 ring-border/30",
+                            isTop3 ? "w-10 h-10" : "w-8 h-8"
+                          )}
+                        >
+                          <AvatarImage
+                            src={trader.avatar_url || undefined}
+                            alt={trader.nickname}
+                          />
+                          <AvatarFallback
+                            className={cn(
+                              "font-semibold",
+                              isTop3 ? "text-sm" : "text-xs",
+                              isTop3
+                                ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground"
+                                : "bg-muted/60"
+                            )}
+                          >
+                            {trader.nickname?.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div
+                            className={cn(
+                              "font-semibold text-foreground",
+                              isTop3 ? "text-sm" : "text-xs"
+                            )}
+                          >
+                            {trader.nickname}
+                          </div>
+                          {isTop3 && (
+                            <div className="text-xs text-muted-foreground">
+                              Top Performer
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Total Return */}
+                      <div className="text-right">
+                        <div
+                          className={cn(
+                            "font-semibold text-emerald-600 dark:text-emerald-400",
+                            isTop3 ? "text-base" : "text-sm"
+                          )}
+                        >
+                          +{trader.total_return.toFixed(2)}%
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Target className="w-3 h-3 text-blue-500" />
+                        <span className="text-muted-foreground">Win Rate:</span>
+                        <span className="font-medium">
+                          {trader.win_rate.toFixed(2)}%
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="w-3 h-3 text-purple-500" />
+                        <span className="text-muted-foreground">Trades:</span>
+                        <span className="font-medium">
+                          {trader.total_trades}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="w-3 h-3 text-gray-500" />
+                        <span className="text-muted-foreground">
+                          Portfolio:
+                        </span>
+                        <span className="font-medium">
+                          $
+                          {new Intl.NumberFormat("en-US", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }).format(trader.portfolio_value)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
-
-      {/* Pagination */}
-      <div className="flex items-center justify-between gap-8 px-2">
-        <div className="flex items-center gap-3">
-          <Label
-            htmlFor="rows-per-page-ranking"
-            className="max-sm:sr-only text-sm font-medium"
-          >
-            {t("rowsPerPage")}
-          </Label>
-          <Select
-            value={pagination.pageSize.toString()}
-            onValueChange={handlePageSizeChange}
-          >
-            <SelectTrigger
-              id="rows-per-page-ranking"
-              className="w-fit whitespace-nowrap h-9"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PAGE_SIZE_OPTIONS.map((pageSize) => (
-                <SelectItem key={pageSize} value={pageSize.toString()}>
-                  {pageSize}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="text-muted-foreground flex grow justify-end text-sm whitespace-nowrap">
-          <span className="font-medium">
-            {t("page")} {pagination.pageIndex + 1} {t("of")}{" "}
-            {table.getPageCount()}
-          </span>
-        </div>
-
-        <div>
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  className="h-9 w-9 disabled:pointer-events-none disabled:opacity-50"
-                  onClick={handleFirstPage}
-                  disabled={!table.getCanPreviousPage()}
-                  aria-label="Go to first page"
-                >
-                  <ChevronFirstIcon size={16} />
-                </Button>
-              </PaginationItem>
-              <PaginationItem>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  className="h-9 w-9 disabled:pointer-events-none disabled:opacity-50"
-                  onClick={handlePreviousPage}
-                  disabled={!table.getCanPreviousPage()}
-                  aria-label="Go to previous page"
-                >
-                  <ChevronLeftIcon size={16} />
-                </Button>
-              </PaginationItem>
-              <PaginationItem>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  className="h-9 w-9 disabled:pointer-events-none disabled:opacity-50"
-                  onClick={handleNextPage}
-                  disabled={!table.getCanNextPage()}
-                  aria-label="Go to next page"
-                >
-                  <ChevronRightIcon size={16} />
-                </Button>
-              </PaginationItem>
-              <PaginationItem>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  className="h-9 w-9 disabled:pointer-events-none disabled:opacity-50"
-                  onClick={handleLastPage}
-                  disabled={!table.getCanNextPage()}
-                  aria-label="Go to last page"
-                >
-                  <ChevronLastIcon size={16} />
-                </Button>
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
-      </div>
-    </div>
-  );
-});
+    );
+  }
+);
 
 TraderRankingTable.displayName = "TraderRankingTable";

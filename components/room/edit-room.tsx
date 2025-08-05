@@ -1,3 +1,4 @@
+import { TRADING_SYMBOLS } from "@/lib/trading/symbols-config";
 import bcrypt from "bcryptjs";
 import debounce from "lodash.debounce";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
@@ -13,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { TRADING_SYMBOLS } from "@/lib/trading/symbols-config";
 
 export type RoomUpdateData = {
   name: string;
@@ -138,7 +138,7 @@ export function EditRoomForm({
     if (response.status === 409) {
       setError(
         result.error ||
-          "Room was updated elsewhere. Please refresh and try again."
+          "Room was updated recently. Please refresh the page and try again."
       );
       return;
     }

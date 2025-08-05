@@ -12,7 +12,6 @@ import { Separator } from "@/components/ui/separator";
 import { useBinanceFutures } from "@/hooks/use-binance-futures";
 import { createClient } from "@/lib/supabase/client";
 import React, { useEffect, useRef, useState } from "react";
-import useSWR from "swr";
 import { TradingOverviewContainer } from "./trading-overview-container";
 import { TradingViewChartComponent } from "./trading-view-chart";
 
@@ -61,15 +60,6 @@ export function RoomWindowContent({
   roomType: "regular" | "voice";
   onCurrentPrice?: (price: number | undefined) => void;
 }) {
-  const fetcher = (url: string) => fetch(url).then((res) => res.json());
-
-  // Separate SWR calls for different data needs
-  const { data: marketData } = useSWR(
-    `/api/market-data?symbol=${symbol}&include=all`,
-    fetcher,
-    { refreshInterval: 1000 } // Keep market data fresh for other components
-  );
-
   // Check if current user is the host
   const [, setIsHost] = useState(false);
 
@@ -86,23 +76,19 @@ export function RoomWindowContent({
     checkIfHost();
   }, [hostId]);
 
+  // Fetch all market data using the enhanced hook
+  const marketData = useBinanceFutures(symbol);
+
   // Notify parent of current price
   React.useEffect(() => {
     if (onCurrentPrice) {
-      onCurrentPrice(marketData?.ticker?.lastPrice);
+      onCurrentPrice(
+        marketData?.ticker?.lastPrice
+          ? parseFloat(marketData.ticker.lastPrice)
+          : undefined
+      );
     }
   }, [marketData?.ticker?.lastPrice, onCurrentPrice]);
-
-  // Fetch open interest and funding data from binance futures directly (client-side)
-  const { openInterest, fundingRate, nextFundingTime } =
-    useBinanceFutures(symbol);
-  // Merge with existing data
-  const mergedData = {
-    ...marketData,
-    openInterest,
-    lastFundingRate: fundingRate,
-    nextFundingTime,
-  };
 
   // Fetch open positions for the chart
   // const { openPositions } = usePositions(roomId) as {
@@ -144,7 +130,7 @@ export function RoomWindowContent({
       )}
       <div className="border h-[80px] w-full flex">
         <div className="w-full flex-[1]">
-          <MarketOverview symbol={symbol} data={mergedData} />
+          <MarketOverview symbol={symbol} data={marketData} />
         </div>
         <Separator className="h-full" orientation="vertical" />
         <div className="w-full flex-1">
@@ -166,7 +152,11 @@ export function RoomWindowContent({
               </div>
               <div className="flex-1 border border-border h-full w-full bg-background p-2">
                 <TradingForm
-                  currentPrice={marketData?.ticker?.lastPrice}
+                  currentPrice={
+                    marketData?.ticker?.lastPrice
+                      ? parseFloat(marketData.ticker.lastPrice)
+                      : undefined
+                  }
                   virtualBalance={virtualBalance}
                   hostId={hostId}
                   roomId={roomId}
@@ -177,7 +167,11 @@ export function RoomWindowContent({
             <div className="flex flex-1 w-full border">
               <TradeHistoryTabs
                 roomId={roomId}
-                currentPrice={marketData?.ticker?.lastPrice}
+                currentPrice={
+                  marketData?.ticker?.lastPrice
+                    ? parseFloat(marketData.ticker.lastPrice)
+                    : undefined
+                }
                 hostId={hostId}
               />
             </div>
@@ -185,7 +179,10 @@ export function RoomWindowContent({
         </div>
         <div className="col-span-1 w-full h-full">
           <div className="flex w-full h-full flex-col gap-2">
-            <div className="w-full h-[300px] border border-border bg-background">
+            <div
+              className="w-full h-[300px] border border-border bg-background"
+              data-testid="participants-list"
+            >
               <ParticipantsList roomId={roomId} hostId={hostId} />
             </div>
             <div className="w-full h-[515px] border border-border bg-background">

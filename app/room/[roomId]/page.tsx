@@ -1,4 +1,4 @@
-import { TradingRoomWindow } from "@/components/room/room-window";
+import { RoomClientWrapper } from "@/components/room/room-client-wrapper";
 import { createClient } from "@/lib/supabase/server";
 import { Metadata } from "next";
 
@@ -42,7 +42,7 @@ export default async function TradingRoomPage({
   }
 
   return (
-    <TradingRoomWindow
+    <RoomClientWrapper
       hostId={room.creator_id}
       roomName={room.name}
       isPublic={room.privacy === "public"}

@@ -1,62 +1,10 @@
 "use client";
 
-import { useMemo, useState, useCallback, memo } from "react";
-import { useTranslations } from "next-intl";
-import {
-  type ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
-  getPaginationRowModel,
-  getFilteredRowModel,
-  useReactTable,
-  type SortingState,
-  type PaginationState,
-  type ColumnFiltersState,
-} from "@tanstack/react-table";
-import {
-  ChevronDownIcon,
-  ChevronUpIcon,
-  ChevronFirstIcon,
-  ChevronLastIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  Coins,
-  Trophy,
-  Medal,
-  Award,
-  Search,
-  TrendingUp,
-  Clock,
-  Crown,
-} from "lucide-react";
-
-import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-} from "@/components/ui/pagination";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { Award, Medal, Trophy } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { memo } from "react";
 
 export interface KorCoinsUser {
   id: string;
@@ -66,101 +14,23 @@ export interface KorCoinsUser {
   avatar_url: string | null;
   kor_coins: number;
   weekly_gain: number;
+  period_gain?: number;
   last_active: string | null;
+  updated_at: string | null;
   rank?: number;
 }
 
-// Memoized components
-const RankBadge = memo(({ rank }: { rank: number }) => {
-  const getBadgeConfig = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return {
-          icon: Trophy,
-          className:
-            "border-2 border-yellow-400 text-yellow-600 dark:text-yellow-400 bg-transparent font-bold px-3 py-1.5",
-          iconColor: "text-yellow-600 dark:text-yellow-400",
-        };
-      case 2:
-        return {
-          icon: Medal,
-          className:
-            "border-2 border-slate-400 text-slate-600 dark:text-slate-400 bg-transparent font-bold px-3 py-1.5",
-          iconColor: "text-slate-600 dark:text-slate-400",
-        };
-      case 3:
-        return {
-          icon: Award,
-          className:
-            "border-2 border-orange-500 text-orange-600 dark:text-orange-400 bg-transparent font-bold px-3 py-1.5",
-          iconColor: "text-orange-600 dark:text-orange-400",
-        };
-      default:
-        return null;
-    }
-  };
+type TimeFrame = "daily" | "weekly" | "monthly";
 
-  const config = getBadgeConfig(rank);
-
-  if (!config) {
-    return (
-      <div className="w-12 text-center">
-        <span className="font-semibold text-muted-foreground">#{rank}</span>
-      </div>
-    );
-  }
-
-  const Icon = config.icon;
-
-  return (
-    <Badge className={`font-bold px-3 py-1.5 ${config.className}`}>
-      <Icon className={`w-3.5 h-3.5 mr-1.5 ${config.iconColor}`} />#{rank}
-    </Badge>
-  );
-});
-RankBadge.displayName = "RankBadge";
-
-const OnlineIndicator = memo(({ isOnline }: { isOnline: boolean }) => (
-  <div className="flex items-center gap-1.5">
-    <div
-      className={cn(
-        "w-2 h-2 rounded-full",
-        isOnline ? "bg-green-500 animate-pulse" : "bg-gray-400 dark:bg-gray-600"
-      )}
-    />
-    <span
-      className={cn(
-        "text-xs",
-        isOnline
-          ? "text-green-600 dark:text-green-400"
-          : "text-muted-foreground"
-      )}
-    >
-      {isOnline ? "Online" : "Offline"}
-    </span>
-  </div>
-));
-OnlineIndicator.displayName = "OnlineIndicator";
-
-// Static configurations
-const ROW_BACKGROUNDS = {
-  1: "bg-gradient-to-r from-yellow-50/80 to-amber-50/60 dark:from-yellow-950/30 dark:to-amber-950/20 border-l-4 border-l-yellow-400",
-  2: "bg-gradient-to-r from-slate-50/80 to-gray-50/60 dark:from-slate-950/30 dark:to-gray-950/20 border-l-4 border-l-slate-400",
-  3: "bg-gradient-to-r from-orange-50/80 to-amber-50/60 dark:from-orange-950/30 dark:to-amber-950/20 border-l-4 border-l-orange-500",
-  default: "hover:bg-muted/50 transition-colors",
-} as const;
-
-const PAGE_SIZE_OPTIONS = [5, 10, 20, 50] as const;
-
-function getMainName(user: KorCoinsUser) {
-  if (
-    (user.first_name && user.first_name.trim() !== "") ||
-    (user.last_name && user.last_name.trim() !== "")
-  ) {
-    return `${user.first_name || ""} ${user.last_name || ""}`.trim();
-  }
-  return "Unknown";
-}
+// function getMainName(user: KorCoinsUser) {
+//   if (
+//     (user.first_name && user.first_name.trim() !== "") ||
+//     (user.last_name && user.last_name.trim() !== "")
+//   ) {
+//     return `${user.first_name || ""} ${user.last_name || ""}`.trim();
+//   }
+//   return "Unknown";
+// }
 
 function getNickname(user: KorCoinsUser) {
   if (
@@ -194,413 +64,222 @@ function formatRelativeTime(dateString: string | null): string {
 }
 
 export const KorCoinsRankingTable = memo(
-  ({ users }: { users: KorCoinsUser[] }) => {
+  ({
+    users,
+    selectedTimeFrame,
+    onTimeFrameChange,
+  }: {
+    users: KorCoinsUser[];
+    selectedTimeFrame: TimeFrame;
+    onTimeFrameChange: (timeFrame: TimeFrame) => void;
+  }) => {
     const t = useTranslations("rankings");
-    // Use the users prop as-is (already sorted and ranked)
-    const data: KorCoinsUser[] = users;
-
-    const [sorting, setSorting] = useState<SortingState>([
-      { id: "kor_coins", desc: true },
-    ]);
-    const [pagination, setPagination] = useState<PaginationState>({
-      pageIndex: 0,
-      pageSize: 10,
-    });
-    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-    const [globalFilter, setGlobalFilter] = useState("");
-
-    const getRowBackgroundClass = useCallback((rank: number) => {
-      return (
-        ROW_BACKGROUNDS[rank as keyof typeof ROW_BACKGROUNDS] ||
-        ROW_BACKGROUNDS.default
-      );
-    }, []);
-
-    const columns = useMemo<ColumnDef<KorCoinsUser>[]>(
-      () => [
-        {
-          header: t("rank"),
-          accessorKey: "rank",
-          cell: ({ row }) => (
-            <div className="flex justify-center">
-              <RankBadge rank={row.getValue("rank")} />
-            </div>
-          ),
-          size: 100,
-        },
-        {
-          header: t("user"),
-          accessorKey: "id",
-          cell: ({ row }) => {
-            const user = row.original;
-            const rank = user.rank ?? 0;
-            return (
-              <div className="flex items-center gap-3 py-1">
-                <div className="relative">
-                  <Avatar className="h-12 w-12 ring-2 ring-border">
-                    <AvatarImage
-                      src={user.avatar_url || ""}
-                      alt={getMainName(user)}
-                    />
-                    <AvatarFallback className="bg-muted text-muted-foreground font-medium">
-                      {getMainName(user).slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
-                <div>
-                  <div className="font-semibold text-foreground flex items-center gap-2">
-                    {getNickname(user)}
-                    {rank === 1 && (
-                      <Crown className="w-4 h-4 text-yellow-500" />
-                    )}
-                    {rank <= 3 && rank > 0 && (
-                      <Badge
-                        variant="secondary"
-                        className="text-xs px-2 py-0.5"
-                      >
-                        {t("top")} {rank}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          },
-          size: 300,
-          filterFn: (row, id, value) => {
-            const user = row.original;
-            const searchValue = value.toLowerCase();
-            return (
-              getMainName(user).toLowerCase().includes(searchValue) ||
-              getNickname(user).toLowerCase().includes(searchValue)
-            );
-          },
-        },
-        {
-          header: t("korCoins"),
-          accessorKey: "kor_coins",
-          cell: ({ row }) => {
-            const coins = row.getValue("kor_coins") as number;
-            const rank = row.original.rank ?? 0;
-            return (
-              <div className="flex items-center gap-2">
-                <Coins
-                  className={cn(
-                    "w-5 h-5",
-                    rank === 1
-                      ? "text-yellow-500"
-                      : rank === 2
-                      ? "text-slate-400"
-                      : rank === 3
-                      ? "text-orange-500"
-                      : "text-cyan-500"
-                  )}
-                />
-                <div className="flex flex-col">
-                  <span
-                    className={cn(
-                      "font-bold",
-                      rank === 1
-                        ? "text-lg text-yellow-600 dark:text-yellow-400"
-                        : rank === 2
-                        ? "text-base text-slate-600 dark:text-slate-400"
-                        : rank === 3
-                        ? "text-base text-orange-600 dark:text-orange-400"
-                        : "text-foreground"
-                    )}
-                  >
-                    {new Intl.NumberFormat("en-US").format(coins)}
-                  </span>
-                  {rank <= 10 && (
-                    <span className="text-xs text-muted-foreground">
-                      +
-                      {new Intl.NumberFormat("en-US").format(
-                        row.original.weekly_gain || 0
-                      )}{" "}
-                      {t("thisWeek")}
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          },
-          size: 200,
-        },
-        {
-          header: t("weeklyGain"),
-          accessorKey: "weekly_gain",
-          cell: ({ row }) => {
-            const gain = row.getValue("weekly_gain") as number;
-            return (
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-emerald-500" />
-                <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                  +{new Intl.NumberFormat("en-US").format(gain || 0)}
-                </span>
-              </div>
-            );
-          },
-          size: 150,
-        },
-        {
-          header: t("lastActive"),
-          accessorKey: "updated_at",
-          cell: ({ row }) => (
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
-                {formatRelativeTime(row.getValue("updated_at"))}
-              </span>
-            </div>
-          ),
-          size: 140,
-        },
-      ],
-      [t]
-    );
-
-    const table = useReactTable({
-      data,
-      columns,
-      state: {
-        sorting,
-        pagination,
-        columnFilters,
-        globalFilter,
-      },
-      onSortingChange: setSorting,
-      onPaginationChange: setPagination,
-      onColumnFiltersChange: setColumnFilters,
-      onGlobalFilterChange: setGlobalFilter,
-      getCoreRowModel: getCoreRowModel(),
-      getSortedRowModel: getSortedRowModel(),
-      getPaginationRowModel: getPaginationRowModel(),
-      getFilteredRowModel: getFilteredRowModel(),
-      enableSortingRemoval: false,
-      globalFilterFn: (row, columnId, filterValue) => {
-        const user = row.original;
-        const search = filterValue.toLowerCase();
-        return (user.first_name &&
-          user.first_name.toLowerCase().includes(search)) ||
-          (user.last_name && user.last_name.toLowerCase().includes(search)) ||
-          (user.nickname && user.nickname.toLowerCase().includes(search))
-          ? true
-          : false;
-      },
-    });
-
-    const handlePageSizeChange = useCallback(
-      (value: string) => {
-        table.setPageSize(Number(value));
-      },
-      [table]
-    );
-
-    const handleFirstPage = useCallback(() => table.firstPage(), [table]);
-    const handlePreviousPage = useCallback(() => table.previousPage(), [table]);
-    const handleNextPage = useCallback(() => table.nextPage(), [table]);
-    const handleLastPage = useCallback(() => table.lastPage(), [table]);
 
     return (
-      <div className="space-y-6 select-none">
-        <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
-          <h2 className="text-2xl font-semibold">{t("fullRankings")}</h2>
-          <div className="relative w-full md:w-80">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder={t("searchUsers")}
-              value={globalFilter}
-              onChange={(e) => setGlobalFilter(e.target.value)}
-              className="pl-10 h-10"
-            />
+      <div className="mt-16">
+        <div className="flex items-center justify-between mb-8">
+          <div className="text-left">
+            <h2 className="text-2xl font-bold text-foreground">
+              Full Leaderboard
+            </h2>
+            <p className="text-muted-foreground">
+              Complete ranking of all active users •{" "}
+              {selectedTimeFrame.charAt(0).toUpperCase() +
+                selectedTimeFrame.slice(1)}{" "}
+              Rankings
+            </p>
+          </div>
+
+          {/* Time Frame Tabs */}
+          <div className="bg-muted/30 rounded-lg p-1 backdrop-blur-sm border border-border/50">
+            {(["daily", "weekly", "monthly"] as TimeFrame[]).map(
+              (timeFrame) => (
+                <button
+                  key={timeFrame}
+                  onClick={() => onTimeFrameChange(timeFrame)}
+                  className={cn(
+                    "px-6 py-2 rounded-md text-sm font-medium transition-all duration-200",
+                    selectedTimeFrame === timeFrame
+                      ? "bg-muted text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {timeFrame.charAt(0).toUpperCase() + timeFrame.slice(1)}
+                </button>
+              )
+            )}
           </div>
         </div>
 
-        <div className="bg-background overflow-hidden rounded-xl border shadow-sm">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow
-                  key={headerGroup.id}
-                  className="hover:bg-transparent border-b bg-muted/30"
+        <div className="bg-background/60 backdrop-blur-sm rounded-2xl border border-border/50 overflow-hidden shadow-xl">
+          {/* Table Header */}
+          <div className="grid grid-cols-12 gap-4 px-6 py-5 bg-gradient-to-r from-muted/40 via-muted/30 to-muted/40 border-b border-border/50 font-semibold text-sm text-muted-foreground">
+            <div className="col-span-1">Rank</div>
+            <div className="col-span-4">User</div>
+            <div className="col-span-3">KOR Coins</div>
+            <div className="col-span-2">
+              {selectedTimeFrame === "daily"
+                ? t("dailyGain")
+                : selectedTimeFrame === "weekly"
+                ? t("weeklyGain")
+                : t("monthlyGain")}
+            </div>
+            <div className="col-span-2">Last Active</div>
+          </div>
+
+          {/* Table Rows */}
+          <div className="divide-y divide-border/50">
+            {users.map((user, index) => {
+              const isTop3 = (user.rank || 0) <= 3;
+              const rankStyles = {
+                1: {
+                  border: "border-yellow-500/40",
+                  badge:
+                    "bg-yellow-500/20 text-yellow-300 border-yellow-500/40",
+                  shadow: "shadow-[0_0_35px_rgba(234,179,8,0.2)]",
+                },
+                2: {
+                  border: "border-slate-400/40",
+                  badge: "bg-slate-500/20 text-slate-300 border-slate-400/40",
+                  shadow: "shadow-[0_0_35px_rgba(148,163,184,0.2)]",
+                },
+                3: {
+                  border: "border-amber-600/40",
+                  badge: "bg-amber-600/20 text-amber-300 border-amber-600/40",
+                  shadow: "shadow-[0_0_35px_rgba(217,119,6,0.2)]",
+                },
+              } as const;
+
+              const rankStyle = isTop3
+                ? rankStyles[user.rank as keyof typeof rankStyles]
+                : null;
+
+              return (
+                <div
+                  key={user.id}
+                  className={cn(
+                    "grid grid-cols-12 gap-4 px-6 py-5 hover:bg-muted/20 transition-all duration-300 group relative",
+                    isTop3 &&
+                      "bg-gradient-to-r from-muted/20 via-muted/10 to-muted/20"
+                  )}
                 >
-                  {headerGroup.headers.map((header) => (
-                    <TableHead
-                      key={header.id}
-                      style={{ width: `${header.getSize()}px` }}
-                      className="h-12 font-semibold text-foreground"
+                  {/* Background glow for top 3 */}
+                  {isTop3 && (
+                    <div
+                      className={cn(
+                        "absolute inset-0 opacity-20",
+                        rankStyle?.shadow
+                      )}
+                    />
+                  )}
+
+                  {/* Rank */}
+                  <div className="col-span-1 flex items-center">
+                    {isTop3 ? (
+                      <div
+                        className={cn(
+                          "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 shadow-lg",
+                          rankStyle?.border,
+                          rankStyle?.badge
+                        )}
+                      >
+                        {user.rank === 1 ? (
+                          <Trophy className="w-5 h-5 text-yellow-500" />
+                        ) : user.rank === 2 ? (
+                          <Medal className="w-5 h-5 text-slate-400" />
+                        ) : (
+                          <Award className="w-5 h-5 text-amber-500" />
+                        )}
+                      </div>
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center text-sm font-bold text-foreground">
+                        {user.rank}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* User */}
+                  <div className="col-span-4 flex items-center gap-4">
+                    <Avatar
+                      className={cn(
+                        "ring-2 ring-border/30",
+                        isTop3 ? "w-12 h-12" : "w-10 h-10"
+                      )}
                     >
-                      {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                        <div
-                          className={cn(
-                            "flex h-full cursor-pointer items-center gap-2 select-none hover:text-foreground transition-colors",
-                            header.index === 0
-                              ? "justify-center"
-                              : "justify-start"
-                          )}
-                          onClick={header.column.getToggleSortingHandler()}
-                        >
-                          {flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                          {{
-                            asc: (
-                              <ChevronUpIcon
-                                className="shrink-0 opacity-60"
-                                size={16}
-                              />
-                            ),
-                            desc: (
-                              <ChevronDownIcon
-                                className="shrink-0 opacity-60"
-                                size={16}
-                              />
-                            ),
-                          }[header.column.getIsSorted() as string] ?? null}
-                        </div>
-                      ) : (
-                        <div
-                          className={cn(
-                            header.index === 0 ? "text-center" : "text-left"
-                          )}
-                        >
-                          {flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                      <AvatarImage
+                        src={user.avatar_url || undefined}
+                        alt={user.nickname}
+                      />
+                      <AvatarFallback
+                        className={cn(
+                          "font-semibold",
+                          isTop3 ? "text-base" : "text-sm",
+                          isTop3
+                            ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground"
+                            : "bg-muted/60"
+                        )}
+                      >
+                        {user.nickname?.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div
+                        className={cn(
+                          "font-semibold text-foreground",
+                          isTop3 ? "text-base" : "text-sm"
+                        )}
+                      >
+                        {getNickname(user)}
+                      </div>
+                      {isTop3 && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Top Performer
                         </div>
                       )}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row, index) => (
-                  <TableRow
-                    key={row.id}
-                    className={cn(
-                      "border-b last:border-b-0",
-                      getRowBackgroundClass(row.original.rank ?? 0)
-                    )}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="py-4 px-4">
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    {t("noUsersFound")}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                    </div>
+                  </div>
 
-        {/* Pagination */}
-        <div className="flex flex-col gap-4 px-2 md:flex-row md:items-center md:justify-between">
-          <div className="hidden sm:flex items-center gap-3">
-            <Label
-              htmlFor="rows-per-page-korcoins"
-              className="max-sm:sr-only text-sm font-medium"
-            >
-              {t("rowsPerPage")}
-            </Label>
-            <Select
-              value={pagination.pageSize.toString()}
-              onValueChange={handlePageSizeChange}
-            >
-              <SelectTrigger
-                id="rows-per-page-korcoins"
-                className="w-fit whitespace-nowrap h-9"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PAGE_SIZE_OPTIONS.map((pageSize) => (
-                  <SelectItem key={pageSize} value={pageSize.toString()}>
-                    {pageSize}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+                  {/* KOR Coins */}
+                  <div className="col-span-3 flex items-center gap-2">
+                    <div
+                      className={cn(
+                        "font-semibold text-foreground",
+                        isTop3 ? "text-base" : "text-sm"
+                      )}
+                    >
+                      {(
+                        user.period_gain ||
+                        user.weekly_gain ||
+                        0
+                      )?.toLocaleString()}
+                    </div>
+                  </div>
 
-          <div className="flex flex-col items-center gap-4 w-full md:flex-row md:justify-end md:w-auto md:items-center">
-            <div className="text-muted-foreground text-sm whitespace-nowrap">
-              <span className="font-medium">
-                {t("showing")} {table.getRowModel().rows.length} {t("of")}{" "}
-                {table.getFilteredRowModel().rows.length} {t("users")}
-              </span>
-            </div>
+                  {/* Period Gain */}
+                  <div className="col-span-2 flex items-center">
+                    <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                      <span className="text-xs font-medium">
+                        +
+                        {(
+                          user.period_gain ||
+                          user.weekly_gain ||
+                          0
+                        )?.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
 
-            <div>
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="h-9 w-9 disabled:pointer-events-none disabled:opacity-50"
-                      onClick={handleFirstPage}
-                      disabled={!table.getCanPreviousPage()}
-                      aria-label="Go to first page"
-                    >
-                      <ChevronFirstIcon size={16} />
-                    </Button>
-                  </PaginationItem>
-                  <PaginationItem>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="h-9 w-9 disabled:pointer-events-none disabled:opacity-50"
-                      onClick={handlePreviousPage}
-                      disabled={!table.getCanPreviousPage()}
-                      aria-label="Go to previous page"
-                    >
-                      <ChevronLeftIcon size={16} />
-                    </Button>
-                  </PaginationItem>
-                  <PaginationItem>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="h-9 w-9 disabled:pointer-events-none disabled:opacity-50"
-                      onClick={handleNextPage}
-                      disabled={!table.getCanNextPage()}
-                      aria-label="Go to next page"
-                    >
-                      <ChevronRightIcon size={16} />
-                    </Button>
-                  </PaginationItem>
-                  <PaginationItem>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="h-9 w-9 disabled:pointer-events-none disabled:opacity-50"
-                      onClick={handleLastPage}
-                      disabled={!table.getCanNextPage()}
-                      aria-label="Go to last page"
-                    >
-                      <ChevronLastIcon size={16} />
-                    </Button>
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
+                  {/* Last Active */}
+                  <div className="col-span-2 flex items-center">
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <span className="text-xs font-medium">
+                        {formatRelativeTime(user.updated_at)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -7,42 +7,21 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  type ColumnDef,
-  type ColumnFiltersState,
-  type FilterFn,
-  flexRender,
-  getCoreRowModel,
-  getFacetedUniqueValues,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  type PaginationState,
-  type SortingState,
-  useReactTable,
-  type VisibilityState,
-} from "@tanstack/react-table";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { format, formatDistanceToNow } from "date-fns";
 import {
-  ChevronDownIcon,
-  ChevronFirstIcon,
-  ChevronLastIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ChevronUpIcon,
   CircleXIcon,
-  Columns3Icon,
+  Clock,
   Crown,
-  DoorOpenIcon,
   Eye,
   EyeOff,
   FilterIcon,
   GlobeIcon,
-  ListFilterIcon,
+  ImageIcon,
   LockIcon,
-  MessageSquareIcon,
-  MicIcon,
-  UsersIcon,
+  SearchIcon,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
@@ -52,43 +31,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-} from "@/components/ui/pagination";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 import { CreateRoom } from "./create-room";
 
 interface TradingRoom {
@@ -107,37 +60,23 @@ interface TradingRoom {
   isHosted: boolean;
   participants: number;
   pnlPercentage: number | null;
+  thumbnail_url: string | null;
 }
 
-const multiColumnFilterFn: FilterFn<TradingRoom> = (
-  row,
-  columnId,
-  filterValue
-) => {
-  const searchableRowContent =
-    `${row.original.name} ${row.original.symbol} ${row.original.creator.name}`.toLowerCase();
-  const searchTerm = (filterValue ?? "").toLowerCase();
-  return searchableRowContent.includes(searchTerm);
+const multiColumnFilterFn = (room: TradingRoom, searchTerm: string) => {
+  const searchableContent =
+    `${room.name} ${room.symbol} ${room.creator.name}`.toLowerCase();
+  return searchableContent.includes(searchTerm.toLowerCase());
 };
 
-const categoryFilterFn: FilterFn<TradingRoom> = (
-  row,
-  columnId,
-  filterValue: string[]
-) => {
-  if (!filterValue?.length) return true;
-  const category = row.getValue(columnId) as string;
-  return filterValue.includes(category);
+const categoryFilterFn = (room: TradingRoom, selectedCategories: string[]) => {
+  if (!selectedCategories?.length) return true;
+  return selectedCategories.includes(room.category);
 };
 
-const accessFilterFn: FilterFn<TradingRoom> = (
-  row,
-  columnId,
-  filterValue: string[]
-) => {
-  if (!filterValue?.length) return true;
-  const isPublic = row.getValue(columnId) as boolean;
-  return filterValue.includes(isPublic ? "public" : "private");
+const accessFilterFn = (room: TradingRoom, selectedAccess: string[]) => {
+  if (!selectedAccess?.length) return true;
+  return selectedAccess.includes(room.isPublic ? "public" : "private");
 };
 
 function CreatedAtCell({ value }: { value: string }) {
@@ -152,24 +91,17 @@ function CreatedAtCell({ value }: { value: string }) {
     }
   }, [value]);
 
-  const dateObj = new Date(value);
-  const isValidDate = !isNaN(dateObj.getTime());
-  // Fixed format: DD-MM-YYYY HH:mm:ss
-  const fixedFormat = isValidDate
-    ? format(dateObj, "dd-MM-yyyy HH:mm:ss")
-    : "-";
-
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span>{relative}</span>
+          <span className="text-xs text-muted-foreground">{relative}</span>
         </TooltipTrigger>
         <TooltipContent
           side="bottom"
           className="w-[180px] flex items-center flex-col font-mono"
         >
-          <span>{fixedFormat}</span>
+          <span>{format(new Date(value), "dd-MM-yyyy HH:mm:ss")}</span>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -179,50 +111,126 @@ function CreatedAtCell({ value }: { value: string }) {
 export function TradingRoomsList() {
   const t = useTranslations("tradingRooms");
   const id = useId();
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 20,
-  });
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const [sorting, setSorting] = useState<SortingState>([
-    {
-      id: "createdAt",
-      desc: true,
-    },
-  ]);
-
-  const [rooms, setRooms] = useState<TradingRoom[] | null>(null);
-  const [, setTotal] = useState<number>(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedAccess, setSelectedAccess] = useState<string[]>([]);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+
+  // React Query client for cache management
+  const queryClient = useQueryClient();
+
+  // Optimized React Query fetcher
+  const fetchTradingRooms = async ({ pageParam = 1 }) => {
+    const response = await fetch(
+      `/api/trading-rooms?page=${pageParam}&pageSize=20`,
+      {
+        headers: {
+          "Cache-Control": "max-age=10",
+        },
+      }
+    );
+    if (!response.ok) {
+      throw new Error("Failed to fetch trading rooms");
+    }
+    return response.json();
+  };
+
+  // React Query for infinite rooms with aggressive caching
+  const {
+    data: roomsData,
+    // error,
+    isLoading,
+    // isFetching,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    // refetch,
+  } = useInfiniteQuery({
+    queryKey: ["trading-rooms", searchTerm, selectedCategories, selectedAccess],
+    queryFn: fetchTradingRooms,
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      const hasMore = lastPage.data.length === 20;
+      return hasMore ? allPages.length + 1 : undefined;
+    },
+    staleTime: 1000, // Data is fresh for 1 second
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+
+  // Flatten all pages into a single array of rooms
+  const rooms = useMemo(() => {
+    if (!roomsData?.pages) return [];
+    return roomsData.pages.flatMap((page) => page.data);
+  }, [roomsData?.pages]);
+
+  // const totalCount = roomsData?.pages?.[0]?.total || 0;
+
+  // Optimized filtered rooms calculation
+  const filteredRooms = useMemo(() => {
+    if (!rooms) return [];
+
+    let filtered = rooms;
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter((room: TradingRoom) =>
+        multiColumnFilterFn(room, searchTerm)
+      );
+    }
+
+    // Apply category filter
+    if (selectedCategories.length > 0) {
+      filtered = filtered.filter((room: TradingRoom) =>
+        categoryFilterFn(room, selectedCategories)
+      );
+    }
+
+    // Apply access filter
+    if (selectedAccess.length > 0) {
+      filtered = filtered.filter((room: TradingRoom) =>
+        accessFilterFn(room, selectedAccess)
+      );
+    }
+
+    return filtered;
+  }, [rooms, searchTerm, selectedCategories, selectedAccess]);
+
+  // Update isHosted for rooms when currentUserId or rooms change
+  const roomsWithHostStatus = useMemo(() => {
+    if (!currentUserId || !filteredRooms) return filteredRooms;
+    return filteredRooms.map((room: TradingRoom) => ({
+      ...room,
+      isHosted: room.creator.id === currentUserId,
+    }));
+  }, [currentUserId, filteredRooms]);
+
+  // Debug logging to track state changes
+  useEffect(() => {
+    console.log("Rooms state changed:", {
+      roomsCount: rooms.length,
+      filteredCount: filteredRooms?.length || 0,
+      roomsWithHostCount: roomsWithHostStatus?.length || 0,
+      isLoading,
+      hasNextPage,
+    });
+  }, [rooms, filteredRooms, roomsWithHostStatus, isLoading, hasNextPage]);
+
+  // React Query handles infinite loading automatically
+  const loadMore = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  };
+
   // Add a ref to store the Supabase channel for cleanup
   const supabaseChannelRef = useRef<ReturnType<
     ReturnType<typeof createClient>["channel"]
   > | null>(null);
-
-  // Refetch function for rooms
-  const fetchRooms = () => {
-    setLoading(true);
-    const start = performance.now();
-    const page = pagination.pageIndex + 1;
-    const pageSize = pagination.pageSize;
-    fetch(`/api/trading-rooms?page=${page}&pageSize=${pageSize}`)
-      .then((res) => res.json())
-      .then((result) => {
-        setRooms(result.data);
-        setTotal(result.total);
-        setLoading(false);
-        const end = performance.now();
-        console.log(
-          "Trading rooms API fetch took",
-          (end - start).toFixed(2),
-          "ms"
-        );
-      });
-  };
 
   const [passwordDialog, setPasswordDialog] = useState<{
     open: boolean;
@@ -234,8 +242,109 @@ export function TradingRoomsList() {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    fetchRooms();
-  }, [pagination.pageIndex, pagination.pageSize]);
+    // Initial fetch is handled by SWR
+  }, []);
+
+  // Real-time subscription for trading room participants - More responsive
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel("trading-rooms-participants")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "trading_room_participants",
+        },
+        async (payload) => {
+          console.log("Participant change detected:", payload);
+
+          // Invalidate and refetch React Query cache
+          await queryClient.invalidateQueries({
+            queryKey: ["trading-rooms"],
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  // Real-time subscription for trading rooms - More responsive
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel("trading-rooms")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "trading_rooms",
+        },
+        async (payload) => {
+          console.log("Room change detected:", payload);
+
+          // Invalidate and refetch React Query cache
+          await queryClient.invalidateQueries({
+            queryKey: ["trading-rooms"],
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  // Remove virtual scrolling setup that's causing the bug
+  // const parentRef = useRef<HTMLDivElement>(null);
+  // const rowVirtualizer = useVirtualizer({
+  //   count: Math.ceil((roomsWithHostStatus?.length || 0) / 4), // 4 columns per row
+  //   getScrollElement: () => parentRef.current,
+  //   estimateSize: () => 280, // Estimated height of each row
+  //   overscan: 5, // Number of items to render outside the viewport
+  // });
+
+  // Intersection observer for infinite scrolling
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const target = entries[0];
+        if (
+          target.isIntersecting &&
+          hasNextPage &&
+          !isFetchingNextPage &&
+          roomsWithHostStatus &&
+          roomsWithHostStatus.length > 0
+        ) {
+          console.log("Intersection observer triggered load more");
+          loadMore();
+        }
+      },
+      {
+        rootMargin: "200px", // Increased from 100px to 200px to be less aggressive
+        threshold: 0.1, // Only trigger when 10% visible
+      }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, loadMore, roomsWithHostStatus]);
+
+  // Filter rooms based on search and filters
+  useEffect(() => {
+    // This effect is now redundant as filteredRooms is derived from SWR
+  }, [filteredRooms, searchTerm, selectedCategories, selectedAccess]);
 
   // Add Supabase realtime subscription for trading_rooms updates
   useEffect(() => {
@@ -253,7 +362,9 @@ export function TradingRoomsList() {
         (payload) => {
           // If a room is closed (room_status changed to 'ended'), refetch the list
           if (payload.new?.room_status === "ended") {
-            fetchRooms();
+            queryClient.invalidateQueries({
+              queryKey: ["trading-rooms"],
+            });
           }
         }
       )
@@ -264,7 +375,7 @@ export function TradingRoomsList() {
         supabase.removeChannel(supabaseChannelRef.current);
       }
     };
-  }, [pagination.pageIndex, pagination.pageSize]);
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -275,253 +386,29 @@ export function TradingRoomsList() {
 
   // Update isHosted for rooms when currentUserId or rooms change
   useEffect(() => {
-    if (!currentUserId || !rooms) return;
-    setRooms((prevRooms) =>
-      prevRooms
-        ? prevRooms.map((room) => ({
-            ...room,
-            isHosted: room.creator.id === currentUserId,
-          }))
-        : prevRooms
-    );
-  }, [currentUserId]);
-
-  const columns = useMemo<ColumnDef<TradingRoom>[]>(
-    () => [
-      {
-        header: t("room"),
-        accessorKey: "name",
-        cell: ({ row }) => {
-          const room = row.original;
-          return (
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{room.name}</span>
-                {currentUserId && room.creator.id === currentUserId && (
-                  <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-0">
-                    <Crown className="h-3 w-3 mr-1" />
-                    {t("host")}
-                  </Badge>
-                )}
-              </div>
-              <span className="text-xs text-muted-foreground">
-                {room.symbol}
-              </span>
-            </div>
-          );
-        },
-        size: 260,
-        filterFn: multiColumnFilterFn,
-        enableHiding: false,
-      },
-      {
-        header: t("creator"),
-        accessorKey: "creator",
-        cell: ({ row }) => {
-          const creator = row.original.creator;
-          return (
-            <div className="flex items-center gap-2.5">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={creator.avatar} alt={creator.name} />
-                <AvatarFallback className="bg-muted text-muted-foreground">
-                  {creator.name.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-sm">{creator.name}</span>
-            </div>
-          );
-        },
-        size: 180,
-        headerProps: { className: "text-left" },
-        cellProps: { className: "text-left" },
-      },
-      {
-        header: t("pnlPercentage"),
-        accessorKey: "pnlPercentage",
-        cell: ({ row }) => {
-          const pnl = row.original.pnlPercentage;
-          return (
-            <span
-              className={cn(
-                "font-medium",
-                pnl == null
-                  ? "text-muted-foreground"
-                  : pnl > 0
-                  ? "text-green-500"
-                  : pnl < 0
-                  ? "text-red-500"
-                  : "text-muted-foreground"
-              )}
-            >
-              {pnl == null ? "-" : `${pnl > 0 ? "+" : ""}${pnl.toFixed(2)}%`}
-            </span>
-          );
-        },
-        size: 90,
-      },
-      {
-        header: t("participants"),
-        accessorKey: "participants",
-        cell: ({ row }) => {
-          const room = row.original;
-          return (
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5">
-                <UsersIcon className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{room.participants}</span>
-              </div>
-            </div>
-          );
-        },
-        size: 120,
-      },
-      {
-        header: t("type"),
-        accessorKey: "category",
-        cell: ({ row }) => {
-          const category = row.getValue("category") as string;
-          return (
-            <Badge
-              variant="outline"
-              className={cn(
-                "font-normal",
-                category === "voice"
-                  ? "border-blue-200 dark:border-blue-800"
-                  : "border-emerald-200 dark:border-emerald-800"
-              )}
-            >
-              {category === "voice" ? (
-                <MicIcon className="h-3 w-3 mr-1 text-blue-500" />
-              ) : (
-                <MessageSquareIcon className="h-3 w-3 mr-1 text-emerald-500" />
-              )}
-              {category === "voice" ? t("voice") : t("chat")}
-            </Badge>
-          );
-        },
-        size: 100,
-        filterFn: categoryFilterFn,
-      },
-      {
-        header: t("access"),
-        accessorKey: "isPublic",
-        cell: ({ row }) => {
-          const isPublic = row.getValue("isPublic") as boolean;
-          return (
-            <Badge
-              variant="outline"
-              className={cn(
-                "font-normal",
-                isPublic
-                  ? "border-slate-200 dark:border-slate-700"
-                  : "border-slate-300 dark:border-slate-600"
-              )}
-            >
-              {isPublic ? (
-                <GlobeIcon className="h-3 w-3 mr-1 text-slate-500" />
-              ) : (
-                <LockIcon className="h-3 w-3 mr-1 text-slate-500" />
-              )}
-              {isPublic ? t("public") : t("private")}
-            </Badge>
-          );
-        },
-        size: 100,
-        filterFn: accessFilterFn,
-      },
-      {
-        header: t("created"),
-        accessorKey: "createdAt",
-        cell: ({ row }) => <CreatedAtCell value={row.original.createdAt} />,
-        size: 140,
-        enableSorting: true,
-        sortingFn: (rowA, rowB) => {
-          return (
-            rowA.original.createdAtTimestamp - rowB.original.createdAtTimestamp
-          );
-        },
-      },
-      {
-        id: "actions",
-        header: () => <span className="sr-only">Actions</span>,
-        cell: ({ row }) => (
-          <div className="flex justify-end pr-4">
-            <Button
-              size="sm"
-              className="px-4 h-9 font-medium cursor-pointer"
-              onClick={() => handleJoinRoom(row.original)}
-            >
-              <DoorOpenIcon />
-              {t("joinRoom")}
-            </Button>
-          </div>
-        ),
-        size: 120,
-        enableHiding: false,
-      },
-    ],
-    [currentUserId, t]
-  );
-
-  const table = useReactTable({
-    data: rooms || [],
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    onSortingChange: setSorting,
-    enableSortingRemoval: false,
-    getPaginationRowModel: getPaginationRowModel(),
-    onPaginationChange: setPagination,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
-    getFilteredRowModel: getFilteredRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-    state: {
-      sorting,
-      pagination,
-      columnFilters,
-      columnVisibility,
-    },
-  });
+    // This effect is now redundant as roomsWithHostStatus is derived from SWR
+  }, [currentUserId, filteredRooms]);
 
   const uniqueCategoryValues = useMemo(() => {
-    const categoryColumn = table.getColumn("category");
-    if (!categoryColumn) return [];
-    const values = Array.from(categoryColumn.getFacetedUniqueValues().keys());
-    return values.sort();
-  }, [table.getColumn("category")?.getFacetedUniqueValues()]);
+    if (!filteredRooms) return [];
+    const categories = [...new Set(filteredRooms.map((room) => room.category))];
+    return categories.sort();
+  }, [filteredRooms]);
 
   const categoryCounts = useMemo(() => {
-    const categoryColumn = table.getColumn("category");
-    if (!categoryColumn) return new Map();
-    return categoryColumn.getFacetedUniqueValues();
-  }, [table.getColumn("category")?.getFacetedUniqueValues()]);
-
-  const selectedCategories = useMemo(() => {
-    const filterValue = table
-      .getColumn("category")
-      ?.getFilterValue() as string[];
-    return filterValue ?? [];
-  }, [table.getColumn("category")?.getFilterValue()]);
+    if (!filteredRooms) return new Map();
+    const counts = new Map<string, number>();
+    filteredRooms.forEach((room) => {
+      counts.set(room.category, (counts.get(room.category) || 0) + 1);
+    });
+    return counts;
+  }, [filteredRooms]);
 
   const handleCategoryChange = (checked: boolean, value: string) => {
-    const filterValue = table
-      .getColumn("category")
-      ?.getFilterValue() as string[];
-    const newFilterValue = filterValue ? [...filterValue] : [];
-
-    if (checked) {
-      newFilterValue.push(value);
-    } else {
-      const index = newFilterValue.indexOf(value);
-      if (index > -1) {
-        newFilterValue.splice(index, 1);
-      }
-    }
-
-    table
-      .getColumn("category")
-      ?.setFilterValue(newFilterValue.length ? newFilterValue : undefined);
+    const newSelectedCategories = checked
+      ? [...selectedCategories, value]
+      : selectedCategories.filter((cat) => cat !== value);
+    setSelectedCategories(newSelectedCategories);
   };
 
   const accessOptions = [
@@ -529,50 +416,30 @@ export function TradingRoomsList() {
     { value: "private", label: t("private") },
   ];
 
-  const selectedAccess = useMemo(() => {
-    const filterValue = table
-      .getColumn("isPublic")
-      ?.getFilterValue() as string[];
-    return filterValue ?? [];
-  }, [table.getColumn("isPublic")?.getFilterValue()]);
-
   const handleAccessChange = (checked: boolean, value: string) => {
-    const filterValue = table
-      .getColumn("isPublic")
-      ?.getFilterValue() as string[];
-    const newFilterValue = filterValue ? [...filterValue] : [];
-
-    if (checked) {
-      newFilterValue.push(value);
-    } else {
-      const index = newFilterValue.indexOf(value);
-      if (index > -1) {
-        newFilterValue.splice(index, 1);
-      }
-    }
-
-    table
-      .getColumn("isPublic")
-      ?.setFilterValue(newFilterValue.length ? newFilterValue : undefined);
+    const newSelectedAccess = checked
+      ? [...selectedAccess, value]
+      : selectedAccess.filter((access) => access !== value);
+    setSelectedAccess(newSelectedAccess);
   };
 
-  const handleJoinRoom = (room: TradingRoom) => {
-    if (!currentUserId) {
-      toast.warning(t("pleaseLoginToJoin"));
-      return;
-    }
-    if (room.isPublic || room.isHosted) {
-      window.open(`/room/${room.id}`, "_blank");
-    } else {
-      setPasswordDialog({
-        open: true,
-        roomId: room.id,
-        roomName: room.name,
-        password: "",
-        loading: false,
-      });
-    }
-  };
+  // const handleJoinRoom = (room: TradingRoom) => {
+  //   if (!currentUserId) {
+  //     toast.warning(t("pleaseLoginToJoin"));
+  //     return;
+  //   }
+  //   if (room.isPublic || room.isHosted) {
+  //     window.open(`/room/${room.id}`, "_blank");
+  //   } else {
+  //     setPasswordDialog({
+  //       open: true,
+  //       roomId: room.id,
+  //       roomName: room.name,
+  //       password: "",
+  //       loading: false,
+  //     });
+  //   }
+  // };
 
   const handlePasswordSubmit = async () => {
     if (!passwordDialog.roomId) return;
@@ -695,404 +562,417 @@ export function TradingRoomsList() {
           </div>
         </DialogContent>
       </Dialog>
-      <div className="space-y-4">
-        {/* Filters and controls (always visible) */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-            <div className="relative flex-1 w-full sm:w-auto">
-              <Input
-                id={`${id}-input`}
-                ref={inputRef}
-                className={cn(
-                  "peer w-full sm:w-[300px] ps-9",
-                  Boolean(table.getColumn("name")?.getFilterValue()) && "pe-9"
-                )}
-                value={
-                  (table.getColumn("name")?.getFilterValue() ?? "") as string
-                }
-                onChange={(e) =>
-                  table.getColumn("name")?.setFilterValue(e.target.value)
-                }
-                placeholder={t("filterPlaceholder")}
-                type="text"
-                aria-label={t("filterPlaceholder")}
-              />
-              <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
-                <ListFilterIcon size={16} aria-hidden="true" />
-              </div>
-              {Boolean(table.getColumn("name")?.getFilterValue()) && (
-                <button
-                  className="text-muted-foreground/80 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 absolute inset-y-0 end-0 flex h-full w-9 items-center justify-center rounded-e-md transition-[color,box-shadow] outline-none focus:z-10 focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
-                  aria-label={t("clearFilter")}
-                  onClick={() => {
-                    table.getColumn("name")?.setFilterValue("");
-                    if (inputRef.current) {
-                      inputRef.current.focus();
-                    }
-                  }}
-                >
-                  <CircleXIcon size={16} aria-hidden="true" />
-                </button>
-              )}
-            </div>
 
-            {/* Filter by type */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full sm:w-36 cursor-pointer"
-                >
-                  <FilterIcon
-                    className="-ms-1 opacity-60"
-                    size={16}
-                    aria-hidden="true"
-                  />
-                  {t("type")}
-                  {selectedCategories.length > 0 && (
-                    <span className="bg-background text-muted-foreground/70 -me-1 inline-flex h-5 max-h-full items-center rounded border px-1 font-[inherit] text-[0.625rem] font-medium">
-                      {selectedCategories.length}
-                    </span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto min-w-36 p-3" align="start">
-                <div className="space-y-3">
-                  <div className="text-muted-foreground text-xs font-medium">
-                    {t("filters")}
-                  </div>
-                  <div className="space-y-3">
-                    {uniqueCategoryValues.map((value, i) => (
-                      <div key={value} className="flex items-center gap-2">
-                        <Checkbox
-                          id={`${id}-category-${i}`}
-                          checked={selectedCategories.includes(value)}
-                          onCheckedChange={(checked: boolean) =>
-                            handleCategoryChange(checked, value)
-                          }
-                        />
-                        <Label
-                          htmlFor={`${id}-category-${i}`}
-                          className="flex grow justify-between gap-2 font-normal"
-                        >
-                          {value === "voice" ? t("voice") : t("chat")}{" "}
-                          <span className="text-muted-foreground ms-2 text-xs">
-                            {categoryCounts.get(value)}
-                          </span>
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            {/* Filter by access */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full sm:w-36 cursor-pointer"
-                >
-                  <FilterIcon
-                    className="-ms-1 opacity-60"
-                    size={16}
-                    aria-hidden="true"
-                  />
-                  {t("access")}
-                  {selectedAccess.length > 0 && (
-                    <span className="bg-background text-muted-foreground/70 -me-1 inline-flex h-5 max-h-full items-center rounded border px-1 font-[inherit] text-[0.625rem] font-medium">
-                      {selectedAccess.length}
-                    </span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto min-w-36 p-3" align="start">
-                <div className="space-y-3">
-                  <div className="text-muted-foreground text-xs font-medium">
-                    {t("filters")}
-                  </div>
-                  <div className="space-y-3">
-                    {accessOptions.map((option, i) => (
-                      <div
-                        key={option.value}
-                        className="flex items-center gap-2"
-                      >
-                        <Checkbox
-                          id={`${id}-access-${i}`}
-                          checked={selectedAccess.includes(option.value)}
-                          onCheckedChange={(checked: boolean) =>
-                            handleAccessChange(checked, option.value)
-                          }
-                        />
-                        <Label
-                          htmlFor={`${id}-access-${i}`}
-                          className="flex grow justify-between gap-2 font-normal"
-                        >
-                          {option.label}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            {/* Toggle columns visibility */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full sm:w-32 cursor-pointer"
-                >
-                  <Columns3Icon
-                    className="-ms-1 opacity-60"
-                    size={16}
-                    aria-hidden="true"
-                  />
-                  {t("view")}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{t("toggleColumns")}</DropdownMenuLabel>
-                {table
-                  .getAllColumns()
-                  .filter((column) => column.getCanHide())
-                  .map((column) => {
-                    return (
-                      <DropdownMenuCheckboxItem
-                        key={column.id}
-                        className="capitalize"
-                        checked={column.getIsVisible()}
-                        onCheckedChange={(value) =>
-                          column.toggleVisibility(!!value)
-                        }
-                        onSelect={(event) => event.preventDefault()}
-                      >
-                        {column.id}
-                      </DropdownMenuCheckboxItem>
-                    );
-                  })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          <div className="flex items-center gap-3 w-full sm:w-auto mt-3 sm:mt-0">
-            <CreateRoom />
-          </div>
+      {/* Header with search and filters */}
+      <div className="flex items-center justify-between gap-4">
+        {/* Search Input */}
+        <div className="relative w-[400px]">
+          <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            ref={inputRef}
+            className="pl-10 pr-10 h-10"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search rooms, symbols, or creators..."
+          />
+          {searchTerm && (
+            <button
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              onClick={() => setSearchTerm("")}
+            >
+              <CircleXIcon className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
-        {/* Table with always-visible headers, skeleton only for rows */}
-        <div className="bg-background overflow-x-auto rounded-md border">
-          <Table className="table-fixed min-w-[800px]">
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className="hover:bg-transparent">
-                  {headerGroup.headers.map((header) => (
-                    <TableHead
-                      key={header.id}
-                      style={{ width: `${header.getSize()}px` }}
-                      className="h-11 pl-5"
+        {/* Filter Buttons */}
+        <div className="flex items-center gap-3">
+          {/* Type Filter */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="h-10">
+                <FilterIcon className="h-4 w-4 mr-2" />
+                Type
+                {selectedCategories.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {selectedCategories.length}
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-4" align="end">
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm">Room Type</h4>
+                {uniqueCategoryValues.map((value, i) => (
+                  <div key={value} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`${id}-category-${i}`}
+                      checked={selectedCategories.includes(value)}
+                      onCheckedChange={(checked: boolean) =>
+                        handleCategoryChange(checked, value)
+                      }
+                    />
+                    <Label
+                      htmlFor={`${id}-category-${i}`}
+                      className="flex-1 text-sm cursor-pointer"
                     >
-                      {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                      {value === "voice" ? "Voice" : "Chat"}
+                    </Label>
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                      {categoryCounts.get(value)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* Access Filter */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="h-10">
+                <FilterIcon className="h-4 w-4 mr-2" />
+                Access
+                {selectedAccess.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {selectedAccess.length}
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-4" align="end">
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm">Room Access</h4>
+                {accessOptions.map((option, i) => (
+                  <div
+                    key={option.value}
+                    className="flex items-center space-x-2"
+                  >
+                    <Checkbox
+                      id={`${id}-access-${i}`}
+                      checked={selectedAccess.includes(option.value)}
+                      onCheckedChange={(checked: boolean) =>
+                        handleAccessChange(checked, option.value)
+                      }
+                    />
+                    <Label
+                      htmlFor={`${id}-access-${i}`}
+                      className="flex-1 text-sm cursor-pointer"
+                    >
+                      {option.label}
+                    </Label>
+                    {option.value === "public" ? (
+                      <GlobeIcon className="h-3 w-3 text-blue-500" />
+                    ) : (
+                      <LockIcon className="h-3 w-3 text-orange-500" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* Clear Filters */}
+          {(selectedCategories.length > 0 ||
+            selectedAccess.length > 0 ||
+            searchTerm) && (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setSearchTerm("");
+                setSelectedCategories([]);
+                setSelectedAccess([]);
+              }}
+              className="h-10 px-4 text-muted-foreground hover:text-foreground"
+            >
+              Clear
+            </Button>
+          )}
+
+          {/* Create Room Button */}
+          <CreateRoom />
+        </div>
+      </div>
+
+      {/* Grid of room cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {isLoading ? (
+          // Loading skeletons that match the card design
+          Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={i}
+              className="group relative bg-background rounded-lg overflow-hidden border border-border"
+            >
+              {/* Thumbnail Container Skeleton */}
+              <div className="relative aspect-video rounded-t-lg overflow-hidden bg-muted">
+                <div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-muted/30 animate-pulse" />
+              </div>
+
+              {/* Content Area Skeleton */}
+              <div className="relative p-4 border border-border border-t-0 bg-gradient-to-br from-card/80 via-card/60 to-card/40 backdrop-blur-sm rounded-b-lg overflow-hidden">
+                {/* Top section with avatar and title */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    {/* Avatar skeleton */}
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-muted/30 to-muted/10 rounded-full blur-sm" />
+                      <Skeleton className="h-10 w-10 rounded-full relative z-10" />
+                    </div>
+
+                    <div className="min-w-0">
+                      {/* Title skeleton */}
+                      <Skeleton className="h-5 w-32 mb-2" />
+                      {/* Host name skeleton */}
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                  </div>
+
+                  {/* Status badge skeleton */}
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-muted/20 to-muted/10 rounded-full blur-sm" />
+                    <Skeleton className="h-6 w-16 rounded-full relative z-10" />
+                  </div>
+                </div>
+
+                {/* Bottom section with stats and indicators */}
+                <div className="space-y-3">
+                  {/* Time and PNL skeleton */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-3 w-3 rounded-full" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-3 w-3 rounded-full" />
+                      <Skeleton className="h-3 w-16" />
+                    </div>
+                  </div>
+
+                  {/* Access and Host badges skeleton */}
+                  <div className="flex items-center justify-between pt-2">
+                    <Skeleton className="h-6 w-16 rounded-md" />
+                    <Skeleton className="h-6 w-12 rounded-md" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : roomsWithHostStatus && roomsWithHostStatus.length > 0 ? (
+          <>
+            {roomsWithHostStatus.map((room: TradingRoom) => (
+              <div
+                key={room.id}
+                className="group relative bg-background rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/10"
+                onClick={() => window.open(`/room/${room.id}`, "_blank")}
+              >
+                {/* Thumbnail Container */}
+                <div className="relative aspect-video rounded-t-lg overflow-hidden bg-muted group-hover:bg-muted/80 transition-colors duration-300">
+                  {room.thumbnail_url && !imageErrors.has(room.id) ? (
+                    <Image
+                      src={room.thumbnail_url}
+                      alt={room.name}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      onError={() =>
+                        setImageErrors((prev) => new Set(prev).add(room.id))
+                      }
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
+                      <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
+                    </div>
+                  )}
+
+                  {/* Live indicator */}
+                  {room.participants > 0 && (
+                    <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+                      LIVE
+                    </div>
+                  )}
+
+                  {/* Participants count */}
+                  {room.participants > 0 && (
+                    <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
+                      {room.participants}{" "}
+                      {room.participants === 1 ? "participant" : "participants"}
+                    </div>
+                  )}
+
+                  {/* Subtle hover overlay */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300" />
+                </div>
+
+                {/* Video Info */}
+                <div className="relative p-4 border border-border border-t-0 bg-gradient-to-br from-card/80 via-card/60 to-card/40 backdrop-blur-sm rounded-b-lg overflow-hidden group">
+                  {/* Animated background gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                  {/* Glow effect on hover */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-primary/20 opacity-0 group-hover:opacity-100 transition-all duration-300 blur-xl" />
+
+                  {/* Main content */}
+                  <div className="relative z-10">
+                    {/* Top section with avatar and title */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        {/* Glowing avatar */}
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-primary/30 to-primary/10 rounded-full blur-sm group-hover:blur-md transition-all duration-300" />
+                          <Avatar className="h-10 w-10 flex-shrink-0 relative z-10 ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all duration-300">
+                            <AvatarImage
+                              src={room.creator.avatar}
+                              alt={room.creator.name}
+                            />
+                            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary-foreground text-sm font-bold">
+                              {room.creator.name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                        </div>
+
+                        <div className="min-w-0">
+                          <h3 className="font-bold text-base leading-tight line-clamp-1 group-hover:text-primary transition-all duration-300 group-hover:scale-105 transform">
+                            {room.name}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mt-1 font-medium">
+                            {room.creator.name}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Floating status badge */}
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 rounded-full blur-sm group-hover:blur-md transition-all duration-300" />
                         <div
                           className={cn(
-                            header.column.getCanSort() &&
-                              "flex h-full cursor-pointer items-center justify-start gap-2 select-none"
+                            "relative z-10 px-3 py-1 rounded-full text-xs font-bold text-white backdrop-blur-sm border border-white/20",
+                            room.category === "voice"
+                              ? "bg-gradient-to-r from-blue-500 to-blue-600"
+                              : "bg-gradient-to-r from-emerald-500 to-emerald-600"
                           )}
-                          onClick={header.column.getToggleSortingHandler()}
-                          onKeyDown={(e) => {
-                            if (
-                              header.column.getCanSort() &&
-                              (e.key === "Enter" || e.key === " ")
-                            ) {
-                              e.preventDefault();
-                              header.column.getToggleSortingHandler()?.(e);
-                            }
-                          }}
-                          tabIndex={header.column.getCanSort() ? 0 : undefined}
                         >
-                          {flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                          {header.column.getIsSorted() === "asc" ? (
-                            <ChevronUpIcon
-                              className="shrink-0 opacity-80 text-primary"
-                              size={16}
-                              aria-hidden="true"
-                            />
-                          ) : header.column.getIsSorted() === "desc" ? (
-                            <ChevronDownIcon
-                              className="shrink-0 opacity-80 text-primary"
-                              size={16}
-                              aria-hidden="true"
-                            />
-                          ) : (
-                            <span className="flex flex-col items-center opacity-40">
-                              <ChevronUpIcon size={12} />
-                              <ChevronDownIcon
-                                size={12}
-                                style={{ marginTop: -4 }}
-                              />
-                            </span>
-                          )}
+                          {room.category === "voice" ? t("voice") : t("chat")}
                         </div>
-                      ) : (
-                        flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )
-                      )}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {loading || !rooms ? (
-                [...Array(8)].map((_, i) => (
-                  <TableRow key={i} className="h-16">
-                    {columns.map((col, j) => (
-                      <TableCell key={j} className="pl-5 py-5">
-                        <Skeleton className="h-6 w-full" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : table.getRowModel().rows.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} className="h-16">
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="pl-5 py-5">
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
+                      </div>
+                    </div>
+
+                    {/* Bottom section with stats and indicators */}
+                    <div className="space-y-3">
+                      {/* Time and PNL - Clean horizontal layout */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {/* Time with clock icon */}
+                          <Clock className="h-3 w-3 text-blue-400" />
+                          <span className="text-xs text-muted-foreground">
+                            <CreatedAtCell value={room.createdAt} />
+                          </span>
+                        </div>
+
+                        {/* PNL with trending icon - moved to right */}
+                        {room.pnlPercentage !== null && (
+                          <div className="flex items-center gap-2">
+                            {room.pnlPercentage > 0 ? (
+                              <TrendingUp className="h-3 w-3 text-green-400" />
+                            ) : room.pnlPercentage < 0 ? (
+                              <TrendingDown className="h-3 w-3 text-red-400" />
+                            ) : (
+                              <TrendingUp className="h-3 w-3 text-slate-400" />
+                            )}
+                            <span
+                              className={cn(
+                                "text-xs font-semibold",
+                                room.pnlPercentage > 0
+                                  ? "text-green-400"
+                                  : room.pnlPercentage < 0
+                                  ? "text-red-400"
+                                  : "text-muted-foreground"
+                              )}
+                            >
+                              {room.pnlPercentage > 0 ? "+" : ""}
+                              {room.pnlPercentage.toFixed(2)}% PNL
+                            </span>
+                          </div>
                         )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    {t("noTradingRoomsFound")}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                      </div>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-8">
-          <div className="flex items-center gap-3">
-            <Label htmlFor={id} className="max-sm:sr-only">
-              {t("rowsPerPage")}
-            </Label>
-            <Select
-              value={table.getState().pagination.pageSize.toString()}
-              onValueChange={(value) => {
-                table.setPageSize(Number(value));
-              }}
-            >
-              <SelectTrigger id={id} className="w-fit whitespace-nowrap">
-                <SelectValue placeholder={t("selectNumberOfResults")} />
-              </SelectTrigger>
-              <SelectContent className="[&_*[role=option]]:ps-2 [&_*[role=option]]:pe-8 [&_*[role=option]>span]:start-auto [&_*[role=option]>span]:end-2">
-                {[5, 10, 25, 50].map((pageSize) => (
-                  <SelectItem key={pageSize} value={pageSize.toString()}>
-                    {pageSize}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+                      {/* Access and Host - Clean badges */}
+                      <div className="flex items-center justify-between pt-2">
+                        <div className="flex items-center gap-2">
+                          {/* Symbol badge */}
+                          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-800/50 border border-slate-700/50">
+                            <span className="text-xs text-slate-300 font-medium">
+                              {room.symbol}
+                            </span>
+                          </div>
 
-          <div className="text-muted-foreground flex grow justify-end text-sm whitespace-nowrap">
-            <p
-              className="text-muted-foreground text-sm whitespace-nowrap"
-              aria-live="polite"
-            >
-              <span className="text-foreground">
-                {table.getState().pagination.pageIndex *
-                  table.getState().pagination.pageSize +
-                  1}
-                -
-                {Math.min(
-                  Math.max(
-                    table.getState().pagination.pageIndex *
-                      table.getState().pagination.pageSize +
-                      table.getState().pagination.pageSize,
-                    0
-                  ),
-                  table.getRowCount()
-                )}
-              </span>{" "}
-              of{" "}
-              <span className="text-foreground">
-                {table.getRowCount().toString()}
-              </span>
-            </p>
-          </div>
+                          {/* Access indicator */}
+                          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-800/50 border border-slate-700/50">
+                            {room.isPublic ? (
+                              <GlobeIcon className="h-3 w-3 text-slate-300" />
+                            ) : (
+                              <LockIcon className="h-3 w-3 text-orange-400" />
+                            )}
+                            <span className="text-xs text-slate-300 font-medium">
+                              {room.isPublic ? t("public") : t("private")}
+                            </span>
+                          </div>
+                        </div>
 
-          <div>
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="disabled:pointer-events-none disabled:opacity-50"
-                    onClick={() => table.firstPage()}
-                    disabled={!table.getCanPreviousPage()}
-                    aria-label="Go to first page"
-                  >
-                    <ChevronFirstIcon size={16} aria-hidden="true" />
-                  </Button>
-                </PaginationItem>
-                <PaginationItem>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="disabled:pointer-events-none disabled:opacity-50"
-                    onClick={() => table.previousPage()}
-                    disabled={!table.getCanPreviousPage()}
-                    aria-label="Go to previous page"
-                  >
-                    <ChevronLeftIcon size={16} aria-hidden="true" />
-                  </Button>
-                </PaginationItem>
-                <PaginationItem>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="disabled:pointer-events-none disabled:opacity-50"
-                    onClick={() => table.nextPage()}
-                    disabled={!table.getCanNextPage()}
-                    aria-label="Go to next page"
-                  >
-                    <ChevronRightIcon size={16} aria-hidden="true" />
-                  </Button>
-                </PaginationItem>
-                <PaginationItem>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="disabled:pointer-events-none disabled:opacity-50"
-                    onClick={() => table.lastPage()}
-                    disabled={!table.getCanNextPage()}
-                    aria-label="Go to last page"
-                  >
-                    <ChevronLastIcon size={16} aria-hidden="true" />
-                  </Button>
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+                        {/* Host indicator */}
+                        {currentUserId && room.creator.id === currentUserId && (
+                          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-900/30 border border-amber-700/50">
+                            <Crown className="h-3 w-3 text-amber-300" />
+                            <span className="text-xs text-amber-200 font-semibold">
+                              {t("host")}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Load more indicator */}
+            {isFetchingNextPage && (
+              <div className="col-span-full flex justify-center py-4">
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  <span className="text-sm text-muted-foreground">
+                    Loading more rooms...
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Load more trigger */}
+            {hasNextPage && !isFetchingNextPage && (
+              <div
+                ref={loadMoreRef}
+                className="col-span-full flex justify-center py-4"
+              >
+                <Button
+                  variant="outline"
+                  onClick={loadMore}
+                  className="text-sm"
+                >
+                  Load More Rooms
+                </Button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="col-span-full text-center py-12">
+            <div className="text-muted-foreground">
+              {searchTerm ||
+              selectedCategories.length > 0 ||
+              selectedAccess.length > 0
+                ? t("noTradingRoomsFound")
+                : "No trading rooms available"}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </>
   );
