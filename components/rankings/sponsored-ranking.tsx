@@ -54,7 +54,7 @@ export function SponsoredRanking() {
     useState<TimeFrame>("daily");
   const [users, setUsers] = useState<DummyDonationUser[]>([]);
   const [, setLoading] = useState(true);
-  const [useDummyData, setUseDummyData] = useState(false);
+  const [, setUseDummyData] = useState(false);
 
   const fetchLeaderboard = async () => {
     setLoading(true);
@@ -147,13 +147,13 @@ export function SponsoredRanking() {
       </div>
 
       {/* Demo Notice */}
-      {useDummyData && (
+      {/* {useDummyData && (
         <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
           <p className="text-blue-600 text-sm font-medium">
             📊 Showing demo data - No real donation data found in the database
           </p>
         </div>
-      )}
+      )} */}
 
       {/* Top 3 Cards */}
       <div className="max-w-6xl mx-auto py-20">

@@ -7,7 +7,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { format, formatDistanceToNow } from "date-fns";
 import {
   CircleXIcon,
@@ -122,6 +126,48 @@ export function TradingRoomsList() {
   // React Query client for cache management
   const queryClient = useQueryClient();
 
+  // Password verification mutation
+  const verifyPasswordMutation = useMutation({
+    mutationFn: async ({
+      roomId,
+      password,
+    }: {
+      roomId: string;
+      password: string;
+    }) => {
+      const response = await fetch("/api/verify-room-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomId, password }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Incorrect password");
+      }
+
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      toast.success("Password correct! Joining room...");
+      setPasswordDialog({
+        open: false,
+        roomId: null,
+        roomName: "",
+        password: "",
+      });
+
+      // Small delay to show success message before opening room
+      setTimeout(() => {
+        window.open(`/room/${variables.roomId}`, "_blank");
+      }, 500);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "An error occurred. Please try again.");
+      // Error handling is done in the mutation's onError callback
+    },
+  });
+
   // Optimized React Query fetcher
   const fetchTradingRooms = async ({ pageParam = 1 }) => {
     const response = await fetch(
@@ -138,7 +184,7 @@ export function TradingRoomsList() {
     return response.json();
   };
 
-  // React Query for infinite rooms with aggressive caching
+  // React Query for infinite rooms with more responsive caching
   const {
     data: roomsData,
     // error,
@@ -156,10 +202,11 @@ export function TradingRoomsList() {
       const hasMore = lastPage.data.length === 20;
       return hasMore ? allPages.length + 1 : undefined;
     },
-    staleTime: 1000, // Data is fresh for 1 second
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    staleTime: 500, // Data is fresh for 500ms (more responsive)
+    gcTime: 2 * 60 * 1000, // Keep in cache for 2 minutes (shorter)
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
+    refetchInterval: 10000, // Refetch every 10 seconds as backup
   });
 
   // Flatten all pages into a single array of rooms
@@ -237,8 +284,7 @@ export function TradingRoomsList() {
     roomId: string | null;
     roomName: string;
     password: string;
-    loading: boolean;
-  }>({ open: false, roomId: null, roomName: "", password: "", loading: false });
+  }>({ open: false, roomId: null, roomName: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
@@ -253,20 +299,64 @@ export function TradingRoomsList() {
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT",
           schema: "public",
           table: "trading_room_participants",
         },
         async (payload) => {
-          console.log("Participant change detected:", payload);
-
-          // Invalidate and refetch React Query cache
-          await queryClient.invalidateQueries({
-            queryKey: ["trading-rooms"],
-          });
+          console.log("Participant joined:", payload);
+          await invalidateTradingRoomsCache();
         }
       )
-      .subscribe();
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "trading_room_participants",
+        },
+        async (payload) => {
+          console.log("Participant updated:", payload);
+          await invalidateTradingRoomsCache();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "trading_room_participants",
+        },
+        async (payload) => {
+          console.log("Participant left:", payload);
+          await invalidateTradingRoomsCache();
+        }
+      )
+      .subscribe((status) => {
+        console.log("Trading rooms participants subscription status:", status);
+      });
+
+    const invalidateTradingRoomsCache = async () => {
+      try {
+        // Invalidate all trading rooms queries
+        await queryClient.invalidateQueries({
+          queryKey: ["trading-rooms"],
+          refetchType: "all",
+        });
+
+        // Force refetch active queries
+        await queryClient.refetchQueries({
+          queryKey: ["trading-rooms"],
+          type: "active",
+        });
+
+        console.log(
+          "Successfully invalidated and refetched trading rooms cache"
+        );
+      } catch (error) {
+        console.error("Error invalidating trading rooms cache:", error);
+      }
+    };
 
     return () => {
       supabase.removeChannel(channel);
@@ -423,54 +513,32 @@ export function TradingRoomsList() {
     setSelectedAccess(newSelectedAccess);
   };
 
-  // const handleJoinRoom = (room: TradingRoom) => {
-  //   if (!currentUserId) {
-  //     toast.warning(t("pleaseLoginToJoin"));
-  //     return;
-  //   }
-  //   if (room.isPublic || room.isHosted) {
-  //     window.open(`/room/${room.id}`, "_blank");
-  //   } else {
-  //     setPasswordDialog({
-  //       open: true,
-  //       roomId: room.id,
-  //       roomName: room.name,
-  //       password: "",
-  //       loading: false,
-  //     });
-  //   }
-  // };
-
-  const handlePasswordSubmit = async () => {
-    if (!passwordDialog.roomId) return;
-    setPasswordDialog((d) => ({ ...d, loading: true }));
-
-    // Use API route for password verification
-    const response = await fetch("/api/verify-room-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        roomId: passwordDialog.roomId,
-        password: passwordDialog.password,
-      }),
-    });
-    const result = await response.json();
-
-    if (!response.ok) {
-      toast.error(result.error || t("incorrectPassword"));
-      setPasswordDialog((d) => ({ ...d, loading: false }));
+  const handleJoinRoom = (room: TradingRoom) => {
+    if (!currentUserId) {
+      toast.warning(t("pleaseLoginToJoin"));
       return;
     }
+    if (room.isPublic || room.isHosted) {
+      window.open(`/room/${room.id}`, "_blank");
+    } else {
+      setPasswordDialog({
+        open: true,
+        roomId: room.id,
+        roomName: room.name,
+        password: "",
+      });
+    }
+  };
 
-    toast.success(t("passwordCorrect"));
-    setPasswordDialog({
-      open: false,
-      roomId: null,
-      roomName: "",
-      password: "",
-      loading: false,
+  const handlePasswordSubmit = () => {
+    if (!passwordDialog.roomId || !passwordDialog.password) return;
+
+    // Loading state is handled by React Query mutation
+
+    verifyPasswordMutation.mutate({
+      roomId: passwordDialog.roomId,
+      password: passwordDialog.password,
     });
-    window.open(`/room/${passwordDialog.roomId}`, "_blank");
   };
 
   return (
@@ -480,84 +548,169 @@ export function TradingRoomsList() {
         open={passwordDialog.open}
         onOpenChange={(open) => setPasswordDialog((d) => ({ ...d, open }))}
       >
-        <DialogContent className="max-w-md w-full rounded-2xl shadow-2xl border border-border p-0 overflow-hidden">
-          <div className="flex flex-col items-center justify-center px-8 py-8 gap-4">
-            <div className="w-full text-center">
-              <DialogTitle className="text-2xl font-bold mb-1 tracking-tight">
-                {t("privateRoom")}
+        <DialogContent className="max-w-lg w-full rounded-3xl shadow-2xl border-0 p-0 overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
+          {/* Animated background effects */}
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-red-500/5 to-purple-500/10 animate-pulse" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,165,0,0.1),transparent_50%)] animate-pulse" />
+
+          {/* Floating particles effect */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div
+              className="absolute top-1/4 left-1/4 w-2 h-2 bg-orange-400/30 rounded-full animate-bounce"
+              style={{ animationDelay: "0s" }}
+            />
+            <div
+              className="absolute top-1/3 right-1/3 w-1 h-1 bg-red-400/40 rounded-full animate-bounce"
+              style={{ animationDelay: "0.5s" }}
+            />
+            <div
+              className="absolute bottom-1/3 left-1/3 w-1.5 h-1.5 bg-purple-400/30 rounded-full animate-bounce"
+              style={{ animationDelay: "1s" }}
+            />
+          </div>
+
+          <div className="relative z-10 flex flex-col items-center justify-center px-10 py-12 gap-8">
+            {/* Animated lock icon with glow effects */}
+            <div className="relative">
+              {/* Outer glow rings */}
+              <div className="absolute inset-0 w-24 h-24 bg-gradient-to-r from-orange-500/20 to-red-500/20 rounded-full blur-xl animate-pulse" />
+              <div
+                className="absolute inset-0 w-20 h-20 bg-gradient-to-r from-orange-400/30 to-red-400/30 rounded-full blur-lg animate-pulse"
+                style={{ animationDelay: "0.5s" }}
+              />
+
+              {/* Main lock container */}
+              <div className="relative z-10 w-16 h-16 bg-gradient-to-br from-orange-500 via-red-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-2xl transform hover:scale-110 transition-all duration-300">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-2xl" />
+                <LockIcon className="h-8 w-8 text-white drop-shadow-lg relative z-10" />
+
+                {/* Shimmer effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent rounded-2xl animate-pulse" />
+              </div>
+            </div>
+
+            {/* Title with animated gradient */}
+            <div className="text-center space-y-3">
+              <DialogTitle className="text-3xl font-bold tracking-tight bg-gradient-to-r from-orange-400 via-red-400 to-purple-400 bg-clip-text text-transparent animate-pulse">
+                Private Room Access
               </DialogTitle>
-              <p className="text-muted-foreground text-sm mb-2">
-                {t("enterPasswordToJoin")}{" "}
-                <span className="font-semibold text-primary">
+              <p className="text-slate-300 text-sm leading-relaxed max-w-sm">
+                Enter the secure password to join{" "}
+                <span className="font-semibold text-orange-300 bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text bg-transparent">
                   {passwordDialog.roomName}
                 </span>
               </p>
             </div>
-            <div className="w-full flex flex-col gap-2">
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder={t("roomPassword")}
-                  className="h-10 pr-12 text-base"
-                  value={passwordDialog.password}
-                  onChange={(e) =>
-                    setPasswordDialog((d) => ({
-                      ...d,
-                      password: e.target.value,
-                    }))
-                  }
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handlePasswordSubmit();
-                  }}
-                  disabled={passwordDialog.loading}
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer"
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={
-                    showPassword ? t("hidePassword") : t("showPassword")
-                  }
-                  disabled={passwordDialog.loading}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
+
+            {/* Enhanced password input */}
+            <div className="w-full space-y-6">
+              <div className="relative group">
+                {/* Input background glow */}
+                <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-red-500/20 rounded-xl blur-lg opacity-0 group-focus-within:opacity-100 transition-opacity duration-300" />
+
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your secure password"
+                    className="h-14 pr-14 text-base bg-slate-800/50 border-2 border-slate-700/50 focus:border-orange-500/70 focus:bg-slate-800/70 rounded-xl transition-all duration-300 text-white placeholder:text-slate-400 backdrop-blur-sm"
+                    value={passwordDialog.password}
+                    onChange={(e) =>
+                      setPasswordDialog((d) => ({
+                        ...d,
+                        password: e.target.value,
+                      }))
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handlePasswordSubmit();
+                    }}
+                    disabled={verifyPasswordMutation.isPending}
+                    autoFocus
+                  />
+
+                  {/* Password toggle button */}
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-orange-300 focus:outline-none cursor-pointer transition-all duration-200 hover:scale-110"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                    disabled={verifyPasswordMutation.isPending}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
               </div>
-              <Button
-                onClick={handlePasswordSubmit}
-                disabled={passwordDialog.loading || !passwordDialog.password}
-                className="w-full h-10 mt-2 text-base font-semibold"
-              >
-                {passwordDialog.loading ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                      />
-                    </svg>
-                    {t("joining")}
+
+              {/* Action buttons with enhanced styling */}
+              <div className="flex gap-4">
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    setPasswordDialog((d) => ({ ...d, open: false }))
+                  }
+                  className="flex-1 h-14 text-base font-medium bg-slate-800/50 border-slate-700/50 hover:bg-slate-700/50 hover:border-slate-600/50 text-slate-300 hover:text-white rounded-xl transition-all duration-300 backdrop-blur-sm"
+                  disabled={verifyPasswordMutation.isPending}
+                >
+                  Cancel
+                </Button>
+
+                <Button
+                  onClick={handlePasswordSubmit}
+                  disabled={
+                    verifyPasswordMutation.isPending || !passwordDialog.password
+                  }
+                  className="flex-1 h-14 text-base font-semibold bg-gradient-to-r from-orange-500 via-red-500 to-purple-500 hover:from-orange-600 hover:via-red-600 hover:to-purple-600 text-white border-0 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:transform-none disabled:opacity-50 backdrop-blur-sm relative overflow-hidden group"
+                >
+                  {/* Button background animation */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-orange-400/20 via-red-400/20 to-purple-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    {verifyPasswordMutation.isPending ? (
+                      <>
+                        <svg
+                          className="animate-spin h-5 w-5"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                            fill="none"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                          />
+                        </svg>
+                        <span>Joining...</span>
+                      </>
+                    ) : (
+                      <>
+                        <LockIcon className="h-4 w-4" />
+                        <span>Join Room</span>
+                      </>
+                    )}
                   </span>
-                ) : (
-                  t("joinRoom")
-                )}
-              </Button>
+                </Button>
+              </div>
+            </div>
+
+            {/* Security notice */}
+            <div className="text-center">
+              <p className="text-xs text-slate-400 flex items-center justify-center gap-2">
+                <LockIcon className="h-3 w-3" />
+                Your password is encrypted and secure
+              </p>
             </div>
           </div>
         </DialogContent>
@@ -763,7 +916,7 @@ export function TradingRoomsList() {
               <div
                 key={room.id}
                 className="group relative bg-background rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/10"
-                onClick={() => window.open(`/room/${room.id}`, "_blank")}
+                onClick={() => handleJoinRoom(room)}
               >
                 {/* Thumbnail Container */}
                 <div className="relative aspect-video rounded-t-lg overflow-hidden bg-muted group-hover:bg-muted/80 transition-colors duration-300">
@@ -788,6 +941,14 @@ export function TradingRoomsList() {
                   {room.participants > 0 && (
                     <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
                       LIVE
+                    </div>
+                  )}
+
+                  {/* Private room indicator */}
+                  {!room.isPublic && (
+                    <div className="absolute top-2 right-2 bg-orange-500/90 backdrop-blur-sm text-white text-xs font-bold px-2 py-1 rounded flex items-center gap-1">
+                      <LockIcon className="h-3 w-3" />
+                      PRIVATE
                     </div>
                   )}
 
@@ -906,13 +1067,27 @@ export function TradingRoomsList() {
                           </div>
 
                           {/* Access indicator */}
-                          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-800/50 border border-slate-700/50">
+                          <div
+                            className={cn(
+                              "flex items-center gap-1.5 px-2 py-1 rounded-md border",
+                              room.isPublic
+                                ? "bg-slate-800/50 border-slate-700/50"
+                                : "bg-orange-900/30 border-orange-700/50"
+                            )}
+                          >
                             {room.isPublic ? (
                               <GlobeIcon className="h-3 w-3 text-slate-300" />
                             ) : (
                               <LockIcon className="h-3 w-3 text-orange-400" />
                             )}
-                            <span className="text-xs text-slate-300 font-medium">
+                            <span
+                              className={cn(
+                                "text-xs font-medium",
+                                room.isPublic
+                                  ? "text-slate-300"
+                                  : "text-orange-200"
+                              )}
+                            >
                               {room.isPublic ? t("public") : t("private")}
                             </span>
                           </div>

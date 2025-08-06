@@ -1,178 +1,148 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 interface UseAutoThumbnailProps {
   roomId: string;
-  isActive: boolean;
   intervalMs?: number;
 }
 
 export function useAutoThumbnail({
   roomId,
-  isActive,
-  intervalMs = 120000, // 2 minutes (much better than 30 seconds)
+  intervalMs = 600000, // 10 minutes
 }: UseAutoThumbnailProps) {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const lastUpdateRef = useRef<number>(0);
-  const [hasCustomThumbnail, setHasCustomThumbnail] = useState(false);
+  const hasCustomThumbnail = useRef(false);
 
-  // Check for custom thumbnail
   useEffect(() => {
+    // Check for custom thumbnail on mount and when roomId changes
     const checkCustomThumbnail = async () => {
       try {
+        console.log(`Checking for custom thumbnail for room: ${roomId}`);
         const response = await fetch(`/api/room-thumbnail?roomId=${roomId}`);
-        if (response.ok) {
-          const data = await response.json();
-          const hasCustom = !!data.thumbnailUrl;
-          console.log("Custom thumbnail check:", {
-            roomId,
-            hasCustom,
-            thumbnailUrl: data.thumbnailUrl,
-          });
-          setHasCustomThumbnail(hasCustom);
+        const data = await response.json();
+
+        console.log(`Thumbnail API response for room ${roomId}:`, data);
+
+        if (data.has_custom_thumbnail) {
+          console.log(
+            `Custom thumbnail detected for room ${roomId}, stopping auto-screenshots`
+          );
+          hasCustomThumbnail.current = true;
+          return;
+        } else {
+          console.log(
+            `No custom thumbnail for room ${roomId}, auto-screenshots will continue`
+          );
         }
       } catch (error) {
-        console.error("Error checking custom thumbnail:", error);
+        console.error(`Error checking thumbnail for room ${roomId}:`, error);
+        // Silent error handling
       }
+
+      hasCustomThumbnail.current = false;
     };
 
-    if (roomId) {
-      checkCustomThumbnail();
-    }
-  }, [roomId]);
+    // Initial check
+    checkCustomThumbnail();
 
-  // Re-check for custom thumbnail when room becomes active
-  useEffect(() => {
-    if (isActive && roomId) {
-      const checkCustomThumbnail = async () => {
-        try {
-          const response = await fetch(`/api/room-thumbnail?roomId=${roomId}`);
-          if (response.ok) {
-            const data = await response.json();
-            const hasCustom = !!data.thumbnailUrl;
-            console.log("Re-checking custom thumbnail:", {
-              roomId,
-              hasCustom,
-              thumbnailUrl: data.thumbnailUrl,
-            });
-            setHasCustomThumbnail(hasCustom);
-          }
-        } catch (error) {
-          console.error("Error re-checking custom thumbnail:", error);
-        }
-      };
+    // Periodic check for custom thumbnail (every 30 seconds)
+    const customThumbnailInterval = setInterval(checkCustomThumbnail, 30000);
 
-      checkCustomThumbnail();
-    }
-  }, [roomId, isActive]);
-
-  // Periodic check for custom thumbnails (every 30 seconds)
-  useEffect(() => {
-    if (!isActive || !roomId) return;
-
-    const checkInterval = setInterval(async () => {
-      try {
-        const response = await fetch(`/api/room-thumbnail?roomId=${roomId}`);
-        if (response.ok) {
-          const data = await response.json();
-          const hasCustom = !!data.thumbnailUrl;
-          if (hasCustom !== hasCustomThumbnail) {
-            console.log("Custom thumbnail status changed:", {
-              roomId,
-              hasCustom,
-              wasHasCustom: hasCustomThumbnail,
-            });
-            setHasCustomThumbnail(hasCustom);
-          }
-        }
-      } catch (error) {
-        console.error("Error in periodic custom thumbnail check:", error);
-      }
-    }, 30000); // Check every 30 seconds
-
-    return () => clearInterval(checkInterval);
-  }, [roomId, isActive, hasCustomThumbnail]);
-
-  useEffect(() => {
-    console.log("Auto thumbnail effect:", {
-      roomId,
-      isActive,
-      hasCustomThumbnail,
-    });
-
-    // Always clear interval first
+    // Clear existing intervals
     if (intervalRef.current) {
-      console.log("Clearing existing interval");
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
 
-    // Don't start auto screenshots if custom thumbnail exists
-    if (!isActive || !roomId || hasCustomThumbnail) {
-      console.log("Not starting auto screenshots:", {
-        isActive,
-        hasRoomId: !!roomId,
-        hasCustomThumbnail,
-      });
-      return;
+    // Don't start auto-screenshots if we have a custom thumbnail
+    if (hasCustomThumbnail.current) {
+      return () => {
+        clearInterval(customThumbnailInterval);
+      };
     }
 
-    // Take initial screenshot when room becomes active
+    // Start auto-screenshots
     const takeScreenshot = async () => {
+      console.log(`takeScreenshot function called for room: ${roomId}`);
+
       try {
         // Check for custom thumbnail before taking screenshot
-        const checkResponse = await fetch(
-          `/api/room-thumbnail?roomId=${roomId}`
+        console.log(`Checking for custom thumbnail for room: ${roomId}`);
+        await checkCustomThumbnail();
+
+        if (hasCustomThumbnail.current) {
+          console.log(
+            `Custom thumbnail detected for room: ${roomId}, stopping auto-screenshots`
+          );
+          // Stop auto-screenshots if custom thumbnail is detected
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+          return;
+        }
+
+        // Test: Add a simple log to verify the function is being called
+        console.log(
+          `Taking screenshot for room: ${roomId} at ${new Date().toISOString()}`
         );
-        if (checkResponse.ok) {
-          const checkData = await checkResponse.json();
-          if (checkData.thumbnailUrl) {
-            console.log(
-              "Custom thumbnail detected during screenshot, stopping auto screenshots"
-            );
-            setHasCustomThumbnail(true);
+
+        console.log(
+          `Making API call to /api/room-thumbnail for room: ${roomId}`
+        );
+        const response = await fetch("/api/room-thumbnail", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ roomId }),
+        });
+
+        console.log(
+          `API response status: ${response.status} for room: ${roomId}`
+        );
+
+        if (response.ok) {
+          console.log(`Screenshot completed for room: ${roomId}`);
+        } else {
+          const errorData = await response.json();
+          console.error(`Screenshot failed for room: ${roomId}`, errorData);
+          if (errorData.message?.includes("not available")) {
+            // Stop auto-screenshots if not available
             if (intervalRef.current) {
               clearInterval(intervalRef.current);
               intervalRef.current = null;
             }
-            return;
-          }
-        }
-
-        const now = Date.now();
-        // Only take screenshot if enough time has passed since last update
-        if (now - lastUpdateRef.current >= intervalMs) {
-          console.log("Taking auto screenshot for room:", roomId);
-          const response = await fetch("/api/room-thumbnail", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ roomId }),
-          });
-
-          if (response.ok) {
-            lastUpdateRef.current = now;
-            console.log("Auto screenshot completed for room:", roomId);
           }
         }
       } catch (error) {
-        console.error("Error updating thumbnail:", error);
+        console.error(`Error taking screenshot for room: ${roomId}`, error);
       }
     };
 
     // Take initial screenshot
+    console.log(`Starting auto-screenshots for room: ${roomId}`);
     takeScreenshot();
 
-    // Set up interval for periodic updates
-    intervalRef.current = setInterval(takeScreenshot, intervalMs);
+    // Set up interval for periodic screenshots (every 10 minutes)
+    intervalRef.current = setInterval(() => {
+      console.log(
+        `Interval fired for room: ${roomId} at ${new Date().toISOString()}`
+      );
+      takeScreenshot();
+    }, intervalMs);
+
+    console.log(
+      `Auto-screenshot interval set for room: ${roomId} every ${intervalMs}ms (${
+        intervalMs / 60000
+      } minutes)`
+    );
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+      clearInterval(customThumbnailInterval);
     };
-  }, [roomId, isActive, intervalMs, hasCustomThumbnail]);
-
-  return null;
+  }, [roomId, intervalMs]);
 }
