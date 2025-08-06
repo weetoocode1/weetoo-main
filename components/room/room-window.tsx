@@ -43,8 +43,7 @@ export function TradingRoomWindow({
   // Auto-update thumbnails when room is active
   useAutoThumbnail({
     roomId,
-    isActive: true, // Always active when user is in the room
-    intervalMs: 30000, // 30 seconds
+    intervalMs: 600000, // 10 minutes
   });
 
   return (

@@ -12,6 +12,8 @@ interface ScreenshotOptions {
 export class ScreenshotService {
   private static instance: ScreenshotService;
   private browser: Browser | null = null;
+  private lastScreenshotTimes: Map<string, number> = new Map();
+  private isProcessing: Set<string> = new Set();
 
   private constructor() {}
 
@@ -24,41 +26,59 @@ export class ScreenshotService {
 
   private async getBrowser(): Promise<Browser> {
     if (!this.browser) {
-      // Try to find Chrome in common locations
-      const chromePaths = [
-        "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-        "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-        process.env.CHROME_PATH,
-      ].filter(Boolean);
+      // Check if we're in a Vercel environment
+      const isVercel = process.env.VERCEL === "1";
 
-      let executablePath: string | undefined;
+      if (isVercel) {
+        // Use @sparticuz/chromium for Vercel compatibility
+        const chromium = await import("@sparticuz/chromium");
 
-      for (const path of chromePaths) {
-        if (path && existsSync(path)) {
-          executablePath = path;
-          break;
+        this.browser = await puppeteer.launch({
+          args: chromium.default.args,
+          defaultViewport: { width: 1920, height: 1080 },
+          executablePath: await chromium.default.executablePath(),
+          headless: true,
+        });
+      } else {
+        // Local development - try to find Chrome
+        const chromePaths = [
+          "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+          "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+          "/usr/bin/google-chrome",
+          "/usr/bin/chromium-browser",
+          "/usr/bin/chromium",
+          process.env.CHROME_PATH,
+        ].filter(Boolean);
+
+        let executablePath: string | undefined;
+
+        for (const path of chromePaths) {
+          if (path && existsSync(path)) {
+            executablePath = path;
+            break;
+          }
         }
-      }
 
-      if (!executablePath) {
-        throw new Error(
-          "Chrome not found. Please install Chrome or set CHROME_PATH environment variable."
-        );
-      }
+        if (!executablePath) {
+          throw new Error(
+            "Chrome not found. Please install Chrome or set CHROME_PATH environment variable."
+          );
+        }
 
-      this.browser = await puppeteer.launch({
-        headless: true,
-        executablePath,
-        args: [
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage",
-          "--disable-accelerated-2d-canvas",
-          "--no-first-run",
-          "--no-zygote",
-          "--disable-gpu",
-        ],
-      });
+        this.browser = await puppeteer.launch({
+          headless: true,
+          executablePath,
+          args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-accelerated-2d-canvas",
+            "--no-first-run",
+            "--no-zygote",
+            "--disable-gpu",
+          ],
+        });
+      }
     }
     return this.browser;
   }
@@ -69,6 +89,26 @@ export class ScreenshotService {
     width = 1920,
     height = 1080,
   }: ScreenshotOptions): Promise<string | null> {
+    try {
+      console.log(`Starting takeRoomScreenshot for room: ${roomId}`);
+      return await this.takeScreenshotWithPuppeteer(
+        roomId,
+        baseUrl,
+        width,
+        height
+      );
+    } catch (error) {
+      console.error(`Error in takeRoomScreenshot for room: ${roomId}`, error);
+      return null;
+    }
+  }
+
+  private async takeScreenshotWithPuppeteer(
+    roomId: string,
+    baseUrl: string,
+    width: number,
+    height: number
+  ): Promise<string | null> {
     const browser = await this.getBrowser();
     const page = await browser.newPage();
 
@@ -132,6 +172,7 @@ export class ScreenshotService {
             return (
               priceElement &&
               priceElement.textContent &&
+              priceElement.textContent !== "-" &&
               priceElement.textContent !== "0.00"
             );
           },
@@ -192,6 +233,9 @@ export class ScreenshotService {
       const supabase = await createServiceClient();
       const fileName = `room-${roomId}-${Date.now()}.png`;
 
+      console.log(
+        `Uploading screenshot to Supabase for room: ${roomId}, fileName: ${fileName}`
+      );
       const { error: uploadError } = await supabase.storage
         .from("room-thumbnails")
         .upload(fileName, screenshot, {
@@ -200,25 +244,20 @@ export class ScreenshotService {
         });
 
       if (uploadError) {
-        console.error("Error uploading screenshot:", uploadError);
+        console.error(`Upload error for room: ${roomId}`, uploadError);
         return null;
       }
+
+      console.log(`Screenshot uploaded successfully for room: ${roomId}`);
 
       // Get the public URL
       const {
         data: { publicUrl },
       } = supabase.storage.from("room-thumbnails").getPublicUrl(fileName);
 
+      console.log(`Public URL generated for room: ${roomId}: ${publicUrl}`);
       return publicUrl;
-    } catch (error) {
-      console.error("Error taking screenshot:", error);
-      console.error("Error details:", {
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-        roomId,
-        baseUrl,
-        roomUrl: `${baseUrl}/room/${roomId}`,
-      });
+    } catch (_error) {
       return null;
     } finally {
       await page.close();
@@ -226,62 +265,125 @@ export class ScreenshotService {
   }
 
   async updateRoomThumbnail(roomId: string, baseUrl: string): Promise<boolean> {
-    try {
-      // Get the old thumbnail URL first
-      const supabase = await createServiceClient();
-      const { data: room } = await supabase
-        .from("trading_rooms")
-        .select("thumbnail_url")
-        .eq("id", roomId)
-        .single();
+    // Server-side timing control - prevent screenshots too frequently
+    const now = Date.now();
+    const lastScreenshotTime = this.lastScreenshotTimes.get(roomId) || 0;
+    const timeSinceLastScreenshot = now - lastScreenshotTime;
+    const minIntervalMs = 600000; // 10 minutes minimum
 
-      // Take new screenshot
+    if (timeSinceLastScreenshot < minIntervalMs) {
+      console.log(
+        `Screenshot too soon for room: ${roomId} (${timeSinceLastScreenshot}ms < ${minIntervalMs}ms), skipping`
+      );
+      return false;
+    }
+
+    // Prevent multiple simultaneous screenshots for the same room
+    if (this.isProcessing.has(roomId)) {
+      console.log(
+        `Screenshot already in progress for room: ${roomId}, skipping`
+      );
+      return false;
+    }
+
+    this.isProcessing.add(roomId);
+    this.lastScreenshotTimes.set(roomId, now);
+
+    try {
+      console.log(
+        `Screenshot service started for room: ${roomId} at ${new Date().toISOString()}`
+      );
+
+      // Take new screenshot first
+      console.log(`Taking screenshot for room: ${roomId}...`);
       const newThumbnailUrl = await this.takeRoomScreenshot({
         roomId,
         baseUrl,
       });
 
       if (!newThumbnailUrl) {
+        console.error(
+          `Screenshot failed for room: ${roomId} - takeRoomScreenshot returned null/undefined`
+        );
         return false;
       }
 
-      // Validate old thumbnail exists before deleting
-      if (room?.thumbnail_url) {
-        try {
-          const oldFileName = room.thumbnail_url.split("/").pop();
-          if (oldFileName) {
-            // Check if the file actually exists before trying to delete it
-            const { data: fileExists } = await supabase.storage
-              .from("room-thumbnails")
-              .list("", {
-                search: oldFileName,
-              });
+      console.log(
+        `Screenshot taken successfully for room: ${roomId}, URL: ${newThumbnailUrl}`
+      );
 
-            if (fileExists && fileExists.length > 0) {
-              // File exists, delete it
-              await supabase.storage
-                .from("room-thumbnails")
-                .remove([oldFileName]);
+      console.log(
+        `New screenshot taken for room: ${roomId}, updating thumbnail immediately`
+      );
+
+      // Get the current thumbnail URL before replacing
+      console.log(`Connecting to database for room: ${roomId}...`);
+      const supabase = await createServiceClient();
+
+      console.log(`Fetching current thumbnail for room: ${roomId}...`);
+      const { data: room, error: selectError } = await supabase
+        .from("trading_rooms")
+        .select("thumbnail_url")
+        .eq("id", roomId)
+        .single();
+
+      if (selectError) {
+        console.error(`Database select error for room: ${roomId}`, selectError);
+        return false;
+      }
+
+      const oldThumbnailUrl = room?.thumbnail_url;
+      console.log(`Current thumbnail for room: ${roomId}: ${oldThumbnailUrl}`);
+
+      // Delete the old thumbnail if it exists
+      if (oldThumbnailUrl) {
+        try {
+          console.log(`Deleting old thumbnail for room: ${roomId}...`);
+          const oldFileName = oldThumbnailUrl.split("/").pop();
+          if (oldFileName) {
+            const { error: deleteError } = await supabase.storage
+              .from("room-thumbnails")
+              .remove([oldFileName]);
+
+            if (deleteError) {
+              console.error(
+                `Error deleting old thumbnail for room: ${roomId}`,
+                deleteError
+              );
+            } else {
+              console.log(`Old thumbnail deleted for room: ${roomId}`);
             }
-            // If file doesn't exist, just continue (database will be updated anyway)
           }
         } catch (_error) {
-          // Silent error handling - file might not exist
+          console.error(
+            `Exception deleting old thumbnail for room: ${roomId}`,
+            _error
+          );
         }
       }
 
-      // Update database with new thumbnail URL
+      // Update database with new thumbnail URL immediately
+      console.log(
+        `Updating database with new thumbnail for room: ${roomId}...`
+      );
       const { error: updateError } = await supabase
         .from("trading_rooms")
         .update({ thumbnail_url: newThumbnailUrl })
         .eq("id", roomId);
 
       if (updateError) {
+        console.error(
+          `Database update failed for room: ${roomId}`,
+          updateError
+        );
         return false;
+      } else {
+        console.log(`Thumbnail successfully updated for room: ${roomId}`);
       }
 
       // Clean up any other orphaned files for this room
       try {
+        console.log(`Cleaning up orphaned files for room: ${roomId}...`);
         const { data: files } = await supabase.storage
           .from("room-thumbnails")
           .list("", {
@@ -303,19 +405,25 @@ export class ScreenshotService {
             await supabase.storage
               .from("room-thumbnails")
               .remove(filesToDelete);
+            console.log(
+              `Cleaned up ${filesToDelete.length} orphaned files for room: ${roomId}`
+            );
           }
         }
       } catch (_error) {
-        // Silent error handling
+        console.error(`Error cleaning up files for room: ${roomId}`, _error);
       }
 
-      // Validate and clean up orphaned database entries
-      await this.validateAndCleanupOrphanedThumbnails(supabase);
-
+      console.log(
+        `Screenshot service completed successfully for room: ${roomId}`
+      );
       return true;
     } catch (error) {
-      console.error("Error updating room thumbnail:", error);
+      console.error(`Error in screenshot service for room: ${roomId}`, error);
       return false;
+    } finally {
+      // Remove from processing set
+      this.isProcessing.delete(roomId);
     }
   }
 

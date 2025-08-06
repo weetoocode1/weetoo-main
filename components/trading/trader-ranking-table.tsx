@@ -10,7 +10,7 @@ import {
   TrendingUp,
   Trophy,
 } from "lucide-react";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 
 type TimeFrame = "daily" | "weekly" | "monthly";
 
@@ -29,6 +29,76 @@ interface TraderData {
   portfolio_value: number;
   isOnline: boolean;
 }
+
+// Dummy data for fallback
+const getDummyTraders = (timeFrame: TimeFrame): TraderData[] => {
+  const baseData = [
+    {
+      id: "1",
+      nickname: "Alexander Chen",
+      avatar_url:
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
+      level: 25,
+      total_pnl: 2847300,
+      virtual_balance: 1000000,
+      total_return: 247.8,
+      total_trades: 542,
+      winning_trades: 510,
+      closed_trades: 542,
+      win_rate: 94.2,
+      portfolio_value: 3847300,
+      isOnline: true,
+    },
+    {
+      id: "2",
+      nickname: "Sarah Kim",
+      avatar_url:
+        "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
+      level: 18,
+      total_pnl: 986200,
+      virtual_balance: 1000000,
+      total_return: 98.6,
+      total_trades: 287,
+      winning_trades: 227,
+      closed_trades: 287,
+      win_rate: 79.1,
+      portfolio_value: 1986200,
+      isOnline: false,
+    },
+    {
+      id: "3",
+      nickname: "Michael Chen",
+      avatar_url:
+        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+      level: 15,
+      total_pnl: 763400,
+      virtual_balance: 1000000,
+      total_return: 76.3,
+      total_trades: 198,
+      winning_trades: 154,
+      closed_trades: 198,
+      win_rate: 77.8,
+      portfolio_value: 1763400,
+      isOnline: true,
+    },
+  ];
+
+  // Adjust values based on time frame
+  const multiplier =
+    timeFrame === "daily" ? 0.1 : timeFrame === "weekly" ? 0.3 : 1;
+
+  return baseData.map((trader, index) => ({
+    ...trader,
+    total_pnl: Math.round(trader.total_pnl * multiplier),
+    total_return: Math.round(trader.total_return * multiplier * 10) / 10,
+    total_trades: Math.round(trader.total_trades * multiplier),
+    winning_trades: Math.round(trader.winning_trades * multiplier),
+    closed_trades: Math.round(trader.closed_trades * multiplier),
+    win_rate: Math.round(trader.win_rate * (0.8 + Math.random() * 0.4)),
+    portfolio_value: Math.round(trader.portfolio_value * multiplier),
+    rank: index + 1,
+  }));
+};
 
 // const rankIcons = {
 //   1: Trophy,
@@ -75,8 +145,28 @@ export const TraderRankingTable = memo(
   }) => {
     // const t = useTranslations("traderRanking");
 
+    // Fill remaining slots with demo data if we have fewer than 3 real traders
+    const filledTraders = useMemo(() => {
+      const top3Traders = traders.slice(0, 3);
+      const demoTraders = getDummyTraders(selectedTimeFrame);
+
+      const filled = [...top3Traders];
+      while (filled.length < 3) {
+        const demoIndex = filled.length;
+        const demoTrader = demoTraders[demoIndex];
+        if (demoTrader) {
+          filled.push({
+            ...demoTrader,
+            id: `demo-${demoIndex + 1}`,
+          });
+        }
+      }
+
+      return filled;
+    }, [traders, selectedTimeFrame]);
+
     // Add ranks to traders
-    const rankedTraders = traders.map((trader, index) => ({
+    const rankedTraders = filledTraders.map((trader, index) => ({
       ...trader,
       rank: index + 1,
     }));
@@ -132,6 +222,7 @@ export const TraderRankingTable = memo(
           <div className="hidden md:block divide-y divide-border/50">
             {rankedTraders.map((trader) => {
               const isTop3 = trader.rank <= 3;
+              const isDemo = trader.id.startsWith("demo-");
               const rankStyle = isTop3
                 ? rankStyles[trader.rank as keyof typeof rankStyles]
                 : null;
@@ -142,7 +233,8 @@ export const TraderRankingTable = memo(
                   className={cn(
                     "grid grid-cols-12 gap-4 px-6 py-5 hover:bg-muted/20 transition-all duration-300 group relative",
                     isTop3 &&
-                      "bg-gradient-to-r from-muted/20 via-muted/10 to-muted/20"
+                      "bg-gradient-to-r from-muted/20 via-muted/10 to-muted/20",
+                    isDemo && "opacity-80"
                   )}
                 >
                   {/* Background glow for top 3 */}
@@ -284,6 +376,7 @@ export const TraderRankingTable = memo(
           <div className="md:hidden divide-y divide-border/50">
             {rankedTraders.map((trader) => {
               const isTop3 = trader.rank <= 3;
+              const isDemo = trader.id.startsWith("demo-");
               const rankStyle = isTop3
                 ? rankStyles[trader.rank as keyof typeof rankStyles]
                 : null;
@@ -294,7 +387,8 @@ export const TraderRankingTable = memo(
                   className={cn(
                     "p-4 hover:bg-muted/20 transition-all duration-300 group relative",
                     isTop3 &&
-                      "bg-gradient-to-r from-muted/20 via-muted/10 to-muted/20"
+                      "bg-gradient-to-r from-muted/20 via-muted/10 to-muted/20",
+                    isDemo && "opacity-80"
                   )}
                 >
                   {/* Background glow for top 3 */}
@@ -371,6 +465,11 @@ export const TraderRankingTable = memo(
                           {isTop3 && (
                             <div className="text-xs text-muted-foreground">
                               Top Performer
+                            </div>
+                          )}
+                          {isDemo && (
+                            <div className="text-xs text-yellow-600 dark:text-yellow-400">
+                              Demo
                             </div>
                           )}
                         </div>

@@ -124,9 +124,9 @@ export function Menu() {
           <Link href="/ranking" className="block py-2 text-sm">
             {t("traderRankings")}
           </Link>
-          <Link href="/kor-coins" className="block py-2 text-sm">
+          {/* <Link href="/kor-coins" className="block py-2 text-sm">
             {t("korCoinsRankings")}
-          </Link>
+          </Link> */}
           <Link href="/most-activity" className="block py-2 text-sm">
             {t("mostActivity")}
           </Link>
@@ -223,9 +223,9 @@ export function Menu() {
               <ListItem href="/ranking" title={t("traderRankings")}>
                 {t("traderRankingsDesc")}
               </ListItem>
-              <ListItem href="/kor-coins" title={t("korCoinsRankings")}>
+              {/* <ListItem href="/kor-coins" title={t("korCoinsRankings")}>
                 {t("korCoinsRankingsDesc")}
-              </ListItem>
+              </ListItem> */}
               <ListItem href="/most-activity" title={t("mostActivity")}>
                 {t("mostActivityDesc")}
               </ListItem>

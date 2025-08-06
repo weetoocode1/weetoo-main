@@ -941,8 +941,24 @@ export const TraderRanking = memo(() => {
   // Convert trader data to card data format
   const cardData = useMemo(() => {
     const top3Traders = traders.slice(0, 3);
+    const demoTraders = getDummyTraders(selectedTimeFrame);
 
-    return top3Traders.map((trader, index) => ({
+    // Fill remaining slots with demo data if we have fewer than 3 real traders
+    const filledTraders = [...top3Traders];
+
+    while (filledTraders.length < 3) {
+      const demoIndex = filledTraders.length;
+      const demoTrader = demoTraders[demoIndex];
+      if (demoTrader) {
+        filledTraders.push({
+          ...demoTrader,
+          id: `demo-${demoIndex + 1}`,
+          rank: filledTraders.length + 1,
+        });
+      }
+    }
+
+    return filledTraders.map((trader, index) => ({
       id: trader.id,
       rank: index + 1,
       name: trader.nickname,
@@ -963,10 +979,34 @@ export const TraderRanking = memo(() => {
         index === 0 ? "gold" : index === 1 ? "silver" : ("bronze" as CardColor),
       isOnline: trader.isOnline,
     }));
-  }, [traders]);
+  }, [traders, selectedTimeFrame]);
+
+  // Update useDummyData when we have fewer than 3 real traders
+  useEffect(() => {
+    const hasInsufficientData = traders.length < 3;
+    if (hasInsufficientData && !useDummyData) {
+      setUseDummyData(true);
+    } else if (traders.length >= 3 && useDummyData) {
+      setUseDummyData(false);
+    }
+  }, [traders.length, useDummyData]);
 
   return (
     <div className="space-y-16 mb-20">
+      {/* Demo Data Notice */}
+      {/* {useDummyData && (
+        <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800/30 rounded-lg p-4 mb-8">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+            <p className="text-sm text-yellow-800 dark:text-yellow-200">
+              {traders.length === 0
+                ? "Demo data is being displayed. Real trader data will appear when users start trading."
+                : "Some demo data is being used to complete the podium. Real trader data will appear when more users start trading."}
+            </p>
+          </div>
+        </div>
+      )} */}
+
       {/* Time Frame Tabs */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 mt-8 gap-4">
         <div className="bg-muted/30 rounded-lg p-1 backdrop-blur-sm border border-border/50 ml-auto">
@@ -1003,7 +1043,7 @@ export const TraderRanking = memo(() => {
                 <TraderCard
                   key={`${card.id}-${card.rank}`}
                   data={card}
-                  useDummyData={useDummyData}
+                  useDummyData={useDummyData || card.id.startsWith("demo-")}
                 />
               );
             });
@@ -1016,7 +1056,7 @@ export const TraderRanking = memo(() => {
           <MobileTraderCard
             key={`${card.id}-${card.rank}`}
             data={card}
-            useDummyData={useDummyData}
+            useDummyData={useDummyData || card.id.startsWith("demo-")}
           />
         ))}
       </div>

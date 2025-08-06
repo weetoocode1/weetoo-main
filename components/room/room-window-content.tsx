@@ -61,7 +61,7 @@ export function RoomWindowContent({
   onCurrentPrice?: (price: number | undefined) => void;
 }) {
   // Check if current user is the host
-  const [, setIsHost] = useState(false);
+  const [isHost, setIsHost] = useState(false);
 
   useEffect(() => {
     const checkIfHost = async () => {
@@ -70,7 +70,16 @@ export function RoomWindowContent({
         data: { user },
       } = await supabase.auth.getUser();
       if (user) {
-        setIsHost(user.id === hostId);
+        const hostStatus = user.id === hostId;
+        setIsHost(hostStatus);
+        console.log(
+          "RoomWindowContent - User ID:",
+          user.id,
+          "Host ID:",
+          hostId,
+          "Is Host:",
+          hostStatus
+        );
       }
     };
     checkIfHost();
@@ -145,7 +154,7 @@ export function RoomWindowContent({
                 ref={chartOuterRef}
                 className="max-w-[972px] border-border border h-full w-full bg-background"
               >
-                <TradingViewChartComponent symbol={symbol} />
+                <TradingViewChartComponent symbol={symbol} isHost={isHost} />
               </div>
               <div className="flex-1 border border-border h-full w-full bg-background p-2">
                 <OrderBook symbol={symbol} data={marketData} />

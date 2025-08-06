@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ScreenshotService } from "@/lib/screenshot-service";
-import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   try {
     // Check if request has content
     const contentType = request.headers.get("content-type");
-
     if (!contentType || !contentType.includes("application/json")) {
       return NextResponse.json(
         { error: "Content-Type must be application/json" },
@@ -14,19 +12,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Read body as text first
+    const bodyText = await request.text();
+    if (!bodyText) {
+      return NextResponse.json(
+        { error: "Request body is empty" },
+        { status: 400 }
+      );
+    }
+
+    // Parse JSON
     let body;
     try {
-      const text = await request.text();
-
-      if (!text) {
-        return NextResponse.json(
-          { error: "Request body is empty" },
-          { status: 400 }
-        );
-      }
-
-      body = JSON.parse(text);
-    } catch (_parseError) {
+      body = JSON.parse(bodyText);
+    } catch (_error) {
       return NextResponse.json(
         { error: "Invalid JSON in request body" },
         { status: 400 }
@@ -37,50 +36,44 @@ export async function POST(request: NextRequest) {
 
     if (!roomId) {
       return NextResponse.json(
-        { error: "Room ID is required" },
+        { error: "roomId is required" },
         { status: 400 }
       );
     }
 
-    // Get base URL from environment or request
-    const baseUrl =
-      process.env.NEXT_PUBLIC_SITE_URL ||
-      `${request.nextUrl.protocol}//${request.nextUrl.host}:${
-        request.nextUrl.port || ""
-      }`;
+    // Test: Add a simple log to verify the API is being called
+    console.log(
+      `API called for room: ${roomId} at ${new Date().toISOString()}`
+    );
 
-    // Get screenshot service instance
+    // Determine base URL dynamically
+    const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+    const host = request.headers.get("host") || "localhost:3000";
+    const baseUrl = `${protocol}://${host}`;
+
+    // Use screenshot service (now works with @sparticuz/chromium)
     const screenshotService = ScreenshotService.getInstance();
-
-    // Update room thumbnail
     const success = await screenshotService.updateRoomThumbnail(
       roomId,
       baseUrl
     );
 
     if (success) {
-      return NextResponse.json({
-        success: true,
-        message: "Room thumbnail updated successfully",
-      });
+      console.log(`Screenshot service completed for room: ${roomId}`);
+      return NextResponse.json({ success: true });
     } else {
-      return NextResponse.json(
-        {
-          error: "Failed to update room thumbnail",
-        },
-        { status: 500 }
+      console.log(
+        `Screenshot service skipped for room: ${roomId} (too soon or already processing)`
       );
+      return NextResponse.json({
+        success: false,
+        message: "Screenshot skipped - too soon or already processing",
+      });
     }
   } catch (error) {
     console.error("Error in room thumbnail API:", error);
-    console.error("Error details:", {
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-    });
     return NextResponse.json(
-      {
-        error: "Internal server error",
-      },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -93,32 +86,35 @@ export async function GET(request: NextRequest) {
 
     if (!roomId) {
       return NextResponse.json(
-        { error: "Room ID is required" },
+        { error: "roomId is required" },
         { status: 400 }
       );
     }
 
-    // Get current thumbnail URL from database
-    const supabase = await createClient();
-    const { data: room, error } = await supabase
+    const { createServiceClient } = await import("@/lib/supabase/server");
+    const supabase = await createServiceClient();
+
+    const { data, error } = await supabase
       .from("trading_rooms")
       .select("thumbnail_url")
       .eq("id", roomId)
       .single();
 
-    if (error || !room) {
-      return NextResponse.json({ error: "Room not found" }, { status: 404 });
+    if (error) {
+      return NextResponse.json(
+        { error: "Failed to fetch thumbnail URL" },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
-      thumbnailUrl: room.thumbnail_url,
+      thumbnail_url: data?.thumbnail_url,
+      has_custom_thumbnail: false,
     });
   } catch (error) {
-    console.error("Error getting room thumbnail:", error);
+    console.error("Error fetching thumbnail URL:", error);
     return NextResponse.json(
-      {
-        error: "Internal server error",
-      },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

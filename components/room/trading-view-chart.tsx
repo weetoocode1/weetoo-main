@@ -17,11 +17,14 @@ const TradingViewChart = dynamic(
 
 interface TradingViewChartProps {
   symbol: string;
+  isHost?: boolean;
 }
 
 export const TradingViewChartComponent = React.memo(
-  ({ symbol }: TradingViewChartProps) => {
+  ({ symbol, isHost = false }: TradingViewChartProps) => {
     const [isScriptReady, setIsScriptReady] = useState(false);
+
+    console.log("TradingViewChartComponent - isHost:", isHost);
 
     const widgetProps = useMemo(
       (): Partial<ChartingLibraryWidgetOptions> => ({
@@ -35,8 +38,27 @@ export const TradingViewChartComponent = React.memo(
         user_id: "public_user_id",
         fullscreen: false,
         autosize: true,
+        disabled_features: isHost
+          ? ["use_localstorage_for_settings"]
+          : [
+              "use_localstorage_for_settings",
+              "left_toolbar",
+              "header_widget",
+              "header_compare",
+              "header_undo_redo",
+              "header_screenshot",
+              "header_fullscreen_button",
+              "header_settings",
+              "header_indicators",
+              "header_chart_type",
+              "header_symbol_search",
+              "header_resolutions",
+              "header_saveload",
+              "timeframes_toolbar",
+              "control_bar",
+            ],
       }),
-      [symbol]
+      [symbol, isHost]
     );
 
     const handleScriptReady = useCallback(() => {

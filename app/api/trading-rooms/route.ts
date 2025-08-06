@@ -125,12 +125,12 @@ export async function GET(request: Request) {
     "ms"
   );
 
-  // Add cache headers for better performance
+  // Add cache headers for better performance but allow real-time updates
   return NextResponse.json(
     { data: mapped, total: totalCount || 0 },
     {
       headers: {
-        "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30",
+        "Cache-Control": "public, s-maxage=5, stale-while-revalidate=10",
       },
     }
   );

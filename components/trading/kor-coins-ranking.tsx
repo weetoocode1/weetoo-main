@@ -157,7 +157,7 @@ export const KorCoinsRanking = () => {
   const [selectedTimeFrame, setSelectedTimeFrame] =
     useState<TimeFrame>("daily");
   const [users, setUsers] = useState<KorCoinsUser[]>([]);
-  const [useDummyData, setUseDummyData] = useState(false);
+  const [, setUseDummyData] = useState(false);
 
   const fetchLeaderboard = async () => {
     const supabase = createClient();
@@ -272,13 +272,13 @@ export const KorCoinsRanking = () => {
       </div>
 
       {/* Demo Notice */}
-      {useDummyData && (
+      {/* {useDummyData && (
         <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
           <p className="text-blue-600 text-sm font-medium">
             📊 Showing demo data - No real KOR coins data found in the database
           </p>
         </div>
-      )}
+      )} */}
 
       {/* Top 3 Leaderboard */}
       <div className="relative min-h-[350px] flex items-center justify-center gap-12 px-8">
