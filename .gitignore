@@ -48,6 +48,8 @@ important.txt
 @/db-schemas
 /docs
 @/docs
+docs
+@docs
 notes
 @notes
 test
@@ -57,3 +59,4 @@ important.txt
 
 # Ignore database schema files
 /db-schemas/
+

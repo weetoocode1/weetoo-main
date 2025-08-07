@@ -826,7 +826,7 @@ export function TradingRoomsList() {
           </Popover>
 
           {/* Clear Filters */}
-          {(selectedCategories.length > 0 ||
+          {/* {(selectedCategories.length > 0 ||
             selectedAccess.length > 0 ||
             searchTerm) && (
             <Button
@@ -840,7 +840,7 @@ export function TradingRoomsList() {
             >
               Clear
             </Button>
-          )}
+          )} */}
 
           {/* Create Room Button */}
           <CreateRoom />
