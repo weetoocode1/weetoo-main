@@ -1,7 +1,8 @@
 "use client";
 
-import { ChevronDown, CalendarIcon, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -15,8 +16,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { Badge } from "@/components/ui/badge";
+import { CalendarIcon, ChevronDown, X } from "lucide-react";
 
 interface Filters {
   dateRange: { from: Date | undefined; to: Date | undefined };

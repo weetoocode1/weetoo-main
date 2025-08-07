@@ -22,7 +22,7 @@ export function Footer() {
                   WEETOO
                 </span>
               </Link>
-              <p className="text-sm text-muted-foreground leading-relaxed max-w-md">
+              <p className="text-sm text-muted-foreground leading-relaxed max-w-md whitespace-pre-line">
                 {t("companyDescription")}
               </p>
             </div>
@@ -34,7 +34,9 @@ export function Footer() {
                   <p className="text-sm font-medium text-foreground">
                     {t("representative")}
                   </p>
-                  <p className="text-sm text-muted-foreground">Koh Hak-jin</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("representativeName")}
+                  </p>
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors w-full md:w-[410px]">
@@ -113,13 +115,10 @@ export function Footer() {
                   <p className="text-sm font-medium text-foreground">
                     {t("address")}
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    3012-53, 30th floor, Building A,
-                    <br />
-                    323 Incheon Tower-daero, Yeonsu-gu,
-                    <br />
-                    Incheon (Songdo-dong, Songdo Cent Road)
-                  </p>
+                  <p
+                    className="text-sm text-muted-foreground"
+                    dangerouslySetInnerHTML={{ __html: t("addressDetails") }}
+                  />
                 </div>
               </div>
             </div>

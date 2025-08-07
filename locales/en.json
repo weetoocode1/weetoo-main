@@ -181,8 +181,9 @@
     "getStartedNow": "Get Started Now"
   },
   "footer": {
-    "companyDescription": "Solomon Partners (WEETOO_We are investors) is a margin trading/overseas futures information site for the general public.",
+    "companyDescription": "Solomon Partners (WEETOO_We are investors) is a crypto-related information and community platform designed for the general public. The main purpose of this site is to provide information, support community engagement, and offer a simulated trading system. It is not involved in actual investment brokerage, advisory services, trade inducement, or profit guarantees.\n\nWEETOO does not engage in any activities that fall under financial services, such as investment solicitation or financial product sales.",
     "representative": "Representative",
+    "representativeName": "Koh Hak-jin",
     "registration": "Registration",
     "quickLinks": "Quick Links",
     "termsOfUse": "Terms of Use",
@@ -192,6 +193,7 @@
     "contactUs": "Contact Us",
     "phone": "Phone",
     "address": "Address",
+    "addressDetails": "3012-53, 30th floor, Building A,<br />323 Incheon Tower-daero, Yeonsu-gu,<br />Incheon (Songdo-dong, Songdo Cent Road)",
     "investmentRiskNotice": "Investment Risk Notice",
     "riskNoticeParagraph1": "Solomon Partners (WEETOO_We are investors) is a margin trading/overseas futures information site for the general public, so it does not provide services such as 'investment brokerage' or 'investment consulting and agency', and the trading history provided by our company is simulated investment content. Please note that actual CFD trading is a high-risk, high-return financial derivative product, and all losses are attributed to the trader.",
     "riskNoticeParagraph2": "Risk Disclaimer: Solomon Partners (WEETOO_We are Investors) is not responsible for any loss or damage caused by reliance on the information contained in this website, including market news, analysis, trading signals and Forex broker reviews. The data contained in this website is not necessarily real-time or accurate and the analysis is the opinion of the author and does not represent a recommendation by Solomon Partners (WEETOO_We are Investors) or its staff.",
