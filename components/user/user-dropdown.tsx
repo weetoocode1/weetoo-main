@@ -9,10 +9,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
-import { useTranslations } from "next-intl";
 import {
+  AlertTriangle,
+  BadgeCheckIcon,
   Coins,
   Eye,
   EyeOff,
@@ -21,6 +28,7 @@ import {
   Star,
   UserIcon,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
@@ -86,24 +94,41 @@ export function UserDropdown() {
     <div className="flex justify-end">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            className="relative h-9 w-9 rounded-full p-0 overflow-hidden flex items-center justify-center bg-transparent border-none focus:outline-none cursor-pointer"
-            aria-label="Open user menu"
-          >
-            <Avatar className="w-8 h-8 border border-border">
-              {loading ? (
-                <Skeleton className="w-full h-full rounded-full" />
-              ) : user.avatar_url ? (
-                <AvatarImage src={avatarUrl} alt={fullName} />
-              ) : null}
-              {!loading && !user.avatar_url && (
-                <AvatarFallback className="bg-muted text-muted-foreground text-sm font-medium">
-                  {nickname.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              )}
-            </Avatar>
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              className="relative h-9 w-9 rounded-full p-0 overflow-hidden flex items-center justify-center bg-transparent border-none focus:outline-none cursor-pointer"
+              aria-label="Open user menu"
+            >
+              <Avatar className="w-8 h-8 border border-border">
+                {loading ? (
+                  <Skeleton className="w-full h-full rounded-full" />
+                ) : user.avatar_url ? (
+                  <AvatarImage src={avatarUrl} alt={fullName} />
+                ) : null}
+                {!loading && !user.avatar_url && (
+                  <AvatarFallback className="bg-muted text-muted-foreground text-sm font-medium">
+                    {nickname.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                )}
+              </Avatar>
+            </button>
+            {/* Warning icon overlay for unverified users - positioned outside button */}
+            {!loading && !user.identity_verified && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="absolute -top-1 -right-1 bg-amber-500 rounded-full p-0.5 z-10">
+                      <AlertTriangle className="w-3 h-3 text-white" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Unverified</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
         </DropdownMenuTrigger>
         <DropdownMenuContent
           className="w-72 p-0 bg-card/95 backdrop-blur-sm border shadow-lg rounded-xl overflow-hidden"
@@ -128,6 +153,23 @@ export function UserDropdown() {
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium flex items-center gap-1">
                   {loading ? <Skeleton className="h-4 w-24" /> : fullName}
+                  {/* Verification Badge */}
+                  {!loading && (
+                    <>
+                      {user.identity_verified ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <BadgeCheckIcon className="w-4 h-4 text-blue-500" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Your identity has been verified.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : null}
+                    </>
+                  )}
                 </div>
                 <div className="text-xs text-muted-foreground truncate flex items-center gap-1">
                   {loading ? (

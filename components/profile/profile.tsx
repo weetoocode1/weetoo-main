@@ -1,62 +1,16 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { IdentityVerificationButton } from "@/components/identity-verification-button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { createClient } from "@/lib/supabase/client";
-import Image from "next/image";
-import { useEffect, useState } from "react";
-import { PhoneInput } from "../ui/phone-input";
-
-interface UserData {
-  id: string;
-  first_name?: string;
-  last_name?: string;
-  nickname?: string;
-  email?: string;
-  avatar_url?: string;
-  level?: number;
-  exp?: number;
-  kor_coins?: number;
-  role?: string;
-  mobile_number?: string;
-}
+import { useAuth } from "@/hooks/use-auth";
+import { BadgeCheckIcon } from "lucide-react";
+import { toast } from "sonner";
 
 export function Profile() {
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [user, setUser] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let mounted = true;
-    const supabase = createClient();
-    supabase.auth.getSession().then(({ data }) => {
-      const sessionId = data.session?.user?.id || null;
-      if (!sessionId) {
-        if (mounted) setLoading(false);
-        return;
-      }
-      setLoading(true);
-      supabase
-        .from("users")
-        .select(
-          "id, first_name, last_name, nickname, email, avatar_url, level, exp, kor_coins, role, mobile_number"
-        )
-        .eq("id", sessionId)
-        .single()
-        .then(({ data, error }) => {
-          if (mounted) {
-            setUser(error ? null : data);
-            setPhoneNumber(error ? "" : data?.mobile_number || "");
-            setLoading(false);
-          }
-        });
-    });
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const { user, loading } = useAuth();
 
   return (
     <>
@@ -66,27 +20,60 @@ export function Profile() {
             {/* Avatar image or fallback */}
             {loading ? (
               <Skeleton className="h-[250px] w-[250px] border" />
-            ) : user?.avatar_url && user.avatar_url !== "" ? (
-              <Image
-                src={user.avatar_url}
-                alt="Profile Picture"
-                className="object-cover h-[250px] w-[300px] border"
-                width={300}
-                height={250}
-              />
             ) : (
-              <div
-                id="profile-avatar-fallback"
-                className="object-cover h-[250px] w-[300px] border flex items-center justify-center text-5xl font-bold text-gray-400"
-                style={{ position: "absolute" }}
-              >
-                {(user?.first_name?.slice(0, 2) || "?").toUpperCase()}
-              </div>
+              <Avatar className="h-[250px] w-[250px] border rounded-none">
+                <AvatarImage
+                  src={user?.avatar_url || ""}
+                  alt="Profile Picture"
+                  className="rounded-none"
+                />
+                <AvatarFallback className="text-5xl font-bold text-gray-400 rounded-none">
+                  {(user?.first_name?.slice(0, 2) || "?").toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
             )}
 
-            <Button variant="outline" className="rounded-none w-full">
+            {/* <Button variant="outline" className="rounded-none w-full">
               Upload Image
-            </Button>
+            </Button> */}
+
+            {/* Verification Status */}
+            {!loading && (
+              <>
+                {/* Verified Badge */}
+                {user?.identity_verified && (
+                  <div className="flex items-center justify-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-none">
+                    <BadgeCheckIcon className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                      Identity Verified
+                    </span>
+                  </div>
+                )}
+
+                {/* Verification Needed Badge */}
+                {!user?.identity_verified && (
+                  <div className="w-full">
+                    <IdentityVerificationButton
+                      isFormValid={true} // Always true in profile context
+                      mobileNumber={user?.mobile_number || ""}
+                      text="Verification Needed"
+                      className="flex items-center justify-center gap-2 h-10 rounded-none text-primary border border-destructive bg-destructive hover:bg-destructive/90"
+                      onVerificationSuccess={(verificationData, userData) => {
+                        toast.success(
+                          "Identity verification completed successfully!"
+                        );
+                        window.location.reload();
+                      }}
+                      onVerificationFailure={() => {
+                        toast.error(
+                          "Identity verification failed. Please try again."
+                        );
+                      }}
+                    />
+                  </div>
+                )}
+              </>
+            )}
           </div>
           <div className="p-4 w-full space-y-2">
             <div className="grid grid-cols-1 lg:grid-cols-2 w-full gap-2">
@@ -161,14 +148,13 @@ export function Profile() {
                 {loading ? (
                   <Skeleton className="rounded-none h-10 w-full" />
                 ) : (
-                  <PhoneInput
-                    value={phoneNumber}
-                    onChange={setPhoneNumber}
-                    international
-                    defaultCountry="KR"
-                    className="rounded-none"
-                    id="phone"
+                  <Input
+                    type="tel"
+                    placeholder="Phone Number"
+                    className="rounded-none h-10"
+                    value={user?.mobile_number || ""}
                     readOnly
+                    id="phone"
                   />
                 )}
               </div>

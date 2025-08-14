@@ -1,15 +1,17 @@
 "use client";
-import {
-  generateReferralCode,
-  getReferralCode,
-  getReferralDashboardData,
-  setCustomReferralCode,
-} from "@/app/actions/generateReferralCode";
 import { Icons } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  useCurrentUser,
+  useGenerateReferralCode,
+  useReferralCode,
+  useReferralDashboard,
+  useReferralRealtimeUpdates,
+  useSetCustomReferralCode,
+} from "@/hooks/use-referral";
 import {
   reservedReferralCodes,
   reservedReferralPatterns,
@@ -26,14 +28,6 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-// Interface for referral dashboard row
-interface ReferralDashboardRow {
-  email: string;
-  date: string;
-  status: string;
-  earnings: string;
-}
-
 // Placeholder for error reporting service
 type ErrorWithMessage = { message: string } | Error | unknown;
 function logErrorToService(error: ErrorWithMessage, context?: string) {
@@ -43,9 +37,7 @@ function logErrorToService(error: ErrorWithMessage, context?: string) {
 }
 
 export function Referral() {
-  const [code, setCode] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // State for UI interactions
   const [copied, setCopied] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [customInput, setCustomInput] = useState("");
@@ -54,15 +46,34 @@ export function Referral() {
   const [pendingCode, setPendingCode] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
-
-  const [referrals, setReferrals] = useState<ReferralDashboardRow[]>([]);
-  const [dashboardLoading, setDashboardLoading] = useState(true);
-  const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const rowsPerPage = 10;
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
+  // TanStack Query hooks
+  const {
+    data: referralCodeData,
+    isLoading: codeLoading,
+    error: codeError,
+  } = useReferralCode();
+  const {
+    data: dashboardData,
+    isLoading: dashboardLoading,
+    error: dashboardError,
+  } = useReferralDashboard();
+  const { data: user } = useCurrentUser();
+  const generateCodeMutation = useGenerateReferralCode();
+  const setCustomCodeMutation = useSetCustomReferralCode();
+
+  // Extract data from queries
+  const code = referralCodeData?.code || null;
+  const referrals = dashboardData || [];
+  const userId = user?.id || null;
+
+  // Set up real-time updates
+  useReferralRealtimeUpdates(userId);
+
+  // Computed values
   const totalReferred = useMemo(() => referrals.length, [referrals]);
   const totalEarned = useMemo(
     () => referrals.reduce((sum, r) => sum + (parseInt(r.earnings) || 0), 0),
@@ -73,82 +84,13 @@ export function Referral() {
     [referrals]
   );
 
-  useEffect(() => {
-    const fetchCodeAndUser = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const result = await getReferralCode();
-        setCode(result.code);
-        const supabase = createSupabaseClient();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (user && user.id) setUserId(user.id);
-      } catch (err) {
-        setError("Failed to fetch referral code. Please try again.");
-        logErrorToService(err, "fetchCodeAndUser");
-      }
-      setLoading(false);
-    };
-    fetchCodeAndUser();
-    const fetchDashboard = async () => {
-      setDashboardLoading(true);
-      setDashboardError(null);
-      try {
-        const rows = await getReferralDashboardData();
-        setReferrals(rows);
-      } catch (err) {
-        setDashboardError("Failed to load referral dashboard.");
-        logErrorToService(err, "fetchDashboard");
-      }
-      setDashboardLoading(false);
-    };
-    fetchDashboard();
-  }, []);
-
-  useEffect(() => {
-    if (!userId) return;
-    const supabase = createSupabaseClient();
-    const channel = supabase
-      .channel("referrals-realtime")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "referrals",
-          filter: `referrer_user_id=eq.${userId}`,
-        },
-        (payload) => {
-          (async () => {
-            setDashboardLoading(true);
-            try {
-              const rows = await getReferralDashboardData();
-              setReferrals(rows);
-            } catch (err) {
-              logErrorToService(err, "realtime update");
-            }
-            setDashboardLoading(false);
-          })();
-        }
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId]);
-
   const handleGetCode = async () => {
-    setLoading(true);
-    setError(null);
     try {
-      const result = await generateReferralCode();
-      setCode(result.code);
-    } catch (_err) {
-      setError("Failed to get referral code. Please try again.");
+      await generateCodeMutation.mutateAsync();
+    } catch (err) {
+      toast.error("Failed to get referral code. Please try again.");
+      logErrorToService(err, "handleGetCode");
     }
-    setLoading(false);
   };
 
   const handleCopy = () => {
@@ -200,7 +142,7 @@ export function Referral() {
     return null;
   };
 
-  // Custom code input validation
+  // Custom code input validation with debouncing
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
@@ -265,6 +207,7 @@ export function Referral() {
     setCustomizing(true);
     setCustomError(null);
     setPendingCode(null);
+
     try {
       // Double-check availability in DB before saving
       const supabase = createSupabaseClient();
@@ -284,18 +227,17 @@ export function Referral() {
         return;
       }
 
-      const result = await setCustomReferralCode(customInput);
+      const result = await setCustomCodeMutation.mutateAsync(customInput);
       if (result.error) {
         setCustomError(result.error);
       } else {
         setPendingCode(customInput);
-        setCode(customInput);
         setCustomizeOpen(false);
         toast.success("Referral code updated!");
       }
-    } catch (_err) {
+    } catch (err) {
       setCustomError("Failed to set custom code. Please try again.");
-      logErrorToService(_err, "handleCustomSave");
+      logErrorToService(err, "handleCustomSave");
     }
     setCustomizing(false);
   };
@@ -316,6 +258,7 @@ export function Referral() {
   const handleShare = () => {
     setShareOpen(true);
   };
+
   const handleShareDialogClose = () => {
     setShareOpen(false);
   };
@@ -333,25 +276,27 @@ export function Referral() {
       <div className="flex items-center justify-between w-full">
         <h2 className="text-xl font-semibold">Referral Code</h2>
         <div className="flex gap-1 items-center">
-          {loading && <Skeleton className="w-32 h-10" />}
-          {code && !loading && (
+          {codeLoading && <Skeleton className="w-32 h-10" />}
+          {code && !codeLoading && (
             <div className="border-2 border-dotted px-10 h-10 flex items-center">
               <span className="select-none font-mono text-sm font-semibold">
                 {code}
               </span>
             </div>
           )}
-          {!code && !loading && (
+          {!code && !codeLoading && (
             <Button
               variant="outline"
               className="bg-muted px-8 h-10 rounded-none font-semibold"
               onClick={handleGetCode}
-              disabled={loading}
+              disabled={generateCodeMutation.isPending}
             >
-              {loading ? "Generating..." : "Get your referral code"}
+              {generateCodeMutation.isPending
+                ? "Generating..."
+                : "Get your referral code"}
             </Button>
           )}
-          {code && !loading && (
+          {code && !codeLoading && (
             <>
               <Button
                 variant="outline"
@@ -388,7 +333,11 @@ export function Referral() {
           )}
         </div>
       </div>
-      {error && <div className="text-red-500 mt-2">{error}</div>}
+      {codeError && (
+        <div className="text-red-500 mt-2">
+          Failed to fetch referral code. Please try again.
+        </div>
+      )}
 
       {/* Referral Dashboard */}
       <div className="mt-8 w-full">
@@ -435,6 +384,15 @@ export function Referral() {
 
         {/* Referral History Table */}
         <div className="w-full border rounded-none">
+          <div className="flex items-center justify-between px-6 py-3 border-b">
+            <h3 className="font-semibold">Referral History</h3>
+            {dashboardLoading && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                Loading...
+              </div>
+            )}
+          </div>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b">
@@ -464,17 +422,35 @@ export function Referral() {
                 ))
               ) : dashboardError ? (
                 <tr>
-                  <td colSpan={4} className="text-center text-red-500 py-4">
-                    {dashboardError}
+                  <td colSpan={4} className="text-center py-8">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="text-red-500 text-sm">
+                        Failed to load referral dashboard.
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.location.reload()}
+                        className="rounded-none"
+                      >
+                        Retry
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ) : paginatedReferrals.length === 0 ? (
                 <tr>
                   <td
                     colSpan={4}
-                    className="text-center text-muted-foreground py-4"
+                    className="text-center text-muted-foreground py-8"
                   >
-                    No referrals yet.
+                    <div className="flex flex-col items-center gap-2">
+                      <UsersIcon className="w-8 h-8 text-muted-foreground/50" />
+                      <div>No referrals yet.</div>
+                      <div className="text-xs text-muted-foreground">
+                        Share your referral code to get started!
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -496,25 +472,27 @@ export function Referral() {
               )}
             </tbody>
           </table>
-          <div className="flex justify-end items-center gap-2 px-6 py-3 border-t rounded-none">
-            <button
-              className="px-3 py-1 border bg-muted rounded-none text-xs"
-              onClick={handlePrev}
-              disabled={page === 1 || dashboardLoading}
-            >
-              Prev
-            </button>
-            <span className="text-xs">
-              Page {page} of {totalPages || 1}
-            </span>
-            <button
-              className="px-3 py-1 border bg-muted rounded-none text-xs"
-              onClick={handleNext}
-              disabled={page === totalPages || dashboardLoading}
-            >
-              Next
-            </button>
-          </div>
+          {totalPages > 1 && (
+            <div className="flex justify-end items-center gap-2 px-6 py-3 border-t rounded-none">
+              <button
+                className="px-3 py-1 border bg-muted rounded-none text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handlePrev}
+                disabled={page === 1 || dashboardLoading}
+              >
+                Prev
+              </button>
+              <span className="text-xs">
+                Page {page} of {totalPages || 1}
+              </span>
+              <button
+                className="px-3 py-1 border bg-muted rounded-none text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleNext}
+                disabled={page === totalPages || dashboardLoading}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

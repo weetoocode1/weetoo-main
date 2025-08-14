@@ -7,7 +7,9 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
+import { AdminRealtimeToasts } from "@/components/realtime/admin-realtime-toasts";
 import { useEffect, useState } from "react";
+import Script from "next/script";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -78,6 +80,10 @@ export default function RootLayout({
         <meta charSet="utf-8" />
       </head>
       <body className={`antialiased h-full`}>
+        <Script
+          src="https://cdn.portone.io/v2/browser-sdk.js"
+          strategy="afterInteractive"
+        />
         <QueryProvider>
           <LanguageProvider messages={enMessages}>
             <ThemeProvider
@@ -87,10 +93,11 @@ export default function RootLayout({
               disableTransitionOnChange
             >
               {children}
+              <AdminRealtimeToasts />
+              <Toaster richColors position="top-center" />
             </ThemeProvider>
           </LanguageProvider>
         </QueryProvider>
-        <Toaster richColors position="top-center" />
         <SpeedInsights />
         <Analytics />
       </body>
