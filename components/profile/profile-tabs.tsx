@@ -1,11 +1,19 @@
 "use client";
-import { KeyIcon, ShieldUserIcon, TicketIcon, UserIcon } from "lucide-react";
-import { useState, useEffect } from "react";
+import {
+  BanknoteIcon,
+  CreditCardIcon,
+  HistoryIcon,
+  TicketIcon,
+  UserIcon,
+} from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Deposit } from "./deposite";
 import { Profile } from "./profile";
 import { Referral } from "./referral";
-import { UuidRegistration } from "./uuid-registration";
-import { UuidAdmin } from "./uuid-admin";
+import { Withdraw } from "./withdraw";
+import { AllAccounts } from "./all-accounts";
+import { Transactions } from "./transactions";
 
 const TABS = [
   { key: "profile", label: "Profile", icon: <UserIcon className="w-4 h-4" /> },
@@ -15,14 +23,24 @@ const TABS = [
     icon: <TicketIcon className="w-4 h-4" />,
   },
   {
-    key: "uuid",
-    label: "UUID Registration",
-    icon: <KeyIcon className="w-4 h-4" />,
+    key: "all-accounts",
+    label: "All Accounts",
+    icon: <BanknoteIcon className="w-4 h-4" />,
   },
   {
-    key: "uuid-admin",
-    label: "UUID Admin",
-    icon: <ShieldUserIcon className="w-4 h-4" />,
+    key: "all-transactions",
+    label: "All Transactions",
+    icon: <HistoryIcon className="w-4 h-4" />,
+  },
+  {
+    key: "withdraw",
+    label: "Withdrawal",
+    icon: <CreditCardIcon className="w-4 h-4" />,
+  },
+  {
+    key: "deposit",
+    label: "Deposit",
+    icon: <CreditCardIcon className="w-4 h-4" />,
   },
 ] as const;
 
@@ -31,8 +49,10 @@ type TabKey = (typeof TABS)[number]["key"];
 const TAB_COMPONENTS = {
   profile: <Profile />,
   referral: <Referral />,
-  uuid: <UuidRegistration />,
-  "uuid-admin": <UuidAdmin />,
+  "all-accounts": <AllAccounts />,
+  "all-transactions": <Transactions />,
+  withdraw: <Withdraw />,
+  deposit: <Deposit />,
 };
 
 export function ProfileTabs() {
@@ -77,7 +97,7 @@ export function ProfileTabs() {
         ))}
       </div>
       {/* Right Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-0 h-[calc(100vh-100px)] overflow-y-auto scrollbar-none">
         {selectedTab in TAB_COMPONENTS
           ? TAB_COMPONENTS[selectedTab as keyof typeof TAB_COMPONENTS]
           : null}

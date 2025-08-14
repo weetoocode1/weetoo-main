@@ -10,6 +10,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { IdentityVerificationButton } from "@/components/identity-verification-button";
+import { useQuery } from "@tanstack/react-query";
 
 const NAVER_CLIENT_ID = process.env.NEXT_PUBLIC_NAVER_CLIENT_ID;
 const NAVER_REDIRECT_URI =
@@ -52,10 +54,74 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
     last_name: string;
   } | null>(null);
   const [referralError, setReferralError] = useState<string | null>(null);
+  const [isIdentityVerified, setIsIdentityVerified] = useState(false);
+  const [verificationData, setVerificationData] = useState<{
+    data: { id: string };
+    identityVerificationId: string;
+    identity_verification_id: string;
+  } | null>(null);
+  const [userData, setUserData] = useState<{
+    mobileNumber: string;
+  } | null>(null);
+  const [mobileNumber, setMobileNumber] = useState("");
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
   const lastLookupValue = useRef("");
   const router = useRouter();
   const supabase = createClient();
+
+  // Check if form is valid (all required fields filled)
+  const isFormValid = Boolean(
+    firstName.trim() &&
+      lastName.trim() &&
+      nickname.trim() &&
+      email.trim() &&
+      password.trim() &&
+      confirmPassword.trim() &&
+      /\d{10,11}/.test(mobileNumber) &&
+      agree
+  );
+
+  // Check if user is already verified using TanStack Query
+  const { data: existingUserVerification } = useQuery({
+    queryKey: ["user-verification", email.trim()],
+    queryFn: async () => {
+      if (!email.trim()) return null;
+
+      // Only run query for complete email addresses (contains @ and .)
+      if (!email.includes("@") || !email.includes(".")) {
+        return null;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("users")
+          .select("identity_verified")
+          .eq("email", email.trim())
+          .maybeSingle(); // Use maybeSingle instead of single to avoid PGRST116
+
+        if (error) {
+          console.error("Error checking user verification:", error);
+          return null;
+        }
+
+        return data;
+      } catch (error) {
+        console.error("Exception checking user verification:", error);
+        return null;
+      }
+    },
+    enabled: !!email.trim() && email.includes("@") && email.includes("."),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: false, // Don't retry on failure
+  });
+
+  // Update verification state when query result changes
+  useEffect(() => {
+    if (existingUserVerification?.identity_verified) {
+      setIsIdentityVerified(true);
+    }
+  }, [existingUserVerification]);
 
   // Only read from localStorage once on mount
   useEffect(() => {
@@ -114,6 +180,12 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
         toast.error("Passwords do not match.");
         return;
       }
+      if (!isIdentityVerified) {
+        toast.error(
+          "You must complete identity verification before registering."
+        );
+        return;
+      }
       startTransition(async () => {
         // Register user with Supabase Auth
         const { error } = await supabase.auth.signUp({
@@ -134,6 +206,75 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
           // Insert into public.users with role 'user' (if not handled by trigger)
           // This is a fallback; ideally, your DB trigger sets the role.
           localStorage.setItem("weetoo-last-sign-in-method", "email");
+
+          // Store identity verification data if available
+          if (verificationData && isIdentityVerified) {
+            console.log("Storing verification data:", verificationData);
+            console.log("User data to store:", userData);
+
+            try {
+              const updateData: {
+                identity_verified: boolean;
+                identity_verified_at: string;
+                identity_verification_id: string;
+                mobile_number?: string;
+              } = {
+                identity_verified: true,
+                identity_verified_at: new Date().toISOString(),
+                identity_verification_id:
+                  verificationData.data?.id || // Use the correct path
+                  verificationData.identityVerificationId ||
+                  verificationData.identity_verification_id,
+              };
+
+              // Add user data if available
+              if (userData) {
+                if (userData.mobileNumber) {
+                  updateData.mobile_number = userData.mobileNumber;
+                }
+                // You can add more fields here if needed
+                // updateData.birth_date = userData.birthDate;
+                // updateData.gender = userData.gender;
+              }
+
+              // Always store the mobile number from the form
+              if (mobileNumber.trim()) {
+                updateData.mobile_number = mobileNumber.trim();
+              }
+
+              console.log("Final update data:", updateData);
+
+              const { error: verificationError } = await supabase
+                .from("users")
+                .update(updateData)
+                .eq("email", email);
+
+              if (verificationError) {
+                console.error(
+                  "Failed to store verification status:",
+                  verificationError
+                );
+                // Don't fail registration if verification storage fails
+                toast.warning(
+                  "Registration successful, but verification status could not be saved."
+                );
+              } else {
+                toast.success(
+                  "Registration successful with identity verification!"
+                );
+              }
+            } catch (verificationError) {
+              console.error(
+                "Error storing verification status:",
+                verificationError
+              );
+              // Don't fail registration if verification storage fails
+              toast.warning(
+                "Registration successful, but verification status could not be saved."
+              );
+            }
+          }
+
           // --- Referral reward logic ---
           if (referrer && referralCodeState.trim()) {
             // Get the new user (should be logged in after signUp)
@@ -188,10 +329,14 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
       lastName,
       nickname,
       agree,
+      isIdentityVerified,
       router,
       supabase,
       referrer,
       referralCodeState,
+      verificationData,
+      userData,
+      mobileNumber,
     ]
   );
 
@@ -513,6 +658,33 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
           </div>
         </div>
 
+        {/* Mobile Number Input */}
+        <div className="flex flex-col gap-1 relative">
+          <Input
+            type="tel"
+            id="mobileNumber"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder="Mobile Number (digits only, e.g., 01071069189)"
+            className="h-12 bg-transparent"
+            value={mobileNumber}
+            onChange={(e) => {
+              // Allow only digits
+              const digitsOnly = e.target.value.replace(/\D/g, "");
+              setMobileNumber(digitsOnly);
+            }}
+            required
+            disabled={loading}
+            aria-describedby="mobileNumberHelp"
+          />
+          <p
+            id="mobileNumberHelp"
+            className="text-xs text-muted-foreground mt-1"
+          >
+            Enter 10–11 digits without dashes
+          </p>
+        </div>
+
         {/* Referral Code Input */}
         <div className="flex flex-col gap-1 relative">
           <Input
@@ -575,14 +747,16 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
           <Label className="text-xs text-muted-foreground" htmlFor="agree">
             I agree to the
             <Link
-              href="#"
+              href="/terms"
+              target="_blank"
               className="text-xs text-primary hover:text-primary/80 transition-colors duration-200 ease-in-out"
             >
               Terms of Service
             </Link>
             and
             <Link
-              href="#"
+              href="/privacy"
+              target="_blank"
               className="text-xs text-primary hover:text-primary/80 transition-colors duration-200 ease-in-out"
             >
               Privacy Policy
@@ -590,10 +764,34 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
           </Label>
         </div>
 
+        {/* Identity Verification Button */}
+        <IdentityVerificationButton
+          isFormValid={isFormValid}
+          mobileNumber={mobileNumber}
+          text="Verify Identity"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground"
+          onVerificationSuccess={(verificationData, userData) => {
+            setIsIdentityVerified(true);
+            setVerificationData(
+              verificationData as unknown as {
+                data: { id: string };
+                identityVerificationId: string;
+                identity_verification_id: string;
+              } | null
+            );
+            setUserData(
+              userData as unknown as {
+                mobileNumber: string;
+              } | null
+            );
+          }}
+          onVerificationFailure={() => setIsIdentityVerified(false)}
+        />
+
         <Button
           type="submit"
           className="w-full h-12"
-          disabled={loading || !agree}
+          disabled={loading || !agree || !isIdentityVerified}
         >
           {loading ? "Registering..." : "Register"}
         </Button>

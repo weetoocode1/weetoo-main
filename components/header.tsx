@@ -61,13 +61,13 @@ export function Header() {
       <>
         <Button
           variant="outline"
-          className="cursor-pointer shadow-none h-8"
+          className="cursor-pointer shadow-none h-8 flex items-center"
           asChild
         >
           <Link href="/login">{t("login")}</Link>
         </Button>
         <Button
-          className="cursor-pointer shadow-none h-8 md:block hidden"
+          className="cursor-pointer shadow-none h-8 md:flex hidden items-center"
           asChild
         >
           <Link href="/register">{t("register")}</Link>
