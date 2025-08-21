@@ -49,6 +49,7 @@ export function Menu() {
     Record<string, boolean>
   >({
     trading: false,
+    leaderboard: false,
     community: false,
     information: false,
     broker: false,
@@ -121,6 +122,24 @@ export function Menu() {
           <Link href="/trading" className="block py-2 text-sm">
             {t("startTrading")}
           </Link>
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* Leaderboard Section */}
+      <Collapsible
+        open={openSections.leaderboard}
+        onOpenChange={() => toggleSection("leaderboard")}
+      >
+        <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium">
+          {t("leaderboard")}
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 transition-transform duration-200",
+              openSections.leaderboard ? "transform rotate-180" : ""
+            )}
+          />
+        </CollapsibleTrigger>
+        <CollapsibleContent className="pl-4 space-y-2">
           <Link href="/ranking" className="block py-2 text-sm">
             {t("traderRankings")}
           </Link>
@@ -220,6 +239,14 @@ export function Menu() {
               <ListItem href="/trading" title={t("startTrading")}>
                 {t("startTradingDesc")}
               </ListItem>
+            </ul>
+          </NavigationMenuContent>
+        </NavigationMenuItem>
+
+        <NavigationMenuItem>
+          <NavigationMenuTrigger>{t("leaderboard")}</NavigationMenuTrigger>
+          <NavigationMenuContent className="left-1/2 -translate-x-1/2">
+            <ul className="grid p-2 w-[325px]">
               <ListItem href="/ranking" title={t("traderRankings")}>
                 {t("traderRankingsDesc")}
               </ListItem>

@@ -8,6 +8,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { AdminRealtimeToasts } from "@/components/realtime/admin-realtime-toasts";
+import { UserRealtimeToasts } from "@/components/user/user-realtime-toasts";
 import { useEffect, useState } from "react";
 import Script from "next/script";
 import "./globals.css";
@@ -94,6 +95,7 @@ export default function RootLayout({
             >
               {children}
               <AdminRealtimeToasts />
+              <UserRealtimeToasts />
               <Toaster richColors position="top-center" />
             </ThemeProvider>
           </LanguageProvider>

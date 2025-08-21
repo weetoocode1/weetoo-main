@@ -61,7 +61,10 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
     identity_verification_id: string;
   } | null>(null);
   const [userData, setUserData] = useState<{
-    mobileNumber: string;
+    name?: string | null;
+    mobileNumber?: string;
+    birthDate?: string | null;
+    gender?: string | null;
   } | null>(null);
   const [mobileNumber, setMobileNumber] = useState("");
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -213,11 +216,25 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
             console.log("User data to store:", userData);
 
             try {
+              const normalizeGender = (
+                input: string | null | undefined
+              ): "male" | "female" | "other" | null => {
+                if (!input) return null;
+                const v = String(input).trim().toLowerCase();
+                if (v === "m" || v === "male" || v === "1") return "male";
+                if (v === "f" || v === "female" || v === "2") return "female";
+                if (v === "other") return "other";
+                return null;
+              };
+
               const updateData: {
                 identity_verified: boolean;
                 identity_verified_at: string;
                 identity_verification_id: string;
                 mobile_number?: string;
+                birth_date?: string | null;
+                gender?: string | null;
+                identity_verification_name?: string | null;
               } = {
                 identity_verified: true,
                 identity_verified_at: new Date().toISOString(),
@@ -229,12 +246,18 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
 
               // Add user data if available
               if (userData) {
+                if (userData.name !== undefined) {
+                  updateData.identity_verification_name = userData.name;
+                }
                 if (userData.mobileNumber) {
                   updateData.mobile_number = userData.mobileNumber;
                 }
-                // You can add more fields here if needed
-                // updateData.birth_date = userData.birthDate;
-                // updateData.gender = userData.gender;
+                if (userData.birthDate !== undefined) {
+                  updateData.birth_date = userData.birthDate;
+                }
+                if (userData.gender !== undefined) {
+                  updateData.gender = normalizeGender(userData.gender);
+                }
               }
 
               // Always store the mobile number from the form
@@ -781,7 +804,10 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
             );
             setUserData(
               userData as unknown as {
-                mobileNumber: string;
+                name?: string | null;
+                mobileNumber?: string;
+                birthDate?: string | null;
+                gender?: string | null;
               } | null
             );
           }}

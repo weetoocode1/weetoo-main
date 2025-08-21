@@ -1,23 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-  getSortedRowModel,
-  SortingState,
-  getPaginationRowModel,
-} from "@tanstack/react-table";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -26,12 +10,28 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useQuery } from "@tanstack/react-query";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  ColumnDef,
+  SortingState,
+  flexRender,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
 import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface RecentUser {
   id: string;
@@ -59,7 +59,9 @@ const columns: ColumnDef<RecentUser>[] = [
           <Avatar className="h-9 w-9 ring-2 ring-muted/20">
             <AvatarImage src={user.avatar_url} alt={fullName} />
             <AvatarFallback className="bg-gradient-to-br from-primary/10 to-primary/20 text-primary font-medium">
-              {fullName.charAt(0)?.toUpperCase() || "U"}
+              {fullName && fullName.length > 0
+                ? fullName.charAt(0).toUpperCase()
+                : "U"}
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col min-w-0 flex-1">
@@ -146,8 +148,53 @@ const columns: ColumnDef<RecentUser>[] = [
 
 export function RecentUsersTable() {
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [isRealtimeActive, setIsRealtimeActive] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
+  const queryClient = useQueryClient();
 
-  const { data: users, isLoading } = useQuery({
+  // Real-time subscription for user updates
+  useEffect(() => {
+    const supabase = createClient();
+
+    // Subscribe to user table changes
+    const channel = supabase
+      .channel("recent-users-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*", // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: "public",
+          table: "users",
+        },
+        (payload) => {
+          console.log("RecentUsersTable: User change detected:", payload);
+
+          // Update the last update timestamp
+          setLastUpdateTime(new Date());
+
+          // Invalidate and refetch the query to get updated data
+          // This will automatically update the UI with fresh data
+          queryClient.invalidateQueries({
+            queryKey: ["admin", "recent-users"],
+          });
+        }
+      )
+      .subscribe((status) => {
+        console.log("RecentUsersTable: Realtime subscription status:", status);
+        setIsRealtimeActive(status === "SUBSCRIBED");
+      });
+
+    // Cleanup subscription on unmount
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  const {
+    data: users,
+    isLoading,
+    isFetching,
+  } = useQuery({
     queryKey: ["admin", "recent-users"],
     queryFn: async (): Promise<RecentUser[]> => {
       const supabase = createClient();
@@ -163,6 +210,9 @@ export function RecentUsersTable() {
       if (error) {
         throw new Error(`Failed to fetch recent users: ${error.message}`);
       }
+
+      // Update the last update timestamp when data is fetched
+      setLastUpdateTime(new Date());
 
       return data || [];
     },
@@ -193,9 +243,34 @@ export function RecentUsersTable() {
 
           <CardHeader className="flex flex-col items-stretch border-b !p-0 sm:flex-row">
             <div className="flex flex-1 flex-col justify-center gap-1 px-6 pt-4 pb-3 sm:!py-0">
-              <CardTitle>Recent Users</CardTitle>
+              <div className="flex items-center gap-2">
+                <CardTitle>Recent Users</CardTitle>
+                {isRealtimeActive && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-full text-xs font-medium">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    Live
+                  </div>
+                )}
+              </div>
               <CardDescription>
                 Latest user registrations and their activity
+                {isRealtimeActive && (
+                  <span className="text-green-600 dark:text-green-400 font-medium">
+                    {" "}
+                    • Real-time updates active
+                  </span>
+                )}
+                {isFetching && (
+                  <span className="text-blue-600 dark:text-blue-400 font-medium">
+                    {" "}
+                    • Refreshing data...
+                  </span>
+                )}
+                {lastUpdateTime && (
+                  <span className="text-xs text-muted-foreground">
+                    Last updated: {lastUpdateTime.toLocaleTimeString()}
+                  </span>
+                )}
               </CardDescription>
             </div>
             <div className="flex">
@@ -236,9 +311,13 @@ export function RecentUsersTable() {
 
         <CardHeader className="flex flex-col items-stretch border-b !p-0 sm:flex-row">
           <div className="flex flex-1 flex-col justify-center gap-1 px-6 pt-4 pb-3 sm:!py-0">
-            <CardTitle>Recent Users</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle>Recent Users</CardTitle>
+              <Skeleton className="w-16 h-6 rounded-full" />
+            </div>
             <CardDescription>
               Latest user registrations and their activity
+              <Skeleton className="inline-block w-32 h-3 mt-1" />
             </CardDescription>
           </div>
           <div className="flex">
@@ -298,7 +377,9 @@ export function RecentUsersTable() {
                     <TableRow
                       key={row.id}
                       data-state={row.getIsSelected() && "selected"}
-                      className="border-b border-border/30 hover:bg-muted/20 transition-colors"
+                      className={`border-b border-border/30 hover:bg-muted/20 transition-colors ${
+                        isFetching ? "animate-pulse" : ""
+                      }`}
                     >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell key={cell.id} className="px-4 py-3">

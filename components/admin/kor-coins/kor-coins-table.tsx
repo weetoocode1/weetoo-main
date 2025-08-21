@@ -158,8 +158,10 @@ export function KorCoinsTable() {
   const filteredUsers =
     users?.filter((user) => {
       const searchLower = searchTerm.toLowerCase();
-      const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
-      const email = user.email.toLowerCase();
+      const fullName = `${user.first_name || ""} ${user.last_name || ""}`
+        .trim()
+        .toLowerCase();
+      const email = (user.email || "").toLowerCase();
 
       return fullName.includes(searchLower) || email.includes(searchLower);
     }) || [];
@@ -169,14 +171,18 @@ export function KorCoinsTable() {
     let bValue: number | string | Date;
 
     if (sortBy === "name") {
-      aValue = `${a.first_name} ${a.last_name}`.toLowerCase();
-      bValue = `${b.first_name} ${b.last_name}`.toLowerCase();
+      aValue = `${a.first_name || ""} ${a.last_name || ""}`
+        .trim()
+        .toLowerCase();
+      bValue = `${b.first_name || ""} ${b.last_name || ""}`
+        .trim()
+        .toLowerCase();
     } else if (sortBy === "created_at") {
-      aValue = new Date(a[sortBy]).getTime();
-      bValue = new Date(b[sortBy]).getTime();
+      aValue = new Date(a[sortBy] || new Date()).getTime();
+      bValue = new Date(b[sortBy] || new Date()).getTime();
     } else {
-      aValue = a[sortBy];
-      bValue = b[sortBy];
+      aValue = a[sortBy] || 0;
+      bValue = b[sortBy] || 0;
     }
 
     if (sortOrder === "asc") {
@@ -202,6 +208,14 @@ export function KorCoinsTable() {
   };
 
   const getBalanceStatus = (coins: number) => {
+    // Handle null/undefined coins
+    if (coins == null || isNaN(coins)) {
+      return {
+        label: "Unknown",
+        color: "bg-gray-100 text-gray-800 border-gray-300",
+      };
+    }
+
     if (coins >= 1000000)
       return {
         label: "High",
@@ -370,7 +384,10 @@ export function KorCoinsTable() {
                 </thead>
                 <tbody>
                   {currentUsers.map((user) => {
-                    const fullName = `${user.first_name} ${user.last_name}`;
+                    const fullName =
+                      `${user.first_name || ""} ${
+                        user.last_name || ""
+                      }`.trim() || "Unknown User";
                     const balanceStatus = getBalanceStatus(user.kor_coins);
                     const isHighBalance = user.kor_coins >= 1000000;
 
@@ -387,7 +404,9 @@ export function KorCoinsTable() {
                                 alt={fullName}
                               />
                               <AvatarFallback className="bg-gradient-to-br from-primary/10 to-primary/20 text-primary font-medium">
-                                {fullName.charAt(0)?.toUpperCase() || "U"}
+                                {fullName && fullName.length > 0
+                                  ? fullName.charAt(0).toUpperCase()
+                                  : "U"}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex flex-col min-w-0 flex-1">
@@ -492,7 +511,9 @@ export function KorCoinsTable() {
           <div className="lg:hidden">
             <div className="space-y-4 p-4">
               {currentUsers.map((user) => {
-                const fullName = `${user.first_name} ${user.last_name}`;
+                const fullName =
+                  `${user.first_name || ""} ${user.last_name || ""}`.trim() ||
+                  "Unknown User";
                 const balanceStatus = getBalanceStatus(user.kor_coins);
                 const isHighBalance = user.kor_coins >= 1000000;
 
@@ -507,7 +528,9 @@ export function KorCoinsTable() {
                         <Avatar className="h-12 w-12 ring-2 ring-muted/20">
                           <AvatarImage src={user.avatar_url} alt={fullName} />
                           <AvatarFallback className="bg-gradient-to-br from-primary/10 to-primary/20 text-primary font-medium">
-                            {fullName.charAt(0)?.toUpperCase() || "U"}
+                            {fullName && fullName.length > 0
+                              ? fullName.charAt(0).toUpperCase()
+                              : "U"}
                           </AvatarFallback>
                         </Avatar>
                         <div>
@@ -652,25 +675,41 @@ export function KorCoinsTable() {
               )}
 
               {/* Pages around current */}
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const page = Math.max(
-                  1,
-                  Math.min(totalPages, currentPage - 2 + i)
-                );
-                if (page < 1 || page > totalPages) return null;
+              {(() => {
+                const pages = [];
+                let start = Math.max(1, currentPage - 2);
+                let end = Math.min(totalPages, currentPage + 2);
 
-                return (
-                  <Button
-                    key={page}
-                    variant={currentPage === page ? "default" : "outline"}
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    onClick={() => setCurrentPage(page)}
-                  >
-                    {page}
-                  </Button>
-                );
-              })}
+                // Adjust start and end to always show 5 pages when possible
+                if (end - start < 4 && totalPages > 5) {
+                  if (start === 1) {
+                    end = Math.min(totalPages, start + 4);
+                  } else if (end === totalPages) {
+                    start = Math.max(1, end - 4);
+                  }
+                }
+
+                // For very few pages, show all pages
+                if (totalPages <= 5) {
+                  start = 1;
+                  end = totalPages;
+                }
+
+                for (let page = start; page <= end; page++) {
+                  pages.push(
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                    </Button>
+                  );
+                }
+                return pages;
+              })()}
 
               {/* Last page */}
               {currentPage < totalPages - 2 && (

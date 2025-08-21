@@ -31,7 +31,7 @@ import {
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { toast } from "sonner";
 
 export function UserDropdown() {
@@ -40,6 +40,73 @@ export function UserDropdown() {
   const [loggingOut, setLoggingOut] = useState(false);
   const router = useRouter();
   const [showEmail, setShowEmail] = useState(false);
+  const [, setKorCoinsUpdateTrigger] = useState(0);
+
+  // Listen for identity verification completion and KOR coins updates
+  useEffect(() => {
+    const handleIdentityVerified = (event: Event) => {
+      // Force a re-render to update verification status
+      // This will update the user.identity_verified status instantly
+      // The useAuth hook will have updated the user data, so we just need to trigger a re-render
+      setShowEmail((prev) => prev); // Triggers re-render with updated verification status
+    };
+
+    const handleKorCoinsUpdated = (event: Event) => {
+      // Update the local state with the new amount
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail?.newAmount !== undefined) {
+        // Force a re-render to update KOR coins display
+        setKorCoinsUpdateTrigger((prev) => prev + 1);
+      }
+    };
+
+    window.addEventListener("identity-verified", handleIdentityVerified);
+    window.addEventListener("kor-coins-updated", handleKorCoinsUpdated);
+
+    return () => {
+      window.removeEventListener("identity-verified", handleIdentityVerified);
+      window.removeEventListener("kor-coins-updated", handleKorCoinsUpdated);
+    };
+  }, []);
+
+  // Real-time subscription to user's KOR coins updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const supabase = createClient();
+
+    // Subscribe to real-time updates for this user's KOR coins
+    const channel = supabase.channel(`user-kor-coins-dropdown-${user.id}`).on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "users",
+        filter: `id=eq.${user.id}`,
+      },
+      (payload) => {
+        const newData = payload.new as { kor_coins?: number };
+        if (newData?.kor_coins !== undefined) {
+          console.log(
+            "UserDropdown: KOR coins updated via real-time:",
+            newData.kor_coins
+          );
+          // Force a re-render to update KOR coins display
+          setKorCoinsUpdateTrigger((prev) => prev + 1);
+        }
+      }
+    );
+
+    channel.subscribe();
+
+    return () => {
+      try {
+        supabase.removeChannel(channel);
+      } catch (error) {
+        console.error("Error removing channel:", error);
+      }
+    };
+  }, [user?.id]);
 
   const handleLogout = useCallback(async () => {
     setLoggingOut(true);
@@ -92,7 +159,7 @@ export function UserDropdown() {
 
   return (
     <div className="flex justify-end">
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <div className="relative">
             <button

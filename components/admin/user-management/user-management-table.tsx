@@ -4,14 +4,6 @@ import { Icons } from "@/components/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -56,7 +48,11 @@ interface User {
   first_name: string;
   last_name: string;
   email: string;
+  nickname?: string;
   mobile_number?: string;
+  birth_date?: string | null;
+  gender?: string | null;
+  identity_verification_name?: string | null;
   role: string;
   kor_coins: number;
   created_at: string;
@@ -65,6 +61,9 @@ interface User {
   avatar_url?: string;
   banned?: boolean;
   ban_reason?: string;
+  identity_verified?: boolean;
+  identity_verified_at?: string;
+  identity_verification_id?: string;
 }
 
 export function UserManagementTable() {
@@ -127,14 +126,21 @@ export function UserManagementTable() {
           first_name,
           last_name,
           email,
+          nickname,
           mobile_number,
+          birth_date,
+          gender,
+          identity_verification_name,
           role,
           kor_coins,
           created_at,
           avatar_url,
           updated_at,
           banned,
-          ban_reason
+          ban_reason,
+          identity_verified,
+          identity_verified_at,
+          identity_verification_id
         `
         )
         .order("created_at", { ascending: false });
@@ -173,7 +179,74 @@ export function UserManagementTable() {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchOnMount: "always",
   });
+
+  // Realtime: instantly reflect new/updated users and optimistically update cache
+  useEffect(() => {
+    const supabase = createClient();
+
+    const upsertUser = (row: User) => {
+      if (!row || !row.id) return;
+      queryClient.setQueryData(["admin", "all-users"], (oldData: User[]) => {
+        const prev: User[] | undefined = oldData as User[] | undefined;
+        if (!prev) return prev;
+        const index = prev.findIndex((u) => u.id === row.id);
+        const normalized: User = {
+          ...row,
+          warningCount: 0,
+        } as User;
+        if (index === -1) {
+          return [normalized, ...prev];
+        }
+        const copy = [...prev];
+        copy[index] = { ...copy[index], ...normalized };
+        return copy;
+      });
+    };
+
+    const removeUser = (row: User) => {
+      if (!row || !row.id) return;
+      queryClient.setQueryData(["admin", "all-users"], (oldData: User[]) => {
+        const prev: User[] | undefined = oldData as User[] | undefined;
+        if (!prev) return prev;
+        return prev.filter((u) => u.id !== row.id);
+      });
+    };
+
+    const channel = supabase
+      .channel("admin-users-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "users" },
+        (payload: { new: User }) => {
+          upsertUser(payload.new);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "users" },
+        (payload: { new: User }) => {
+          upsertUser(payload.new);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "users" },
+        (payload: { old: Partial<User> }) => {
+          removeUser(payload.old as User);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      try {
+        supabase.removeChannel(channel);
+      } catch {}
+    };
+  }, [queryClient]);
 
   // Filter and sort users
   const filteredUsers =
@@ -305,6 +378,10 @@ export function UserManagementTable() {
         Warnings: user.warningCount,
         "KOR Coins": user.kor_coins?.toLocaleString() || "0",
         Mobile: user.mobile_number || "N/A",
+        "Identity Verified": user.identity_verified ? "Yes" : "No",
+        "Verification Date": user.identity_verified_at
+          ? formatDateForCsv(user.identity_verified_at)
+          : "N/A",
         Created: formatDateForCsv(user.created_at),
         "Last Updated": formatDateForCsv(user.updated_at),
       }));
@@ -346,11 +423,95 @@ export function UserManagementTable() {
       URL.revokeObjectURL(url);
 
       toast.success(`Successfully exported ${exportData.length} users to CSV!`);
-    } catch (error) {
-      console.error("Export failed:", error);
+    } catch (_error) {
+      console.error("Export failed:", _error);
       toast.error("Failed to export users. Please try again.");
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleVerifyIdentity = async (user: User) => {
+    try {
+      const supabase = createClient();
+
+      if (user.identity_verified) {
+        // Unverify the user
+        const { error } = await supabase
+          .from("users")
+          .update({
+            identity_verified: false,
+            identity_verified_at: null,
+            identity_verification_id: null,
+          })
+          .eq("id", user.id);
+
+        if (error) {
+          throw error;
+        }
+
+        toast.success(
+          `Successfully unverified identity for ${user.first_name} ${user.last_name}`
+        );
+
+        // Dispatch event to instantly update all restrictions across the app
+        window.dispatchEvent(
+          new CustomEvent("identity-verified", {
+            detail: {
+              userId: user.id,
+              data: {
+                id: null,
+              },
+            },
+          })
+        );
+      } else {
+        // Get current admin user ID
+        const {
+          data: { user: adminUser },
+        } = await supabase.auth.getUser();
+        const adminUserId = adminUser?.id || "unknown";
+
+        // Verify the user
+        const { error } = await supabase
+          .from("users")
+          .update({
+            identity_verified: true,
+            identity_verified_at: new Date().toISOString(),
+            identity_verification_id: `admin_verified_${adminUserId}`,
+          })
+          .eq("id", user.id);
+
+        if (error) {
+          throw error;
+        }
+
+        toast.success(
+          `Successfully verified identity for ${user.first_name} ${user.last_name}`
+        );
+
+        // Dispatch event to instantly update all restrictions across the app
+        window.dispatchEvent(
+          new CustomEvent("identity-verified", {
+            detail: {
+              userId: user.id,
+              data: {
+                id: `admin_verified_${adminUserId}`,
+              },
+            },
+          })
+        );
+      }
+
+      // Refresh the users data
+      queryClient.invalidateQueries({
+        queryKey: ["admin", "all-users"],
+      });
+    } catch (_error) {
+      console.error("Failed to update identity verification:", _error);
+      toast.error(
+        "Failed to update user identity verification. Please try again."
+      );
     }
   };
 
@@ -588,9 +749,7 @@ export function UserManagementTable() {
                         </span>
                       </button>
                     </th>
-                    <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Status
-                    </th>
+
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
                       KOR Coins
                     </th>
@@ -598,7 +757,7 @@ export function UserManagementTable() {
                       Warnings
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Joined
+                      Identity
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
                       Actions
@@ -651,22 +810,7 @@ export function UserManagementTable() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center space-x-2">
-                            <div
-                              className={`w-2 h-2 rounded-full ${
-                                user.banned ? "bg-red-500" : "bg-green-500"
-                              }`}
-                            />
-                            <span
-                              className={`text-sm ${
-                                user.banned ? "text-red-600" : "text-green-600"
-                              }`}
-                            >
-                              {user.banned ? "Banned" : "Active"}
-                            </span>
-                          </div>
-                        </td>
+
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
                             <Icons.coins className="h-4 w-4 text-yellow-600" />
@@ -685,19 +829,20 @@ export function UserManagementTable() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">
-                              {new Date(user.created_at).toLocaleDateString(
-                                "en-US",
-                                {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                }
-                              )}
-                            </span>
+                            <div
+                              className={`inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-medium ${
+                                user.identity_verified
+                                  ? "bg-green-100 text-green-800 border border-green-300"
+                                  : "bg-red-100 text-red-800 border border-red-300"
+                              }`}
+                            >
+                              {user.identity_verified
+                                ? "Verified"
+                                : "Unverified"}
+                            </div>
                           </div>
                         </td>
+
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
                             <DropdownMenu>
@@ -757,6 +902,15 @@ export function UserManagementTable() {
                                     {user.banned ? "Unban User" : "Ban User"}
                                   </DropdownMenuItem>
                                 )}
+                                <DropdownMenuItem
+                                  onClick={() => handleVerifyIdentity(user)}
+                                  className="text-blue-600 focus:text-blue-600"
+                                >
+                                  <Shield className="mr-2 h-4 w-4" />
+                                  {user.identity_verified
+                                    ? "Unverify Identity"
+                                    : "Verify Identity"}
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -853,6 +1007,15 @@ export function UserManagementTable() {
                                 {user.banned ? "Unban User" : "Ban User"}
                               </DropdownMenuItem>
                             )}
+                            <DropdownMenuItem
+                              onClick={() => handleVerifyIdentity(user)}
+                              className="text-blue-600 focus:text-blue-600"
+                            >
+                              <Shield className="mr-2 h-4 w-4" />
+                              {user.identity_verified
+                                ? "Unverify Identity"
+                                : "Verify Identity"}
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -905,6 +1068,18 @@ export function UserManagementTable() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-muted-foreground" />
+                        <div
+                          className={`inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-medium ${
+                            user.identity_verified
+                              ? "bg-green-100 text-green-800 border border-green-300"
+                              : "bg-red-100 text-red-800 border border-red-300"
+                          }`}
+                        >
+                          {user.identity_verified ? "Verified" : "Unverified"}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span className="text-muted-foreground">
                           {new Date(user.created_at).toLocaleDateString(
@@ -916,9 +1091,6 @@ export function UserManagementTable() {
                             }
                           )}
                         </span>
-                      </div>
-                      <div className="flex justify-end">
-                        <UserDetailsDialog user={user} />
                       </div>
                     </div>
                   </div>
@@ -1011,284 +1183,13 @@ export function UserManagementTable() {
         <>
           {/* View Details Dialog */}
           {openDialog === "view" && (
-            <Dialog
+            <UserDetailsDialog
+              user={selectedUser}
               open={openDialog === "view"}
-              onOpenChange={() => setOpenDialog(null)}
-            >
-              <DialogContent className="w-full lg:max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle className="text-xl font-semibold">
-                    User Details
-                  </DialogTitle>
-                  <DialogDescription>
-                    Comprehensive information about the user account
-                  </DialogDescription>
-                </DialogHeader>
-
-                <div className="space-y-6">
-                  {/* User Header Section */}
-                  <div className="flex items-start gap-4 p-4 bg-muted/20 border border-border rounded-lg">
-                    <div className="w-16 h-16 bg-primary/10 flex items-center justify-center rounded-full border-2 border-primary/20">
-                      {selectedUser.avatar_url ? (
-                        <img
-                          src={selectedUser.avatar_url}
-                          alt={`${selectedUser.first_name} ${selectedUser.last_name}`}
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                      ) : (
-                        <User className="h-8 w-8 text-primary" />
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <h3 className="text-xl font-bold text-foreground">
-                        {selectedUser.first_name} {selectedUser.last_name}
-                      </h3>
-                      <p className="text-sm text-muted-foreground font-mono">
-                        {selectedUser.id}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* User Information Section */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Status */}
-                    <div className="flex items-center gap-3 p-3 bg-muted/30 border border-border rounded-lg">
-                      <div className="w-8 h-8 bg-green-100 flex items-center justify-center rounded-lg">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-muted-foreground">
-                          Status
-                        </div>
-                        <div className="text-sm font-medium text-green-700">
-                          Active
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Role */}
-                    <div className="flex items-center gap-3 p-3 bg-muted/30 border border-border rounded-lg">
-                      <div className="w-8 h-8 bg-blue-100 flex items-center justify-center rounded-lg">
-                        <User className="h-4 w-4 text-blue-600" />
-                      </div>
-                      <div>
-                        <div className="text-xs text-muted-foreground">
-                          Role
-                        </div>
-                        <div className="text-sm font-medium capitalize">
-                          {selectedUser.role}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Email */}
-                    <div className="flex items-center gap-3 p-3 bg-muted/30 border border-border rounded-lg">
-                      <div className="w-8 h-8 bg-blue-100 flex items-center justify-center rounded-lg">
-                        <svg
-                          className="h-4 w-4 text-blue-600"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                          />
-                        </svg>
-                      </div>
-                      <div>
-                        <div className="text-xs text-muted-foreground">
-                          Email
-                        </div>
-                        <div className="text-sm font-medium font-mono">
-                          {selectedUser.email}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Phone */}
-                    <div className="flex items-center gap-3 p-3 bg-muted/30 border border-border rounded-lg">
-                      <div className="w-8 h-8 bg-blue-100 flex items-center justify-center rounded-lg">
-                        <svg
-                          className="h-4 w-4 text-blue-600"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                          />
-                        </svg>
-                      </div>
-                      <div>
-                        <div className="text-xs text-muted-foreground">
-                          Phone
-                        </div>
-                        <div className="text-sm font-medium">
-                          {selectedUser.mobile_number || "Not provided"}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Location */}
-                    <div className="flex items-center gap-3 p-3 bg-muted/30 border border-border rounded-lg">
-                      <div className="w-8 h-8 bg-gray-100 flex items-center justify-center rounded-lg">
-                        <svg
-                          className="h-4 w-4 text-gray-600"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 0 1111.314 0z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                          />
-                        </svg>
-                      </div>
-                      <div>
-                        <div className="text-xs text-muted-foreground">
-                          Location
-                        </div>
-                        <div className="text-sm font-medium">Not provided</div>
-                      </div>
-                    </div>
-
-                    {/* KOR_COIN */}
-                    <div className="flex items-center gap-3 p-3 bg-muted/30 border border-border rounded-lg">
-                      <div className="w-8 h-8 bg-yellow-100 flex items-center justify-center rounded-lg">
-                        <Icons.coins className="h-4 w-4 text-yellow-600" />
-                      </div>
-                      <div>
-                        <div className="text-xs text-muted-foreground">
-                          KOR_COIN
-                        </div>
-                        <div className="text-sm font-medium font-mono">
-                          {selectedUser.kor_coins.toLocaleString()}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Registered */}
-                    <div className="flex items-center gap-3 p-3 bg-muted/30 border border-border rounded-lg">
-                      <div className="w-8 h-8 bg-green-100 flex items-center justify-center rounded-lg">
-                        <svg
-                          className="h-4 w-4 text-green-600"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                          />
-                        </svg>
-                      </div>
-                      <div>
-                        <div className="text-xs text-muted-foreground">
-                          Registered
-                        </div>
-                        <div className="text-sm font-medium">
-                          {new Date(selectedUser.created_at).toLocaleDateString(
-                            "en-US",
-                            {
-                              month: "long",
-                              day: "numeric",
-                              year: "numeric",
-                            }
-                          )}{" "}
-                          at{" "}
-                          {new Date(selectedUser.created_at).toLocaleTimeString(
-                            "en-US",
-                            {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Warnings */}
-                    <div className="flex items-center gap-3 p-3 bg-muted/30 border border-border rounded-lg">
-                      <div className="w-8 h-8 bg-orange-100 flex items-center justify-center rounded-lg">
-                        <AlertTriangle className="h-4 w-4 text-orange-600" />
-                      </div>
-                      <div>
-                        <div className="text-xs text-muted-foreground">
-                          Warnings
-                        </div>
-                        <div className="text-sm font-medium font-mono">
-                          {selectedUser.warningCount}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Last Updated */}
-                    <div className="flex items-center gap-3 p-3 bg-muted/30 border border-border rounded-lg">
-                      <div className="w-8 h-8 bg-purple-100 flex items-center justify-center rounded-lg">
-                        <svg
-                          className="h-4 w-4 text-purple-600"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                      </div>
-                      <div>
-                        <div className="text-xs text-muted-foreground">
-                          Last Updated
-                        </div>
-                        <div className="text-sm font-medium">
-                          {new Date(selectedUser.updated_at).toLocaleDateString(
-                            "en-US",
-                            {
-                              month: "long",
-                              day: "numeric",
-                              year: "numeric",
-                            }
-                          )}{" "}
-                          at{" "}
-                          {new Date(selectedUser.updated_at).toLocaleTimeString(
-                            "en-US",
-                            {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setOpenDialog(null)}>
-                    Close
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+              onOpenChange={(open: boolean) =>
+                setOpenDialog(open ? "view" : null)
+              }
+            />
           )}
 
           {/* Edit User Dialog */}

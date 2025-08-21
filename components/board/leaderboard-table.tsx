@@ -1,6 +1,7 @@
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -9,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { LeaderboardTableProps, Post } from "@/types/post";
 import {
   flexRender,
   getCoreRowModel,
@@ -17,11 +19,9 @@ import {
   type ColumnDef,
 } from "@tanstack/react-table";
 import { Star } from "lucide-react";
-import { useMemo, useState, useEffect } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { LeaderboardTableProps, Post } from "@/types/post";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 
 // Cache for storing fetched posts
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes

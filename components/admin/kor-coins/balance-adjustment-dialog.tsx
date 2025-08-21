@@ -122,7 +122,12 @@ export function BalanceAdjustmentDialog({
         queryKey: ["admin", "kor-coins-users"],
       });
 
-      // Invalidate stats
+      // Invalidate chart data to refresh the graph
+      await queryClient.invalidateQueries({
+        queryKey: ["admin", "chart-data"],
+      });
+
+      // Invalidate stats to refresh the overview
       await queryClient.invalidateQueries({
         queryKey: ["admin", "kor-coins-stats"],
       });

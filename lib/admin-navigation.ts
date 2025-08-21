@@ -1,4 +1,5 @@
 import {
+  BanknoteIcon,
   Bell,
   Coins,
   CreditCard,
@@ -10,10 +11,12 @@ import {
   MonitorPlay,
   Users2,
 } from "lucide-react";
+
 export type AdminNavItem = {
   label: string;
   href: string;
   icon: LucideIcon;
+  roles?: string[]; // Optional: restrict to specific roles
 };
 
 export type AdminSection = {
@@ -65,6 +68,12 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   {
     title: "Finance",
     items: [
+      {
+        label: "Bank Accounts",
+        href: "/admin/bank-accounts",
+        icon: BanknoteIcon,
+        roles: ["super_admin"], // Only super_admin can see this
+      },
       {
         label: "Deposits",
         href: "/admin/deposit-management",

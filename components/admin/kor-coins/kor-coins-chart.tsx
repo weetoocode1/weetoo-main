@@ -39,9 +39,10 @@ export function KorCoinsChart() {
 
           <CardHeader className="flex flex-col items-stretch border-b !p-0 sm:flex-row">
             <div className="flex flex-1 flex-col justify-center gap-1 px-6 pt-4 pb-3 sm:!py-0">
-              <CardTitle>KOR Coins Activity</CardTitle>
+              <CardTitle>Monthly KOR Coins Activity</CardTitle>
               <CardDescription>
-                Showing daily KOR Coins usage for the last 30 days
+                Showing monthly KOR Coins activity (cumulative
+                additions/subtractions) for the last 30 days
               </CardDescription>
             </div>
             <div className="flex">
@@ -60,7 +61,10 @@ export function KorCoinsChart() {
   }
 
   const korCoinsData = chartData?.korCoinsActivity || [];
-  const latestCoins = korCoinsData[korCoinsData.length - 1]?.coins || 0;
+  const totalDailyActivity = korCoinsData.reduce(
+    (sum, day) => sum + day.coins,
+    0
+  );
 
   return (
     <div className="relative">
@@ -81,10 +85,10 @@ export function KorCoinsChart() {
           <div className="flex">
             <div className="relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left sm:border-t-0 sm:border-l sm:px-8 sm:py-6">
               <span className="text-muted-foreground text-xs">
-                {chartConfig.coins.label}
+                Monthly Activity
               </span>
               <span className="text-lg leading-none font-bold sm:text-3xl">
-                {latestCoins.toLocaleString()}
+                {totalDailyActivity.toLocaleString()}
               </span>
             </div>
           </div>
