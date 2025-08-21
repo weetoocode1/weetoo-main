@@ -14,6 +14,7 @@ import {
 } from "@tanstack/react-query";
 import { format, formatDistanceToNow } from "date-fns";
 import {
+  AlertTriangle,
   CircleXIcon,
   Clock,
   Crown,
@@ -43,6 +44,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -114,6 +116,7 @@ function CreatedAtCell({ value }: { value: string }) {
 
 export function TradingRoomsList() {
   const t = useTranslations("tradingRooms");
+  const { user: authUser } = useAuth();
   const id = useId();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -363,6 +366,20 @@ export function TradingRoomsList() {
     };
   }, [queryClient]);
 
+  // Listen for identity verification completion
+  useEffect(() => {
+    const handleIdentityVerified = (event: Event) => {
+      // Force a re-render to update verification status
+      // This will update the authUser.identity_verified status instantly
+      // The useAuth hook will have updated the user data, so we just need to trigger a re-render
+      setSearchTerm((prev) => prev); // Triggers re-render with updated verification status
+    };
+
+    window.addEventListener("identity-verified", handleIdentityVerified);
+    return () =>
+      window.removeEventListener("identity-verified", handleIdentityVerified);
+  }, []);
+
   // Real-time subscription for trading rooms - More responsive
   useEffect(() => {
     const supabase = createClient();
@@ -514,10 +531,17 @@ export function TradingRoomsList() {
   };
 
   const handleJoinRoom = (room: TradingRoom) => {
-    if (!currentUserId) {
+    if (!authUser) {
       toast.warning(t("pleaseLoginToJoin"));
       return;
     }
+
+    // Check identity verification
+    if (!authUser.identity_verified) {
+      toast.error("Identity verification required to join trading rooms.");
+      return;
+    }
+
     if (room.isPublic || room.isHosted) {
       window.open(`/room/${room.id}`, "_blank");
     } else {
@@ -918,6 +942,7 @@ export function TradingRoomsList() {
                 className="group relative bg-background rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/10"
                 onClick={() => handleJoinRoom(room)}
               >
+                {/* Room card content */}
                 {/* Thumbnail Container */}
                 <div className="relative aspect-video rounded-t-lg overflow-hidden bg-muted group-hover:bg-muted/80 transition-colors duration-300">
                   {room.thumbnail_url && !imageErrors.has(room.id) ? (
@@ -957,6 +982,21 @@ export function TradingRoomsList() {
                     <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
                       {room.participants}{" "}
                       {room.participants === 1 ? "participant" : "participants"}
+                    </div>
+                  )}
+
+                  {/* Verification required overlay for unverified users */}
+                  {!authUser?.identity_verified && (
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
+                      <div className="text-center text-white p-4">
+                        <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-amber-400" />
+                        <p className="text-sm font-medium">
+                          Verification Required
+                        </p>
+                        <p className="text-xs text-gray-300 mt-1">
+                          Complete identity verification to join rooms
+                        </p>
+                      </div>
                     </div>
                   )}
 
@@ -1009,7 +1049,7 @@ export function TradingRoomsList() {
                             "relative z-10 px-3 py-1 rounded-full text-xs font-bold text-white backdrop-blur-sm border border-white/20",
                             room.category === "voice"
                               ? "bg-gradient-to-r from-blue-500 to-blue-600"
-                              : "bg-gradient-to-r from-emerald-500 to-emerald-600"
+                              : "bg-gradient-to-br from-emerald-500 to-emerald-600"
                           )}
                         >
                           {room.category === "voice" ? t("voice") : t("chat")}

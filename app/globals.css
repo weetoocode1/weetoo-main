@@ -1,6 +1,15 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Custom Fonts */
+@font-face {
+  font-family: "GmarketSans";
+  src: url("/fonts/GmarketSans/GmarketSansTTFBold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 html,
 body,
 :root {
@@ -135,6 +144,7 @@ body,
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-serif: var(--font-serif);
+  --font-gmarket: "GmarketSans", sans-serif;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -178,6 +188,10 @@ body {
 }
 
 @layer utilities {
+  .font-gmarket {
+    font-family: var(--font-gmarket);
+  }
+
   .line-clamp-1 {
     overflow: hidden;
     display: -webkit-box;

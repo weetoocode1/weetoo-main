@@ -17,6 +17,8 @@ interface UserData {
   role?: string;
   mobile_number?: string;
   identity_verified?: boolean;
+  identity_verified_at?: string;
+  identity_verification_id?: string;
 }
 
 // Query key for user data
@@ -91,7 +93,7 @@ export function useAuth() {
   // If no session and not loading, user should be null
   const finalUser = !session && !sessionLoading ? null : user;
 
-  // Set up auth state change listener
+  // Set up auth state change listener and real-time subscriptions
   useEffect(() => {
     const supabase = createClient();
 
@@ -119,10 +121,128 @@ export function useAuth() {
       }
     );
 
+    // Set up real-time subscription for user data changes
+    let userSubscription: any = null;
+    if (userId) {
+      userSubscription = supabase
+        .channel(`user-${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "users",
+            filter: `id=eq.${userId}`,
+          },
+          (payload) => {
+            const newData = payload.new as UserData;
+
+            // Optimistically update the user data in the cache
+            queryClient.setQueryData(
+              [...USER_QUERY_KEY, userId],
+              (oldData: UserData | undefined) => {
+                if (oldData) {
+                  return {
+                    ...oldData,
+                    ...newData,
+                  };
+                }
+                return newData;
+              }
+            );
+
+            // Also update the general user query data
+            queryClient.setQueryData(
+              USER_QUERY_KEY,
+              (oldData: UserData | undefined) => {
+                if (oldData && oldData.id === userId) {
+                  return {
+                    ...oldData,
+                    ...newData,
+                  };
+                }
+                return oldData;
+              }
+            );
+
+            // Dispatch custom event for KOR coins changes
+            const oldData = queryClient.getQueryData([
+              ...USER_QUERY_KEY,
+              userId,
+            ]) as UserData | undefined;
+            if (oldData?.kor_coins !== newData.kor_coins) {
+              window.dispatchEvent(
+                new CustomEvent("kor-coins-updated", {
+                  detail: {
+                    userId,
+                    oldAmount: oldData?.kor_coins || 0,
+                    newAmount: newData.kor_coins || 0,
+                  },
+                })
+              );
+            }
+          }
+        )
+        .subscribe();
+    }
+
+    // Listen for identity verification completion
+    const handleIdentityVerified = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { detail: verificationData } = customEvent;
+
+      if (userId && verificationData) {
+        // Optimistically update the user data in the cache
+        queryClient.setQueryData(
+          [...USER_QUERY_KEY, userId],
+          (oldData: UserData | undefined) => {
+            if (oldData) {
+              return {
+                ...oldData,
+                identity_verified: true,
+                identity_verified_at: new Date().toISOString(),
+                identity_verification_id: verificationData.data?.id,
+              };
+            }
+            return oldData;
+          }
+        );
+
+        // Also update the general user query data
+        queryClient.setQueryData(
+          USER_QUERY_KEY,
+          (oldData: UserData | undefined) => {
+            if (oldData && oldData.id === userId) {
+              return {
+                ...oldData,
+                identity_verified: true,
+                identity_verified_at: new Date().toISOString(),
+                identity_verification_id: verificationData.data?.id,
+              };
+            }
+            return oldData;
+          }
+        );
+
+        // Invalidate queries to ensure fresh data
+        queryClient.invalidateQueries({ queryKey: ["user"] });
+        queryClient.invalidateQueries({
+          queryKey: ["user-verification"],
+        });
+      }
+    };
+
+    // Add event listener for identity verification
+    window.addEventListener("identity-verified", handleIdentityVerified);
+
     return () => {
       listener?.subscription.unsubscribe();
+      if (userSubscription) {
+        userSubscription.unsubscribe();
+      }
+      window.removeEventListener("identity-verified", handleIdentityVerified);
     };
-  }, [queryClient]);
+  }, [queryClient, userId]);
 
   const computed = useMemo(() => {
     if (!user) return null;

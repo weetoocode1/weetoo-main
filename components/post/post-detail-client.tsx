@@ -22,10 +22,13 @@ import {
   Clock,
   Eye,
   MessageSquare,
+  AlertTriangle,
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import * as React from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { toast } from "sonner";
 
 const calculateReadingTime = (
   text: string,
@@ -54,11 +57,21 @@ export default function PostDetailClient({
   board,
 }: PostDetailClientProps) {
   const router = useRouter();
+  const { user: authUser } = useAuth();
   const [api, setApi] = React.useState<CarouselApi>();
   const [current, setCurrent] = React.useState(0);
   const [currentUser, setCurrentUser] = React.useState<User | null>(null);
   const [commentCount, setCommentCount] = React.useState(post.comments);
   const [mounted, setMounted] = React.useState(false);
+
+  // Verification restriction handlers
+  const handleVerificationRequired = (action: string) => {
+    if (!authUser?.identity_verified) {
+      toast.error(`Identity verification required to ${action}.`);
+      return false;
+    }
+    return true;
+  };
 
   // Get current user with caching
   React.useEffect(() => {
@@ -305,27 +318,87 @@ export default function PostDetailClient({
 
           {/* Post Actions: Likes, Comments, Share */}
           <div className="flex items-center gap-4 sm:gap-6 text-muted-foreground text-sm mt-6 mb-6 sm:mb-8">
-            <LikeButton postId={post.id} initialLikes={post.likes} />
-            <button className="flex items-center gap-1.5 hover:text-primary transition">
+            {authUser?.identity_verified ? (
+              <LikeButton postId={post.id} initialLikes={post.likes} />
+            ) : (
+              <button 
+                className="flex items-center gap-1.5 opacity-50 cursor-not-allowed"
+                onClick={() => handleVerificationRequired("like posts")}
+                title="Identity verification required"
+              >
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                <span>Like</span>
+              </button>
+            )}
+            
+            <button 
+              className={`flex items-center gap-1.5 transition ${
+                authUser?.identity_verified 
+                  ? "hover:text-primary" 
+                  : "opacity-50 cursor-not-allowed"
+              }`}
+              onClick={() => {
+                if (authUser?.identity_verified) {
+                  // Scroll to comments section
+                  document.getElementById('comments-section')?.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                  handleVerificationRequired("comment on posts");
+                }
+              }}
+              title={authUser?.identity_verified ? "View comments" : "Identity verification required"}
+            >
               <MessageSquare className="h-5 w-5" />
               {commentCount} {commentCount === 1 ? "Comment" : "Comments"}
             </button>
-            <SharePost
-              post={{
-                title: post.title,
-                id: post.id,
-                board: board,
-              }}
-              className="text-muted-foreground hover:text-primary"
-            />
+            
+            {authUser?.identity_verified ? (
+              <SharePost
+                post={{
+                  title: post.title,
+                  id: post.id,
+                  board: board,
+                }}
+                className="text-muted-foreground hover:text-primary"
+              />
+            ) : (
+              <button 
+                className="flex items-center gap-1.5 opacity-50 cursor-not-allowed"
+                onClick={() => handleVerificationRequired("share posts")}
+                title="Identity verification required"
+              >
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                <span>Share</span>
+              </button>
+            )}
           </div>
 
           {/* Comments Section */}
-          <CommentsSection
-            postId={post.id}
-            commentCount={commentCount}
-            setCommentCount={setCommentCount}
-          />
+          <div id="comments-section">
+            {authUser?.identity_verified ? (
+              <CommentsSection
+                postId={post.id}
+                commentCount={commentCount}
+                setCommentCount={setCommentCount}
+              />
+            ) : (
+              <div className="p-8 text-center space-y-4 border border-border rounded-lg bg-muted/30">
+                <div className="w-16 h-16 mx-auto bg-amber-100 dark:bg-amber-950/20 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    Comments Restricted
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    You need to verify your identity to view and add comments on posts.
+                  </p>
+                  <div className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+                    🔒 Identity verification required
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </article>
       </div>
     </div>

@@ -65,13 +65,18 @@ export function ViewProfileDialog({
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 bg-primary/10 flex items-center justify-center border-2 border-primary/20">
                 <span className="text-xl font-bold text-primary">
-                  {user.first_name.charAt(0)}
-                  {user.last_name.charAt(0)}
+                  {user.first_name && user.first_name.length > 0
+                    ? user.first_name.charAt(0)
+                    : "U"}
+                  {user.last_name && user.last_name.length > 0
+                    ? user.last_name.charAt(0)
+                    : "N"}
                 </span>
               </div>
               <div className="flex-1">
                 <h3 className="text-xl font-bold text-foreground mb-1">
-                  {user.first_name} {user.last_name}
+                  {`${user.first_name || ""} ${user.last_name || ""}`.trim() ||
+                    "Unknown User"}
                 </h3>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                   <Hash className="h-3 w-3" />
@@ -153,7 +158,9 @@ export function ViewProfileDialog({
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 bg-green-200 flex items-center justify-center">
                   <span className="text-xs font-bold text-green-700">
-                    {balanceStatus.label.charAt(0)}
+                    {balanceStatus.label && balanceStatus.label.length > 0
+                      ? balanceStatus.label.charAt(0)
+                      : "?"}
                   </span>
                 </div>
                 <span className="text-xs font-medium text-green-800 uppercase tracking-wider">

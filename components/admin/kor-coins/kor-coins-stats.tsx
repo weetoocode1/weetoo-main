@@ -32,8 +32,19 @@ export function KorCoinsStats() {
         .from("users")
         .select("*", { count: "exact", head: true });
 
-      // Get total transactions (placeholder - you can implement this based on your transaction table)
-      const totalTransactions = 0; // This would come from your transactions table
+      // Get total transactions from localStorage adjustments
+      let totalTransactions = 0;
+      try {
+        if (typeof window !== "undefined") {
+          const storedAdjustments = localStorage.getItem("korCoinsAdjustments");
+          if (storedAdjustments) {
+            const adjustments = JSON.parse(storedAdjustments);
+            totalTransactions = adjustments.length;
+          }
+        }
+      } catch (error) {
+        console.warn("Failed to parse KOR coins adjustments:", error);
+      }
 
       // Calculate average balance
       const averageBalance =

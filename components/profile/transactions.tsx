@@ -5,6 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useEffect, useMemo, useState } from "react";
 // Using custom badges below for clarity, not shared Badge
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowDownRight, ArrowUpRight, Download, Search } from "lucide-react";
@@ -14,8 +21,9 @@ type TxnType = "withdrawal" | "deposit";
 interface TransactionRow {
   id: string;
   type: TxnType;
-  amount: number; // KOR coins for consistency
-  final_amount?: number; // KOR (amount user receives after fee)
+  amount: number;
+  final_amount?: number;
+  won_paid?: number;
   status: string;
   created_at: string;
   meta?: {
@@ -24,7 +32,6 @@ interface TransactionRow {
   };
 }
 
-// Raw database types for Supabase responses
 interface RawWithdrawalData {
   id: string;
   kor_coins_amount: number;
@@ -45,8 +52,14 @@ interface RawDepositData {
   kor_coins_amount: number;
   status: string;
   created_at: string;
-  bank_name?: string;
-  account_number?: string;
+  total_amount?: number | null;
+  won_amount?: number | null;
+  bank_account:
+    | {
+        bank_name?: string;
+        account_number?: string;
+      }[]
+    | null;
 }
 
 // Union type for loading state
@@ -64,11 +77,11 @@ async function fetchTransactions(userId: string): Promise<TransactionRow[]> {
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
-  // deposits (placeholder table name 'deposits' – adjust if different)
+  // deposits (from deposit_requests)
   const { data: d } = await supabase
-    .from("deposits")
+    .from("deposit_requests")
     .select(
-      `id, kor_coins_amount, status, created_at, bank_name, account_number`
+      `id, kor_coins_amount, status, created_at, total_amount, won_amount, bank_account:bank_accounts(bank_name, account_number)`
     )
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
@@ -92,11 +105,17 @@ async function fetchTransactions(userId: string): Promise<TransactionRow[]> {
     id: r.id,
     type: "deposit",
     amount: r.kor_coins_amount,
-    status: r.status,
+    won_paid: (r.total_amount ?? r.won_amount ?? 0) || 0,
+    status:
+      r.status === "completed"
+        ? "sent"
+        : r.status === "failed"
+        ? "failed"
+        : r.status,
     created_at: r.created_at,
     meta: {
-      bank_name: r.bank_name,
-      account_number: r.account_number,
+      bank_name: r.bank_account?.[0]?.bank_name,
+      account_number: r.bank_account?.[0]?.account_number,
     },
   }));
 
@@ -112,6 +131,8 @@ export function Transactions() {
   const [rows, setRows] = useState<TransactionRow[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
     setMounted(true);
@@ -136,15 +157,33 @@ export function Transactions() {
   }, [user?.id]);
 
   const filtered = useMemo(() => {
-    const q = query.toLowerCase();
-    const list = rows || [];
-    if (!q) return list;
-    return list.filter((r) =>
-      [r.id, r.type, r.status, r.meta?.bank_name, r.meta?.account_number]
-        .filter(Boolean)
-        .some((s) => String(s).toLowerCase().includes(q))
-    );
-  }, [query, rows]);
+    let filtered = rows || [];
+
+    // Apply type filter
+    if (typeFilter !== "all") {
+      filtered = filtered.filter((t) => t.type === typeFilter);
+    }
+
+    // Apply status filter
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((t) => t.status === statusFilter);
+    }
+
+    // Apply search query
+    if (query.trim()) {
+      const searchLower = query.toLowerCase();
+      filtered = filtered.filter(
+        (t) =>
+          t.id.toLowerCase().includes(searchLower) ||
+          t.type.toLowerCase().includes(searchLower) ||
+          t.status.toLowerCase().includes(searchLower) ||
+          t.meta?.bank_name?.toLowerCase().includes(searchLower) ||
+          t.meta?.account_number?.includes(searchLower)
+      );
+    }
+
+    return filtered;
+  }, [rows, query, typeFilter, statusFilter]);
 
   const exportCsv = () => {
     const data = filtered;
@@ -153,7 +192,7 @@ export function Transactions() {
       "id",
       "type",
       "amount_kor",
-      "received_kor",
+      "received_kor_or_won",
       "status",
       "created_at",
       "bank_name",
@@ -166,7 +205,7 @@ export function Transactions() {
           r.id,
           r.type,
           r.amount,
-          r.final_amount ?? "",
+          r.type === "deposit" ? r.amount : r.final_amount ?? "",
           r.status,
           r.created_at,
           r.meta?.bank_name || "",
@@ -191,25 +230,7 @@ export function Transactions() {
     URL.revokeObjectURL(url);
   };
 
-  // const renderStatusBadge = (status: string) => {
-  //   if (status === "sent") {
-  //     return (
-  //       <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs uppercase tracking-wide">
-  //         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-  //         Sent
-  //       </div>
-  //     );
-  //   }
-  //   return (
-  //     <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 border border-amber-200 bg-amber-50 text-amber-700 text-xs uppercase tracking-wide">
-  //       <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-  //       Pending
-  //     </div>
-  //   );
-  // };
-
   if (!mounted) {
-    // Render stable skeleton on server and before hydration to avoid mismatch
     return (
       <div className="space-y-6">
         <Card className="border border-border rounded-none shadow-none">
@@ -247,13 +268,36 @@ export function Transactions() {
                 onChange={(e) => setQuery(e.target.value)}
               />
             </div>
-            <Button
-              variant="outline"
-              className="rounded-none h-10"
-              onClick={exportCsv}
-            >
-              <Download className="h-4 w-4 mr-2" /> Export CSV
-            </Button>
+            <div className="flex items-center gap-3">
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-[140px] h-10 rounded-none">
+                  <SelectValue placeholder="Filter by type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="deposit">Deposits</SelectItem>
+                  <SelectItem value="withdrawal">Withdrawals</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[140px] h-10 rounded-none">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="sent">Sent</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                className="rounded-none h-10"
+                onClick={exportCsv}
+              >
+                <Download className="h-4 w-4 mr-2" /> Export CSV
+              </Button>
+            </div>
           </div>
 
           {/* Table */}
@@ -267,102 +311,128 @@ export function Transactions() {
               <div className="col-span-2">Date</div>
             </div>
 
-            {(loading ? Array.from({ length: 5 }) : filtered).map((r, idx) => (
-              <div
-                key={(r as LoadingOrTransaction)?.id || idx}
-                className="grid grid-cols-1 md:grid-cols-12 gap-2 px-4 py-3 border-b border-border/30 hover:bg-muted/10"
-              >
-                <div className="md:col-span-3 font-mono text-sm break-all">
-                  {(r as LoadingOrTransaction)?.id || ""}
+            {filtered.length === 0 ? (
+              <div className="px-4 py-8 text-center">
+                <div className="text-muted-foreground text-sm">
+                  {loading
+                    ? "Loading transactions..."
+                    : "No transactions found"}
                 </div>
-                <div className="md:col-span-2">
-                  {loading ? (
-                    <div className="h-4 bg-muted rounded" />
-                  ) : (r as TransactionRow)?.type === "withdrawal" ? (
-                    <div className="inline-flex items-center gap-2">
-                      <ArrowUpRight className="h-4 w-4 text-red-500" />
-                      <span className="text-sm">Withdrawal</span>
-                    </div>
-                  ) : (
-                    <div className="inline-flex items-center gap-2">
-                      <ArrowDownRight className="h-4 w-4 text-emerald-500" />
-                      <span className="text-sm">Deposit</span>
+                {!loading &&
+                  (query || typeFilter !== "all" || statusFilter !== "all") && (
+                    <div className="text-xs text-muted-foreground mt-2">
+                      Try adjusting your filters or search terms
                     </div>
                   )}
-                </div>
-                <div
-                  className={`md:col-span-2 font-semibold ${
-                    loading
-                      ? ""
-                      : (r as TransactionRow)?.type === "withdrawal"
-                      ? "text-red-500"
-                      : "text-emerald-600"
-                  }`}
-                >
-                  {loading ? (
-                    <div className="h-4 bg-muted rounded" />
-                  ) : (
-                    `${
-                      (r as TransactionRow)?.type === "withdrawal" ? "-" : "+"
-                    } ${
-                      (r as TransactionRow)?.amount?.toLocaleString?.() || 0
-                    } KOR`
-                  )}
-                </div>
-                <div className="md:col-span-2 font-semibold">
-                  {loading ? (
-                    <div className="h-4 bg-muted rounded" />
-                  ) : (r as TransactionRow)?.status === "sent" ? (
-                    <span className="text-emerald-600">
-                      + ₩{" "}
-                      {(
-                        (r as TransactionRow)?.final_amount ?? 0
-                      ).toLocaleString()}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">
-                      ₩{" "}
-                      {(
-                        (r as TransactionRow)?.final_amount ?? 0
-                      ).toLocaleString()}
-                    </span>
-                  )}
-                </div>
-                <div className="md:col-span-1">
-                  {loading ? (
-                    <div className="h-4 bg-muted rounded" />
-                  ) : (
-                    <div
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs uppercase tracking-wide border ${
-                        (r as TransactionRow)?.status === "sent"
-                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                          : "border-amber-200 bg-amber-50 text-amber-700"
-                      }`}
-                    >
-                      <div
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          (r as TransactionRow)?.status === "sent"
-                            ? "bg-emerald-500"
-                            : "bg-amber-500"
-                        }`}
-                      />
-                      {(r as TransactionRow)?.status === "sent"
-                        ? "Sent"
-                        : "Pending"}
-                    </div>
-                  )}
-                </div>
-                <div className="md:col-span-2 text-sm text-muted-foreground">
-                  {loading ? (
-                    <div className="h-4 bg-muted rounded" />
-                  ) : (
-                    new Date(
-                      (r as TransactionRow)?.created_at || ""
-                    ).toLocaleString()
-                  )}
-                </div>
               </div>
-            ))}
+            ) : (
+              filtered.map((r, idx) => (
+                <div
+                  key={(r as LoadingOrTransaction)?.id || idx}
+                  className="grid grid-cols-1 md:grid-cols-12 gap-2 px-4 py-3 border-b border-border/30 hover:bg-muted/10"
+                >
+                  <div className="md:col-span-3 font-mono text-sm break-all">
+                    {(r as LoadingOrTransaction)?.id || ""}
+                  </div>
+                  <div className="md:col-span-2">
+                    {loading ? (
+                      <div className="h-4 bg-muted rounded" />
+                    ) : (r as TransactionRow)?.type === "withdrawal" ? (
+                      <div className="inline-flex items-center gap-2">
+                        <ArrowUpRight className="h-4 w-4 text-red-500" />
+                        <span className="text-sm">Withdrawal</span>
+                      </div>
+                    ) : (
+                      <div className="inline-flex items-center gap-2">
+                        <ArrowDownRight className="h-4 w-4 text-emerald-500" />
+                        <span className="text-sm">Deposit</span>
+                      </div>
+                    )}
+                  </div>
+                  <div
+                    className={`md:col-span-2 font-semibold ${
+                      loading
+                        ? ""
+                        : (r as TransactionRow)?.type === "withdrawal"
+                        ? "text-red-500"
+                        : ""
+                    }`}
+                  >
+                    {loading ? (
+                      <div className="h-4 bg-muted rounded" />
+                    ) : (r as TransactionRow)?.type === "withdrawal" ? (
+                      `- ${
+                        (r as TransactionRow)?.amount?.toLocaleString?.() || 0
+                      } KOR`
+                    ) : (
+                      `₩ ${
+                        (r as TransactionRow)?.won_paid?.toLocaleString?.() || 0
+                      }`
+                    )}
+                  </div>
+                  <div className="md:col-span-2 font-semibold">
+                    {loading ? (
+                      <div className="h-4 bg-muted rounded" />
+                    ) : (r as TransactionRow)?.type === "withdrawal" ? (
+                      (r as TransactionRow)?.status === "sent" ? (
+                        <span className="text-emerald-600">
+                          + ₩ {(r as TransactionRow)?.final_amount ?? 0}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">₩ 0</span>
+                      )
+                    ) : (r as TransactionRow)?.status === "sent" ? (
+                      <span className="text-emerald-600">
+                        +{" "}
+                        {(r as TransactionRow)?.amount?.toLocaleString?.() || 0}{" "}
+                        KOR
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">0 KOR</span>
+                    )}
+                  </div>
+                  <div className="md:col-span-1">
+                    {loading ? (
+                      <div className="h-4 bg-muted rounded" />
+                    ) : (
+                      <div
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs uppercase tracking-wide border ${
+                          (r as TransactionRow)?.status === "sent"
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                            : (r as TransactionRow)?.status === "failed"
+                            ? "border-red-200 bg-red-50 text-red-700"
+                            : "border-amber-200 bg-amber-50 text-amber-700"
+                        }`}
+                      >
+                        <div
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            (r as TransactionRow)?.status === "sent"
+                              ? "bg-emerald-500"
+                              : (r as TransactionRow)?.status === "failed"
+                              ? "bg-red-500"
+                              : "bg-amber-500"
+                          }`}
+                        />
+                        {(r as TransactionRow)?.status === "sent"
+                          ? "Sent"
+                          : (r as TransactionRow)?.status === "failed"
+                          ? "Failed"
+                          : "Pending"}
+                      </div>
+                    )}
+                  </div>
+                  <div className="md:col-span-2 text-sm text-muted-foreground">
+                    {loading ? (
+                      <div className="h-4 bg-muted rounded" />
+                    ) : (
+                      new Date(
+                        (r as TransactionRow)?.created_at || ""
+                      ).toLocaleString()
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>

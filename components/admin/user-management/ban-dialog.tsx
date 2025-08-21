@@ -208,7 +208,9 @@ export function BanDialog({
 
   // Generate fallback initials
   const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+    const first = firstName && firstName.length > 0 ? firstName.charAt(0) : "U";
+    const last = lastName && lastName.length > 0 ? lastName.charAt(0) : "N";
+    return `${first}${last}`.toUpperCase();
   };
 
   // Check if user is currently banned

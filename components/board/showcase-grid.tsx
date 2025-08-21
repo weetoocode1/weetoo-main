@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import Link from "next/link";
-import { ShowcaseGridProps, Post } from "@/types/post";
-import Image from "next/image";
+import { Post, ShowcaseGridProps } from "@/types/post";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export function ShowcaseGrid({ board }: ShowcaseGridProps) {
   const t = useTranslations("communityBoards");

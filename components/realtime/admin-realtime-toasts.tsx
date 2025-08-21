@@ -23,6 +23,116 @@ interface NotificationConfig {
   dismissible?: boolean;
 }
 
+// Generic fallback config for unknown types
+const getGenericConfig = (
+  type: string,
+  title?: string,
+  body?: string
+): NotificationConfig => ({
+  toastType: "info",
+  title: title || "New Notification",
+  description: () => body || "You have a new notification",
+  duration: 5000,
+});
+
+// Notification configurations for admin notifications
+const adminNotificationConfigs: Record<string, NotificationConfig> = {
+  withdrawal_request_created: {
+    toastType: "info",
+    title: "New Withdrawal Request",
+    description: (metadata) => {
+      const userName = metadata?.user_name || "User";
+      const korAmount = metadata?.kor_coins_amount;
+      const display =
+        typeof korAmount === "number"
+          ? `${korAmount.toLocaleString()} KOR`
+          : "withdrawal";
+      return `${userName} requested ${display}`;
+    },
+    duration: 6000,
+  },
+  deposit_request_created: {
+    toastType: "info",
+    title: "New Deposit Request",
+    description: (metadata) => {
+      const userName = metadata?.user_name || "User";
+      const korAmount = metadata?.kor_coins_amount;
+      const display =
+        typeof korAmount === "number"
+          ? `${korAmount.toLocaleString()} KOR`
+          : "deposit";
+      return `${userName} requested ${display}`;
+    },
+    duration: 6000,
+  },
+  user_registered: {
+    toastType: "info",
+    title: "New User Registration",
+    description: () => "A new user has registered",
+    duration: 5000,
+  },
+  // Add more admin notification types here easily
+  identity_verification_completed: {
+    toastType: "success",
+    title: "Identity Verification Completed",
+    description: (metadata) => {
+      const userName = metadata?.user_name || "User";
+      return `${userName} has completed identity verification`;
+    },
+    duration: 5000,
+  },
+  suspicious_activity_detected: {
+    toastType: "warning",
+    title: "Suspicious Activity Detected",
+    description: (metadata) => {
+      const userName = metadata?.user_name || "User";
+      const activity = metadata?.activity_type || "activity";
+      return `Suspicious ${activity} detected for user ${userName}`;
+    },
+    duration: 8000,
+  },
+  system_maintenance: {
+    toastType: "info",
+    title: "System Maintenance",
+    description: (metadata) => {
+      const message = metadata?.message || "System maintenance is scheduled";
+      return String(message);
+    },
+    duration: 10000,
+  },
+};
+
+// Simple, clean toast function
+const showToast = (
+  config: NotificationConfig,
+  metadata: Record<string, unknown>
+) => {
+  const toastOptions = {
+    description: config.description(metadata),
+    duration: config.duration,
+    dismissible: config.dismissible,
+  };
+
+  const title =
+    typeof config.title === "function" ? config.title(metadata) : config.title;
+
+  switch (config.toastType) {
+    case "success":
+      toast.success(title, toastOptions);
+      break;
+    case "error":
+      toast.error(title, toastOptions);
+      break;
+    case "warning":
+      toast.warning(title, toastOptions);
+      break;
+    case "info":
+    default:
+      toast.info(title, toastOptions);
+      break;
+  }
+};
+
 export function AdminRealtimeToasts() {
   const { isAdmin, user, computed } = useAuth();
   const isAdminRef = useRef(isAdmin);
@@ -91,116 +201,9 @@ export function AdminRealtimeToasts() {
       pathname: window.location.pathname,
     });
 
-    // Simple, scalable notification configuration
-    const notificationConfigs: Record<string, NotificationConfig> = {
-      withdrawal_request_created: {
-        toastType: "info",
-        title: "New Withdrawal Request",
-        description: (metadata) => {
-          const userName = metadata?.user_name || "User";
-          const korAmount = metadata?.kor_coins_amount;
-          const display =
-            typeof korAmount === "number"
-              ? `${korAmount.toLocaleString()} KOR`
-              : "withdrawal";
-          return `${userName} requested ${display}`;
-        },
-        duration: 6000,
-      },
-      verification_needed: {
-        toastType: "warning",
-        title: "Verification Required",
-        description: (metadata) => {
-          const userName = metadata?.user_name || "User";
-          const verifType = metadata?.verification_type || "verification";
-          return `${userName} needs ${verifType} verification`;
-        },
-        duration: 7000,
-      },
-      user_registration: {
-        toastType: "success",
-        title: "New User Registration",
-        description: (metadata) => {
-          const userName = metadata?.user_name || "New User";
-          return `${userName} has joined the platform`;
-        },
-        duration: 5000,
-      },
-      system_alert: {
-        toastType: "warning",
-        title: (metadata) => (metadata?.title as string) || "System Alert",
-        description: (metadata) =>
-          (metadata?.body as string) || "System notification",
-        duration: 8000,
-        dismissible: false,
-      },
-      competition_winner: {
-        toastType: "success",
-        title: "Competition Winner!",
-        description: (metadata) => {
-          const userName = metadata?.user_name || "User";
-          const competition = metadata?.competition || "competition";
-          const prize = metadata?.prize || "prize";
-          return `${userName} won ${competition} - ${prize}`;
-        },
-        duration: 6000,
-      },
-      error_occurred: {
-        toastType: "error",
-        title: (metadata) => (metadata?.title as string) || "System Error",
-        description: (metadata) =>
-          (metadata?.body as string) || "An error has occurred",
-        duration: 8000,
-        dismissible: false,
-      },
-    };
+    // Use the notification configs and showToast function defined outside
 
-    // Generic fallback config for unknown types
-    const getGenericConfig = (
-      type: string,
-      title?: string,
-      body?: string
-    ): NotificationConfig => ({
-      toastType: "info",
-      title: title || "New Notification",
-      description: () => body || "You have a new notification",
-      duration: 5000,
-    });
-
-    // Simple, clean toast function
-    const showToast = (
-      config: NotificationConfig,
-      metadata: Record<string, unknown>
-    ) => {
-      const toastOptions = {
-        description: config.description(metadata),
-        duration: config.duration,
-        dismissible: config.dismissible,
-      };
-
-      const title =
-        typeof config.title === "function"
-          ? config.title(metadata)
-          : config.title;
-
-      switch (config.toastType) {
-        case "success":
-          toast.success(title, toastOptions);
-          break;
-        case "error":
-          toast.error(title, toastOptions);
-          break;
-        case "warning":
-          toast.warning(title, toastOptions);
-          break;
-        case "info":
-        default:
-          toast.info(title, toastOptions);
-          break;
-      }
-    };
-
-    // Industry-standard heartbeat system (like Discord/Slack)
+    // heartbeat system
     const startHeartbeat = () => {
       if (connectionRef.current.heartbeatInterval) {
         clearInterval(connectionRef.current.heartbeatInterval);
@@ -282,6 +285,36 @@ export function AdminRealtimeToasts() {
       }
     };
 
+    // Extra recovery hooks: visibility and network
+    const attachRecoveryHooks = () => {
+      const onVisible = () => {
+        if (!isAdminRef.current) return;
+        const now = Date.now();
+        const stale = now - connectionRef.current.lastHeartbeat > 30000;
+        if (
+          !connectionRef.current.channel ||
+          stale ||
+          !connectionRef.current.isActive
+        ) {
+          console.log(
+            "AdminRealtimeToasts: visibility recovery → re-establish"
+          );
+          establishConnection();
+        }
+      };
+      const onOnline = () => {
+        if (!isAdminRef.current) return;
+        console.log("AdminRealtimeToasts: network online → re-establish");
+        establishConnection();
+      };
+      window.addEventListener("visibilitychange", onVisible);
+      window.addEventListener("online", onOnline);
+      return () => {
+        window.removeEventListener("visibilitychange", onVisible);
+        window.removeEventListener("online", onOnline);
+      };
+    };
+
     // Silent connection manager with improved error handling
     const establishConnection = () => {
       if (
@@ -304,6 +337,22 @@ export function AdminRealtimeToasts() {
         }
       }
 
+      // Debug channel to see ALL notifications
+      const debugChannel = supabase.channel("admin-debug-all").on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+        },
+        (payload) => {
+          console.log(
+            "AdminRealtimeToasts: DEBUG - All notifications:",
+            payload
+          );
+        }
+      );
+
       // Create new channel
       const channel = supabase.channel("admin-toasts").on(
         "postgres_changes",
@@ -313,31 +362,57 @@ export function AdminRealtimeToasts() {
           table: "notifications",
         },
         (payload) => {
-          if (!isAdminRef.current) return;
+          console.log("AdminRealtimeToasts: Raw payload received:", payload);
+
+          if (!isAdminRef.current) {
+            console.log("AdminRealtimeToasts: Not admin, skipping");
+            return;
+          }
 
           const row = payload.new as AdminNotificationPayload;
-          if (row?.audience !== "admin") return;
+          console.log("AdminRealtimeToasts: Parsed notification row:", row);
+
+          if (row?.audience !== "admin") {
+            console.log(
+              "AdminRealtimeToasts: Skipping non-admin notification:",
+              row?.audience
+            );
+            return;
+          }
+
+          // Debug logging
+          console.log("AdminRealtimeToasts: Processing admin notification", {
+            type: row.type,
+            audience: row.audience,
+            metadata: row.metadata,
+          });
 
           // Update heartbeat on any activity
           connectionRef.current.lastHeartbeat = Date.now();
 
           // Get config for this notification type
           const config =
-            notificationConfigs[row.type] ||
+            adminNotificationConfigs[row.type] ||
             getGenericConfig(
               row.type,
               row.title || undefined,
               row.body || undefined
             );
 
+          console.log("AdminRealtimeToasts: Using config:", config);
+
           // Show toast with dynamic configuration
           showToast(config, row.metadata || {});
         }
       );
 
+      // Subscribe to debug channel first
+      debugChannel.subscribe();
+
       // Subscribe with silent error handling
       channel.subscribe((status) => {
         if (status === "SUBSCRIBED") {
+          console.log("AdminRealtimeToasts: Channel SUBSCRIBED successfully");
           connectionRef.current.isConnecting = false;
           connectionRef.current.retryCount = 0; // Reset retry count on success
           connectionRef.current.channel = channel;
@@ -347,10 +422,10 @@ export function AdminRealtimeToasts() {
           startHeartbeat();
           startHealthCheck();
 
-          // Only log initial connection, not reconnections
-          if (connectionRef.current.retryCount === 0) {
-            console.log("AdminRealtimeToasts: connection established");
-          }
+          console.log(
+            "AdminRealtimeToasts: Connection fully established with channel:",
+            channel
+          );
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
           connectionRef.current.isConnecting = false;
           connectionRef.current.lastError = Date.now();
@@ -373,7 +448,7 @@ export function AdminRealtimeToasts() {
         }
       });
 
-      connectionRef.current.channel = channel;
+      // Don't set channel until subscription is successful
     };
 
     // Silent error handling with exponential backoff
@@ -412,13 +487,15 @@ export function AdminRealtimeToasts() {
       }, delay);
     };
 
-    // Initial connection
+    // Initial connection + recovery hooks
+    const detachRecovery = attachRecoveryHooks();
     establishConnection();
 
     // Cleanup function
     return () => {
       connectionRef.current.isActive = false;
       stopIntervals();
+      detachRecovery();
 
       if (connectionRef.current.channel) {
         try {
@@ -433,7 +510,7 @@ export function AdminRealtimeToasts() {
     };
   }, [isAdmin]);
 
-  // Show visual indicator for debugging (only in development)
+  // Show simple status indicator (only in development)
   if (process.env.NODE_ENV === "development" && isAdmin) {
     return (
       <div
@@ -441,7 +518,10 @@ export function AdminRealtimeToasts() {
           position: "fixed",
           top: "10px",
           right: "10px",
-          background: "#10b981",
+          background:
+            connectionRef.current.isActive && connectionRef.current.channel
+              ? "#10b981"
+              : "#ef4444",
           color: "white",
           padding: "4px 8px",
           borderRadius: "4px",
@@ -450,7 +530,47 @@ export function AdminRealtimeToasts() {
           pointerEvents: "none",
         }}
       >
-        🔔 Admin Notifications Active
+        <div>
+          🔔 Admin:{" "}
+          {connectionRef.current.isActive && connectionRef.current.channel
+            ? "Connected"
+            : "Disconnected"}
+        </div>
+        <button
+          onClick={() => {
+            // Test admin notification to verify toast system works
+            const testNotification = {
+              type: "deposit_request_created",
+              audience: "admin" as const,
+              metadata: {
+                user_name: "Test User",
+                kor_coins_amount: 1000,
+              },
+            };
+
+            const config =
+              adminNotificationConfigs[testNotification.type] ||
+              getGenericConfig(
+                testNotification.type,
+                "Test Admin Notification",
+                "This is a test admin notification"
+              );
+
+            showToast(config, testNotification.metadata);
+          }}
+          style={{
+            background: "rgba(255,255,255,0.2)",
+            border: "none",
+            color: "white",
+            padding: "2px 6px",
+            borderRadius: "2px",
+            fontSize: "10px",
+            cursor: "pointer",
+            marginTop: "4px",
+          }}
+        >
+          Test Admin Toast
+        </button>
       </div>
     );
   }

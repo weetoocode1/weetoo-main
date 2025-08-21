@@ -67,6 +67,17 @@ export function LeftSidebar() {
     return count.toString();
   };
 
+  // Filter navigation items based on user role
+  const filteredSections = ADMIN_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => {
+      // If no roles specified, show to all admin users
+      if (!item.roles) return true;
+      // If roles specified, check if current user has access
+      return item.roles.includes(displayRole);
+    }),
+  })).filter((section) => section.items.length > 0); // Remove empty sections
+
   return (
     <aside
       className={cn(
@@ -87,7 +98,7 @@ export function LeftSidebar() {
       <ScrollArea className="flex-1">
         <nav className="p-3" aria-label="Admin Navigation">
           <div className="space-y-4">
-            {ADMIN_SECTIONS.map((section, idx) => (
+            {filteredSections.map((section, idx) => (
               <div key={section.title}>
                 <div
                   className={cn(
@@ -150,7 +161,7 @@ export function LeftSidebar() {
                         {/* Notification count badge */}
                         {isNotifications && unreadCount > 0 && !isCollapsed && (
                           <div className="flex-shrink-0">
-                            <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-medium bg-red-500 text-white rounded-full min-w-[20px] h-5">
+                            <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-medium border bg-red-500 text-white rounded-none min-w-[20px] h-5">
                               {formatNotificationCount(unreadCount)}
                             </span>
                           </div>

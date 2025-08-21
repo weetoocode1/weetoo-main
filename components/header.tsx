@@ -80,7 +80,7 @@ export function Header() {
     <header className="w-full border-dashed border-border border-b sticky top-0 z-50 bg-background ">
       <div className="h-14 flex justify-between w-full items-center container mx-auto gap-2 md:gap-4 px-4">
         <Link href="/" className="flex items-center">
-          <span className="text-2xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
+          <span className="text-2xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent font-gmarket">
             WEETOO
           </span>
           {/* <span className="text-xs">We Trade, Weetoo</span> */}

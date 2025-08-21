@@ -17,11 +17,9 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12">
           <div className="lg:col-span-5 space-y-8">
             <div className="space-y-6">
-              <Link href="/" className="inline-block">
-                <span className="text-3xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
-                  WEETOO
-                </span>
-              </Link>
+              <span className="text-3xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent font-gmarket">
+                WEETOO
+              </span>
               <p className="text-sm text-muted-foreground leading-relaxed max-w-md whitespace-pre-line">
                 {t("companyDescription")}
               </p>

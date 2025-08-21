@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { NotificationStats } from "@/components/admins/notification/notification-stats";
-import { NotificationTable } from "@/components/admins/notification/notification-table";
+import { NotificationStats } from "@/components/admin/notification/notification-stats";
+import { NotificationTable } from "@/components/admin/notification/notification-table";
 import {
   useAllNotifications,
   useNotificationStats,

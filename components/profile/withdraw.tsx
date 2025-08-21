@@ -9,15 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Wallet, User, Shield, Clock, Coins } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import {
-  useCreateBankAccount,
-  useCreateWithdrawalRequest,
-  useUserBankAccounts,
-  useUserWithdrawalRequests,
-  useVerifyBankAccount,
-  useUpdateWithdrawalStatus,
-  useWithdrawalRealtimeSubscriptions,
-} from "@/hooks/use-withdrawal";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase/client";
 
 interface WithdrawalFormData {
   amount: number;
@@ -43,21 +36,243 @@ interface BankAccount {
   account_number?: string;
 }
 
+// Secure API functions
+const secureWithdrawalApi = {
+  // Create withdrawal request using secure API
+  async createWithdrawal(amount: number, bankAccountId: string) {
+    const response = await fetch("/api/secure-financial/withdrawal", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        amount,
+        bankAccountId,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to create withdrawal request");
+    }
+
+    return response.json();
+  },
+
+  // Get user's withdrawal requests
+  async getUserWithdrawals() {
+    const response = await fetch("/api/secure-financial/withdrawal");
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to fetch withdrawal requests");
+    }
+
+    return response.json();
+  },
+
+  // Create bank account
+  async createBankAccount(data: {
+    account_holder_name: string;
+    account_number: string;
+    bank_name: string;
+  }) {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) throw new Error("User not authenticated");
+
+    const { data: bankAccount, error } = await supabase
+      .from("bank_accounts")
+      .insert({
+        user_id: user.id,
+        ...data,
+        is_verified: false,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return bankAccount;
+  },
+
+  // Verify bank account
+  async verifyBankAccount(bankAccountId: string, verificationAmount: number) {
+    const response = await fetch("/api/secure-financial/verify-bank", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        bankAccountId,
+        verificationAmount,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to verify bank account");
+    }
+
+    return response.json();
+  },
+
+  // Get user's bank accounts
+  async getUserBankAccounts() {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) throw new Error("User not authenticated");
+
+    const { data, error } = await supabase
+      .from("bank_accounts")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+};
+
 export function Withdraw() {
   const { user, loading: authLoading, computed } = useAuth();
-  const { data: bankAccounts } = useUserBankAccounts();
-  const createBankAccount = useCreateBankAccount();
-  const createWithdrawal = useCreateWithdrawalRequest();
-  const { data: userRequests } = useUserWithdrawalRequests();
-  const verifyBankAccount = useVerifyBankAccount();
-  const updateWithdrawalStatus = useUpdateWithdrawalStatus();
-  useWithdrawalRealtimeSubscriptions();
+  const queryClient = useQueryClient();
+
+  // State to force re-renders when KOR coins update
+  const [, setKorCoinsUpdateTrigger] = useState(0);
+
+  // Listen for KOR coins updates to refresh the display
+  useEffect(() => {
+    const handleKorCoinsUpdated = (event: Event) => {
+      // Update the local state with the new amount
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail?.newAmount !== undefined) {
+        // Force a re-render to update KOR coins display
+        setKorCoinsUpdateTrigger((prev) => prev + 1);
+      }
+    };
+
+    window.addEventListener("kor-coins-updated", handleKorCoinsUpdated);
+
+    return () => {
+      window.removeEventListener("kor-coins-updated", handleKorCoinsUpdated);
+    };
+  }, []);
+
+  // Real-time subscription to user's KOR coins updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const supabase = createClient();
+
+    // Subscribe to real-time updates for this user's KOR coins
+    const channel = supabase.channel(`user-kor-coins-withdraw-${user.id}`).on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "users",
+        filter: `id=eq.${user.id}`,
+      },
+      (payload) => {
+        const newData = payload.new as { kor_coins?: number };
+        if (newData?.kor_coins !== undefined) {
+          console.log(
+            "Withdraw: KOR coins updated via real-time:",
+            newData.kor_coins
+          );
+          // Force a re-render to update KOR coins display
+          setKorCoinsUpdateTrigger((prev) => prev + 1);
+        }
+      }
+    );
+
+    channel.subscribe();
+
+    return () => {
+      try {
+        supabase.removeChannel(channel);
+      } catch (error) {
+        console.error("Error removing channel:", error);
+      }
+    };
+  }, [user?.id]);
+
+  // TanStack Query hooks for secure operations
+  const { data: bankAccounts } = useQuery({
+    queryKey: ["bank-accounts"],
+    queryFn: secureWithdrawalApi.getUserBankAccounts,
+    enabled: !!user,
+  });
+
+  const { data: userRequests } = useQuery({
+    queryKey: ["withdrawal-requests"],
+    queryFn: secureWithdrawalApi.getUserWithdrawals,
+    enabled: !!user,
+  });
+
+  const createBankAccountMutation = useMutation({
+    mutationFn: secureWithdrawalApi.createBankAccount,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bank-accounts"] });
+    },
+  });
+
+  const createWithdrawalMutation = useMutation({
+    mutationFn: ({
+      amount,
+      bankAccountId,
+    }: {
+      amount: number;
+      bankAccountId: string;
+    }) => secureWithdrawalApi.createWithdrawal(amount, bankAccountId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["withdrawal-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["user"] }); // Refresh user data for KOR coins
+
+      // Dispatch custom event for immediate KOR coins update
+      if (user?.id) {
+        window.dispatchEvent(
+          new CustomEvent("kor-coins-updated", {
+            detail: {
+              userId: user.id,
+              oldAmount: user.kor_coins || 0,
+              newAmount: Math.max(0, (user.kor_coins || 0) - formData.amount),
+            },
+          })
+        );
+      }
+    },
+  });
+
+  const verifyBankAccountMutation = useMutation({
+    mutationFn: ({
+      bankAccountId,
+      verificationAmount,
+    }: {
+      bankAccountId: string;
+      verificationAmount: number;
+    }) =>
+      secureWithdrawalApi.verifyBankAccount(bankAccountId, verificationAmount),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bank-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["withdrawal-requests"] });
+    },
+  });
 
   // Latest pending/verification_sent request
   const latestPending = useMemo(() => {
-    if (!userRequests || userRequests.length === 0)
+    if (
+      !userRequests?.withdrawalRequests ||
+      userRequests.withdrawalRequests.length === 0
+    )
       return null as WithdrawalRequest | null;
-    const pendingLike = (userRequests as WithdrawalRequest[])
+    const pendingLike = (userRequests.withdrawalRequests as WithdrawalRequest[])
       .filter(
         (r) =>
           (r.status === "pending" || r.status === "verification_sent") &&
@@ -100,15 +315,10 @@ export function Withdraw() {
     return { feeAmount, finalAmount, feePercentage };
   };
 
-  // Check if the withdrawal request is valid
+  // Check if the withdrawal request is valid (basic UX validation only)
   const isWithdrawalValid = () => {
-    const userKorCoins = computed?.kor_coins || 0;
-    const requestedAmount = formData.amount;
-
     return (
-      requestedAmount >= 100 &&
-      requestedAmount <= 15000 &&
-      requestedAmount <= userKorCoins &&
+      formData.amount > 0 &&
       formData.accountHolderName.trim() &&
       formData.bankAccountNumber.trim() &&
       formData.bankName.trim()
@@ -130,28 +340,7 @@ export function Withdraw() {
       return;
     }
 
-    // Enhanced KOR coins validation
-    const userKorCoins = computed?.kor_coins || 0;
-    const requestedAmount = formData.amount;
-
-    if (requestedAmount < 100 || requestedAmount > 15000) {
-      toast.error("Withdrawal amount must be between 100 and 15,000 KOR coins");
-      return;
-    }
-
-    if (requestedAmount > userKorCoins) {
-      toast.error(
-        `Insufficient KOR coins balance. You have ${userKorCoins.toLocaleString()} KOR, but requested ${requestedAmount.toLocaleString()} KOR.`
-      );
-      return;
-    }
-
-    // Additional safety check - ensure amount is not zero or negative
-    if (requestedAmount <= 0) {
-      toast.error("Withdrawal amount must be greater than 0");
-      return;
-    }
-
+    // Basic client-side validation for UX (server will do the real validation)
     if (!formData.accountHolderName.trim()) {
       toast.error("Please enter account holder name");
       return;
@@ -164,6 +353,11 @@ export function Withdraw() {
 
     if (!formData.bankName.trim()) {
       toast.error("Please enter bank name");
+      return;
+    }
+
+    if (formData.amount <= 0) {
+      toast.error("Please enter a valid amount");
       return;
     }
 
@@ -180,7 +374,7 @@ export function Withdraw() {
       if (existing) {
         bankAccountId = existing.id;
       } else {
-        const created = await createBankAccount.mutateAsync({
+        const created = await createBankAccountMutation.mutateAsync({
           account_holder_name: formData.accountHolderName.trim(),
           account_number: formData.bankAccountNumber.trim(),
           bank_name: formData.bankName.trim(),
@@ -191,17 +385,10 @@ export function Withdraw() {
       if (!bankAccountId)
         throw new Error("Bank account could not be determined");
 
-      // 2) Final balance check before creating withdrawal request
-      if (requestedAmount > userKorCoins) {
-        throw new Error(
-          `Insufficient balance. You have ${userKorCoins.toLocaleString()} KOR, but requested ${requestedAmount.toLocaleString()} KOR.`
-        );
-      }
-
-      // 3) Create the withdrawal request
-      await createWithdrawal.mutateAsync({
-        bank_account_id: bankAccountId,
-        kor_coins_amount: Math.floor(requestedAmount),
+      // 2) Call secure API for withdrawal validation and creation
+      await createWithdrawalMutation.mutateAsync({
+        amount: formData.amount,
+        bankAccountId: bankAccountId,
       });
 
       toast.success(
@@ -252,20 +439,11 @@ export function Withdraw() {
         toast.error("Bank account not found.");
         return;
       }
-      await verifyBankAccount.mutateAsync({
-        id: ba.id,
-        data: { verification_amount: entered },
+      await verifyBankAccountMutation.mutateAsync({
+        bankAccountId: ba.id,
+        verificationAmount: entered,
       });
       toast.success("Bank account verified.");
-      // If the latest request is waiting for verification, move it to verified
-      if (latestPending?.id) {
-        try {
-          await updateWithdrawalStatus.mutateAsync({
-            id: latestPending.id,
-            data: { status: "verified" },
-          });
-        } catch {}
-      }
       setVerifyAmount("");
     } catch (e: Error | unknown) {
       const errorMessage =
@@ -317,10 +495,7 @@ export function Withdraw() {
 
   const userLevel = computed?.level || 0;
   const userKorCoins = computed?.kor_coins || 0;
-  const { feeAmount, finalAmount, feePercentage } = calculateFee(
-    formData.amount,
-    userLevel
-  );
+  const { feePercentage } = calculateFee(formData.amount, userLevel);
   const fullName = computed?.fullName || user.email || "User";
 
   // Data for verification panel (avoid inline declarations in JSX)
@@ -500,19 +675,55 @@ export function Withdraw() {
                     </span>
                   </div>
                   <div className="flex justify-between text-sm text-red-500 dark:text-red-400 mb-2">
-                    <span>Fee ({feePercentage}%):</span>
+                    <span>
+                      Estimated Fee (
+                      {userLevel <= 25
+                        ? 40
+                        : userLevel <= 50
+                        ? 30
+                        : userLevel <= 75
+                        ? 20
+                        : 10}
+                      %):
+                    </span>
                     <span className="font-medium">
-                      -{feeAmount.toFixed(2)} KOR
+                      ~
+                      {Math.floor(
+                        (formData.amount *
+                          (userLevel <= 25
+                            ? 40
+                            : userLevel <= 50
+                            ? 30
+                            : userLevel <= 75
+                            ? 20
+                            : 10)) /
+                          100
+                      ).toFixed(0)}{" "}
+                      KOR
                     </span>
                   </div>
                   <div className="border-t border-border pt-2 flex justify-between font-semibold">
-                    <span>You&apos;ll Receive:</span>
+                    <span>Estimated You will Receive:</span>
                     <span className="text-success text-lg">
-                      ₩ {finalAmount.toFixed(2)}
+                      ₩ ~
+                      {Math.floor(
+                        formData.amount -
+                          (formData.amount *
+                            (userLevel <= 25
+                              ? 40
+                              : userLevel <= 50
+                              ? 30
+                              : userLevel <= 75
+                              ? 20
+                              : 10)) /
+                            100
+                      )}
                     </span>
                   </div>
-
-                  {/* Verification amount preview is shown after request in the panel below */}
+                  <div className="text-xs text-muted-foreground mt-2 text-center">
+                    * Final amounts will be calculated and validated on the
+                    server
+                  </div>
                 </div>
               )}
 
@@ -708,8 +919,8 @@ export function Withdraw() {
                   disabled={submitting || !isWithdrawalValid()}
                 >
                   {submitting ||
-                  createBankAccount.isPending ||
-                  createWithdrawal.isPending ? (
+                  createBankAccountMutation.isPending ||
+                  createWithdrawalMutation.isPending ? (
                     <>
                       <Clock className="h-4 w-4 mr-2 animate-spin" />
                       Processing...

@@ -12,7 +12,6 @@ import {
   Target,
   TrendingUp,
   UserPlus,
-  Zap,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { memo, useMemo, useState, useEffect } from "react";
@@ -323,7 +322,6 @@ interface CardData {
   portfolio: number;
   winRate: number;
   trades: number;
-  winStreak: number;
   position: CardPosition;
   color: CardColor;
   isOnline: boolean;
@@ -637,31 +635,6 @@ const TraderCard = memo(
                   {data.trades}
                 </span>
               </div>
-              <div
-                className={`flex items-center justify-between ${
-                  data.rank === 1 ? "py-2.5" : "py-2"
-                }`}
-              >
-                <div
-                  className={`flex items-center ${
-                    data.rank === 1 ? "gap-2.5" : "gap-2"
-                  } ${data.rank === 1 ? "" : "text-sm "}text-muted-foreground`}
-                >
-                  <Zap
-                    className={`${
-                      data.rank === 1 ? "w-4 h-4" : "w-3.5 h-3.5"
-                    } text-emerald-400`}
-                  />
-                  <span className="font-medium">{t("winStreak")}</span>
-                </div>
-                <span
-                  className={`${
-                    data.rank === 1 ? "text-xl" : "text-base"
-                  } font-bold text-foreground`}
-                >
-                  {data.winStreak}
-                </span>
-              </div>
             </div>
           </div>
         </div>
@@ -812,16 +785,6 @@ const MobileTraderCard = memo(
             </div>
             <span className="font-semibold text-foreground">{data.trades}</span>
           </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Zap className="w-4 h-4 text-emerald-400" />
-              <span className="text-sm font-medium">{t("winStreak")}</span>
-            </div>
-            <span className="font-semibold text-foreground">
-              {data.winStreak}
-            </span>
-          </div>
         </div>
 
         {/* Follow Button */}
@@ -968,7 +931,6 @@ export const TraderRanking = memo(() => {
       portfolio: trader.portfolio_value,
       winRate: trader.win_rate,
       trades: trader.total_trades,
-      winStreak: Math.floor(Math.random() * 20) + 1, // Random streak for now
       position:
         index === 0
           ? "center" // 1st place in center

@@ -8,9 +8,34 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { BadgeCheckIcon } from "lucide-react";
 import { toast } from "sonner";
+import { useEffect, useState } from "react";
 
 export function Profile() {
   const { user, loading } = useAuth();
+  const [, setForceUpdate] = useState(false);
+
+  // Listen for identity verification completion
+  useEffect(() => {
+    const handleIdentityVerified = (event: Event) => {
+      // Force a re-render to update verification status
+      // This will update the user.identity_verified status instantly
+      // The useAuth hook will have updated the user data, so we just need to trigger a re-render
+      // We can use a state variable to force re-render
+      setForceUpdate((prev) => !prev);
+    };
+
+    window.addEventListener("identity-verified", handleIdentityVerified);
+    return () =>
+      window.removeEventListener("identity-verified", handleIdentityVerified);
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Skeleton className="h-full w-full" />
+      </div>
+    );
+  }
 
   return (
     <>

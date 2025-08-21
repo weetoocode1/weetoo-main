@@ -1,200 +1,358 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
-import { Calendar, Clock, Coins, Eye, Mail, Phone } from "lucide-react";
-import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Shield } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-interface UserDetailsDialogProps {
-  user: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    email: string;
-    mobile_number?: string;
-    role: string;
-    kor_coins: number;
-    created_at: string;
-    avatar_url?: string;
-    updated_at: string;
-  };
-  trigger?: React.ReactNode;
+interface User {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  nickname?: string;
+  mobile_number?: string;
+  birth_date?: string | null;
+  gender?: string | null;
+  identity_verification_name?: string | null;
+  role: string;
+  kor_coins: number;
+  created_at: string;
+  updated_at: string;
+  warningCount: number;
+  avatar_url?: string;
+  banned?: boolean;
+  ban_reason?: string;
+  identity_verified?: boolean;
+  identity_verified_at?: string;
+  identity_verification_id?: string;
 }
 
-export function UserDetailsDialog({ user, trigger }: UserDetailsDialogProps) {
-  const [open, setOpen] = useState(false);
+interface UserDetailsDialogProps {
+  user: User;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
 
-  const fullName =
-    user.first_name && user.last_name
-      ? `${user.first_name} ${user.last_name}`
-      : "Anonymous";
+interface AdminInfo {
+  first_name: string;
+  last_name: string;
+  role: string;
+}
 
-  const roleConfig = {
-    admin: {
-      bg: "bg-red-100",
-      text: "text-red-800",
-      border: "border-red-300",
-    },
-    super_admin: {
-      bg: "bg-purple-100",
-      text: "text-purple-800",
-      border: "border-purple-300",
-    },
-    user: {
-      bg: "bg-green-100",
-      text: "text-green-800",
-      border: "border-green-300",
-    },
-    moderator: {
-      bg: "bg-blue-100",
-      text: "text-blue-800",
-      border: "border-blue-300",
-    },
+export function UserDetailsDialog({
+  user,
+  open,
+  onOpenChange,
+}: UserDetailsDialogProps) {
+  const [adminInfo, setAdminInfo] = useState<AdminInfo | null>(null);
+
+  const humanizeRole = (role: string) => {
+    return role === "super_admin"
+      ? "Super Admin"
+      : role.charAt(0).toUpperCase() + role.slice(1);
   };
 
-  const config = roleConfig[user.role as keyof typeof roleConfig] || {
-    bg: "bg-gray-100",
-    text: "text-gray-800",
-    border: "border-gray-300",
-  };
+  useEffect(() => {
+    if (
+      open &&
+      user.identity_verified &&
+      user.identity_verification_id?.startsWith("admin_verified_")
+    ) {
+      const fetchAdminInfo = async () => {
+        const supabase = createClient();
+        const adminId = user.identity_verification_id?.replace(
+          "admin_verified_",
+          ""
+        );
+        const { data, error } = await supabase
+          .from("users")
+          .select("first_name, last_name, role")
+          .eq("id", adminId)
+          .single();
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+        if (!error && data) {
+          setAdminInfo(data);
+        }
+      };
+      fetchAdminInfo();
+    } else {
+      setAdminInfo(null);
+    }
+  }, [user.identity_verified, user.identity_verification_id, open]);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-            <Eye className="h-4 w-4" />
-          </Button>
-        )}
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>User Details</DialogTitle>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="!max-w-6xl !w-full rounded-none">
+        <DialogHeader className="gap-0">
+          <DialogTitle className="text-xl font-semibold">
+            User Details
+          </DialogTitle>
           <DialogDescription>
-            Comprehensive information about {fullName}
+            Comprehensive user account information
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* User Header */}
-          <div className="flex items-center gap-4">
-            <Avatar className="h-20 w-20 ring-4 ring-muted/20">
-              <AvatarImage src={user.avatar_url} alt={fullName} />
-              <AvatarFallback className="bg-gradient-to-br from-primary/10 to-primary/20 text-primary text-2xl font-bold">
-                {fullName.charAt(0)?.toUpperCase() || "U"}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <h3 className="text-xl font-semibold">{fullName}</h3>
-              <p className="text-muted-foreground">{user.email}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge
-                  variant="outline"
-                  className={`${config.bg} ${config.text} ${config.border} font-medium`}
-                >
-                  {user.role === "super_admin" ? "Super Admin" : user.role}
-                </Badge>
+        <div className="flex gap-4">
+          {/* Left: ID Card */}
+          <div className="w-96 shrink-0">
+            <div className="bg-gradient-to-br from-background via-muted/5 to-background border border-border p-6 h-full">
+              <div className="text-center">
+                {/* Enhanced avatar with subtle styling */}
+                <div className="relative inline-block mb-6">
+                  <Avatar className="h-24 w-24 mx-auto ring-2 ring-border shadow-sm">
+                    <AvatarImage
+                      src={user.avatar_url}
+                      alt={`${user.first_name} ${user.last_name}`}
+                    />
+                    <AvatarFallback className="bg-gradient-to-br from-muted to-muted/80 text-foreground text-2xl font-semibold">
+                      {(user.first_name?.[0] || "U").toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  {/* Subtle status indicator */}
+                  <div
+                    className={`absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2.5 h-2.5 rounded-full border border-background ${
+                      user.identity_verified ? "bg-success" : "bg-destructive"
+                    }`}
+                  ></div>
+                </div>
+
+                {/* User Name with better typography */}
+                <h3 className="text-xl font-bold text-foreground mb-3">
+                  {user.first_name} {user.last_name}
+                </h3>
+
+                {/* User ID with enhanced styling */}
+                <div className="text-xs font-mono text-muted-foreground bg-muted/50 px-4 py-2.5 mb-6 w-full text-center border border-border/50">
+                  {user.id}
+                </div>
+
+                {/* Enhanced detail list */}
+                <div className="space-y-3 text-left">
+                  <div className="flex justify-between items-center py-2.5 px-3 bg-muted/20 border border-border/30 rounded-sm">
+                    <span className="text-xs text-muted-foreground font-medium">
+                      Role
+                    </span>
+                    <span className="text-xs font-semibold text-foreground bg-background px-2 py-1 rounded-sm">
+                      {humanizeRole(user.role)}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center py-2.5 px-3 bg-muted/20 border border-border/30 rounded-sm">
+                    <span className="text-xs text-muted-foreground font-medium">
+                      Status
+                    </span>
+                    <span
+                      className={`text-xs font-semibold px-2 py-1 rounded-sm ${
+                        user.identity_verified
+                          ? "bg-success/20 text-success border border-success/30"
+                          : "bg-destructive/20 text-destructive border border-destructive/30"
+                      }`}
+                    >
+                      {user.identity_verified ? "Verified" : "Unverified"}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center py-2.5 px-3 bg-muted/20 border border-border/30 rounded-sm">
+                    <span className="text-xs text-muted-foreground font-medium">
+                      KOR Coins
+                    </span>
+                    <span className="text-xs font-semibold text-foreground font-mono">
+                      {user.kor_coins?.toLocaleString() || 0}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center py-2.5 px-3 bg-muted/20 border border-border/30 rounded-sm">
+                    <span className="text-xs text-muted-foreground font-medium">
+                      Joined
+                    </span>
+                    <span className="text-xs font-semibold text-foreground">
+                      {new Date(user.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  {/* Enhanced Admin Verification */}
+                  {user.identity_verified &&
+                    user.identity_verification_id?.startsWith(
+                      "admin_verified_"
+                    ) && (
+                      <div className="pt-3 border-t border-border/40">
+                        <div className="flex justify-between items-center py-2.5 px-3 bg-primary/5 border border-primary/20 rounded-sm">
+                          <span className="text-xs text-primary font-medium">
+                            Verified by
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-foreground">
+                              {adminInfo
+                                ? `${adminInfo.first_name} ${adminInfo.last_name}`
+                                : "Loading..."}
+                            </span>
+                            {adminInfo && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Shield className="h-3.5 w-3.5 text-primary cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{humanizeRole(adminInfo.role)}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                </div>
               </div>
             </div>
           </div>
 
-          <Separator />
+          {/* Right: Details Card */}
+          <div className="flex-1">
+            <div className="bg-muted/10 border border-border p-6 h-full">
+              <div className="space-y-6">
+                {/* Personal Info Section */}
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wide flex items-center gap-2">
+                    <div className="w-2 h-2 bg-primary rounded-full"></div>
+                    Personal Information
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-background border border-border p-3">
+                      <div className="text-xs text-muted-foreground mb-1">
+                        Email
+                      </div>
+                      <div className="text-sm font-medium font-mono">
+                        {user.email}
+                      </div>
+                    </div>
 
-          {/* Basic Information */}
-          <Card className="border border-border rounded-none shadow-none">
-            <CardHeader>
-              <CardTitle className="text-lg">Basic Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-3">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Email</p>
-                    <p className="text-sm text-muted-foreground">
-                      {user.email}
-                    </p>
-                  </div>
-                </div>
-                {user.mobile_number && (
-                  <div className="flex items-center gap-3">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">Mobile Number</p>
-                      <p className="text-sm text-muted-foreground">
-                        {user.mobile_number}
-                      </p>
+                    <div className="bg-background border border-border p-3">
+                      <div className="text-xs text-muted-foreground mb-1">
+                        Phone
+                      </div>
+                      <div className="text-sm font-medium">
+                        {user.mobile_number || "-"}
+                      </div>
+                    </div>
+
+                    <div className="bg-background border border-border p-3">
+                      <div className="text-xs text-muted-foreground mb-1">
+                        Nickname
+                      </div>
+                      <div className="text-sm font-medium">
+                        {user.nickname || "-"}
+                      </div>
+                    </div>
+
+                    <div className="bg-background border border-border p-3">
+                      <div className="text-xs text-muted-foreground mb-1">
+                        Gender
+                      </div>
+                      <div className="text-sm font-medium">
+                        {user.gender
+                          ? user.gender.charAt(0).toUpperCase() +
+                            user.gender.slice(1)
+                          : "-"}
+                      </div>
+                    </div>
+
+                    <div className="bg-background border border-border p-3">
+                      <div className="text-xs text-muted-foreground mb-1">
+                        Birth Date
+                      </div>
+                      <div className="text-sm font-medium">
+                        {user.birth_date
+                          ? new Date(user.birth_date).toLocaleDateString()
+                          : "-"}
+                      </div>
+                    </div>
+
+                    <div className="bg-background border border-border p-3">
+                      <div className="text-xs text-muted-foreground mb-1">
+                        Identity Name
+                      </div>
+                      <div className="text-sm font-medium">
+                        {user.identity_verification_name || "-"}
+                      </div>
                     </div>
                   </div>
-                )}
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Joined</p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatDate(user.created_at)}
-                    </p>
-                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Last Updated</p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatDate(user.updated_at)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Financial Information */}
-          <Card className="border border-border rounded-none shadow-none">
-            <CardHeader>
-              <CardTitle className="text-lg">Financial Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-3">
-                <Coins className="h-6 w-6 text-yellow-600" />
+                {/* Account Info Section */}
                 <div>
-                  <p className="text-sm font-medium">KOR Coins</p>
-                  <p className="text-2xl font-bold text-yellow-600">
-                    {user.kor_coins?.toLocaleString() || "0"}
-                  </p>
+                  <h4 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wide flex items-center gap-2">
+                    <div className="w-2 h-2 bg-success rounded-full"></div>
+                    Account Information
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-background border border-border p-3">
+                      <div className="text-xs text-muted-foreground mb-1">
+                        Warnings
+                      </div>
+                      <div className="text-sm font-medium">
+                        {user.warningCount}
+                      </div>
+                    </div>
+
+                    <div className="bg-background border border-border p-3">
+                      <div className="text-xs text-muted-foreground mb-1">
+                        Last Updated
+                      </div>
+                      <div className="text-sm font-medium">
+                        {new Date(user.updated_at).toLocaleDateString()}
+                      </div>
+                    </div>
+
+                    <div className="bg-background border border-border p-3">
+                      <div className="text-xs text-muted-foreground mb-1">
+                        Identity ID
+                      </div>
+                      <div className="text-sm font-medium font-mono text-xs">
+                        {user.identity_verification_id || "-"}
+                      </div>
+                    </div>
+
+                    {user.identity_verified && user.identity_verified_at && (
+                      <div className="bg-background border border-border p-3">
+                        <div className="text-xs text-muted-foreground mb-1">
+                          Verified On
+                        </div>
+                        <div className="text-sm font-medium">
+                          {new Date(
+                            user.identity_verified_at
+                          ).toLocaleDateString()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-4 border-t">
-          <Button variant="outline" onClick={() => setOpen(false)}>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-          <Button>Edit User</Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
