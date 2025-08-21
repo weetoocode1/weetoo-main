@@ -148,8 +148,8 @@ const columns: ColumnDef<RecentUser>[] = [
 
 export function RecentUsersTable() {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [isRealtimeActive, setIsRealtimeActive] = useState(false);
-  const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
+  const [, setIsRealtimeActive] = useState(false);
+  const [, setLastUpdateTime] = useState<Date | null>(null);
   const queryClient = useQueryClient();
 
   // Real-time subscription for user updates
