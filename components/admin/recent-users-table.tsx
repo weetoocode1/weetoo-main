@@ -245,37 +245,18 @@ export function RecentUsersTable() {
             <div className="flex flex-1 flex-col justify-center gap-1 px-6 pt-4 pb-3 sm:!py-0">
               <div className="flex items-center gap-2">
                 <CardTitle>Recent Users</CardTitle>
-                {isRealtimeActive && (
-                  <div className="flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-full text-xs font-medium">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    Live
-                  </div>
-                )}
+                <Skeleton className="w-16 h-6 rounded-full" />
               </div>
               <CardDescription>
                 Latest user registrations and their activity
-                {isRealtimeActive && (
-                  <span className="text-green-600 dark:text-green-400 font-medium">
-                    {" "}
-                    • Real-time updates active
-                  </span>
-                )}
-                {isFetching && (
-                  <span className="text-blue-600 dark:text-blue-400 font-medium">
-                    {" "}
-                    • Refreshing data...
-                  </span>
-                )}
-                {lastUpdateTime && (
-                  <span className="text-xs text-muted-foreground">
-                    Last updated: {lastUpdateTime.toLocaleTimeString()}
-                  </span>
-                )}
+                <Skeleton className="inline-block w-32 h-3 mt-1" />
               </CardDescription>
             </div>
             <div className="flex">
               <div className="relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left sm:border-t-0 sm:border-l sm:px-8 sm:py-6">
-                <Skeleton className="h-3 w-20" />
+                <span className="text-muted-foreground text-xs">
+                  Total Users
+                </span>
                 <Skeleton className="h-8 w-16" />
               </div>
             </div>
@@ -313,11 +294,9 @@ export function RecentUsersTable() {
           <div className="flex flex-1 flex-col justify-center gap-1 px-6 pt-4 pb-3 sm:!py-0">
             <div className="flex items-center gap-2">
               <CardTitle>Recent Users</CardTitle>
-              <Skeleton className="w-16 h-6 rounded-full" />
             </div>
             <CardDescription>
               Latest user registrations and their activity
-              <Skeleton className="inline-block w-32 h-3 mt-1" />
             </CardDescription>
           </div>
           <div className="flex">
