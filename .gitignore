@@ -60,3 +60,6 @@ important.txt
 # Ignore database schema files
 /db-schemas/
 
+# Ignore cursor rules
+.cursorrules
+@.cursorrules

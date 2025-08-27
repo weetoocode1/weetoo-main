@@ -141,7 +141,10 @@ export function Menu() {
         </CollapsibleTrigger>
         <CollapsibleContent className="pl-4 space-y-2">
           <Link href="/ranking" className="block py-2 text-sm">
-            {t("traderRankings")}
+            {t("winRate")}
+          </Link>
+          <Link href="/profit-rate" className="block py-2 text-sm">
+            {t("profitRate")}
           </Link>
           {/* <Link href="/kor-coins" className="block py-2 text-sm">
             {t("korCoinsRankings")}
@@ -247,8 +250,11 @@ export function Menu() {
           <NavigationMenuTrigger>{t("leaderboard")}</NavigationMenuTrigger>
           <NavigationMenuContent className="left-1/2 -translate-x-1/2">
             <ul className="grid p-2 w-[325px]">
-              <ListItem href="/ranking" title={t("traderRankings")}>
-                {t("traderRankingsDesc")}
+              <ListItem href="/ranking" title={t("winRate")}>
+                {t("winRateDesc")}
+              </ListItem>
+              <ListItem href="/profit-rate" title={t("profitRate")}>
+                {t("profitRateDesc")}
               </ListItem>
               {/* <ListItem href="/kor-coins" title={t("korCoinsRankings")}>
                 {t("korCoinsRankingsDesc")}

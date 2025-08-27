@@ -2,14 +2,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import {
-  Award,
-  DollarSign,
-  Medal,
-  Target,
-  TrendingUp,
-  Trophy,
-} from "lucide-react";
+import { Award, Medal, Target, TrendingUp, Trophy } from "lucide-react";
 import { memo, useMemo } from "react";
 
 type TimeFrame = "daily" | "weekly" | "monthly";
@@ -27,7 +20,9 @@ interface TraderData {
   closed_trades: number;
   win_rate: number;
   portfolio_value: number;
+  win_streak: number;
   isOnline: boolean;
+  rank?: number;
 }
 
 // Dummy data for fallback
@@ -47,6 +42,7 @@ const getDummyTraders = (timeFrame: TimeFrame): TraderData[] => {
       closed_trades: 542,
       win_rate: 94.2,
       portfolio_value: 3847300,
+      win_streak: 15,
       isOnline: true,
     },
     {
@@ -63,6 +59,7 @@ const getDummyTraders = (timeFrame: TimeFrame): TraderData[] => {
       closed_trades: 287,
       win_rate: 79.1,
       portfolio_value: 1986200,
+      win_streak: 8,
       isOnline: false,
     },
     {
@@ -79,6 +76,126 @@ const getDummyTraders = (timeFrame: TimeFrame): TraderData[] => {
       closed_trades: 198,
       win_rate: 77.8,
       portfolio_value: 1763400,
+      win_streak: 12,
+      isOnline: true,
+    },
+    {
+      id: "4",
+      nickname: "Emma Wilson",
+      avatar_url:
+        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
+      level: 12,
+      total_pnl: 456700,
+      virtual_balance: 1000000,
+      total_return: 45.7,
+      total_trades: 156,
+      winning_trades: 118,
+      closed_trades: 156,
+      win_rate: 75.6,
+      portfolio_value: 1456700,
+      win_streak: 6,
+      isOnline: true,
+    },
+    {
+      id: "5",
+      nickname: "David Lee",
+      avatar_url:
+        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face",
+      level: 10,
+      total_pnl: 389200,
+      virtual_balance: 1000000,
+      total_return: 38.9,
+      total_trades: 134,
+      winning_trades: 98,
+      closed_trades: 134,
+      win_rate: 73.1,
+      portfolio_value: 1389200,
+      win_streak: 4,
+      isOnline: false,
+    },
+    {
+      id: "6",
+      nickname: "Lisa Park",
+      avatar_url:
+        "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
+      level: 8,
+      total_pnl: 298400,
+      virtual_balance: 1000000,
+      total_return: 29.8,
+      total_trades: 98,
+      winning_trades: 67,
+      closed_trades: 98,
+      win_rate: 68.4,
+      portfolio_value: 1298400,
+      win_streak: 3,
+      isOnline: true,
+    },
+    {
+      id: "7",
+      nickname: "James Brown",
+      avatar_url:
+        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+      level: 6,
+      total_pnl: 187600,
+      virtual_balance: 1000000,
+      total_return: 18.8,
+      total_trades: 76,
+      winning_trades: 49,
+      closed_trades: 76,
+      win_rate: 64.5,
+      portfolio_value: 1187600,
+      win_streak: 2,
+      isOnline: false,
+    },
+    {
+      id: "8",
+      nickname: "Sophie Garcia",
+      avatar_url:
+        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
+      level: 5,
+      total_pnl: 124300,
+      virtual_balance: 1000000,
+      total_return: 12.4,
+      total_trades: 54,
+      winning_trades: 32,
+      closed_trades: 54,
+      win_rate: 59.3,
+      portfolio_value: 1124300,
+      win_streak: 1,
+      isOnline: true,
+    },
+    {
+      id: "9",
+      nickname: "Ryan Taylor",
+      avatar_url:
+        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face",
+      level: 4,
+      total_pnl: 87600,
+      virtual_balance: 1000000,
+      total_return: 8.8,
+      total_trades: 42,
+      winning_trades: 23,
+      closed_trades: 42,
+      win_rate: 54.8,
+      portfolio_value: 1087600,
+      win_streak: 1,
+      isOnline: false,
+    },
+    {
+      id: "10",
+      nickname: "Maria Rodriguez",
+      avatar_url:
+        "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
+      level: 3,
+      total_pnl: 54300,
+      virtual_balance: 1000000,
+      total_return: 5.4,
+      total_trades: 28,
+      winning_trades: 14,
+      closed_trades: 28,
+      win_rate: 50.0,
+      portfolio_value: 1054300,
+      win_streak: 1,
       isOnline: true,
     },
   ];
@@ -94,7 +211,7 @@ const getDummyTraders = (timeFrame: TimeFrame): TraderData[] => {
     total_trades: Math.round(trader.total_trades * multiplier),
     winning_trades: Math.round(trader.winning_trades * multiplier),
     closed_trades: Math.round(trader.closed_trades * multiplier),
-    win_rate: Math.round(trader.win_rate * (0.8 + Math.random() * 0.4)),
+    win_rate: Math.round(trader.win_rate * (0.8 + index * 0.1)),
     portfolio_value: Math.round(trader.portfolio_value * multiplier),
     rank: index + 1,
   }));
@@ -145,19 +262,20 @@ export const TraderRankingTable = memo(
   }) => {
     // const t = useTranslations("traderRanking");
 
-    // Fill remaining slots with demo data if we have fewer than 3 real traders
+    // Fill remaining slots with demo data if we have fewer than 10 real traders
     const filledTraders = useMemo(() => {
-      const top3Traders = traders.slice(0, 3);
+      const top10Traders = traders.slice(0, 10);
       const demoTraders = getDummyTraders(selectedTimeFrame);
 
-      const filled = [...top3Traders];
-      while (filled.length < 3) {
+      const filled = [...top10Traders];
+      while (filled.length < 10) {
         const demoIndex = filled.length;
-        const demoTrader = demoTraders[demoIndex];
+        const demoTrader = demoTraders[demoIndex % 3]; // Cycle through the 3 demo traders
         if (demoTrader) {
           filled.push({
             ...demoTrader,
             id: `demo-${demoIndex + 1}`,
+            rank: filled.length + 1,
           });
         }
       }
@@ -209,13 +327,12 @@ export const TraderRankingTable = memo(
 
         <div className="bg-background/60 backdrop-blur-sm rounded-2xl border border-border/50 overflow-hidden shadow-xl">
           {/* Table Header */}
-          <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-5 bg-gradient-to-r from-muted/40 via-muted/30 to-muted/40 border-b border-border/50 font-semibold text-sm text-muted-foreground">
+          <div className="hidden md:grid grid-cols-10 gap-4 px-6 py-5 bg-gradient-to-r from-muted/40 via-muted/30 to-muted/40 border-b border-border/50 font-semibold text-sm text-muted-foreground">
             <div className="col-span-1">Rank</div>
             <div className="col-span-3">Trader</div>
-            <div className="col-span-2">Total Return</div>
             <div className="col-span-2">Win Rate</div>
             <div className="col-span-2">Trades</div>
-            <div className="col-span-2">Portfolio</div>
+            <div className="col-span-2">Win Streak</div>
           </div>
 
           {/* Desktop Table Rows */}
@@ -231,7 +348,7 @@ export const TraderRankingTable = memo(
                 <div
                   key={`${trader.id}-${trader.rank}`}
                   className={cn(
-                    "grid grid-cols-12 gap-4 px-6 py-5 hover:bg-muted/20 transition-all duration-300 group relative",
+                    "grid grid-cols-10 gap-4 px-6 py-5 hover:bg-muted/20 transition-all duration-300 group relative",
                     isTop3 &&
                       "bg-gradient-to-r from-muted/20 via-muted/10 to-muted/20",
                     isDemo && "opacity-80"
@@ -314,7 +431,7 @@ export const TraderRankingTable = memo(
                   </div>
 
                   {/* Total Return */}
-                  <div className="col-span-2 flex items-center">
+                  {/* <div className="col-span-2 flex items-center">
                     <div
                       className={cn(
                         "font-semibold text-emerald-600 dark:text-emerald-400",
@@ -323,7 +440,7 @@ export const TraderRankingTable = memo(
                     >
                       +{trader.total_return.toFixed(2)}%
                     </div>
-                  </div>
+                  </div> */}
 
                   {/* Win Rate */}
                   <div className="col-span-2 flex items-center gap-2">
@@ -351,20 +468,16 @@ export const TraderRankingTable = memo(
                     </span>
                   </div>
 
-                  {/* Portfolio */}
+                  {/* Win Streak */}
                   <div className="col-span-2 flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-gray-500" />
+                    <Award className="w-4 h-4 text-emerald-500" />
                     <span
                       className={cn(
-                        "font-semibold text-foreground",
+                        "font-medium",
                         isTop3 ? "text-base" : "text-sm"
                       )}
                     >
-                      $
-                      {new Intl.NumberFormat("en-US", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      }).format(trader.portfolio_value)}
+                      {trader.win_streak}
                     </span>
                   </div>
                 </div>
@@ -476,7 +589,7 @@ export const TraderRankingTable = memo(
                       </div>
 
                       {/* Total Return */}
-                      <div className="text-right">
+                      {/* <div className="text-right">
                         <div
                           className={cn(
                             "font-semibold text-emerald-600 dark:text-emerald-400",
@@ -485,7 +598,7 @@ export const TraderRankingTable = memo(
                         >
                           +{trader.total_return.toFixed(2)}%
                         </div>
-                      </div>
+                      </div> */}
                     </div>
 
                     {/* Stats Grid */}
@@ -505,17 +618,11 @@ export const TraderRankingTable = memo(
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <DollarSign className="w-3 h-3 text-gray-500" />
+                        <Award className="w-3 h-3 text-emerald-500" />
                         <span className="text-muted-foreground">
-                          Portfolio:
+                          Win Streak:
                         </span>
-                        <span className="font-medium">
-                          $
-                          {new Intl.NumberFormat("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          }).format(trader.portfolio_value)}
-                        </span>
+                        <span className="font-medium">{trader.win_streak}</span>
                       </div>
                     </div>
                   </div>

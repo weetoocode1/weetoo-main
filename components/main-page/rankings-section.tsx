@@ -19,6 +19,7 @@ interface TraderData {
   avatar_url: string | null;
   total_return: number;
   portfolio_value: number;
+  win_rate?: number;
   rank?: number;
 }
 
@@ -61,6 +62,8 @@ interface RankingsData {
 const VALUE_COLORS = {
   returnRate: "text-emerald-600 dark:text-emerald-400",
   virtualMoney: "text-blue-600 dark:text-blue-400",
+  winRate: "text-blue-600 dark:text-blue-400",
+  profitRate: "text-emerald-600 dark:text-emerald-400",
   activityXp: "text-purple-600 dark:text-purple-400",
   sponsored: "text-orange-600 dark:text-orange-400",
   mostFollowed: "text-pink-600 dark:text-pink-400",
@@ -124,17 +127,20 @@ const RankingCard = React.memo(
       (categoryTitle: string, data: RankingData) => {
         // Type-safe formatter calls with proper type guards
         switch (categoryTitle) {
-          case "returnRate":
-          case "virtualMoney":
-            if ("total_return" in data && "portfolio_value" in data) {
+          case "winRate":
+            if ("win_rate" in data) {
               const traderData = data as TraderData;
-              return categoryTitle === "returnRate"
-                ? traderData.total_return
-                  ? `+${traderData.total_return.toFixed(1)}%`
-                  : "+0.0%"
-                : traderData.portfolio_value
-                ? `$${(traderData.portfolio_value / 1000).toFixed(0)}K`
-                : "$0K";
+              return traderData.win_rate
+                ? `${traderData.win_rate.toFixed(1)}%`
+                : "0.0%";
+            }
+            break;
+          case "profitRate":
+            if ("total_return" in data) {
+              const traderData = data as TraderData;
+              return traderData.total_return
+                ? `+${traderData.total_return.toFixed(1)}%`
+                : "+0.0%";
             }
             break;
           case "activityXp":
@@ -304,8 +310,8 @@ const useRankingsData = () => {
     try {
       // Parallel data fetching for better performance
       const [
-        returnRateResult,
-        virtualMoneyResult,
+        winRateResult,
+        profitRateResult,
         activityResult,
         donationResult,
         followersResult,
@@ -313,12 +319,12 @@ const useRankingsData = () => {
         supabase
           .from("weekly_trader_leaderboard")
           .select("*")
-          .order("total_return", { ascending: false })
+          .order("win_rate", { ascending: false })
           .limit(10),
         supabase
           .from("weekly_trader_leaderboard")
           .select("*")
-          .order("portfolio_value", { ascending: false })
+          .order("total_return", { ascending: false })
           .limit(10),
         supabase
           .from("weekly_exp_leaderboard")
@@ -339,38 +345,38 @@ const useRankingsData = () => {
 
       const newData = {
         returnRateData:
-          returnRateResult.status === "fulfilled" &&
-          returnRateResult.value.data &&
-          returnRateResult.value.data.length > 0
+          winRateResult.status === "fulfilled" &&
+          winRateResult.value.data &&
+          winRateResult.value.data.length > 0
             ? (fillWithDemoData(
-                returnRateResult.value.data.map((trader, index) => ({
+                winRateResult.value.data.map((trader, index) => ({
                   ...trader,
                   rank: index + 1,
                 })),
-                DEMO_RANKINGS_DATA.returnRate,
-                "returnRate"
+                DEMO_RANKINGS_DATA.winRate,
+                "winRate"
               ) as TraderData[])
             : (fillWithDemoData(
                 [],
-                DEMO_RANKINGS_DATA.returnRate,
-                "returnRate"
+                DEMO_RANKINGS_DATA.winRate,
+                "winRate"
               ) as TraderData[]),
         virtualMoneyData:
-          virtualMoneyResult.status === "fulfilled" &&
-          virtualMoneyResult.value.data &&
-          virtualMoneyResult.value.data.length > 0
+          profitRateResult.status === "fulfilled" &&
+          profitRateResult.value.data &&
+          profitRateResult.value.data.length > 0
             ? (fillWithDemoData(
-                virtualMoneyResult.value.data.map((trader, index) => ({
+                profitRateResult.value.data.map((trader, index) => ({
                   ...trader,
                   rank: index + 1,
                 })),
-                DEMO_RANKINGS_DATA.virtualMoney,
-                "virtualMoney"
+                DEMO_RANKINGS_DATA.profitRate,
+                "profitRate"
               ) as TraderData[])
             : (fillWithDemoData(
                 [],
-                DEMO_RANKINGS_DATA.virtualMoney,
-                "virtualMoney"
+                DEMO_RANKINGS_DATA.profitRate,
+                "profitRate"
               ) as TraderData[]),
         activityData:
           activityResult.status === "fulfilled" &&
@@ -444,9 +450,9 @@ const useRankingsData = () => {
 const useCategoryData = (data: RankingsData, categoryTitle: string) => {
   return useMemo(() => {
     switch (categoryTitle) {
-      case "returnRate":
+      case "winRate":
         return data.returnRateData;
-      case "virtualMoney":
+      case "profitRate":
         return data.virtualMoneyData;
       case "activityXp":
         return data.activityData;
@@ -465,8 +471,8 @@ export function RankingsSection() {
   const { data, isLoading } = useRankingsData();
 
   // Individual category data hooks
-  const returnRateData = useCategoryData(data, "returnRate");
-  const virtualMoneyData = useCategoryData(data, "virtualMoney");
+  const winRateData = useCategoryData(data, "winRate");
+  const profitRateData = useCategoryData(data, "profitRate");
   const activityData = useCategoryData(data, "activityXp");
   const sponsoredData = useCategoryData(data, "sponsored");
   const mostFollowedData = useCategoryData(data, "mostFollowed");
@@ -474,15 +480,15 @@ export function RankingsSection() {
   // Memoize category data map
   const categoryDataMap = useMemo(() => {
     return new Map<string, RankingData[]>([
-      ["returnRate", returnRateData],
-      ["virtualMoney", virtualMoneyData],
+      ["winRate", winRateData],
+      ["profitRate", profitRateData],
       ["activityXp", activityData],
       ["sponsored", sponsoredData],
       ["mostFollowed", mostFollowedData],
     ]);
   }, [
-    returnRateData,
-    virtualMoneyData,
+    winRateData,
+    profitRateData,
     activityData,
     sponsoredData,
     mostFollowedData,

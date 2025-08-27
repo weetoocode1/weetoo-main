@@ -15,87 +15,92 @@ export interface RankingCategory {
 
 // Demo data for rankings section when real data is insufficient
 export const DEMO_RANKINGS_DATA = {
-  returnRate: [
+  winRate: [
     {
-      id: "demo-return-1",
+      id: "demo-win-1",
       nickname: "Alex Chen",
       avatar_url: null,
-      total_return: 45.2,
-      portfolio_value: 85000,
+      win_rate: 95.0,
+      total_return: 0,
+      portfolio_value: 0,
       rank: 1,
     },
     {
-      id: "demo-return-2",
+      id: "demo-win-2",
       nickname: "Sarah Kim",
       avatar_url: null,
-      total_return: 38.7,
-      portfolio_value: 72000,
+      win_rate: 90.0,
+      total_return: 0,
+      portfolio_value: 0,
       rank: 2,
     },
     {
-      id: "demo-return-3",
+      id: "demo-win-3",
       nickname: "Mike Johnson",
       avatar_url: null,
-      total_return: 32.1,
-      portfolio_value: 65000,
+      win_rate: 85.0,
+      total_return: 0,
+      portfolio_value: 0,
       rank: 3,
     },
     {
-      id: "demo-return-4",
+      id: "demo-win-4",
       nickname: "Emma Wilson",
       avatar_url: null,
-      total_return: 28.5,
-      portfolio_value: 58000,
+      win_rate: 80.0,
+      total_return: 0,
+      portfolio_value: 0,
       rank: 4,
     },
     {
-      id: "demo-return-5",
+      id: "demo-win-5",
       nickname: "David Lee",
       avatar_url: null,
-      total_return: 25.3,
-      portfolio_value: 52000,
+      win_rate: 75.0,
+      total_return: 0,
+      portfolio_value: 0,
       rank: 5,
     },
   ],
-  virtualMoney: [
+  profitRate: [
     {
-      id: "demo-money-1",
+      id: "demo-profit-1",
       nickname: "Alex Chen",
       avatar_url: null,
-      total_return: 45.2,
-      portfolio_value: 95000,
+      total_return: 45.0,
+      portfolio_value: 0,
       rank: 1,
     },
     {
-      id: "demo-money-2",
+      id: "demo-profit-2",
       nickname: "Sarah Kim",
       avatar_url: null,
-      total_return: 38.7,
-      portfolio_value: 82000,
+      total_return: 40.0,
+      portfolio_value: 0,
       rank: 2,
     },
     {
-      id: "demo-money-3",
+      id: "demo-profit-3",
       nickname: "Mike Johnson",
       avatar_url: null,
-      total_return: 32.1,
-      portfolio_value: 75000,
+      total_return: 35.0,
+      portfolio_value: 0,
       rank: 3,
     },
     {
-      id: "demo-money-4",
+      id: "demo-profit-4",
       nickname: "Emma Wilson",
       avatar_url: null,
-      total_return: 28.5,
-      portfolio_value: 68000,
+      total_return: 30.0,
+      portfolio_value: 0,
       rank: 4,
     },
     {
-      id: "demo-money-5",
+      id: "demo-profit-5",
       nickname: "David Lee",
       avatar_url: null,
-      total_return: 25.3,
-      portfolio_value: 62000,
+      total_return: 25.0,
+      portfolio_value: 0,
       rank: 5,
     },
   ],
@@ -151,9 +156,10 @@ export const DEMO_RANKINGS_DATA = {
 
 export const rankingsData: RankingCategory[] = [
   {
-    title: "returnRate",
+    title: "winRate",
     subtitle: "weeklyPerformance",
-    icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6",
+    // Target-like icon for win rate
+    icon: "M12 2a10 10 0 110 20 10 10 0 010-20zm0 4a6 6 0 100 12 6 6 0 000-12zm0 4a2 2 0 110 4 2 2 0 010-4",
     traders: [
       {
         rank: 1,
@@ -193,9 +199,10 @@ export const rankingsData: RankingCategory[] = [
     ],
   },
   {
-    title: "virtualMoney",
-    subtitle: "totalHoldings",
-    icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1",
+    title: "profitRate",
+    subtitle: "weeklyPerformance",
+    // Dollar-like icon for profit rate
+    icon: "M12 3v18m0 0c-3 0-5-2-5-4s2-3 5-3 5-1 5-3-2-4-5-4-5 2-5 4",
     traders: [
       {
         rank: 1,

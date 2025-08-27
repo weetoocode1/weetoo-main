@@ -12,6 +12,7 @@ import {
   BanknoteIcon,
   CreditCardIcon,
   HistoryIcon,
+  KeyRoundIcon,
   TicketIcon,
   UserIcon,
 } from "lucide-react";
@@ -22,6 +23,7 @@ import { AllAccounts } from "./all-accounts";
 import { Profile } from "./profile";
 import { Referral } from "./referral";
 import { Transactions } from "./transactions";
+import { UidRegistration } from "./uid-registration";
 import { Withdraw } from "./withdraw";
 
 const TABS = [
@@ -55,6 +57,12 @@ const TABS = [
     icon: <CreditCardIcon className="w-4 h-4" />,
     requiresVerification: true,
   },
+  {
+    key: "uid-registration",
+    label: "UID Registration",
+    icon: <KeyRoundIcon className="w-4 h-4" />,
+    requiresVerification: true,
+  },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -65,6 +73,7 @@ const TAB_COMPONENTS = {
   "all-accounts": <AllAccounts />,
   "all-transactions": <Transactions />,
   withdraw: <Withdraw />,
+  "uid-registration": <UidRegistration />,
 };
 
 export function ProfileTabs() {

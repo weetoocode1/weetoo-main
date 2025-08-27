@@ -31,8 +31,10 @@
     "startTrading": "Start Trading",
     "startTradingDesc": "Begin live trading with real-time market",
     "leaderboard": "Leaderboard",
-    "traderRankings": "Trader Rankings",
-    "traderRankingsDesc": "View top performing traders",
+    "winRate": "Win Rate",
+    "winRateDesc": "View top performing traders by win rate",
+    "profitRate": "Profit Rate",
+    "profitRateDesc": "View top performing traders by profit rate",
     "korCoinsRankings": "Kor Coins Rankings",
     "korCoinsRankingsDesc": "Top Kor Coins Holders",
     "mostActivity": "Most Activity (XP)",
@@ -116,10 +118,12 @@
     "topPerformers": "Top Performers",
     "communityLeaderboards": "Community Leaderboards",
     "leaderboardsDescription": "See who's leading the pack in different categories and get inspired to climb the ranks.",
-    "returnRate": "Return Rate",
-    "weeklyPerformance": "Weekly Performance",
-    "virtualMoney": "Virtual Money",
-    "totalHoldings": "Total Holdings",
+    "returnRate": "Win Rate",
+    "winRate": "Win Rate",
+    "weeklyPerformance": "Weekly (Top 5)",
+    "virtualMoney": "Profit Rate",
+    "profitRate": "Profit Rate",
+    "totalHoldings": "Weekly (Top 5)",
     "activityXp": "Activity (XP)",
     "monthlyPoints": "Monthly Points",
     "sponsored": "Sponsored",
@@ -274,8 +278,12 @@
     "failedToCreateRoom": "Failed to create room. Please try again."
   },
   "ranking": {
-    "traderRankings": "Trader Rankings",
-    "topPerformingTraders": "Top performing traders and their success rates"
+    "winRateRankings": "Win Rate Rankings",
+    "topWinRateTraders": "Discover top performing traders by their win rate and trading success"
+  },
+  "profitRanking": {
+    "profitRateRankings": "Profit Rate Rankings",
+    "topProfitRateTraders": "Discover top performing traders by profit rate, portfolio growth and trade activity"
   },
   "traderRanking": {
     "online": "Online",
