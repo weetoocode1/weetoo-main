@@ -1,75 +1,40 @@
 "use client";
 
+import { FollowButton } from "@/components/post/follow-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Award,
-  DollarSign,
-  Star,
-  Target,
-  TrendingUp,
-  UserPlus,
-} from "lucide-react";
-import { motion } from "motion/react";
-import { memo, useMemo, useState, useEffect } from "react";
-import { TraderRankingTable } from "./trader-ranking-table";
+import { useAuth } from "@/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { FollowButton } from "@/components/post/follow-button";
-
-// Type definition for user object
-interface User {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  nickname: string | null;
-  avatar_url: string | null;
-}
+import { useQuery } from "@tanstack/react-query";
+import { Award, Star, Target, TrendingUp, UserPlus } from "lucide-react";
+import { motion } from "motion/react";
+import { useTranslations } from "next-intl";
+import { memo, useEffect, useMemo, useState } from "react";
+import { TraderRankingTable } from "./trader-ranking-table";
 
 // Custom FollowButton for rankings that handles own account
 const RankingFollowButton = ({
   targetUserId,
   rank,
   className,
+  isDemoData = false,
 }: {
   targetUserId: string;
   rank: number;
   className?: string;
+  isDemoData?: boolean;
 }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isCheckingStatus, setIsCheckingStatus] = useState(true);
+  const { user: currentUser, loading: authLoading } = useAuth();
 
-  useEffect(() => {
-    const checkCurrentUser = async () => {
-      setIsCheckingStatus(true);
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (user) {
-        const { data: userData } = await supabase
-          .from("users")
-          .select("id, first_name, last_name, nickname, avatar_url")
-          .eq("id", user.id)
-          .single();
-        setCurrentUser(userData);
-      }
-      setIsCheckingStatus(false);
-    };
-
-    checkCurrentUser();
-  }, []);
-
-  if (isCheckingStatus) {
+  if (authLoading) {
     return <Skeleton className={cn("h-9 w-16 rounded-md", className)} />;
   }
 
-  // If it's the current user's own account, show a disabled button
-  if (currentUser && currentUser.id === targetUserId) {
+  // For demo data, show a disabled demo follow button
+  if (isDemoData) {
     return (
       <Button
         className={`w-full ${
@@ -87,13 +52,32 @@ const RankingFollowButton = ({
     );
   }
 
+  // If it's the current user's own account, show a disabled button
+  if (currentUser && currentUser.id === targetUserId) {
+    return (
+      <Button
+        className={`w-full ${
+          rank === 1
+            ? "bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 text-yellow-800 dark:text-yellow-100/60 border border-yellow-400/40 font-semibold h-11 text-base shadow-md cursor-not-allowed"
+            : rank === 2
+            ? "bg-slate-500/20 text-slate-700 dark:text-slate-100/60 border border-slate-400/30 font-semibold h-10 shadow-sm cursor-not-allowed"
+            : "bg-amber-600/20 text-amber-800 dark:text-amber-200/60 border border-amber-400/30 font-semibold h-10 shadow-sm cursor-not-allowed"
+        } transition-all duration-300`}
+        disabled
+        variant="outline"
+      >
+        <UserPlus className="w-4 h-4 mr-2" /> Follow
+      </Button>
+    );
+  }
+
   // Otherwise, show the normal FollowButton
   return (
     <FollowButton
       targetUserId={targetUserId}
       className={`w-full ${
         rank === 1
-          ? "bg-gradient-to-r from-yellow-500/30 to-yellow-600/30 hover:from-yellow-500/40 hover:to-yellow-600/40 text-yellow-800 dark:text-yellow-100 border border-yellow-400/60 font-semibold h-11 text-base shadow-md hover:shadow-lg"
+          ? "bg-gradient-to-r from-yellow-500/30 to-yellow-600/30 hover:from-yellow-500 hover:to-yellow-600 text-yellow-800 dark:text-yellow-100 border border-yellow-400/60 font-semibold h-11 text-base shadow-md hover:shadow-lg"
           : rank === 2
           ? "bg-slate-500/30 hover:bg-slate-500/40 text-slate-700 dark:text-slate-100 border border-slate-400/50 font-semibold h-10 shadow-sm hover:shadow-md"
           : "bg-amber-600/30 hover:bg-amber-600/40 text-amber-800 dark:text-amber-200 border border-amber-500/50 font-semibold h-10 shadow-sm hover:shadow-md"
@@ -120,6 +104,7 @@ interface TraderData {
   closed_trades: number;
   win_rate: number;
   portfolio_value: number;
+  win_streak: number;
   isOnline: boolean;
   rank?: number;
 }
@@ -206,6 +191,7 @@ const getDummyTraders = (timeFrame: TimeFrame): TraderData[] => {
       closed_trades: 542,
       win_rate: 94.2,
       portfolio_value: 3847300,
+      win_streak: 15,
       isOnline: true,
     },
     {
@@ -222,6 +208,7 @@ const getDummyTraders = (timeFrame: TimeFrame): TraderData[] => {
       closed_trades: 287,
       win_rate: 79.1,
       portfolio_value: 1986200,
+      win_streak: 8,
       isOnline: false,
     },
     {
@@ -238,6 +225,7 @@ const getDummyTraders = (timeFrame: TimeFrame): TraderData[] => {
       closed_trades: 198,
       win_rate: 77.8,
       portfolio_value: 1763400,
+      win_streak: 12,
       isOnline: true,
     },
   ];
@@ -253,7 +241,7 @@ const getDummyTraders = (timeFrame: TimeFrame): TraderData[] => {
     total_trades: Math.round(trader.total_trades * multiplier),
     winning_trades: Math.round(trader.winning_trades * multiplier),
     closed_trades: Math.round(trader.closed_trades * multiplier),
-    win_rate: Math.round(trader.win_rate * (0.8 + Math.random() * 0.4)),
+    win_rate: Math.round(trader.win_rate * (0.8 + index * 0.1)),
     portfolio_value: Math.round(trader.portfolio_value * multiplier),
     rank: index + 1,
   }));
@@ -318,10 +306,12 @@ interface CardData {
   name: string;
   username: string;
   avatar_url?: string | null;
+  level: number;
   totalReturn: number;
   portfolio: number;
   winRate: number;
   trades: number;
+  winStreak: number;
   position: CardPosition;
   color: CardColor;
   isOnline: boolean;
@@ -329,7 +319,15 @@ interface CardData {
 
 // Memoized card component
 const TraderCard = memo(
-  ({ data, useDummyData }: { data: CardData; useDummyData: boolean }) => {
+  ({
+    data,
+    useDummyData,
+    shouldAnimate = true,
+  }: {
+    data: CardData;
+    useDummyData: boolean;
+    shouldAnimate?: boolean;
+  }) => {
     const t = useTranslations("traderRanking");
     const cardStyles = useMemo(() => {
       const baseStyles = {
@@ -426,7 +424,7 @@ const TraderCard = memo(
         className="relative group"
         custom={data.rank}
         variants={cardVariants}
-        initial="hidden"
+        initial={shouldAnimate ? "hidden" : "visible"}
         animate="visible"
         whileHover="hover"
         style={{
@@ -448,7 +446,8 @@ const TraderCard = memo(
           <div className="absolute inset-0 opacity-30 bg-gradient-to-br from-white/20 via-white/5 to-transparent" />
           <div className="absolute inset-0 opacity-15 bg-gradient-to-tl from-white/10 via-transparent to-white/5" />
           <div className={`relative z-10 h-full ${padding} flex flex-col`}>
-            <div className="flex items-start justify-between mb-6">
+            {/* Ranking Badge - Positioned at top right corner */}
+            <div className="flex justify-end mb-6">
               <Badge
                 className={
                   data.rank === 1
@@ -467,24 +466,11 @@ const TraderCard = memo(
                 )}
                 #{data.rank}
               </Badge>
-              <div className="text-right">
-                <div
-                  className={`${
-                    data.rank === 1
-                      ? "text-emerald-600 dark:text-emerald-300 text-3xl"
-                      : "text-emerald-600 dark:text-emerald-400 text-2xl"
-                  } font-bold`}
-                >
-                  +{data.totalReturn.toFixed(2)}%
-                </div>
-                <div className="text-xs text-muted-foreground font-medium">
-                  {t("totalReturn")}
-                </div>
-              </div>
             </div>
 
+            {/* Avatar and Name - Centered */}
             <div
-              className={`flex items-center ${
+              className={`flex flex-col items-center ${
                 data.rank === 1 ? "gap-4 mb-6" : "gap-3 mb-5"
               }`}
             >
@@ -499,10 +485,7 @@ const TraderCard = memo(
                     : "ring-amber-500/20"
                 }`}
               >
-                <AvatarImage
-                  src={data.avatar_url || "/avatar.png"}
-                  alt={data.name}
-                />
+                <AvatarImage src={data.avatar_url || ""} alt={data.name} />
                 <AvatarFallback
                   className={
                     data.rank === 1
@@ -519,35 +502,28 @@ const TraderCard = memo(
                     .toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1">
-                <h3
-                  className={`${
-                    data.rank === 1 ? "text-2xl" : "text-xl"
-                  } font-bold text-foreground`}
-                >
-                  {data.name}
-                </h3>
-              </div>
+              <h3
+                className={`${
+                  data.rank === 1 ? "text-2xl" : "text-xl"
+                } font-bold text-foreground text-center`}
+              >
+                {data.name}
+              </h3>
             </div>
 
             {useDummyData ? (
-              <Button
-                className={`w-full ${data.rank === 1 ? "mb-6" : "mb-5"} ${
-                  data.rank === 1
-                    ? "bg-gradient-to-r from-yellow-500/30 to-yellow-600/30 hover:from-yellow-500/40 hover:to-yellow-600/40 text-yellow-800 dark:text-yellow-100 border border-yellow-400/60 font-semibold h-11 text-base shadow-md hover:shadow-lg"
-                    : data.rank === 2
-                    ? "bg-slate-500/30 hover:bg-slate-500/40 text-slate-700 dark:text-slate-100 border border-slate-400/50 font-semibold h-10 shadow-sm hover:shadow-md"
-                    : "bg-amber-600/30 hover:bg-amber-600/40 text-amber-800 dark:text-amber-200 border border-amber-500/50 font-semibold h-10 shadow-sm hover:shadow-md"
-                } transition-all duration-300`}
-                variant="outline"
-              >
-                <UserPlus className="w-4 h-4 mr-2" /> Follow
-              </Button>
+              <RankingFollowButton
+                targetUserId={data.id}
+                rank={data.rank}
+                className={`w-full ${data.rank === 1 ? "mb-6" : "mb-5"}`}
+                isDemoData={true}
+              />
             ) : (
               <RankingFollowButton
                 targetUserId={data.id}
                 rank={data.rank}
                 className={`w-full ${data.rank === 1 ? "mb-6" : "mb-5"}`}
+                isDemoData={false}
               />
             )}
 
@@ -556,38 +532,10 @@ const TraderCard = memo(
                 data.rank === 1 ? "space-y-4" : "space-y-3"
               } flex-1`}
             >
-              <div
-                className={`flex items-center justify-between mt-2 ${
-                  data.rank === 1 ? "py-2.5" : "py-2"
-                } border-b border-border/30`}
-              >
-                <div
-                  className={`flex items-center ${
-                    data.rank === 1 ? "gap-2.5" : "gap-2"
-                  } ${data.rank === 1 ? "" : "text-sm "}text-muted-foreground`}
-                >
-                  <DollarSign
-                    className={`${
-                      data.rank === 1 ? "w-4 h-4" : "w-3.5 h-3.5"
-                    } text-emerald-400`}
-                  />
-                  <span className="font-medium">{t("portfolio")}</span>
-                </div>
-                <span
-                  className={`${
-                    data.rank === 1 ? "text-xl" : "text-base"
-                  } font-bold text-foreground`}
-                >
-                  $
-                  {new Intl.NumberFormat("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  }).format(data.portfolio)}
-                </span>
-              </div>
+              {/* Win Rate Section */}
               <div
                 className={`flex items-center justify-between ${
-                  data.rank === 1 ? "py-2.5" : "py-2"
+                  data.rank === 1 ? "py-3" : "py-2"
                 } border-b border-border/30`}
               >
                 <div
@@ -610,6 +558,8 @@ const TraderCard = memo(
                   {data.winRate.toFixed(2)}%
                 </span>
               </div>
+
+              {/* Trades Section */}
               <div
                 className={`flex items-center justify-between ${
                   data.rank === 1 ? "py-2.5" : "py-2"
@@ -633,6 +583,33 @@ const TraderCard = memo(
                   } font-bold text-foreground`}
                 >
                   {data.trades}
+                </span>
+              </div>
+
+              {/* Win Streak Section */}
+              <div
+                className={`flex items-center justify-between ${
+                  data.rank === 1 ? "py-2.5" : "py-2"
+                } border-b border-border/30`}
+              >
+                <div
+                  className={`flex items-center ${
+                    data.rank === 1 ? "gap-2.5" : "gap-2"
+                  } ${data.rank === 1 ? "" : "text-sm "}text-muted-foreground`}
+                >
+                  <Award
+                    className={`${
+                      data.rank === 1 ? "w-4 h-4" : "w-3.5 h-3.5"
+                    } text-emerald-400`}
+                  />
+                  <span className="font-medium">Win Streak</span>
+                </div>
+                <span
+                  className={`${
+                    data.rank === 1 ? "text-xl" : "text-base"
+                  } font-bold text-foreground`}
+                >
+                  {data.winStreak}
                 </span>
               </div>
             </div>
@@ -713,16 +690,17 @@ const MobileTraderCard = memo(
       <div
         className={`relative rounded-xl border-2 ${style.border} ${style.bg} p-4 shadow-sm`}
       >
-        {/* Rank Badge */}
-        <div className="absolute -top-3 left-4">
+        {/* Rank Badge - Positioned at top right corner */}
+        <div className="flex justify-end mb-4">
           <div
             className={`${style.badge} w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-md`}
           >
-            {data.rank}
+            #{data.rank}
           </div>
         </div>
 
-        <div className="flex items-center gap-4 pt-2">
+        {/* Avatar and Name - Centered */}
+        <div className="flex flex-col items-center gap-3 mb-4">
           {/* Avatar */}
           <Avatar className="w-16 h-16 ring-2 ring-border/30">
             <AvatarImage src={data.avatar_url || undefined} alt={data.name} />
@@ -736,38 +714,14 @@ const MobileTraderCard = memo(
           </Avatar>
 
           {/* User Info */}
-          <div className="flex-1">
+          <div className="text-center">
             <h3 className="text-lg font-bold text-foreground">{data.name}</h3>
             <p className="text-sm text-muted-foreground">{data.username}</p>
-          </div>
-
-          {/* Total Return */}
-          <div className="text-right">
-            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-              +{data.totalReturn.toFixed(2)}%
-            </div>
-            <div className="text-xs text-muted-foreground font-medium">
-              {t("totalReturn")}
-            </div>
           </div>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-border/30">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <DollarSign className="w-4 h-4 text-emerald-400" />
-              <span className="text-sm font-medium">{t("portfolio")}</span>
-            </div>
-            <span className="font-semibold text-foreground">
-              $
-              {new Intl.NumberFormat("en-US", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              }).format(data.portfolio)}
-            </span>
-          </div>
-
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Target className="w-4 h-4 text-blue-400" />
@@ -785,34 +739,33 @@ const MobileTraderCard = memo(
             </div>
             <span className="font-semibold text-foreground">{data.trades}</span>
           </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Award className="w-4 h-4 text-emerald-400" />
+              <span className="text-sm font-medium">Win Streak</span>
+            </div>
+            <span className="font-semibold text-foreground">
+              {data.winStreak}
+            </span>
+          </div>
         </div>
 
         {/* Follow Button */}
         <div className="mt-4">
           {useDummyData ? (
-            <Button
-              className={`w-full ${
-                data.rank === 1
-                  ? "bg-gradient-to-r from-yellow-500/30 to-yellow-600/30 hover:from-yellow-500/40 hover:to-yellow-600/40 text-yellow-800 dark:text-yellow-100 border border-yellow-400/60 font-semibold shadow-md hover:shadow-lg"
-                  : data.rank === 2
-                  ? "bg-slate-500/30 hover:bg-slate-500/40 text-slate-700 dark:text-slate-100 border border-slate-400/50 font-semibold shadow-sm hover:shadow-md"
-                  : "bg-amber-600/30 hover:bg-amber-600/40 text-amber-800 dark:text-amber-200 border border-amber-500/50 font-semibold shadow-sm hover:shadow-md"
-              } transition-all duration-300`}
-              variant="outline"
-            >
-              <UserPlus className="w-4 h-4 mr-2" /> Follow
-            </Button>
+            <RankingFollowButton
+              targetUserId={data.id}
+              rank={data.rank}
+              className="w-full"
+              isDemoData={true}
+            />
           ) : (
             <RankingFollowButton
               targetUserId={data.id}
               rank={data.rank}
-              className={`w-full ${
-                data.rank === 1
-                  ? "bg-gradient-to-r from-yellow-500/30 to-yellow-600/30 hover:from-yellow-500/40 hover:to-yellow-600/40 text-yellow-800 dark:text-yellow-100 border border-yellow-400/60 font-semibold shadow-md hover:shadow-lg"
-                  : data.rank === 2
-                  ? "bg-slate-500/30 hover:bg-slate-500/40 text-slate-700 dark:text-slate-100 border border-slate-400/50 font-semibold shadow-sm hover:shadow-md"
-                  : "bg-amber-600/30 hover:bg-amber-600/40 text-amber-800 dark:text-amber-200 border border-amber-500/50 font-semibold shadow-sm hover:shadow-md"
-              } transition-all duration-300`}
+              className="w-full"
+              isDemoData={false}
             />
           )}
         </div>
@@ -826,16 +779,20 @@ export const TraderRanking = memo(() => {
   // const t = useTranslations("traderRanking");
   const [selectedTimeFrame, setSelectedTimeFrame] =
     useState<TimeFrame>("daily");
-  const [traders, setTraders] = useState<TraderData[]>([]);
-  const [useDummyData, setUseDummyData] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  // Fetch trader data from Supabase
-  const fetchTraderData = async (timeFrame: TimeFrame) => {
-    try {
+  // Fetch trader data using React Query
+  const {
+    data: traders = [],
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["trader-leaderboard", selectedTimeFrame],
+    queryFn: async () => {
       const supabase = createClient();
       let viewName = "";
 
-      switch (timeFrame) {
+      switch (selectedTimeFrame) {
         case "daily":
           viewName = "daily_trader_leaderboard";
           break;
@@ -854,56 +811,31 @@ export const TraderRanking = memo(() => {
 
       if (error) {
         console.error("Error fetching trader data:", error);
-        setUseDummyData(true);
-        setTraders(getDummyTraders(timeFrame));
-        return;
+        throw error;
       }
 
-      if (data && data.length > 0) {
-        setUseDummyData(false);
-        setTraders(data);
-      } else {
-        setUseDummyData(true);
-        setTraders(getDummyTraders(timeFrame));
-      }
-    } catch (error) {
-      console.error("Error fetching trader data:", error);
-      setUseDummyData(true);
-      setTraders(getDummyTraders(timeFrame));
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+  });
+
+  // Determine if we need to use demo data
+  const useDummyData = traders.length < 10 || error;
+
+  // If there's an error, use demo data
+  const displayTraders = error ? getDummyTraders(selectedTimeFrame) : traders;
+
+  // Set initial load state
+  useEffect(() => {
+    if (!isLoading) {
+      setIsInitialLoad(false);
     }
-  };
+  }, [isLoading]);
 
-  // Fetch data on component mount and time frame change
-  useEffect(() => {
-    fetchTraderData(selectedTimeFrame);
-  }, [selectedTimeFrame]);
-
-  // Real-time subscription for trading room positions
-  useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel("trading_room_positions_changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "trading_room_positions",
-        },
-        () => {
-          fetchTraderData(selectedTimeFrame);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [selectedTimeFrame]);
-
-  // Convert trader data to card data format
+  // Convert trader data to card data format (top 3 for podium cards)
   const cardData = useMemo(() => {
-    const top3Traders = traders.slice(0, 3);
+    const top3Traders = displayTraders.slice(0, 3);
     const demoTraders = getDummyTraders(selectedTimeFrame);
 
     // Fill remaining slots with demo data if we have fewer than 3 real traders
@@ -927,10 +859,12 @@ export const TraderRanking = memo(() => {
       name: trader.nickname,
       username: `@${trader.nickname.toLowerCase().replace(/\s+/g, "")}`,
       avatar_url: trader.avatar_url,
+      level: trader.level,
       totalReturn: trader.total_return,
       portfolio: trader.portfolio_value,
       winRate: trader.win_rate,
       trades: trader.total_trades,
+      winStreak: trader.win_streak,
       position:
         index === 0
           ? "center" // 1st place in center
@@ -941,17 +875,7 @@ export const TraderRanking = memo(() => {
         index === 0 ? "gold" : index === 1 ? "silver" : ("bronze" as CardColor),
       isOnline: trader.isOnline,
     }));
-  }, [traders, selectedTimeFrame]);
-
-  // Update useDummyData when we have fewer than 3 real traders
-  useEffect(() => {
-    const hasInsufficientData = traders.length < 3;
-    if (hasInsufficientData && !useDummyData) {
-      setUseDummyData(true);
-    } else if (traders.length >= 3 && useDummyData) {
-      setUseDummyData(false);
-    }
-  }, [traders.length, useDummyData]);
+  }, [displayTraders, selectedTimeFrame]);
 
   return (
     <div className="space-y-16 mb-20">
@@ -994,7 +918,18 @@ export const TraderRanking = memo(() => {
         className="relative min-h-[700px] hidden lg:flex items-center justify-center gap-12 px-8"
         style={{ perspective: "1200px" }}
       >
-        {cardData.length >= 3 &&
+        {isLoading ? (
+          // Loading skeleton for cards
+          <div className="flex items-center justify-center gap-12">
+            {[1, 2, 3].map((rank) => (
+              <div
+                key={rank}
+                className={`w-80 h-[490px] rounded-2xl bg-muted/20 animate-pulse`}
+              />
+            ))}
+          </div>
+        ) : (
+          cardData.length >= 3 &&
           (() => {
             // Olympic podium order: 2nd (left), 1st (center), 3rd (right)
             const podiumOrder = [1, 0, 2]; // 2nd place, 1st place, 3rd place
@@ -1003,30 +938,54 @@ export const TraderRanking = memo(() => {
               if (!card) return null;
               return (
                 <TraderCard
-                  key={`${card.id}-${card.rank}`}
+                  key={`${card.id}`}
                   data={card}
-                  useDummyData={useDummyData || card.id.startsWith("demo-")}
+                  useDummyData={
+                    useDummyData ||
+                    card.id.startsWith("demo-") ||
+                    !card.id.includes("-")
+                  }
+                  shouldAnimate={!isInitialLoad}
                 />
               );
             });
-          })()}
+          })()
+        )}
       </div>
 
       {/* Mobile Layout - Simple Cards */}
       <div className="lg:hidden space-y-4 px-4 -mt-8">
-        {cardData.slice(0, 3).map((card) => (
-          <MobileTraderCard
-            key={`${card.id}-${card.rank}`}
-            data={card}
-            useDummyData={useDummyData || card.id.startsWith("demo-")}
-          />
-        ))}
+        {isLoading ? (
+          // Loading skeleton for mobile cards
+          <div className="space-y-4">
+            {[1, 2, 3].map((rank) => (
+              <div
+                key={rank}
+                className="h-32 rounded-xl bg-muted/20 animate-pulse"
+              />
+            ))}
+          </div>
+        ) : (
+          cardData
+            .slice(0, 3)
+            .map((card) => (
+              <MobileTraderCard
+                key={`${card.id}-${card.rank}`}
+                data={card}
+                useDummyData={
+                  useDummyData ||
+                  card.id.startsWith("demo-") ||
+                  !card.id.includes("-")
+                }
+              />
+            ))
+        )}
       </div>
 
       {/* Full Leaderboard Table Section */}
       <div className="mt-12">
         <TraderRankingTable
-          traders={traders}
+          traders={displayTraders}
           selectedTimeFrame={selectedTimeFrame}
           onTimeFrameChange={setSelectedTimeFrame}
         />

@@ -31,8 +31,10 @@
     "startTrading": "트레이딩 룸",
     "startTradingDesc": "실시간으로 진행되는 모의투자에서 전략을 함께 나눠보세요 .",
     "leaderboard": "리더보드",
-    "traderRankings": "트레이더 랭킹",
-    "traderRankingsDesc": "투명하게 공개되는 트레이더들의 순위를 확인하세요",
+    "winRate": "승률",
+    "winRateDesc": "승률 기준 상위 트레이더 확인",
+    "profitRate": "수익률",
+    "profitRateDesc": "수익률 기준 상위 트레이더 확인",
     "korCoinsRankings": "후원 랭킹",
     "korCoinsRankingsDesc": "가장 많은 후원을 받은 유저를 확인해보세요",
     "mostActivity": "가장 활발한 활동 (XP)",
@@ -116,10 +118,12 @@
     "topPerformers": "최고 성과자",
     "communityLeaderboards": "커뮤니티 리더보드",
     "leaderboardsDescription": "커뮤니티의 별들이 여기 있어요. 당신도 그중 하나가 될 수 있습니다.",
-    "returnRate": "수익률",
-    "weeklyPerformance": "주간 성과",
-    "virtualMoney": "가상 머니",
-    "totalHoldings": "총 보유량",
+    "returnRate": "승률",
+    "winRate": "승률",
+    "weeklyPerformance": "주간 톱 5",
+    "virtualMoney": "수익률",
+    "profitRate": "수익률",
+    "totalHoldings": "주간 톱 5",
     "activityXp": "활동 (경험치)",
     "monthlyPoints": "월간 포인트",
     "sponsored": "후원",
@@ -274,8 +278,12 @@
     "failedToCreateRoom": "방을 만들 수 없습니다. 다시 시도해주세요."
   },
   "ranking": {
-    "traderRankings": "트레이더 랭킹",
-    "topPerformingTraders": "함께 배우고 성장하는 트레이더들의 여정에 참여하세요."
+    "winRateRankings": "승률 랭킹",
+    "topWinRateTraders": "승률과 트레이딩 성공률로 상위 트레이더를 발견하세요"
+  },
+  "profitRanking": {
+    "profitRateRankings": "수익률 랭킹",
+    "topProfitRateTraders": "수익률, 가상 머니 증가 및 트레이딩 활동으로 상위 트레이더를 확인하세요"
   },
   "traderRanking": {
     "online": "온라인",

@@ -513,65 +513,66 @@ export function AdminRealtimeToasts() {
   // Show simple status indicator (only in development)
   if (process.env.NODE_ENV === "development" && isAdmin) {
     return (
-      <div
-        style={{
-          position: "fixed",
-          top: "10px",
-          right: "10px",
-          background:
-            connectionRef.current.isActive && connectionRef.current.channel
-              ? "#10b981"
-              : "#ef4444",
-          color: "white",
-          padding: "4px 8px",
-          borderRadius: "4px",
-          fontSize: "12px",
-          zIndex: 9999,
-          pointerEvents: "none",
-        }}
-      >
-        <div>
-          🔔 Admin:{" "}
-          {connectionRef.current.isActive && connectionRef.current.channel
-            ? "Connected"
-            : "Disconnected"}
-        </div>
-        <button
-          onClick={() => {
-            // Test admin notification to verify toast system works
-            const testNotification = {
-              type: "deposit_request_created",
-              audience: "admin" as const,
-              metadata: {
-                user_name: "Test User",
-                kor_coins_amount: 1000,
-              },
-            };
+      // <div
+      //   style={{
+      //     position: "fixed",
+      //     top: "10px",
+      //     right: "10px",
+      //     background:
+      //       connectionRef.current.isActive && connectionRef.current.channel
+      //         ? "#10b981"
+      //         : "#ef4444",
+      //     color: "white",
+      //     padding: "4px 8px",
+      //     borderRadius: "4px",
+      //     fontSize: "12px",
+      //     zIndex: 9999,
+      //     pointerEvents: "none",
+      //   }}
+      // >
+      //   <div>
+      //     🔔 Admin:{" "}
+      //     {connectionRef.current.isActive && connectionRef.current.channel
+      //       ? "Connected"
+      //       : "Disconnected"}
+      //   </div>
+      //   <button
+      //     onClick={() => {
+      //       // Test admin notification to verify toast system works
+      //       const testNotification = {
+      //         type: "deposit_request_created",
+      //         audience: "admin" as const,
+      //         metadata: {
+      //           user_name: "Test User",
+      //           kor_coins_amount: 1000,
+      //         },
+      //       };
 
-            const config =
-              adminNotificationConfigs[testNotification.type] ||
-              getGenericConfig(
-                testNotification.type,
-                "Test Admin Notification",
-                "This is a test admin notification"
-              );
+      //       const config =
+      //         adminNotificationConfigs[testNotification.type] ||
+      //         getGenericConfig(
+      //           testNotification.type,
+      //           "Test Admin Notification",
+      //           "This is a test admin notification"
+      //         );
 
-            showToast(config, testNotification.metadata);
-          }}
-          style={{
-            background: "rgba(255,255,255,0.2)",
-            border: "none",
-            color: "white",
-            padding: "2px 6px",
-            borderRadius: "2px",
-            fontSize: "10px",
-            cursor: "pointer",
-            marginTop: "4px",
-          }}
-        >
-          Test Admin Toast
-        </button>
-      </div>
+      //       showToast(config, testNotification.metadata);
+      //     }}
+      //     style={{
+      //       background: "rgba(255,255,255,0.2)",
+      //       border: "none",
+      //       color: "white",
+      //       padding: "2px 6px",
+      //       borderRadius: "2px",
+      //       fontSize: "10px",
+      //       cursor: "pointer",
+      //       marginTop: "4px",
+      //     }}
+      //   >
+      //     Test Admin Toast
+      //   </button>
+      // </div>
+      <div></div>
     );
   }
 

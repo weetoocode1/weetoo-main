@@ -1,6 +1,7 @@
 "use client";
 
 import { FloatingBubble } from "@/components/floating-bubble";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +14,7 @@ import { motion } from "motion/react";
 import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { tradingRooms } from "./rooms-data";
 
@@ -20,11 +22,16 @@ export function HeroSection() {
   const { theme } = useTheme();
   const t = useTranslations("hero");
   const b = useTranslations("brokers");
+  const router = useRouter();
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const marqueeRef = useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleRoomClick = () => {
+    router.push("/trading");
+  };
 
   useEffect(() => {
     const colorTheme = theme === "dark" ? "dark" : "light";
@@ -498,7 +505,7 @@ export function HeroSection() {
 
                 {/* Tradingview Ticker Tape */}
                 <motion.div
-                  className="pt-4 max-w-5xl mx-auto"
+                  className=" max-w-5xl mx-auto"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: 0.7 }}
@@ -532,11 +539,11 @@ export function HeroSection() {
 
                         <div
                           ref={marqueeRef}
-                          className={`marquee-track flex items-center gap-6 pl-36 overflow-hidden ${
+                          className={`marquee-track flex items-center gap-4 pl-36 overflow-hidden ${
                             isDragging ? "paused" : ""
                           }`}
                           style={{
-                            height: "300px",
+                            height: "320px",
                             cursor: isDragging ? "grabbing" : "grab",
                             userSelect: "none",
                           }}
@@ -548,102 +555,223 @@ export function HeroSection() {
                           onTouchMove={handleTouchMove}
                           onTouchEnd={handleTouchEnd}
                         >
-                          <div className="marquee-inner flex items-center gap-6">
+                          <div className="marquee-inner flex items-center gap-4">
                             {allRooms.map((room, idx) => (
                               <motion.div
                                 key={idx}
                                 whileHover={{
-                                  scale: 1.035,
+                                  scale: 1.02,
                                   boxShadow: "0 6px 28px 0 rgba(0,0,0,0.15)",
                                 }}
                                 whileTap={{ scale: 0.97 }}
-                                className={`flex flex-col justify-between min-w-[320px] max-w-[320px] h-[190px] rounded-2xl border transition-all duration-200 relative overflow-hidden p-6 shadow-lg 
-                                    ${
-                                      theme === "light"
-                                        ? "bg-gradient-to-b from-white/90 to-blue-50/80 border-gray-200 text-gray-900"
-                                        : "bg-gradient-to-b from-gray-900/60 to-gray-800/80 dark:from-gray-900/80 dark:to-gray-900/60 border-gray-700/40 text-white"
-                                    }
-                                  `}
+                                className="group relative bg-background rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/10 min-w-[360px] max-w-[360px] h-[280px]"
+                                onClick={handleRoomClick}
                               >
-                                <div className="flex items-center justify-between w-full mb-3">
-                                  <span className="text-sm font-bold px-3 py-1.5 rounded-full bg-red-500 text-white">
-                                    {t("live")}
-                                  </span>
-                                  <span
-                                    className={`text-sm font-semibold px-3 py-1.5 rounded-full 
-                                      ${
-                                        theme === "light"
-                                          ? "bg-gray-100 text-gray-700"
-                                          : "bg-gray-800/80 text-gray-100 dark:bg-gray-700/80 dark:text-gray-200"
-                                      }`}
-                                  >
-                                    {room.participants} {t("participants")}
-                                  </span>
+                                {/* Thumbnail Container */}
+                                <div className="relative aspect-video rounded-t-lg overflow-hidden bg-muted group-hover:bg-muted/80 transition-colors duration-300">
+                                  {/* Room image from public/room folder */}
+                                  <img
+                                    src={`/room/room-${(idx % 7) + 1}.png`}
+                                    alt={room.name}
+                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                  />
+
+                                  {/* Live indicator */}
+                                  {room.participants > 0 && (
+                                    <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+                                      LIVE
+                                    </div>
+                                  )}
+
+                                  {/* Private room indicator */}
+                                  {!room.isPublic && (
+                                    <div className="absolute top-2 right-2 bg-orange-500/90 backdrop-blur-sm text-white text-xs font-bold px-2 py-1 rounded flex items-center gap-1">
+                                      <svg
+                                        width="12"
+                                        height="12"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                      >
+                                        <rect
+                                          x="3"
+                                          y="11"
+                                          width="18"
+                                          height="11"
+                                          rx="2"
+                                          ry="2"
+                                          stroke="currentColor"
+                                          strokeWidth="2"
+                                        />
+                                        <circle
+                                          cx="12"
+                                          cy="16"
+                                          r="1"
+                                          fill="currentColor"
+                                        />
+                                        <path
+                                          d="M7 11V7a5 5 0 0110 0v4"
+                                          stroke="currentColor"
+                                          strokeWidth="2"
+                                        />
+                                      </svg>
+                                      PRIVATE
+                                    </div>
+                                  )}
+
+                                  {/* Participants count */}
+                                  {room.participants > 0 && (
+                                    <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
+                                      {room.participants}{" "}
+                                      {room.participants === 1
+                                        ? "participant"
+                                        : "participants"}
+                                    </div>
+                                  )}
+
+                                  {/* Subtle hover overlay */}
+                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300" />
                                 </div>
-                                <div className="flex flex-col flex-1 justify-start items-start text-left">
-                                  <div
-                                    className={`text-xl font-bold leading-tight mb-1 truncate w-full 
-                                      ${
-                                        theme === "light"
-                                          ? "text-gray-900"
-                                          : "text-white"
-                                      }`}
-                                  >
-                                    {room.name}
-                                  </div>
-                                  <div
-                                    className={`text-sm mb-3 truncate w-full 
-                                      ${
-                                        theme === "light"
-                                          ? "text-gray-500"
-                                          : "text-gray-400"
-                                      }`}
-                                  >
-                                    {room.creator.name}
-                                  </div>
-                                  <div
-                                    className={`flex flex-wrap gap-2 mt-auto pt-2 border-t ${
-                                      theme === "light"
-                                        ? "border-gray-200"
-                                        : "border-gray-700/30"
-                                    }`}
-                                  >
-                                    <span
-                                      className={`text-xs font-medium px-3 py-1 rounded-full tracking-wide 
-                                        ${
-                                          theme === "light"
-                                            ? "bg-blue-100 text-blue-700"
-                                            : "bg-blue-600/20 text-blue-400"
-                                        }`}
-                                    >
-                                      {room.symbol}
-                                    </span>
-                                    <span
-                                      className={`text-xs font-medium px-3 py-1 rounded-full tracking-wide 
-                                        ${
-                                          theme === "light"
-                                            ? "bg-purple-100 text-purple-700"
-                                            : "bg-purple-600/20 text-purple-300"
-                                        }`}
-                                    >
-                                      {room.category}
-                                    </span>
-                                    <span
-                                      className={`text-xs font-medium px-3 py-1 rounded-full tracking-wide 
-                                        ${
-                                          room.isPublic
-                                            ? theme === "light"
-                                              ? "bg-green-100 text-green-700"
-                                              : "bg-green-600/20 text-green-300"
-                                            : theme === "light"
-                                            ? "bg-yellow-100 text-yellow-700"
-                                            : "bg-yellow-600/20 text-yellow-200"
-                                        }`}
-                                    >
-                                      {room.isPublic
-                                        ? t("public")
-                                        : t("private")}
-                                    </span>
+
+                                {/* Video Info */}
+                                <div className="relative p-4 border border-border border-t-0 bg-gradient-to-br from-card/80 via-card/60 to-card/40 backdrop-blur-sm rounded-b-lg overflow-hidden group">
+                                  {/* Animated background gradient */}
+                                  <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                                  {/* Glow effect on hover */}
+                                  <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-primary/20 opacity-0 group-hover:opacity-100 transition-all duration-300 blur-xl" />
+
+                                  {/* Main content */}
+                                  <div className="relative z-10">
+                                    {/* Top section with avatar and title */}
+                                    <div className="flex items-start justify-between mb-4">
+                                      <div className="flex items-center gap-3">
+                                        {/* Glowing avatar */}
+                                        <div className="relative">
+                                          <div className="absolute inset-0 bg-gradient-to-r from-primary/30 to-primary/10 rounded-full blur-sm group-hover:blur-md transition-all duration-300" />
+                                          <Avatar className="h-10 w-10 flex-shrink-0 relative z-10 ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all duration-300">
+                                            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary-foreground text-sm font-bold">
+                                              {room.creator.name.charAt(0)}
+                                            </AvatarFallback>
+                                          </Avatar>
+                                        </div>
+
+                                        <div className="min-w-0 flex flex-col items-start">
+                                          <h3 className="font-bold text-base leading-tight line-clamp-1 group-hover:text-primary transition-all duration-300 group-hover:scale-105 transform text-left">
+                                            {room.name}
+                                          </h3>
+                                          <p className="text-sm text-muted-foreground font-medium text-left">
+                                            {room.creator.name}
+                                          </p>
+                                        </div>
+                                      </div>
+
+                                      {/* Floating status badge */}
+                                      <div className="relative">
+                                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 rounded-full blur-sm group-hover:blur-md transition-all duration-300" />
+                                        <div
+                                          className={`relative z-10 px-3 py-1 rounded-full text-xs font-bold text-white backdrop-blur-sm border border-white/20 ${
+                                            room.category === "voice"
+                                              ? "bg-gradient-to-r from-blue-500 to-blue-600"
+                                              : "bg-gradient-to-br from-emerald-500 to-emerald-600"
+                                          }`}
+                                        >
+                                          {room.category === "voice"
+                                            ? "Voice"
+                                            : "Chat"}
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Bottom section with stats and indicators */}
+                                    <div className="space-y-3">
+                                      {/* Access and Host - Clean badges */}
+                                      <div className="flex items-center justify-between pt-2">
+                                        <div className="flex items-center gap-2">
+                                          {/* Symbol badge */}
+                                          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-800/50 border border-slate-700/50">
+                                            <span className="text-xs text-slate-300 font-medium">
+                                              {room.symbol}
+                                            </span>
+                                          </div>
+
+                                          {/* Access indicator */}
+                                          <div
+                                            className={`flex items-center gap-1.5 px-2 py-1 rounded-md border ${
+                                              room.isPublic
+                                                ? "bg-slate-800/50 border-slate-700/50"
+                                                : "bg-orange-900/30 border-orange-700/50"
+                                            }`}
+                                          >
+                                            {room.isPublic ? (
+                                              <svg
+                                                width="12"
+                                                height="12"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className="text-slate-300"
+                                              >
+                                                <circle
+                                                  cx="12"
+                                                  cy="12"
+                                                  r="10"
+                                                  stroke="currentColor"
+                                                  strokeWidth="2"
+                                                />
+                                                <path
+                                                  d="M2 12s3-7 10-7 10 7 10 7"
+                                                  stroke="currentColor"
+                                                  strokeWidth="2"
+                                                />
+                                              </svg>
+                                            ) : (
+                                              <svg
+                                                width="12"
+                                                height="12"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className="text-orange-400"
+                                              >
+                                                <rect
+                                                  x="3"
+                                                  y="11"
+                                                  width="18"
+                                                  height="11"
+                                                  rx="2"
+                                                  ry="2"
+                                                  stroke="currentColor"
+                                                  strokeWidth="2"
+                                                />
+                                                <circle
+                                                  cx="12"
+                                                  cy="16"
+                                                  r="1"
+                                                  fill="currentColor"
+                                                />
+                                                <path
+                                                  d="M7 11V7a5 5 0 0110 0v4"
+                                                  stroke="currentColor"
+                                                  strokeWidth="2"
+                                                />
+                                              </svg>
+                                            )}
+                                            <span
+                                              className={`text-xs font-medium ${
+                                                room.isPublic
+                                                  ? "text-slate-300"
+                                                  : "text-orange-200"
+                                              }`}
+                                            >
+                                              {room.isPublic
+                                                ? "Public"
+                                                : "Private"}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
                               </motion.div>
