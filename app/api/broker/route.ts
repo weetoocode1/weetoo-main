@@ -42,10 +42,64 @@ export async function POST(request: NextRequest) {
         }
       } catch (methodError) {
         console.error(`Method ${action} execution failed:`, methodError);
+
+        // Add debug headers for DeepCoin errors
+        if (broker === "deepcoin") {
+          const errorResponse = NextResponse.json(
+            { error: `Failed to execute ${action}` },
+            { status: 500 }
+          );
+
+          // Add debug headers to help troubleshoot signature issues
+          errorResponse.headers.set("X-DeepCoin-Debug-Broker", "deepcoin");
+          errorResponse.headers.set("X-DeepCoin-Debug-Action", action);
+          errorResponse.headers.set(
+            "X-DeepCoin-Debug-Timestamp",
+            new Date().toISOString()
+          );
+
+          // Add debug info from the error if available
+          if (
+            methodError &&
+            typeof methodError === "object" &&
+            "debugInfo" in methodError
+          ) {
+            const debugInfo = methodError.debugInfo as {
+              signatureLength?: number;
+              serverTime?: string;
+            };
+            errorResponse.headers.set(
+              "X-DeepCoin-Debug-Signature-Length",
+              debugInfo.signatureLength?.toString() || "0"
+            );
+            errorResponse.headers.set(
+              "X-DeepCoin-Debug-Server-Time",
+              debugInfo.serverTime || ""
+            );
+          }
+
+          return errorResponse;
+        }
+
         return NextResponse.json(
           { error: `Failed to execute ${action}` },
           { status: 500 }
         );
+      }
+
+      // Add debug headers for DeepCoin requests
+      if (broker === "deepcoin") {
+        const response = NextResponse.json(result);
+
+        // Add debug headers to help troubleshoot signature issues
+        response.headers.set("X-DeepCoin-Debug-Broker", "deepcoin");
+        response.headers.set("X-DeepCoin-Debug-Action", action);
+        response.headers.set(
+          "X-DeepCoin-Debug-Timestamp",
+          new Date().toISOString()
+        );
+
+        return response;
       }
 
       return NextResponse.json(result);

@@ -244,18 +244,57 @@ function UIDCard({
   // Check if broker API should be active for this UID
   const isBrokerActive = useBrokerAPIActive(record.brokerId);
 
-  // // Debug environment variables for DeepCoin
-  // if (record.brokerId === "deepcoin") {
-  //   // Call the debug API to check environment variables on server side
-  //   fetch("/api/debug-env")
-  //     .then((response) => response.json())
-  //     .then((data) => {
-  //       console.log("DeepCoin Environment check (server-side):", data.deepcoin);
-  //     })
-  //     .catch((error) => {
-  //       console.error("Failed to check environment variables:", error);
-  //     });
-  // }
+  // Debug environment variables for DeepCoin
+  if (record.brokerId === "deepcoin") {
+    // Call the debug API to check environment variables on server side
+    fetch("/api/debug-env")
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("DeepCoin Environment check (server-side):", data.deepcoin);
+      })
+      .catch((error) => {
+        console.error("Failed to check environment variables:", error);
+      });
+
+    // Client-side logging for DeepCoin API calls
+    console.log("DeepCoin API calls will be made for UID:", record.uid);
+    console.log("Check browser console for signature debug info");
+
+    // Monitor DeepCoin API responses for debug info
+    const originalFetch = window.fetch;
+    window.fetch = function (...args) {
+      const url = args[0];
+      if (typeof url === "string" && url.includes("/api/broker")) {
+        return originalFetch.apply(this, args).then((response) => {
+          // Log debug headers if available
+          const debugBroker = response.headers.get("X-DeepCoin-Debug-Broker");
+          const debugAction = response.headers.get("X-DeepCoin-Debug-Action");
+          const debugTimestamp = response.headers.get(
+            "X-DeepCoin-Debug-Timestamp"
+          );
+          const debugSignatureLength = response.headers.get(
+            "X-DeepCoin-Debug-Signature-Length"
+          );
+          const debugServerTime = response.headers.get(
+            "X-DeepCoin-Debug-Server-Time"
+          );
+
+          if (debugBroker === "deepcoin") {
+            console.log("DeepCoin API Debug Headers:", {
+              broker: debugBroker,
+              action: debugAction,
+              timestamp: debugTimestamp,
+              signatureLength: debugSignatureLength,
+              serverTime: debugServerTime,
+            });
+          }
+
+          return response;
+        });
+      }
+      return originalFetch.apply(this, args);
+    };
+  }
 
   // UID verification - only active when broker API is active
   // For DeepCoin, skip UID verification since referrals API works

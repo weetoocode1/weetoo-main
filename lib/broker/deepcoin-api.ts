@@ -139,12 +139,22 @@ export class DeepCoinAPI implements BrokerAPI {
       });
     }
 
+    // Always include debug info in response headers for client-side debugging
+    const debugHeaders: Record<string, string> = {
+      "X-DeepCoin-Debug-Timestamp": timestamp,
+      "X-DeepCoin-Debug-Method": method,
+      "X-DeepCoin-Debug-Path": endpoint,
+      "X-DeepCoin-Debug-Signature-Length": signature.length.toString(),
+      "X-DeepCoin-Debug-Server-Time": new Date().toISOString(),
+    };
+
     const headers: Record<string, string> = {
       "DC-ACCESS-KEY": this.apiKey,
       "DC-ACCESS-SIGN": signature,
       "DC-ACCESS-TIMESTAMP": timestamp,
       "DC-ACCESS-PASSPHRASE": this.apiPassphrase,
       "Content-Type": "application/json",
+      ...debugHeaders, // Include debug headers
     };
 
     const response = await fetch(`${this.baseURL}${endpoint}`, {
@@ -172,7 +182,16 @@ export class DeepCoinAPI implements BrokerAPI {
           });
         }
 
-        throw new Error(errorMessage);
+        // Include debug info in error for client-side debugging
+        const debugError = new Error(errorMessage);
+        (debugError as Error & { debugInfo?: unknown }).debugInfo = {
+          timestamp,
+          method,
+          endpoint,
+          signatureLength: signature.length,
+          serverTime: new Date().toISOString(),
+        };
+        throw debugError;
       } else if (response.status === 403) {
         throw new Error(
           `DeepCoin API error: 403 Forbidden - IP not whitelisted or insufficient permissions`
