@@ -7,6 +7,9 @@ import {
   TradingHistory,
 } from "./broker-types";
 
+// Import crypto properly for Node.js environments
+import crypto from "crypto";
+
 export interface DeepCoinAPIResponse<T = unknown> {
   code: string;
   msg: string;
@@ -59,6 +62,7 @@ export class DeepCoinAPI implements BrokerAPI {
   private apiKey: string;
   private apiSecret: string;
   private apiPassphrase: string;
+  private usedNodeCrypto: boolean = false;
 
   constructor() {
     this.apiKey = process.env.DEEPCOIN_API_KEY || "";
@@ -74,28 +78,46 @@ export class DeepCoinAPI implements BrokerAPI {
     body: string = ""
   ): Promise<string> {
     const message = timestamp + method + requestPath + body;
-    const encoder = new TextEncoder();
-    const keyData = encoder.encode(this.apiSecret);
-    const messageData = encoder.encode(message);
 
-    // Use Web Crypto API for HMAC SHA256
-    const key = await crypto.subtle.importKey(
-      "raw",
-      keyData,
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign"]
-    );
+    try {
+      // Use Node.js built-in crypto for more reliable HMAC-SHA256
+      if (typeof crypto !== "undefined" && crypto.createHmac) {
+        const hmac = crypto.createHmac("sha256", this.apiSecret);
+        hmac.update(message);
+        this.usedNodeCrypto = true;
+        return hmac.digest("base64");
+      } else {
+        throw new Error("Node.js crypto not available");
+      }
+    } catch (_error) {
+      this.usedNodeCrypto = false;
+      // Fallback to Web Crypto API if Node.js crypto not available
+      console.warn(
+        "Node.js crypto not available, falling back to Web Crypto API"
+      );
 
-    const signature = await crypto.subtle.sign("HMAC", key, messageData);
+      const encoder = new TextEncoder();
+      const keyData = encoder.encode(this.apiSecret);
+      const messageData = encoder.encode(message);
 
-    // Convert to Base64
-    const bytes = new Uint8Array(signature);
-    let binary = "";
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
+      const key = await crypto.subtle.importKey(
+        "raw",
+        keyData,
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["sign"]
+      );
+
+      const signature = await crypto.subtle.sign("HMAC", key, messageData);
+
+      // Convert to Base64
+      const bytes = new Uint8Array(signature);
+      let binary = "";
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary);
     }
-    return btoa(binary);
   }
 
   // Get current timestamp in ISO format - Force UTC to avoid timezone issues
@@ -199,6 +221,12 @@ export class DeepCoinAPI implements BrokerAPI {
       signaturePreview: signature.substring(0, 20) + "...",
       hmacInput: timestamp + method + endpoint + bodyString,
       signatureLength: signature.length,
+      // Add signature validation info
+      signatureValid: this.validateSignature(
+        signature,
+        timestamp + method + endpoint + bodyString
+      ),
+      nodeCryptoUsed: this.usedNodeCrypto,
     };
 
     const headers: Record<string, string> = {
@@ -636,6 +664,21 @@ export class DeepCoinAPI implements BrokerAPI {
 
   isAPIActive(): boolean {
     return !!(this.apiKey && this.apiSecret && this.apiPassphrase);
+  }
+
+  // Validate signature by regenerating it
+  private validateSignature(signature: string, message: string): boolean {
+    try {
+      if (typeof crypto !== "undefined" && crypto.createHmac) {
+        const hmac = crypto.createHmac("sha256", this.apiSecret);
+        hmac.update(message);
+        const expectedSignature = hmac.digest("base64");
+        return signature === expectedSignature;
+      }
+      return false;
+    } catch (_error) {
+      return false;
+    }
   }
 }
 
