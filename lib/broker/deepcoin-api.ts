@@ -80,40 +80,77 @@ export class DeepCoinAPI implements BrokerAPI {
     baseURL: string
   ): Promise<number | null> {
     try {
+      console.log("DeepCoin Server Time: Trying HEAD request to", baseURL);
       const head = await fetch(baseURL, { method: "HEAD", cache: "no-store" });
       const dateHeader = head.headers.get("date");
+      console.log(
+        "DeepCoin Server Time: HEAD response date header:",
+        dateHeader
+      );
       if (dateHeader) {
         const ms = Date.parse(dateHeader);
-        if (!Number.isNaN(ms)) return ms;
+        if (!Number.isNaN(ms)) {
+          console.log(
+            "DeepCoin Server Time: Parsed HEAD date successfully:",
+            ms
+          );
+          return ms;
+        }
       }
-    } catch {
-      /* ignore */
+    } catch (error) {
+      console.error("DeepCoin Server Time: HEAD request failed:", error);
     }
     try {
+      console.log("DeepCoin Server Time: Trying GET request to", baseURL);
       const getResp = await fetch(baseURL, {
         method: "GET",
         cache: "no-store",
       });
       const dateHeader = getResp.headers.get("date");
+      console.log(
+        "DeepCoin Server Time: GET response date header:",
+        dateHeader
+      );
       if (dateHeader) {
         const ms = Date.parse(dateHeader);
-        if (!Number.isNaN(ms)) return ms;
+        if (!Number.isNaN(ms)) {
+          console.log(
+            "DeepCoin Server Time: Parsed GET date successfully:",
+            ms
+          );
+          return ms;
+        }
       }
-    } catch {
-      /* ignore */
+    } catch (error) {
+      console.error("DeepCoin Server Time: GET request failed:", error);
     }
+    console.log("DeepCoin Server Time: All methods failed, returning null");
     return null;
   }
 
   private static async syncUtcSkew(baseURL: string): Promise<void> {
+    console.log("DeepCoin Skew Sync: Starting sync...");
     const localNowMs = Date.now();
     const providerMs = await DeepCoinAPI.getDeepCoinServerUtcMs(baseURL);
+
+    console.log("DeepCoin Skew Sync Debug:", {
+      localNowMs,
+      providerMs,
+      baseURL,
+      providerFound: providerMs !== null,
+    });
+
     if (providerMs !== null) {
       DeepCoinAPI.cachedSkewMs = providerMs - localNowMs;
       DeepCoinAPI.lastSkewSyncAt = localNowMs;
+      console.log("DeepCoin Skew Sync: Updated with provider time", {
+        cachedSkewMs: DeepCoinAPI.cachedSkewMs,
+        lastSkewSyncAt: DeepCoinAPI.lastSkewSyncAt,
+      });
       return;
     }
     // Fallback to trusted UTC source
+    console.log("DeepCoin Skew Sync: Provider time failed, trying fallback...");
     try {
       const resp = await fetch(
         "https://worldtimeapi.org/api/timezone/Etc/UTC",
@@ -123,7 +160,14 @@ export class DeepCoinAPI implements BrokerAPI {
       const remoteUtcMs = Date.parse(data.utc_datetime);
       DeepCoinAPI.cachedSkewMs = remoteUtcMs - localNowMs;
       DeepCoinAPI.lastSkewSyncAt = localNowMs;
-    } catch {
+      console.log("DeepCoin Skew Sync: Updated with fallback time", {
+        cachedSkewMs: DeepCoinAPI.cachedSkewMs,
+        lastSkewSyncAt: DeepCoinAPI.lastSkewSyncAt,
+        remoteUtcMs,
+        dataUtc: data.utc_datetime,
+      });
+    } catch (fallbackError) {
+      console.error("DeepCoin Skew Sync: Fallback failed", fallbackError);
       /* keep previous skew */
     }
   }
@@ -220,17 +264,17 @@ export class DeepCoinAPI implements BrokerAPI {
 
     const adjustedIso = new Date(adjustedMs).toISOString();
 
-    if (process.env.NODE_ENV === "development") {
-      console.log("DeepCoin Timestamp Debug:", {
-        localTime: new Date(nowMs).toString(),
-        localOffset: localOffset,
-        isUtcTimezone: isUtcTimezone,
-        adjustedUtc: adjustedIso,
-        adjustedMs,
-        cachedSkewMs: DeepCoinAPI.cachedSkewMs,
-        lastSkewSyncAt: DeepCoinAPI.lastSkewSyncAt,
-      });
-    }
+    // Always log skew debug info to troubleshoot Vercel issues
+    console.log("DeepCoin Timestamp Debug:", {
+      localTime: new Date(nowMs).toString(),
+      localOffset: localOffset,
+      isUtcTimezone: isUtcTimezone,
+      adjustedUtc: adjustedIso,
+      adjustedMs,
+      cachedSkewMs: DeepCoinAPI.cachedSkewMs,
+      lastSkewSyncAt: DeepCoinAPI.lastSkewSyncAt,
+      environment: process.env.NODE_ENV || "unknown",
+    });
     // Return ISO timestamp per provider examples
     return adjustedIso;
   }
