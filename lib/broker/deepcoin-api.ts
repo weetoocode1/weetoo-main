@@ -74,22 +74,57 @@ export class DeepCoinAPI implements BrokerAPI {
   // Cache UTC skew (remoteUTC - localNow) for a few minutes to keep DC-ACCESS-TIMESTAMP within +/-5s
   private static cachedSkewMs = 0;
   private static lastSkewSyncAt = 0; // ms epoch
-  private static readonly SKEW_TTL_MS = 5 * 60 * 1000; // 5 minutes
+  private static readonly SKEW_TTL_MS = 2 * 60 * 1000; // 2 minutes
 
-  private static async syncUtcSkew(): Promise<void> {
+  private static async getDeepCoinServerUtcMs(
+    baseURL: string
+  ): Promise<number | null> {
     try {
-      // Use a lightweight trusted UTC source. If DeepCoin exposes Date header, prefer that.
+      const head = await fetch(baseURL, { method: "HEAD", cache: "no-store" });
+      const dateHeader = head.headers.get("date");
+      if (dateHeader) {
+        const ms = Date.parse(dateHeader);
+        if (!Number.isNaN(ms)) return ms;
+      }
+    } catch {
+      /* ignore */
+    }
+    try {
+      const getResp = await fetch(baseURL, {
+        method: "GET",
+        cache: "no-store",
+      });
+      const dateHeader = getResp.headers.get("date");
+      if (dateHeader) {
+        const ms = Date.parse(dateHeader);
+        if (!Number.isNaN(ms)) return ms;
+      }
+    } catch {
+      /* ignore */
+    }
+    return null;
+  }
+
+  private static async syncUtcSkew(baseURL: string): Promise<void> {
+    const localNowMs = Date.now();
+    const providerMs = await DeepCoinAPI.getDeepCoinServerUtcMs(baseURL);
+    if (providerMs !== null) {
+      DeepCoinAPI.cachedSkewMs = providerMs - localNowMs;
+      DeepCoinAPI.lastSkewSyncAt = localNowMs;
+      return;
+    }
+    // Fallback to trusted UTC source
+    try {
       const resp = await fetch(
         "https://worldtimeapi.org/api/timezone/Etc/UTC",
         { cache: "no-store" }
       );
       const data = await resp.json();
       const remoteUtcMs = Date.parse(data.utc_datetime);
-      const localNowMs = Date.now();
       DeepCoinAPI.cachedSkewMs = remoteUtcMs - localNowMs;
       DeepCoinAPI.lastSkewSyncAt = localNowMs;
-    } catch (_err) {
-      // Keep previous skew; if none, remain 0 and try next time
+    } catch {
+      /* keep previous skew */
     }
   }
 
@@ -165,7 +200,7 @@ export class DeepCoinAPI implements BrokerAPI {
       !DeepCoinAPI.lastSkewSyncAt ||
       nowMs - DeepCoinAPI.lastSkewSyncAt > DeepCoinAPI.SKEW_TTL_MS
     ) {
-      await DeepCoinAPI.syncUtcSkew();
+      await DeepCoinAPI.syncUtcSkew(this.baseURL);
     }
     const adjusted = new Date(nowMs + DeepCoinAPI.cachedSkewMs).toISOString();
     if (process.env.NODE_ENV === "development") {
