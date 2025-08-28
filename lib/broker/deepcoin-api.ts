@@ -144,26 +144,35 @@ export class DeepCoinAPI implements BrokerAPI {
       bodyString
     );
 
-    // Debug logging for signature verification (only in development)
-    if (process.env.NODE_ENV === "development") {
-      console.log("DeepCoin Signature Debug:", {
+    // Debug logging for signature verification (always enabled for debugging)
+    console.log("DeepCoin Signature Debug:", {
+      timestamp: timestamp,
+      method: method,
+      requestPath: endpoint,
+      body: bodyString,
+      signatureString: timestamp + method + endpoint + bodyString,
+      apiKey: this.apiKey.substring(0, 8) + "...",
+      secretLength: this.apiSecret.length,
+      passphrase: this.apiPassphrase.substring(0, 4) + "...",
+      generatedSignature: signature.substring(0, 20) + "...",
+      fullSignature: signature, // Show full signature for comparison
+      serverTime: new Date().toISOString(),
+      timezoneOffset: new Date().getTimezoneOffset(),
+      // Add more time details
+      currentTime: new Date().toString(),
+      utcTime: new Date().toISOString(),
+      unixTime: new Date().getTime(),
+      // Add signature generation details
+      signatureLength: signature.length,
+      signatureBase64: btoa(signature), // Show if it's valid Base64
+      hmacInput: {
         timestamp: timestamp,
         method: method,
-        requestPath: endpoint,
+        endpoint: endpoint,
         body: bodyString,
-        signatureString: timestamp + method + endpoint + bodyString,
-        apiKey: this.apiKey.substring(0, 8) + "...",
-        secretLength: this.apiSecret.length,
-        passphrase: this.apiPassphrase.substring(0, 4) + "...",
-        generatedSignature: signature.substring(0, 20) + "...",
-        serverTime: new Date().toISOString(),
-        timezoneOffset: new Date().getTimezoneOffset(),
-        // Add more time details
-        currentTime: new Date().toString(),
-        utcTime: new Date().toISOString(),
-        unixTime: new Date().getTime(),
-      });
-    }
+        concatenated: timestamp + method + endpoint + bodyString,
+      },
+    });
 
     // Always include debug info in response headers for client-side debugging
     const debugHeaders: Record<string, string> = {
@@ -172,6 +181,24 @@ export class DeepCoinAPI implements BrokerAPI {
       "X-DeepCoin-Debug-Path": endpoint,
       "X-DeepCoin-Debug-Signature-Length": signature.length.toString(),
       "X-DeepCoin-Debug-Server-Time": new Date().toISOString(),
+      // Add signature debug info to headers for client-side access
+      "X-DeepCoin-Debug-Signature-Preview": signature.substring(0, 20) + "...",
+      "X-DeepCoin-Debug-Signature-Full": signature,
+      "X-DeepCoin-Debug-HMAC-Input": timestamp + method + endpoint + bodyString,
+    };
+
+    // Store debug info for the broker route to access
+    (
+      this as DeepCoinAPI & { lastSignatureDebug?: unknown }
+    ).lastSignatureDebug = {
+      timestamp,
+      method,
+      endpoint,
+      body: bodyString,
+      signature: signature,
+      signaturePreview: signature.substring(0, 20) + "...",
+      hmacInput: timestamp + method + endpoint + bodyString,
+      signatureLength: signature.length,
     };
 
     const headers: Record<string, string> = {

@@ -99,6 +99,37 @@ export async function POST(request: NextRequest) {
           new Date().toISOString()
         );
 
+        // Add signature debug info from the DeepCoin API call
+        if (
+          brokerInstance &&
+          (brokerInstance as { lastSignatureDebug?: unknown })
+            .lastSignatureDebug
+        ) {
+          const debugInfo = (brokerInstance as { lastSignatureDebug?: unknown })
+            .lastSignatureDebug as {
+            signatureLength?: number;
+            signaturePreview?: string;
+            signature?: string;
+            hmacInput?: string;
+          };
+          response.headers.set(
+            "X-DeepCoin-Debug-Signature-Length",
+            debugInfo.signatureLength?.toString() || "0"
+          );
+          response.headers.set(
+            "X-DeepCoin-Debug-Signature-Preview",
+            debugInfo.signaturePreview || ""
+          );
+          response.headers.set(
+            "X-DeepCoin-Debug-Signature-Full",
+            debugInfo.signature || ""
+          );
+          response.headers.set(
+            "X-DeepCoin-Debug-HMAC-Input",
+            debugInfo.hmacInput || ""
+          );
+        }
+
         return response;
       }
 

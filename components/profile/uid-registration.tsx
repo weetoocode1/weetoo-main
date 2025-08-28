@@ -317,6 +317,29 @@ function UIDCard({
                 clientTimeLocal: currentClientTime.toString(),
               });
             }
+
+            // Log signature comparison info
+            const debugSignaturePreview = response.headers.get(
+              "X-DeepCoin-Debug-Signature-Preview"
+            );
+            const debugSignatureFull = response.headers.get(
+              "X-DeepCoin-Debug-Signature-Full"
+            );
+            const debugHMACInput = response.headers.get(
+              "X-DeepCoin-Debug-HMAC-Input"
+            );
+
+            console.log("DeepCoin Signature Comparison Info:", {
+              action: debugAction,
+              timestamp: debugTimestamp,
+              signatureLength: debugSignatureLength,
+              signaturePreview: debugSignaturePreview,
+              signatureFull: debugSignatureFull,
+              hmacInput: debugHMACInput,
+              environment: window.location.hostname.includes("vercel")
+                ? "Vercel"
+                : "Localhost",
+            });
           }
 
           return response;
