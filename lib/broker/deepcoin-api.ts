@@ -193,7 +193,7 @@ export class DeepCoinAPI implements BrokerAPI {
     }
   }
 
-  // Get current timestamp in Unix epoch milliseconds (string), with provider-aligned skew
+  // Get current timestamp in ISO8601 (UTC), with provider-aligned skew
   private async getTimestamp(): Promise<string> {
     const nowMs = Date.now();
     if (
@@ -213,8 +213,8 @@ export class DeepCoinAPI implements BrokerAPI {
         lastSkewSyncAt: DeepCoinAPI.lastSkewSyncAt,
       });
     }
-    // Return as string (provider expects ms epoch timestamp)
-    return String(adjustedMs);
+    // Return ISO timestamp per provider examples
+    return adjustedIso;
   }
 
   // Normalize request path by sorting query parameters deterministically
