@@ -260,6 +260,15 @@ function UIDCard({
     console.log("DeepCoin API calls will be made for UID:", record.uid);
     console.log("Check browser console for signature debug info");
 
+    // Log current client-side time for comparison
+    const clientTime = new Date();
+    console.log("Client-side Time Debug:", {
+      localTime: clientTime.toString(),
+      utcTime: clientTime.toISOString(),
+      timezoneOffset: clientTime.getTimezoneOffset(),
+      unixTimestamp: clientTime.getTime(),
+    });
+
     // Monitor DeepCoin API responses for debug info
     const originalFetch = window.fetch;
     window.fetch = function (...args) {
@@ -280,6 +289,9 @@ function UIDCard({
           );
 
           if (debugBroker === "deepcoin") {
+            // Get current client time for comparison
+            const currentClientTime = new Date();
+
             console.log("DeepCoin API Debug Headers:", {
               broker: debugBroker,
               action: debugAction,
@@ -287,6 +299,24 @@ function UIDCard({
               signatureLength: debugSignatureLength,
               serverTime: debugServerTime,
             });
+
+            // Compare server timestamp with client time
+            if (debugTimestamp) {
+              const serverTime = new Date(debugTimestamp);
+              const timeDiff = Math.abs(
+                currentClientTime.getTime() - serverTime.getTime()
+              );
+              const timeDiffSeconds = Math.round(timeDiff / 1000);
+
+              console.log("DeepCoin Timestamp Comparison:", {
+                serverTimestamp: debugTimestamp,
+                clientTime: currentClientTime.toISOString(),
+                timeDifference: `${timeDiffSeconds} seconds`,
+                isWithin5Seconds: timeDiffSeconds <= 5,
+                serverTime: serverTime.toISOString(),
+                clientTimeLocal: currentClientTime.toString(),
+              });
+            }
           }
 
           return response;

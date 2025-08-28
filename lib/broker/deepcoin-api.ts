@@ -102,7 +102,29 @@ export class DeepCoinAPI implements BrokerAPI {
   private getTimestamp(): string {
     // Use UTC time directly to ensure consistency between environments
     // This avoids timezone differences between localhost and Vercel
-    return new Date().toISOString();
+    const now = new Date();
+    const utcString = now.toISOString();
+
+    // Debug timestamp details
+    if (process.env.NODE_ENV === "development") {
+      console.log("DeepCoin Timestamp Debug:", {
+        localTime: now.toString(),
+        utcTime: utcString,
+        timezoneOffset: now.getTimezoneOffset(),
+        unixTimestamp: now.getTime(),
+        utcUnixTimestamp: Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth(),
+          now.getUTCDate(),
+          now.getUTCHours(),
+          now.getUTCMinutes(),
+          now.getUTCSeconds(),
+          now.getUTCMilliseconds()
+        ),
+      });
+    }
+
+    return utcString;
   }
 
   // Make authenticated request
@@ -136,6 +158,10 @@ export class DeepCoinAPI implements BrokerAPI {
         generatedSignature: signature.substring(0, 20) + "...",
         serverTime: new Date().toISOString(),
         timezoneOffset: new Date().getTimezoneOffset(),
+        // Add more time details
+        currentTime: new Date().toString(),
+        utcTime: new Date().toISOString(),
+        unixTime: new Date().getTime(),
       });
     }
 
