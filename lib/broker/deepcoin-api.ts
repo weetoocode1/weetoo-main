@@ -196,17 +196,35 @@ export class DeepCoinAPI implements BrokerAPI {
   // Get current timestamp in ISO8601 (UTC), with provider-aligned skew
   private async getTimestamp(): Promise<string> {
     const nowMs = Date.now();
+
+    // Detect if we're already in UTC timezone (like Vercel)
+    const localOffset = new Date().getTimezoneOffset();
+    const isUtcTimezone = localOffset === 0; // UTC has 0 offset
+
     if (
       !DeepCoinAPI.lastSkewSyncAt ||
       nowMs - DeepCoinAPI.lastSkewSyncAt > DeepCoinAPI.SKEW_TTL_MS
     ) {
       await DeepCoinAPI.syncUtcSkew(this.baseURL);
     }
-    const adjustedMs = nowMs + DeepCoinAPI.cachedSkewMs;
+
+    let adjustedMs = nowMs;
+
+    if (isUtcTimezone) {
+      // Already UTC, just apply skew correction
+      adjustedMs = nowMs + DeepCoinAPI.cachedSkewMs;
+    } else {
+      // Local timezone, convert to UTC and apply skew
+      adjustedMs = nowMs - localOffset * 60 * 1000 + DeepCoinAPI.cachedSkewMs;
+    }
+
     const adjustedIso = new Date(adjustedMs).toISOString();
+
     if (process.env.NODE_ENV === "development") {
       console.log("DeepCoin Timestamp Debug:", {
         localTime: new Date(nowMs).toString(),
+        localOffset: localOffset,
+        isUtcTimezone: isUtcTimezone,
         adjustedUtc: adjustedIso,
         adjustedMs,
         cachedSkewMs: DeepCoinAPI.cachedSkewMs,
@@ -217,7 +235,22 @@ export class DeepCoinAPI implements BrokerAPI {
     return adjustedIso;
   }
 
-  // Use the exact endpoint string as constructed by caller (no reordering)
+  // Normalize request path by sorting query parameters deterministically
+  private normalizeRequestPath(requestPath: string): string {
+    if (!requestPath.includes("?")) return requestPath;
+    const [base, query] = requestPath.split("?");
+    const params = new URLSearchParams(query);
+    // Collect and sort keys for stable order
+    const entries: Array<[string, string]> = [];
+    params.forEach((v, k) => entries.push([k, v]));
+    entries.sort((a, b) =>
+      a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1].localeCompare(b[1])
+    );
+    const sorted = new URLSearchParams();
+    for (const [k, v] of entries) sorted.append(k, v);
+    const normalized = `${base}?${sorted.toString()}`;
+    return normalized;
+  }
 
   // Make authenticated request
   private async makeRequest<T>(
@@ -225,7 +258,7 @@ export class DeepCoinAPI implements BrokerAPI {
     endpoint: string,
     body?: Record<string, unknown>
   ): Promise<DeepCoinAPIResponse<T>> {
-    const normalizedPath = endpoint; // sign exactly what we send (no param reordering)
+    const normalizedPath = this.normalizeRequestPath(endpoint);
     const timestamp = await this.getTimestamp();
     const bodyString = body ? JSON.stringify(body) : "";
 
