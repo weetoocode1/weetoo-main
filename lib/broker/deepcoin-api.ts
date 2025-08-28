@@ -77,13 +77,28 @@ export class DeepCoinAPI implements BrokerAPI {
     requestPath: string,
     body: string = ""
   ): Promise<string> {
+    // Ensure exact string concatenation as per DeepCoin docs
+    // No extra spaces, no encoding issues
     const message = timestamp + method + requestPath + body;
+
+    // Debug the exact message being signed
+    console.log("DeepCoin HMAC Input Debug:", {
+      timestamp: `"${timestamp}"`,
+      method: `"${method}"`,
+      requestPath: `"${requestPath}"`,
+      body: `"${body}"`,
+      concatenated: `"${message}"`,
+      messageLength: message.length,
+      messageBytes: Buffer.from(message, "utf8").toString("hex"),
+      secretLength: this.apiSecret.length,
+      secretPreview: this.apiSecret.substring(0, 8) + "...",
+    });
 
     try {
       // Use Node.js built-in crypto for more reliable HMAC-SHA256
       if (typeof crypto !== "undefined" && crypto.createHmac) {
         const hmac = crypto.createHmac("sha256", this.apiSecret);
-        hmac.update(message);
+        hmac.update(message, "utf8"); // Explicitly specify UTF-8 encoding
         this.usedNodeCrypto = true;
         return hmac.digest("base64");
       } else {
@@ -125,7 +140,12 @@ export class DeepCoinAPI implements BrokerAPI {
     // Use UTC time directly to ensure consistency between environments
     // This avoids timezone differences between localhost and Vercel
     const now = new Date();
-    const utcString = now.toISOString();
+
+    // Add time offset for Vercel to sync with DeepCoin's server time
+    // Based on observed 69-second difference
+    const timeOffset = process.env.NODE_ENV === "production" ? 69000 : 0; // 69 seconds for Vercel
+    const adjustedTime = new Date(now.getTime() + timeOffset);
+    const utcString = adjustedTime.toISOString();
 
     // Debug timestamp details
     if (process.env.NODE_ENV === "development") {
@@ -143,6 +163,8 @@ export class DeepCoinAPI implements BrokerAPI {
           now.getUTCSeconds(),
           now.getUTCMilliseconds()
         ),
+        timeOffset: timeOffset,
+        adjustedTime: utcString,
       });
     }
 
