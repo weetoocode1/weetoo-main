@@ -325,7 +325,7 @@ export class DeepCoinAPI implements BrokerAPI {
       ...debugHeaders, // Include debug headers
     };
 
-    const response = await fetch(`${this.baseURL}${normalizedPath}`, {
+    let response = await fetch(`${this.baseURL}${normalizedPath}`, {
       method,
       headers,
       body: bodyString || undefined,
@@ -334,23 +334,36 @@ export class DeepCoinAPI implements BrokerAPI {
     if (!response.ok) {
       // Handle specific error cases with better error messages
       if (response.status === 401) {
-        // Check if this might be a timestamp issue
-        const errorMessage = `DeepCoin API error: 401 Unauthorized - Signature verification failed. Check API credentials, timestamp, and signature generation.`;
+        // Attempt a one-time retry after refreshing skew if timestamp invalid
+        const text = await response.text().catch(() => "");
+        const isTimestampInvalid =
+          text.includes("Invalid DC-ACCESS-TIMESTAMP") ||
+          text.includes("50112");
 
-        // Log additional info for debugging
-        if (process.env.NODE_ENV === "development") {
-          console.error("DeepCoin 401 Error Details:", {
-            endpoint,
+        if (isTimestampInvalid) {
+          // Refresh skew and retry once
+          await DeepCoinAPI.syncUtcSkew(this.baseURL);
+          const retryTimestamp = await this.getTimestamp();
+          const retrySignature = await this.generateSignature(
+            retryTimestamp,
             method,
-            timestamp,
-            responseStatus: response.status,
-            responseText: await response
-              .text()
-              .catch(() => "Could not read response"),
+            normalizedPath,
+            bodyString
+          );
+          // Update headers for retry
+          headers["DC-ACCESS-TIMESTAMP"] = retryTimestamp;
+          headers["DC-ACCESS-SIGN"] = retrySignature;
+          response = await fetch(`${this.baseURL}${normalizedPath}`, {
+            method,
+            headers,
+            body: bodyString || undefined,
           });
+          if (response.ok) {
+            return response.json();
+          }
         }
 
-        // Include debug info in error for client-side debugging
+        const errorMessage = `DeepCoin API error: 401 Unauthorized - Signature verification failed. Check API credentials, timestamp, and signature generation.`;
         const debugError = new Error(errorMessage);
         (debugError as Error & { debugInfo?: unknown }).debugInfo = {
           timestamp,
