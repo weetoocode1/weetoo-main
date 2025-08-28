@@ -244,18 +244,18 @@ function UIDCard({
   // Check if broker API should be active for this UID
   const isBrokerActive = useBrokerAPIActive(record.brokerId);
 
-  // Debug environment variables for DeepCoin
-  if (record.brokerId === "deepcoin") {
-    // Call the debug API to check environment variables on server side
-    fetch("/api/debug-env")
-      .then((response) => response.json())
-      .then((data) => {
-        console.log("DeepCoin Environment check (server-side):", data.deepcoin);
-      })
-      .catch((error) => {
-        console.error("Failed to check environment variables:", error);
-      });
-  }
+  // // Debug environment variables for DeepCoin
+  // if (record.brokerId === "deepcoin") {
+  //   // Call the debug API to check environment variables on server side
+  //   fetch("/api/debug-env")
+  //     .then((response) => response.json())
+  //     .then((data) => {
+  //       console.log("DeepCoin Environment check (server-side):", data.deepcoin);
+  //     })
+  //     .catch((error) => {
+  //       console.error("Failed to check environment variables:", error);
+  //     });
+  // }
 
   // UID verification - only active when broker API is active
   // For DeepCoin, skip UID verification since referrals API works

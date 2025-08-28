@@ -98,8 +98,10 @@ export class DeepCoinAPI implements BrokerAPI {
     return btoa(binary);
   }
 
-  // Get current timestamp in ISO format
+  // Get current timestamp in ISO format - Force UTC to avoid timezone issues
   private getTimestamp(): string {
+    // Use UTC time directly to ensure consistency between environments
+    // This avoids timezone differences between localhost and Vercel
     return new Date().toISOString();
   }
 
@@ -120,6 +122,23 @@ export class DeepCoinAPI implements BrokerAPI {
       bodyString
     );
 
+    // Debug logging for signature verification (only in development)
+    if (process.env.NODE_ENV === "development") {
+      console.log("DeepCoin Signature Debug:", {
+        timestamp: timestamp,
+        method: method,
+        requestPath: endpoint,
+        body: bodyString,
+        signatureString: timestamp + method + endpoint + bodyString,
+        apiKey: this.apiKey.substring(0, 8) + "...",
+        secretLength: this.apiSecret.length,
+        passphrase: this.apiPassphrase.substring(0, 4) + "...",
+        generatedSignature: signature.substring(0, 20) + "...",
+        serverTime: new Date().toISOString(),
+        timezoneOffset: new Date().getTimezoneOffset(),
+      });
+    }
+
     const headers: Record<string, string> = {
       "DC-ACCESS-KEY": this.apiKey,
       "DC-ACCESS-SIGN": signature,
@@ -135,11 +154,25 @@ export class DeepCoinAPI implements BrokerAPI {
     });
 
     if (!response.ok) {
-      // Handle specific error cases
+      // Handle specific error cases with better error messages
       if (response.status === 401) {
-        throw new Error(
-          `DeepCoin API error: 401 Unauthorized - Check API credentials and IP whitelisting`
-        );
+        // Check if this might be a timestamp issue
+        const errorMessage = `DeepCoin API error: 401 Unauthorized - Signature verification failed. Check API credentials, timestamp, and signature generation.`;
+
+        // Log additional info for debugging
+        if (process.env.NODE_ENV === "development") {
+          console.error("DeepCoin 401 Error Details:", {
+            endpoint,
+            method,
+            timestamp,
+            responseStatus: response.status,
+            responseText: await response
+              .text()
+              .catch(() => "Could not read response"),
+          });
+        }
+
+        throw new Error(errorMessage);
       } else if (response.status === 403) {
         throw new Error(
           `DeepCoin API error: 403 Forbidden - IP not whitelisted or insufficient permissions`

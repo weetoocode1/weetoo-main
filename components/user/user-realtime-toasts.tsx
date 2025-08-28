@@ -212,33 +212,33 @@ export function UserRealtimeToasts() {
     userRef.current = user;
 
     // Debug logging to troubleshoot route issues
-    console.log("UserRealtimeToasts: Auth state changed", {
-      userId: user?.id,
-      pathname: window.location.pathname,
-    });
+    // console.log("UserRealtimeToasts: Auth state changed", {
+    //   userId: user?.id,
+    //   pathname: window.location.pathname,
+    // });
   }, [user?.id]);
 
   useEffect(() => {
     // Debug: Log current state
-    console.log("UserRealtimeToasts: Component mounted/updated", {
-      userId: user?.id,
-      pathname: window.location.pathname,
-      userRef: userRef.current,
-    });
+    // console.log("UserRealtimeToasts: Component mounted/updated", {
+    //   userId: user?.id,
+    //   pathname: window.location.pathname,
+    //   userRef: userRef.current,
+    // });
 
     if (!user?.id) {
-      console.log("UserRealtimeToasts: no user, skipping subscription", {
-        userId: user?.id,
-        pathname: window.location.pathname,
-      });
+      // console.log("UserRealtimeToasts: no user, skipping subscription", {
+      //   userId: user?.id,
+      //   pathname: window.location.pathname,
+      // });
       return;
     }
 
     // Only log once on initial setup
-    console.log("UserRealtimeToasts: initializing for user", {
-      userId: user?.id,
-      pathname: window.location.pathname,
-    });
+    // console.log("UserRealtimeToasts: initializing for user", {
+    //   userId: user?.id,
+    //   pathname: window.location.pathname,
+    // });
 
     // Use the notification configs and showToast function defined outside
 
@@ -262,7 +262,7 @@ export function UserRealtimeToasts() {
           timeSinceLastHeartbeat > 30000 &&
           timeSinceConnectionStart > 30000
         ) {
-          console.log("UserRealtimeToasts: heartbeat timeout, reconnecting...");
+          // console.log("UserRealtimeToasts: heartbeat timeout, reconnecting...");
           handleConnectionError();
           return;
         }
@@ -295,7 +295,7 @@ export function UserRealtimeToasts() {
 
         // If connection is old (>10 minutes) and had recent errors, refresh it
         if (connectionAge > 600000 && timeSinceLastError < 300000) {
-          console.log("UserRealtimeToasts: connection aging, refreshing...");
+          // console.log("UserRealtimeToasts: connection aging, refreshing...");
           establishConnection();
           return;
         }
@@ -333,13 +333,13 @@ export function UserRealtimeToasts() {
           stale ||
           !connectionRef.current.isActive
         ) {
-          console.log("UserRealtimeToasts: visibility recovery → re-establish");
+          // console.log("UserRealtimeToasts: visibility recovery → re-establish");
           establishConnection();
         }
       };
       const onOnline = () => {
         if (!userRef.current) return;
-        console.log("UserRealtimeToasts: network online → re-establish");
+        // console.log("UserRealtimeToasts: network online → re-establish");
         establishConnection();
       };
       window.addEventListener("visibilitychange", onVisible);
@@ -381,10 +381,10 @@ export function UserRealtimeToasts() {
           table: "notifications",
         },
         (payload) => {
-          console.log(
-            "UserRealtimeToasts: DEBUG - All notifications:",
-            payload
-          );
+          // console.log(
+          //   "UserRealtimeToasts: DEBUG - All notifications:",
+          //   payload
+          // );
         }
       );
 
@@ -398,30 +398,30 @@ export function UserRealtimeToasts() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log("UserRealtimeToasts: Raw payload received:", payload);
+          // console.log("UserRealtimeToasts: Raw payload received:", payload);
 
           if (!userRef.current) {
-            console.log("UserRealtimeToasts: No user, skipping");
+            // console.log("UserRealtimeToasts: No user, skipping");
             return;
           }
 
           const row = payload.new as UserNotificationPayload;
-          console.log("UserRealtimeToasts: Parsed notification row:", row);
+          // console.log("UserRealtimeToasts: Parsed notification row:", row);
 
           if (row?.audience !== "user") {
-            console.log(
-              "UserRealtimeToasts: Skipping non-user notification:",
-              row?.audience
-            );
+            // console.log(
+            //   "UserRealtimeToasts: Skipping non-user notification:",
+            //   row?.audience
+            // );
             return;
           }
 
           // Debug logging
-          console.log("UserRealtimeToasts: Processing user notification", {
-            type: row.type,
-            audience: row.audience,
-            metadata: row.metadata,
-          });
+          // console.log("UserRealtimeToasts: Processing user notification", {
+          //   type: row.type,
+          //   audience: row.audience,
+          //   metadata: row.metadata,
+          // });
 
           // Update heartbeat on any activity
           connectionRef.current.lastHeartbeat = Date.now();
@@ -435,7 +435,7 @@ export function UserRealtimeToasts() {
               row.body || undefined
             );
 
-          console.log("UserRealtimeToasts: Using config:", config);
+          // console.log("UserRealtimeToasts: Using config:", config);
 
           // Show toast with dynamic configuration
           showToast(config, row.metadata || {});
@@ -448,7 +448,7 @@ export function UserRealtimeToasts() {
       // Subscribe with silent error handling
       channel.subscribe((status) => {
         if (status === "SUBSCRIBED") {
-          console.log("UserRealtimeToasts: Channel SUBSCRIBED successfully");
+          // console.log("UserRealtimeToasts: Channel SUBSCRIBED successfully");
           connectionRef.current.isConnecting = false;
           connectionRef.current.retryCount = 0; // Reset retry count on success
           connectionRef.current.channel = channel;
@@ -458,10 +458,10 @@ export function UserRealtimeToasts() {
           startHeartbeat();
           startHealthCheck();
 
-          console.log(
-            "UserRealtimeToasts: Connection fully established with channel:",
-            channel
-          );
+          // console.log(
+          //   "UserRealtimeToasts: Connection fully established with channel:",
+          //   channel
+          // );
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
           connectionRef.current.isConnecting = false;
           connectionRef.current.lastError = Date.now();
