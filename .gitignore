@@ -63,3 +63,4 @@ important.txt
 # Ignore cursor rules
 .cursorrules
 @.cursorrules
+.cursor/
