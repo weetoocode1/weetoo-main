@@ -262,21 +262,22 @@ export class DeepCoinAPI implements BrokerAPI {
       adjustedMs = nowMs - localOffset * 60 * 1000 + DeepCoinAPI.cachedSkewMs;
     }
 
-    const adjustedIso = new Date(adjustedMs).toISOString();
+    // Return ISO timestamp (DeepCoin format)
+    const isoTimestamp = new Date(adjustedMs).toISOString();
 
     // Always log skew debug info to troubleshoot Vercel issues
     console.log("DeepCoin Timestamp Debug:", {
       localTime: new Date(nowMs).toString(),
       localOffset: localOffset,
       isUtcTimezone: isUtcTimezone,
-      adjustedUtc: adjustedIso,
       adjustedMs,
+      isoTimestamp,
       cachedSkewMs: DeepCoinAPI.cachedSkewMs,
       lastSkewSyncAt: DeepCoinAPI.lastSkewSyncAt,
       environment: process.env.NODE_ENV || "unknown",
     });
-    // Return ISO timestamp per provider examples
-    return adjustedIso;
+
+    return isoTimestamp;
   }
 
   // Normalize request path by sorting query parameters deterministically
