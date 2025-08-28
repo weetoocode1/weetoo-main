@@ -193,7 +193,7 @@ export class DeepCoinAPI implements BrokerAPI {
     }
   }
 
-  // Get current timestamp in ISO format using dynamic UTC skew sync
+  // Get current timestamp in Unix epoch milliseconds (string), with provider-aligned skew
   private async getTimestamp(): Promise<string> {
     const nowMs = Date.now();
     if (
@@ -202,16 +202,19 @@ export class DeepCoinAPI implements BrokerAPI {
     ) {
       await DeepCoinAPI.syncUtcSkew(this.baseURL);
     }
-    const adjusted = new Date(nowMs + DeepCoinAPI.cachedSkewMs).toISOString();
+    const adjustedMs = nowMs + DeepCoinAPI.cachedSkewMs;
+    const adjustedIso = new Date(adjustedMs).toISOString();
     if (process.env.NODE_ENV === "development") {
       console.log("DeepCoin Timestamp Debug:", {
         localTime: new Date(nowMs).toString(),
-        adjustedUtc: adjusted,
+        adjustedUtc: adjustedIso,
+        adjustedMs,
         cachedSkewMs: DeepCoinAPI.cachedSkewMs,
         lastSkewSyncAt: DeepCoinAPI.lastSkewSyncAt,
       });
     }
-    return adjusted;
+    // Return as string (provider expects ms epoch timestamp)
+    return String(adjustedMs);
   }
 
   // Normalize request path by sorting query parameters deterministically
@@ -255,7 +258,7 @@ export class DeepCoinAPI implements BrokerAPI {
       method: method,
       requestPath: normalizedPath,
       body: bodyString,
-      signatureString: timestamp + method + endpoint + bodyString,
+      signatureString: timestamp + method + normalizedPath + bodyString,
       apiKey: this.apiKey.substring(0, 8) + "...",
       secretLength: this.apiSecret.length,
       passphrase: this.apiPassphrase.substring(0, 4) + "...",
@@ -273,9 +276,9 @@ export class DeepCoinAPI implements BrokerAPI {
       hmacInput: {
         timestamp: timestamp,
         method: method,
-        endpoint: endpoint,
+        endpoint: normalizedPath,
         body: bodyString,
-        concatenated: timestamp + method + endpoint + bodyString,
+        concatenated: timestamp + method + normalizedPath + bodyString,
       },
     });
 
@@ -308,7 +311,7 @@ export class DeepCoinAPI implements BrokerAPI {
       // Add signature validation info
       signatureValid: this.validateSignature(
         signature,
-        timestamp + method + endpoint + bodyString
+        timestamp + method + normalizedPath + bodyString
       ),
       nodeCryptoUsed: this.usedNodeCrypto,
     };
