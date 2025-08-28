@@ -8,7 +8,6 @@ import {
   Link2,
   LucideIcon,
   MessageSquareText,
-  MonitorPlay,
   Users2,
 } from "lucide-react";
 
@@ -57,11 +56,11 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     title: "Operations",
     items: [
       { label: "UID Management", href: "/admin/uid-management", icon: Link2 },
-      {
-        label: "Exchange UIDs",
-        href: "/admin/exchange-uid",
-        icon: MonitorPlay,
-      },
+      // {
+      //   label: "Exchange UIDs",
+      //   href: "/admin/exchange-uid",
+      //   icon: MonitorPlay,
+      // },
       { label: "KOR Coins", href: "/admin/kor-coins", icon: Coins },
     ],
   },
