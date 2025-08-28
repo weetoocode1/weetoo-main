@@ -70,6 +70,29 @@ export class DeepCoinAPI implements BrokerAPI {
     this.apiPassphrase = process.env.DEEPCOIN_API_PASSPHRASE || "";
   }
 
+  // ===== Time skew synchronization (industry standard) =====
+  // Cache UTC skew (remoteUTC - localNow) for a few minutes to keep DC-ACCESS-TIMESTAMP within +/-5s
+  private static cachedSkewMs = 0;
+  private static lastSkewSyncAt = 0; // ms epoch
+  private static readonly SKEW_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+  private static async syncUtcSkew(): Promise<void> {
+    try {
+      // Use a lightweight trusted UTC source. If DeepCoin exposes Date header, prefer that.
+      const resp = await fetch(
+        "https://worldtimeapi.org/api/timezone/Etc/UTC",
+        { cache: "no-store" }
+      );
+      const data = await resp.json();
+      const remoteUtcMs = Date.parse(data.utc_datetime);
+      const localNowMs = Date.now();
+      DeepCoinAPI.cachedSkewMs = remoteUtcMs - localNowMs;
+      DeepCoinAPI.lastSkewSyncAt = localNowMs;
+    } catch (_err) {
+      // Keep previous skew; if none, remain 0 and try next time
+    }
+  }
+
   // Generate HMAC SHA256 signature as per DeepCoin docs
   private async generateSignature(
     timestamp: string,
@@ -135,40 +158,42 @@ export class DeepCoinAPI implements BrokerAPI {
     }
   }
 
-  // Get current timestamp in ISO format - Force UTC to avoid timezone issues
-  private getTimestamp(): string {
-    // Use UTC time directly to ensure consistency between environments
-    // This avoids timezone differences between localhost and Vercel
-    const now = new Date();
-
-    // Add time offset for Vercel to sync with DeepCoin's server time
-    // Based on observed 69-second difference
-    const timeOffset = process.env.NODE_ENV === "production" ? 69000 : 0; // 69 seconds for Vercel
-    const adjustedTime = new Date(now.getTime() + timeOffset);
-    const utcString = adjustedTime.toISOString();
-
-    // Debug timestamp details
+  // Get current timestamp in ISO format using dynamic UTC skew sync
+  private async getTimestamp(): Promise<string> {
+    const nowMs = Date.now();
+    if (
+      !DeepCoinAPI.lastSkewSyncAt ||
+      nowMs - DeepCoinAPI.lastSkewSyncAt > DeepCoinAPI.SKEW_TTL_MS
+    ) {
+      await DeepCoinAPI.syncUtcSkew();
+    }
+    const adjusted = new Date(nowMs + DeepCoinAPI.cachedSkewMs).toISOString();
     if (process.env.NODE_ENV === "development") {
       console.log("DeepCoin Timestamp Debug:", {
-        localTime: now.toString(),
-        utcTime: utcString,
-        timezoneOffset: now.getTimezoneOffset(),
-        unixTimestamp: now.getTime(),
-        utcUnixTimestamp: Date.UTC(
-          now.getUTCFullYear(),
-          now.getUTCMonth(),
-          now.getUTCDate(),
-          now.getUTCHours(),
-          now.getUTCMinutes(),
-          now.getUTCSeconds(),
-          now.getUTCMilliseconds()
-        ),
-        timeOffset: timeOffset,
-        adjustedTime: utcString,
+        localTime: new Date(nowMs).toString(),
+        adjustedUtc: adjusted,
+        cachedSkewMs: DeepCoinAPI.cachedSkewMs,
+        lastSkewSyncAt: DeepCoinAPI.lastSkewSyncAt,
       });
     }
+    return adjusted;
+  }
 
-    return utcString;
+  // Normalize request path by sorting query parameters deterministically
+  private normalizeRequestPath(requestPath: string): string {
+    if (!requestPath.includes("?")) return requestPath;
+    const [base, query] = requestPath.split("?");
+    const params = new URLSearchParams(query);
+    // Collect and sort keys for stable order
+    const entries: Array<[string, string]> = [];
+    params.forEach((v, k) => entries.push([k, v]));
+    entries.sort((a, b) =>
+      a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1].localeCompare(b[1])
+    );
+    const sorted = new URLSearchParams();
+    for (const [k, v] of entries) sorted.append(k, v);
+    const normalized = `${base}?${sorted.toString()}`;
+    return normalized;
   }
 
   // Make authenticated request
@@ -177,14 +202,15 @@ export class DeepCoinAPI implements BrokerAPI {
     endpoint: string,
     body?: Record<string, unknown>
   ): Promise<DeepCoinAPIResponse<T>> {
-    const timestamp = this.getTimestamp();
+    const normalizedPath = this.normalizeRequestPath(endpoint);
+    const timestamp = await this.getTimestamp();
     const bodyString = body ? JSON.stringify(body) : "";
 
     // Generate signature
     const signature = await this.generateSignature(
       timestamp,
       method,
-      endpoint,
+      normalizedPath,
       bodyString
     );
 
@@ -192,7 +218,7 @@ export class DeepCoinAPI implements BrokerAPI {
     console.log("DeepCoin Signature Debug:", {
       timestamp: timestamp,
       method: method,
-      requestPath: endpoint,
+      requestPath: normalizedPath,
       body: bodyString,
       signatureString: timestamp + method + endpoint + bodyString,
       apiKey: this.apiKey.substring(0, 8) + "...",
@@ -222,13 +248,14 @@ export class DeepCoinAPI implements BrokerAPI {
     const debugHeaders: Record<string, string> = {
       "X-DeepCoin-Debug-Timestamp": timestamp,
       "X-DeepCoin-Debug-Method": method,
-      "X-DeepCoin-Debug-Path": endpoint,
+      "X-DeepCoin-Debug-Path": normalizedPath,
       "X-DeepCoin-Debug-Signature-Length": signature.length.toString(),
       "X-DeepCoin-Debug-Server-Time": new Date().toISOString(),
       // Add signature debug info to headers for client-side access
       "X-DeepCoin-Debug-Signature-Preview": signature.substring(0, 20) + "...",
       "X-DeepCoin-Debug-Signature-Full": signature,
-      "X-DeepCoin-Debug-HMAC-Input": timestamp + method + endpoint + bodyString,
+      "X-DeepCoin-Debug-HMAC-Input":
+        timestamp + method + normalizedPath + bodyString,
     };
 
     // Store debug info for the broker route to access
@@ -237,11 +264,11 @@ export class DeepCoinAPI implements BrokerAPI {
     ).lastSignatureDebug = {
       timestamp,
       method,
-      endpoint,
+      endpoint: normalizedPath,
       body: bodyString,
       signature: signature,
       signaturePreview: signature.substring(0, 20) + "...",
-      hmacInput: timestamp + method + endpoint + bodyString,
+      hmacInput: timestamp + method + normalizedPath + bodyString,
       signatureLength: signature.length,
       // Add signature validation info
       signatureValid: this.validateSignature(
@@ -260,7 +287,7 @@ export class DeepCoinAPI implements BrokerAPI {
       ...debugHeaders, // Include debug headers
     };
 
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
+    const response = await fetch(`${this.baseURL}${normalizedPath}`, {
       method,
       headers,
       body: bodyString || undefined,
