@@ -269,7 +269,11 @@ export function EditNoteDialog({
                 Created At
               </Label>
               <Input
-                value={new Date(note.created_at).toLocaleDateString("en-GB")}
+                value={
+                  note.created_at
+                    ? new Date(note.created_at).toLocaleDateString("en-GB")
+                    : ""
+                }
                 disabled
                 className="h-10 bg-muted/30 rounded-none"
               />

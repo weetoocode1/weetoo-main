@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Resolver, useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "../ui/button";
 import {
@@ -101,7 +101,7 @@ export function UidRegistrationDialog({
   const setDialogIsOpen = onOpenChange || setInternalIsOpen;
 
   const form = useForm<UidFormData>({
-    resolver: zodResolver(uidFormSchema),
+    resolver: zodResolver(uidFormSchema) as unknown as Resolver<UidFormData>,
     defaultValues: { brokerId: "", uid: "" },
   });
 

@@ -2,14 +2,14 @@
 
 import { BrokerAPI, BrokerType } from "./broker-types";
 import { hasBrokerCredentials } from "./broker-utils";
-import { DeepCoinAPI } from "./deepcoin-api";
-import { OrangeXAPI } from "./orangex-api";
 
 export class BrokerFactory {
   /**
    * Create a broker API instance based on broker type
    */
-  static createBrokerAPI(brokerType: BrokerType): BrokerAPI | null {
+  static async createBrokerAPI(
+    brokerType: BrokerType
+  ): Promise<BrokerAPI | null> {
     // Check if credentials are available for this broker
     if (!hasBrokerCredentials(brokerType)) {
       console.warn(`No credentials configured for ${brokerType}`);
@@ -19,9 +19,11 @@ export class BrokerFactory {
     try {
       switch (brokerType) {
         case "deepcoin":
+          const { DeepCoinAPI } = await import("./deepcoin-api");
           return new DeepCoinAPI();
 
         case "orangex":
+          const { OrangeXAPI } = await import("./orangex-api");
           return new OrangeXAPI();
 
         // Future brokers will be added here

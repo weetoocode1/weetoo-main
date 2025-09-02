@@ -45,9 +45,6 @@ export function UserDropdown() {
   // Listen for identity verification completion and KOR coins updates
   useEffect(() => {
     const handleIdentityVerified = (event: Event) => {
-      // Force a re-render to update verification status
-      // This will update the user.identity_verified status instantly
-      // The useAuth hook will have updated the user data, so we just need to trigger a re-render
       setShowEmail((prev) => prev); // Triggers re-render with updated verification status
     };
 
@@ -350,12 +347,21 @@ export function UserDropdown() {
             </Link> */}
             {/* Admin Dashboard: Only for admin or super_admin */}
             {isAdmin && (
-              <Link href="/admin-verification">
-                <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2.5 hover:bg-accent transition-colors">
-                  <ShieldIcon className="w-4 h-4 mr-3 text-muted-foreground" />
-                  {t("goToAdminDashboard")}
-                </DropdownMenuItem>
-              </Link>
+              <>
+                <Link href="/admin-verification">
+                  <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2.5 hover:bg-accent transition-colors">
+                    <ShieldIcon className="w-4 h-4 mr-3 text-muted-foreground" />
+                    {t("goToAdminDashboard")}
+                  </DropdownMenuItem>
+                </Link>
+
+                {/* <Link href="/guidebook">
+                  <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2.5 hover:bg-accent transition-colors">
+                    <BookIcon className="w-4 h-4 mr-3 text-muted-foreground" />
+                    {t("guidebook")}
+                  </DropdownMenuItem>
+                </Link> */}
+              </>
             )}
             <DropdownMenuSeparator className="my-2" />
             {/* Weetoo Market */}

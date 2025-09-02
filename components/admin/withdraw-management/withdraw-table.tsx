@@ -16,6 +16,7 @@ import {
   useUpdateWithdrawalStatus,
 } from "@/hooks/use-withdrawal";
 import type { WithdrawalRequest as DbWithdrawalRequest } from "@/types/withdrawal";
+
 import {
   AlertTriangle,
   CheckCircle,
@@ -33,7 +34,7 @@ interface WithdrawRequest {
   accountHolderName: string;
   accountNumber: string;
   bankName?: string;
-  verificationAmount?: number;
+  verificationAmount?: number | null;
   status: "pending" | "sent" | "verified" | "failed";
   userLevel: number;
   withdrawalAmount: number; // KOR coins user wants to withdraw
@@ -48,10 +49,11 @@ interface RawWithdrawalData {
   kor_coins_amount: number;
   created_at: string;
   bank_account?: {
+    id?: string;
     account_holder_name?: string;
     account_number?: string;
     bank_name?: string;
-    verification_amount?: number;
+    verification_amount?: string | number | null;
   };
   user?: {
     first_name?: string;
@@ -216,7 +218,13 @@ export function WithdrawTable() {
           r.bank_account?.account_holder_name || r.user?.first_name || "-",
         accountNumber: r.bank_account?.account_number || "-",
         bankName: r.bank_account?.bank_name || "-",
-        verificationAmount: r.bank_account?.verification_amount,
+        verificationAmount: (() => {
+          const amount = r.bank_account?.verification_amount;
+          if (amount == null) return null;
+          if (typeof amount === "string") return parseFloat(amount);
+          if (typeof amount === "number") return amount;
+          return null;
+        })(),
         status: mapStatus(r.status),
         userLevel: r.user?.level || 0,
         withdrawalAmount: r.kor_coins_amount || 0,

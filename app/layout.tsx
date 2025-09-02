@@ -80,7 +80,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta charSet="utf-8" />
       </head>
-      <body className={`antialiased h-full`}>
+      <body className={`antialiased h-full flex flex-col`}>
         <Script
           src="https://cdn.portone.io/v2/browser-sdk.js"
           strategy="afterInteractive"
@@ -100,6 +100,7 @@ export default function RootLayout({
             </ThemeProvider>
           </LanguageProvider>
         </QueryProvider>
+
         <SpeedInsights />
         <Analytics />
       </body>

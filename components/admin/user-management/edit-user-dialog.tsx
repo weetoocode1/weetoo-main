@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
@@ -50,13 +50,25 @@ export function EditUserDialog({
   currentUserRole,
 }: EditUserDialogProps) {
   const [editFormData, setEditFormData] = useState({
-    first_name: user.first_name,
-    last_name: user.last_name,
-    email: user.email,
+    first_name: user.first_name || "",
+    last_name: user.last_name || "",
+    email: user.email || "",
     mobile_number: user.mobile_number || "",
-    role: user.role,
-    kor_coins: user.kor_coins,
+    role: user.role || "user",
+    kor_coins: user.kor_coins || 0,
   });
+
+  // Reset form data when user changes to prevent stale data
+  useEffect(() => {
+    setEditFormData({
+      first_name: user.first_name || "",
+      last_name: user.last_name || "",
+      email: user.email || "",
+      mobile_number: user.mobile_number || "",
+      role: user.role || "user",
+      kor_coins: user.kor_coins || 0,
+    });
+  }, [user]);
 
   const [isSaving, setIsSaving] = useState(false);
 
@@ -159,7 +171,7 @@ export function EditUserDialog({
               <Input
                 id="firstName"
                 type="text"
-                value={editFormData.first_name}
+                value={editFormData.first_name || ""}
                 onChange={(e) =>
                   setEditFormData((prev) => ({
                     ...prev,
@@ -180,7 +192,7 @@ export function EditUserDialog({
               <Input
                 id="lastName"
                 type="text"
-                value={editFormData.last_name}
+                value={editFormData.last_name || ""}
                 onChange={(e) =>
                   setEditFormData((prev) => ({
                     ...prev,
@@ -206,7 +218,7 @@ export function EditUserDialog({
               <Input
                 id="email"
                 type="email"
-                value={editFormData.email}
+                value={editFormData.email || ""}
                 onChange={(e) =>
                   setEditFormData((prev) => ({
                     ...prev,
@@ -227,7 +239,7 @@ export function EditUserDialog({
               <Input
                 id="phone"
                 type="tel"
-                value={editFormData.mobile_number}
+                value={editFormData.mobile_number || ""}
                 onChange={(e) =>
                   setEditFormData((prev) => ({
                     ...prev,
@@ -269,8 +281,8 @@ export function EditUserDialog({
               </Label>
               <Input
                 id="korCoins"
-                type="number"
-                value={editFormData.kor_coins}
+                type="text"
+                value={editFormData.kor_coins?.toString() || "0"}
                 onChange={(e) =>
                   setEditFormData((prev) => ({
                     ...prev,
@@ -290,7 +302,7 @@ export function EditUserDialog({
             <div className="space-y-2">
               <Label className="text-sm font-medium">User ID</Label>
               <Input
-                value={user.id}
+                value={user.id || ""}
                 disabled
                 className="h-10 font-mono bg-muted/30 rounded-none"
               />
@@ -300,7 +312,7 @@ export function EditUserDialog({
             <div className="space-y-2">
               <Label className="text-sm font-medium">Warnings</Label>
               <Input
-                value={user.warningCount}
+                value={user.warningCount?.toString() || "0"}
                 disabled
                 className="h-10 bg-muted/30 rounded-none"
               />
@@ -310,7 +322,11 @@ export function EditUserDialog({
             <div className="space-y-2">
               <Label className="text-sm font-medium">Account Created</Label>
               <Input
-                value={new Date(user.created_at).toLocaleDateString("en-GB")}
+                value={
+                  user.created_at
+                    ? new Date(user.created_at).toLocaleDateString("en-GB")
+                    : ""
+                }
                 disabled
                 className="h-10 bg-muted/30 rounded-none"
               />
@@ -320,7 +336,11 @@ export function EditUserDialog({
             <div className="space-y-2">
               <Label className="text-sm font-medium">Last Updated</Label>
               <Input
-                value={new Date(user.updated_at).toLocaleDateString("en-GB")}
+                value={
+                  user.updated_at
+                    ? new Date(user.updated_at).toLocaleDateString("en-GB")
+                    : ""
+                }
                 disabled
                 className="h-10 bg-muted/30 rounded-none"
               />

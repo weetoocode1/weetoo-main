@@ -8,6 +8,25 @@ const nextConfig: NextConfig = {
   experimental: {
     viewTransition: true,
   },
+  webpack: (config, { isServer }) => {
+    // Exclude Node.js-only packages from client-side bundling
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        undici: false,
+        "https-proxy-agent": false,
+        crypto: false,
+        fs: false,
+        net: false,
+        tls: false,
+        assert: false,
+        async_hooks: false,
+        buffer: false,
+        console: false,
+      };
+    }
+    return config;
+  },
   images: {
     remotePatterns: [
       {

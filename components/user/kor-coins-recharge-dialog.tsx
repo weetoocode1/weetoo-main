@@ -1105,6 +1105,18 @@ export function KorCoinsRechargeDialog() {
                                   accountNumber.includes(searchLower)
                                 );
                               })
+                              // Remove duplicates based on bank_name and account_number combination
+                              .filter((account, index, self) => {
+                                const accountKey = `${account.bank_name}-${account.account_number}`;
+                                return (
+                                  index ===
+                                  self.findIndex(
+                                    (acc) =>
+                                      `${acc.bank_name}-${acc.account_number}` ===
+                                      accountKey
+                                  )
+                                );
+                              })
                               .map((account) => (
                                 <CommandItem
                                   key={account.id}

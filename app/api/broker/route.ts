@@ -51,34 +51,6 @@ export async function POST(request: NextRequest) {
             { status: 500 }
           );
 
-          // Add debug headers to help troubleshoot signature issues
-          errorResponse.headers.set("X-DeepCoin-Debug-Broker", "deepcoin");
-          errorResponse.headers.set("X-DeepCoin-Debug-Action", action);
-          errorResponse.headers.set(
-            "X-DeepCoin-Debug-Timestamp",
-            new Date().toISOString()
-          );
-
-          // Add debug info from the error if available
-          if (
-            methodError &&
-            typeof methodError === "object" &&
-            "debugInfo" in methodError
-          ) {
-            const debugInfo = methodError.debugInfo as {
-              signatureLength?: number;
-              serverTime?: string;
-            };
-            errorResponse.headers.set(
-              "X-DeepCoin-Debug-Signature-Length",
-              debugInfo.signatureLength?.toString() || "0"
-            );
-            errorResponse.headers.set(
-              "X-DeepCoin-Debug-Server-Time",
-              debugInfo.serverTime || ""
-            );
-          }
-
           return errorResponse;
         }
 
@@ -86,52 +58,6 @@ export async function POST(request: NextRequest) {
           { error: `Failed to execute ${action}` },
           { status: 500 }
         );
-      }
-
-      // Add debug headers for DeepCoin requests
-      if (broker === "deepcoin") {
-        const response = NextResponse.json(result);
-
-        // Add debug headers to help troubleshoot signature issues
-        response.headers.set("X-DeepCoin-Debug-Broker", "deepcoin");
-        response.headers.set("X-DeepCoin-Debug-Action", action);
-        response.headers.set(
-          "X-DeepCoin-Debug-Timestamp",
-          new Date().toISOString()
-        );
-
-        // Add signature debug info from the DeepCoin API call
-        if (
-          brokerInstance &&
-          (brokerInstance as { lastSignatureDebug?: unknown })
-            .lastSignatureDebug
-        ) {
-          const debugInfo = (brokerInstance as { lastSignatureDebug?: unknown })
-            .lastSignatureDebug as {
-            signatureLength?: number;
-            signaturePreview?: string;
-            signature?: string;
-            hmacInput?: string;
-          };
-          response.headers.set(
-            "X-DeepCoin-Debug-Signature-Length",
-            debugInfo.signatureLength?.toString() || "0"
-          );
-          response.headers.set(
-            "X-DeepCoin-Debug-Signature-Preview",
-            debugInfo.signaturePreview || ""
-          );
-          response.headers.set(
-            "X-DeepCoin-Debug-Signature-Full",
-            debugInfo.signature || ""
-          );
-          response.headers.set(
-            "X-DeepCoin-Debug-HMAC-Input",
-            debugInfo.hmacInput || ""
-          );
-        }
-
-        return response;
       }
 
       return NextResponse.json(result);

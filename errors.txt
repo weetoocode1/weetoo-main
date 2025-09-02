@@ -1,174 +1,103 @@
-DeepCoin HMAC Input Debug: {
-  timestamp: '"2025-08-28T09:27:21.000Z"',
-  method: '"GET"',
-  requestPath: '"/deepcoin/trade/fills?limit=100&uid=9436820"',
-  body: '""',
-  concatenated: '"2025-08-28T09:27:21.000ZGET/deepcoin/trade/fills?limit=100&uid=9436820"',
-  messageLength: 70,
-  messageBytes: '323032352d30382d32385430393a32373a32312e3030305a4745542f64656570636f696e2f74726164652f66696c6c733f6c696d69743d313030267569643d39343336383230',
-  secretLength: 32,
-  secretPreview: 'D8672EE1...'
-}
-DeepCoin Signature Debug: {
-  timestamp: '2025-08-28T09:27:21.000Z',
-  method: 'GET',
-  requestPath: '/deepcoin/trade/fills?limit=100&uid=9436820',
-  body: '',
-  signatureString: '2025-08-28T09:27:21.000ZGET/deepcoin/trade/fills?limit=100&uid=9436820',
-  apiKey: '9eed6e5a...',
-  secretLength: 32,
-  passphrase: 'Dnlx...',
-  generatedSignature: 'HtV2aTek/dSHhOPefLa1...',
-  fullSignature: 'HtV2aTek/dSHhOPefLa1Q1xviVCOck6oEMvl9egpPF8=',
-  serverTime: '2025-08-28T09:27:21.497Z',
-  timezoneOffset: 0,
-  currentTime: 'Thu Aug 28 2025 09:27:21 GMT+0000 (Coordinated Universal Time)',
-  utcTime: '2025-08-28T09:27:21.497Z',
-  unixTime: 1756373241497,
-  signatureLength: 44,
-  signatureBase64: 'SHRWMmFUZWsvZFNIaE9QZWZMYTFRMXh2aVZDT2NrNm9FTXZsOWVncFBGOD0=',
-  hmacInput: {
-    timestamp: '2025-08-28T09:27:21.000Z',
-    method: 'GET',
-    endpoint: '/deepcoin/trade/fills?limit=100&uid=9436820',
-    body: '',
-    concatenated: '2025-08-28T09:27:21.000ZGET/deepcoin/trade/fills?limit=100&uid=9436820'
-  }
-}
-DeepCoin trading history fetch failed: Error: DeepCoin API error: 401 Unauthorized - Signature verification failed. Check API credentials, timestamp, and signature generation.
-    at n.makeRequest (.next/server/chunks/5666.js:1:4508)
-    at async n.getTradingHistory (.next/server/chunks/5666.js:1:8224)
-    at async n.getTradingVolume (.next/server/chunks/5666.js:1:8534)
-    at async p (.next/server/app/api/broker/route.js:1:975) {
-  debugInfo: [Object]
-}
-
-DeepCoin trading volume fetch failed: Error: DeepCoin API error: 401 Unauthorized - Signature verification failed. Check API credentials, timestamp, and signature generation.
-    at n.makeRequest (.next/server/chunks/5666.js:1:4508)
-    at async n.getTradingHistory (.next/server/chunks/5666.js:1:8224)
-    at async n.getTradingVolume (.next/server/chunks/5666.js:1:8534)
-    at async p (.next/server/app/api/broker/route.js:1:975) {
-  debugInfo: [Object]
-}
-
-DeepCoin HMAC Input Debug: {
-  timestamp: '"2025-08-28T09:27:21.000Z"',
-  method: '"GET"',
-  requestPath: '"/deepcoin/agents/users"',
-  body: '""',
-  concatenated: '"2025-08-28T09:27:21.000ZGET/deepcoin/agents/users"',
-  messageLength: 49,
-  messageBytes: '323032352d30382d32385430393a32373a32312e3030305a4745542f64656570636f696e2f6167656e74732f7573657273',
-  secretLength: 32,
-  secretPreview: 'D8672EE1...'
-}
-
-DeepCoin Signature Debug: {
-  timestamp: '2025-08-28T09:27:21.000Z',
-  method: 'GET',
-  requestPath: '/deepcoin/agents/users',
-  body: '',
-  signatureString: '2025-08-28T09:27:21.000ZGET/deepcoin/agents/users',
-  apiKey: '9eed6e5a...',
-  secretLength: 32,
-  passphrase: 'Dnlx...',
-  generatedSignature: 'RfcdkfIl5+lhxHMSAXFt...',
-  fullSignature: 'RfcdkfIl5+lhxHMSAXFtXMW9HzEEcdlzfaDI5K3cHXA=',
-  serverTime: '2025-08-28T09:27:21.460Z',
-  timezoneOffset: 0,
-  currentTime: 'Thu Aug 28 2025 09:27:21 GMT+0000 (Coordinated Universal Time)',
-  utcTime: '2025-08-28T09:27:21.460Z',
-  unixTime: 1756373241460,
-  signatureLength: 44,
-  signatureBase64: 'UmZjZGtmSWw1K2xoeEhNU0FYRnRYTVc5SHpFRWNkbHpmYURJNUszY0hYQT0=',
-  hmacInput: {
-    timestamp: '2025-08-28T09:27:21.000Z',
-    method: 'GET',
-    endpoint: '/deepcoin/agents/users',
-    body: '',
-    concatenated: '2025-08-28T09:27:21.000ZGET/deepcoin/agents/users'
-  }
-}
-
 DeepCoin referral list fetch failed: Error: DeepCoin API error: 401 Unauthorized - Signature verification failed. Check API credentials, timestamp, and signature generation.
-    at n.makeRequest (.next/server/chunks/5666.js:1:4508)
-    at async n.getReferralList (.next/server/chunks/5666.js:1:6668)
-    at async n.getReferrals (.next/server/chunks/5666.js:1:9321)
-    at async p (.next/server/app/api/broker/route.js:1:975) {
+    at DeepCoinAPI.makeRequest (lib\broker\deepcoin-api.ts:429:27)
+    at async DeepCoinAPI.getReferralList (lib\broker\deepcoin-api.ts:612:23)
+    at async DeepCoinAPI.getReferrals (lib\broker\deepcoin-api.ts:807:27)
+    at async POST (app\api\broker\route.ts:42:19)
+  427 |
+  428 |         const errorMessage = `DeepCoin API error: 401 Unauthorized - Signature verification failed. Check API credentials, timestamp, and signature generation.`;
+> 429 |         const debugError = new Error(errorMessage);
+      |                           ^
+  430 |         (debugError as Error & { debugInfo?: unknown }).debugInfo = {
+  431 |           timestamp,
+  432 |           method, {
   debugInfo: [Object]
 }
-
 DeepCoin referrals fetch failed: Error: DeepCoin API error: 401 Unauthorized - Signature verification failed. Check API credentials, timestamp, and signature generation.
-    at n.makeRequest (.next/server/chunks/5666.js:1:4508)
-    at async n.getReferralList (.next/server/chunks/5666.js:1:6668)
-    at async n.getReferrals (.next/server/chunks/5666.js:1:9321)
-    at async p (.next/server/app/api/broker/route.js:1:975) {
+    at DeepCoinAPI.makeRequest (lib\broker\deepcoin-api.ts:429:27)
+    at async DeepCoinAPI.getReferralList (lib\broker\deepcoin-api.ts:612:23)
+    at async DeepCoinAPI.getReferrals (lib\broker\deepcoin-api.ts:807:27)
+    at async POST (app\api\broker\route.ts:42:19)
+  427 |
+  428 |         const errorMessage = `DeepCoin API error: 401 Unauthorized - Signature verification failed. Check API credentials, timestamp, and signature generation.`;
+> 429 |         const debugError = new Error(errorMessage);
+      |                           ^
+  430 |         (debugError as Error & { debugInfo?: unknown }).debugInfo = {
+  431 |           timestamp,
+  432 |           method, {
   debugInfo: [Object]
 }
-
-DeepCoin HMAC Input Debug: {
-  timestamp: '"2025-08-28T09:27:21.000Z"',
-  method: '"GET"',
-  requestPath: '"/deepcoin/agents/users/rebate-list?pageSize=1000&uid=9436820"',
-  body: '""',
-  concatenated: '"2025-08-28T09:27:21.000ZGET/deepcoin/agents/users/rebate-list?pageSize=1000&uid=9436820"',
-  messageLength: 87,
-  messageBytes: '323032352d30382d32385430393a32373a32312e3030305a4745542f64656570636f696e2f6167656e74732f75736572732f7265626174652d6c6973743f7061676553697a653d31303030267569643d39343336383230',
-  secretLength: 32,
-  secretPreview: 'D8672EE1...'
-}
-
-DeepCoin Signature Debug: {
-  timestamp: '2025-08-28T09:27:21.000Z',
-  method: 'GET',
-  requestPath: '/deepcoin/agents/users/rebate-list?pageSize=1000&uid=9436820',
-  body: '',
-  signatureString: '2025-08-28T09:27:21.000ZGET/deepcoin/agents/users/rebate-list?pageSize=1000&uid=9436820',
-  apiKey: '9eed6e5a...',
-  secretLength: 32,
-  passphrase: 'Dnlx...',
-  generatedSignature: '6dOBcHCsJXoigr0lB4Kg...',
-  fullSignature: '6dOBcHCsJXoigr0lB4KgX4uNUxRhp91vrJuqtpKkW4w=',
-  serverTime: '2025-08-28T09:27:21.915Z',
-  timezoneOffset: 0,
-  currentTime: 'Thu Aug 28 2025 09:27:21 GMT+0000 (Coordinated Universal Time)',
-  utcTime: '2025-08-28T09:27:21.915Z',
-  unixTime: 1756373241915,
-  signatureLength: 44,
-  signatureBase64: 'NmRPQmNIQ3NKWG9pZ3IwbEI0S2dYNHVOVXhSaHA5MXZySnVxdHBLa1c0dz0=',
-  hmacInput: {
-    timestamp: '2025-08-28T09:27:21.000Z',
-    method: 'GET',
-    endpoint: '/deepcoin/agents/users/rebate-list?pageSize=1000&uid=9436820',
-    body: '',
-    concatenated: '2025-08-28T09:27:21.000ZGET/deepcoin/agents/users/rebate-list?pageSize=1000&uid=9436820'
-  }
-}
-
+ POST /api/broker 200 in 952ms
 DeepCoin rebate history fetch failed: Error: DeepCoin API error: 401 Unauthorized - Signature verification failed. Check API credentials, timestamp, and signature generation.
-    at n.makeRequest (.next/server/chunks/5666.js:1:4508)
-    at async n.getRebateHistory (.next/server/chunks/5666.js:1:7639)
-    at async n.getUIDCommission (.next/server/chunks/5666.js:1:8030)
-    at async n.getCommissionData (.next/server/chunks/5666.js:1:8928)
-    at async p (.next/server/app/api/broker/route.js:1:975) {
+    at DeepCoinAPI.makeRequest (lib\broker\deepcoin-api.ts:429:27)
+    at async DeepCoinAPI.getRebateHistory (lib\broker\deepcoin-api.ts:683:23)
+    at async DeepCoinAPI.getUIDCommission (lib\broker\deepcoin-api.ts:718:25)
+    at async DeepCoinAPI.getCommissionData (lib\broker\deepcoin-api.ts:786:25)
+    at async POST (app\api\broker\route.ts:42:19)
+  427 |
+  428 |         const errorMessage = `DeepCoin API error: 401 Unauthorized - Signature verification failed. Check API credentials, timestamp, and signature generation.`;
+> 429 |         const debugError = new Error(errorMessage);
+      |                           ^
+  430 |         (debugError as Error & { debugInfo?: unknown }).debugInfo = {
+  431 |           timestamp,
+  432 |           method, {
   debugInfo: [Object]
 }
-
 DeepCoin UID commission fetch failed: Error: DeepCoin API error: 401 Unauthorized - Signature verification failed. Check API credentials, timestamp, and signature generation.
-    at n.makeRequest (.next/server/chunks/5666.js:1:4508)
-    at async n.getRebateHistory (.next/server/chunks/5666.js:1:7639)
-    at async n.getUIDCommission (.next/server/chunks/5666.js:1:8030)
-    at async n.getCommissionData (.next/server/chunks/5666.js:1:8928)
-    at async p (.next/server/app/api/broker/route.js:1:975) {
+    at DeepCoinAPI.makeRequest (lib\broker\deepcoin-api.ts:429:27)
+    at async DeepCoinAPI.getRebateHistory (lib\broker\deepcoin-api.ts:683:23)
+    at async DeepCoinAPI.getUIDCommission (lib\broker\deepcoin-api.ts:718:25)
+    at async DeepCoinAPI.getCommissionData (lib\broker\deepcoin-api.ts:786:25)
+    at async POST (app\api\broker\route.ts:42:19)
+  427 |
+  428 |         const errorMessage = `DeepCoin API error: 401 Unauthorized - Signature verification failed. Check API credentials, timestamp, and signature generation.`;
+> 429 |         const debugError = new Error(errorMessage);
+      |                           ^
+  430 |         (debugError as Error & { debugInfo?: unknown }).debugInfo = {
+  431 |           timestamp,
+  432 |           method, {
   debugInfo: [Object]
 }
-
 DeepCoin commission data fetch failed: Error: DeepCoin API error: 401 Unauthorized - Signature verification failed. Check API credentials, timestamp, and signature generation.
-    at n.makeRequest (.next/server/chunks/5666.js:1:4508)
-    at async n.getRebateHistory (.next/server/chunks/5666.js:1:7639)
-    at async n.getUIDCommission (.next/server/chunks/5666.js:1:8030)
-    at async n.getCommissionData (.next/server/chunks/5666.js:1:8928)
-    at async p (.next/server/app/api/broker/route.js:1:975) {
+    at DeepCoinAPI.makeRequest (lib\broker\deepcoin-api.ts:429:27)
+    at async DeepCoinAPI.getRebateHistory (lib\broker\deepcoin-api.ts:683:23)
+    at async DeepCoinAPI.getUIDCommission (lib\broker\deepcoin-api.ts:718:25)
+    at async DeepCoinAPI.getCommissionData (lib\broker\deepcoin-api.ts:786:25)
+    at async POST (app\api\broker\route.ts:42:19)
+  427 |
+  428 |         const errorMessage = `DeepCoin API error: 401 Unauthorized - Signature verification failed. Check API credentials, timestamp, and signature generation.`;
+> 429 |         const debugError = new Error(errorMessage);
+      |                           ^
+  430 |         (debugError as Error & { debugInfo?: unknown }).debugInfo = {
+  431 |           timestamp,
+  432 |           method, {
   debugInfo: [Object]
 }
-
+ POST /api/broker 200 in 1308ms
+DeepCoin trading history fetch failed: Error: DeepCoin API error: 401 Unauthorized - Signature verification failed. Check API credentials, timestamp, and signature generation.
+    at DeepCoinAPI.makeRequest (lib\broker\deepcoin-api.ts:429:27)
+    at async DeepCoinAPI.getTradingHistory (lib\broker\deepcoin-api.ts:735:23)
+    at async DeepCoinAPI.getTradingVolume (lib\broker\deepcoin-api.ts:754:21)
+    at async POST (app\api\broker\route.ts:42:19)
+  427 |
+  428 |         const errorMessage = `DeepCoin API error: 401 Unauthorized - Signature verification failed. Check API credentials, timestamp, and signature generation.`;
+> 429 |         const debugError = new Error(errorMessage);
+      |                           ^
+  430 |         (debugError as Error & { debugInfo?: unknown }).debugInfo = {
+  431 |           timestamp,
+  432 |           method, {
+  debugInfo: [Object]
+}
+DeepCoin trading volume fetch failed: Error: DeepCoin API error: 401 Unauthorized - Signature verification failed. Check API credentials, timestamp, and signature generation.
+    at DeepCoinAPI.makeRequest (lib\broker\deepcoin-api.ts:429:27)
+    at async DeepCoinAPI.getTradingHistory (lib\broker\deepcoin-api.ts:735:23)
+    at async DeepCoinAPI.getTradingVolume (lib\broker\deepcoin-api.ts:754:21)
+    at async POST (app\api\broker\route.ts:42:19)
+  427 |
+  428 |         const errorMessage = `DeepCoin API error: 401 Unauthorized - Signature verification failed. Check API credentials, timestamp, and signature generation.`;
+> 429 |         const debugError = new Error(errorMessage);
+      |                           ^
+  430 |         (debugError as Error & { debugInfo?: unknown }).debugInfo = {
+  431 |           timestamp,
+  432 |           method, {
+  debugInfo: [Object]
+}
