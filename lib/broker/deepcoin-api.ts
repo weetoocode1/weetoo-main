@@ -59,6 +59,7 @@ interface DeepCoinTradeListResponse {
 
 export class DeepCoinAPI implements BrokerAPI {
   private baseURL = "https://api.deepcoin.com";
+  private fixieURL: string;
   private apiKey: string;
   private apiSecret: string;
   private apiPassphrase: string;
@@ -68,13 +69,14 @@ export class DeepCoinAPI implements BrokerAPI {
     this.apiKey = process.env.DEEPCOIN_API_KEY || "";
     this.apiSecret = process.env.DEEPCOIN_API_SECRET || "";
     this.apiPassphrase = process.env.DEEPCOIN_API_PASSPHRASE || "";
+    this.fixieURL = process.env.FIXIE_URL || "";
   }
 
   // ===== Time skew synchronization (industry standard) =====
   // Cache UTC skew (remoteUTC - localNow) for a few minutes to keep DC-ACCESS-TIMESTAMP within +/-5s
   private static cachedSkewMs = 0;
   private static lastSkewSyncAt = 0; // ms epoch
-  private static readonly SKEW_TTL_MS = 2 * 60 * 1000; // 2 minutes
+  private static readonly SKEW_TTL_MS = 5 * 60 * 1000; // 5 minutes (increased from 2)
 
   private static async getDeepCoinServerUtcMs(
     baseURL: string
@@ -179,21 +181,25 @@ export class DeepCoinAPI implements BrokerAPI {
     requestPath: string,
     body: string = ""
   ): Promise<string> {
-    // Ensure exact string concatenation as per DeepCoin docs
-    // No extra spaces, no encoding issues
+    // CRITICAL: Build signature string exactly as per DeepCoin docs
+    // Format: timestamp + method + requestPath + body
+    // Example: 2020-12-08T09:08:57.715ZGET/api/v1/account
     const message = timestamp + method + requestPath + body;
 
-    // Debug the exact message being signed
+    // Debug the exact message being signed (without quotes for clarity)
     console.log("DeepCoin HMAC Input Debug:", {
-      timestamp: `"${timestamp}"`,
-      method: `"${method}"`,
-      requestPath: `"${requestPath}"`,
-      body: `"${body}"`,
-      concatenated: `"${message}"`,
+      timestamp: timestamp,
+      method: method,
+      requestPath: requestPath,
+      body: body,
+      concatenated: message,
       messageLength: message.length,
       messageBytes: Buffer.from(message, "utf8").toString("hex"),
       secretLength: this.apiSecret.length,
       secretPreview: this.apiSecret.substring(0, 8) + "...",
+      // Add verification that matches DeepCoin docs
+      expectedFormat: "timestamp + method + requestPath + body",
+      example: "2020-12-08T09:08:57.715ZGET/api/v1/account",
     });
 
     try {
@@ -202,7 +208,18 @@ export class DeepCoinAPI implements BrokerAPI {
         const hmac = crypto.createHmac("sha256", this.apiSecret);
         hmac.update(message, "utf8"); // Explicitly specify UTF-8 encoding
         this.usedNodeCrypto = true;
-        return hmac.digest("base64");
+        const signature = hmac.digest("base64");
+
+        // Verify signature format
+        console.log("DeepCoin Signature Generation:", {
+          messageLength: message.length,
+          signatureLength: signature.length,
+          signatureFormat: "base64",
+          hmacAlgorithm: "sha256",
+          encoding: "utf8",
+        });
+
+        return signature;
       } else {
         throw new Error("Node.js crypto not available");
       }
@@ -262,22 +279,23 @@ export class DeepCoinAPI implements BrokerAPI {
       adjustedMs = nowMs - localOffset * 60 * 1000 + DeepCoinAPI.cachedSkewMs;
     }
 
-    // Return ISO timestamp (DeepCoin format)
-    const isoTimestamp = new Date(adjustedMs).toISOString();
+    const adjustedIso = new Date(adjustedMs).toISOString();
 
     // Always log skew debug info to troubleshoot Vercel issues
     console.log("DeepCoin Timestamp Debug:", {
       localTime: new Date(nowMs).toString(),
       localOffset: localOffset,
       isUtcTimezone: isUtcTimezone,
+      adjustedUtc: adjustedIso,
       adjustedMs,
-      isoTimestamp,
       cachedSkewMs: DeepCoinAPI.cachedSkewMs,
       lastSkewSyncAt: DeepCoinAPI.lastSkewSyncAt,
       environment: process.env.NODE_ENV || "unknown",
     });
 
-    return isoTimestamp;
+    // CRITICAL: Return ISO timestamp per DeepCoin docs format: 2020-12-08T09:08:57.715Z
+    // Ensure we're sending the exact format they expect
+    return adjustedIso;
   }
 
   // Normalize request path by sorting query parameters deterministically
@@ -294,20 +312,27 @@ export class DeepCoinAPI implements BrokerAPI {
     const sorted = new URLSearchParams();
     for (const [k, v] of entries) sorted.append(k, v);
     const normalized = `${base}?${sorted.toString()}`;
+
+    console.log("DeepCoin Path Normalization:", {
+      original: requestPath,
+      normalized: normalized,
+      base: base,
+      queryParams: entries,
+      sortedParams: sorted.toString(),
+    });
+
     return normalized;
   }
 
-  // Make authenticated request
+  // Make authenticated request through Fixie proxy
   private async makeRequest<T>(
     method: "GET" | "POST",
     endpoint: string,
     body?: Record<string, unknown>
   ): Promise<DeepCoinAPIResponse<T>> {
     const normalizedPath = this.normalizeRequestPath(endpoint);
-    const timestamp = await this.getTimestamp();
     const bodyString = body ? JSON.stringify(body) : "";
-
-    // Generate signature
+    const timestamp = await this.getTimestamp();
     const signature = await this.generateSignature(
       timestamp,
       method,
@@ -315,127 +340,86 @@ export class DeepCoinAPI implements BrokerAPI {
       bodyString
     );
 
-    // Debug logging for signature verification (always enabled for debugging)
-    console.log("DeepCoin Signature Debug:", {
-      timestamp: timestamp,
+    // Debug logging for Fixie proxy requests
+    console.log("DeepCoin API Request:", {
       method: method,
-      requestPath: normalizedPath,
-      body: bodyString,
-      signatureString: timestamp + method + normalizedPath + bodyString,
-      apiKey: this.apiKey.substring(0, 8) + "...",
-      secretLength: this.apiSecret.length,
-      passphrase: this.apiPassphrase.substring(0, 4) + "...",
-      generatedSignature: signature.substring(0, 20) + "...",
-      fullSignature: signature, // Show full signature for comparison
-      serverTime: new Date().toISOString(),
-      timezoneOffset: new Date().getTimezoneOffset(),
-      // Add more time details
-      currentTime: new Date().toString(),
-      utcTime: new Date().toISOString(),
-      unixTime: new Date().getTime(),
-      // Add signature generation details
+      endpoint: normalizedPath,
+      timestamp: timestamp,
       signatureLength: signature.length,
-      signatureBase64: btoa(signature), // Show if it's valid Base64
-      hmacInput: {
-        timestamp: timestamp,
-        method: method,
-        endpoint: normalizedPath,
-        body: bodyString,
-        concatenated: timestamp + method + normalizedPath + bodyString,
-      },
+      fixieConfigured: !!this.fixieURL,
+      isServerSide: typeof window === "undefined",
     });
-
-    // Always include debug info in response headers for client-side debugging
-    const debugHeaders: Record<string, string> = {
-      "X-DeepCoin-Debug-Timestamp": timestamp,
-      "X-DeepCoin-Debug-Method": method,
-      "X-DeepCoin-Debug-Path": normalizedPath,
-      "X-DeepCoin-Debug-Signature-Length": signature.length.toString(),
-      "X-DeepCoin-Debug-Server-Time": new Date().toISOString(),
-      // Add signature debug info to headers for client-side access
-      "X-DeepCoin-Debug-Signature-Preview": signature.substring(0, 20) + "...",
-      "X-DeepCoin-Debug-Signature-Full": signature,
-      "X-DeepCoin-Debug-HMAC-Input":
-        timestamp + method + normalizedPath + bodyString,
-    };
 
     // Store debug info for the broker route to access
     (
       this as DeepCoinAPI & { lastSignatureDebug?: unknown }
     ).lastSignatureDebug = {
-      timestamp,
       method,
       endpoint: normalizedPath,
       body: bodyString,
-      signature: signature,
-      signaturePreview: signature.substring(0, 20) + "...",
-      hmacInput: timestamp + method + normalizedPath + bodyString,
+      timestamp,
       signatureLength: signature.length,
-      // Add signature validation info
-      signatureValid: this.validateSignature(
-        signature,
-        timestamp + method + normalizedPath + bodyString
-      ),
-      nodeCryptoUsed: this.usedNodeCrypto,
+      signaturePreview: signature.substring(0, 20) + "...",
+      signatureFull: signature,
+      hmacInput: `${timestamp}${method}${normalizedPath}${bodyString}`,
+      targetURL: `${this.baseURL}${normalizedPath}`,
+      serverTime: new Date().toISOString(),
+      proxyUsed: true,
+      fixieConfigured: !!this.fixieURL,
     };
 
-    const headers: Record<string, string> = {
-      "DC-ACCESS-KEY": this.apiKey,
-      "DC-ACCESS-SIGN": signature,
-      "DC-ACCESS-TIMESTAMP": timestamp,
-      "DC-ACCESS-PASSPHRASE": this.apiPassphrase,
-      "Content-Type": "application/json",
-      ...debugHeaders, // Include debug headers
-    };
+    // Check if Fixie is configured
+    if (!this.fixieURL) {
+      throw new Error(
+        "Fixie proxy not configured. Please set FIXIE_URL environment variable."
+      );
+    }
 
-    let response = await fetch(`${this.baseURL}${normalizedPath}`, {
+    // Make request through Fixie proxy to DeepCoin API
+    // Only use proxy on server-side (Node.js environment)
+    const isServerSide = typeof window === "undefined";
+
+    const fetchOptions: RequestInit = {
       method,
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        "DC-ACCESS-KEY": this.apiKey,
+        "DC-ACCESS-SIGN": signature,
+        "DC-ACCESS-TIMESTAMP": timestamp,
+        "DC-ACCESS-PASSPHRASE": this.apiPassphrase,
+      },
       body: bodyString || undefined,
-    });
+    };
+
+    // Add proxy only on server-side
+    if (isServerSide && this.fixieURL) {
+      try {
+        // Use undici for proper Node.js fetch with proxy support
+        const undici = await import("undici");
+        // @ts-expect-error - Proxy configuration for Node.js fetch
+        fetchOptions.dispatcher = new undici.ProxyAgent(this.fixieURL);
+        console.log("DeepCoin Fixie Proxy: Using undici proxy dispatcher");
+      } catch (error) {
+        console.warn("Failed to load undici proxy agent:", error);
+        // Continue without proxy if undici fails
+      }
+    } else {
+      console.log(
+        "DeepCoin Fixie Proxy: Not using proxy (client-side or no FIXIE_URL)"
+      );
+    }
+
+    const response = await fetch(
+      `${this.baseURL}${normalizedPath}`,
+      fetchOptions
+    );
 
     if (!response.ok) {
       // Handle specific error cases with better error messages
       if (response.status === 401) {
-        // Attempt a one-time retry after refreshing skew if timestamp invalid
-        const text = await response.text().catch(() => "");
-        const isTimestampInvalid =
-          text.includes("Invalid DC-ACCESS-TIMESTAMP") ||
-          text.includes("50112");
-
-        if (isTimestampInvalid) {
-          // Refresh skew and retry once
-          await DeepCoinAPI.syncUtcSkew(this.baseURL);
-          const retryTimestamp = await this.getTimestamp();
-          const retrySignature = await this.generateSignature(
-            retryTimestamp,
-            method,
-            normalizedPath,
-            bodyString
-          );
-          // Update headers for retry
-          headers["DC-ACCESS-TIMESTAMP"] = retryTimestamp;
-          headers["DC-ACCESS-SIGN"] = retrySignature;
-          response = await fetch(`${this.baseURL}${normalizedPath}`, {
-            method,
-            headers,
-            body: bodyString || undefined,
-          });
-          if (response.ok) {
-            return response.json();
-          }
-        }
-
-        const errorMessage = `DeepCoin API error: 401 Unauthorized - Signature verification failed. Check API credentials, timestamp, and signature generation.`;
-        const debugError = new Error(errorMessage);
-        (debugError as Error & { debugInfo?: unknown }).debugInfo = {
-          timestamp,
-          method,
-          endpoint,
-          signatureLength: signature.length,
-          serverTime: new Date().toISOString(),
-        };
-        throw debugError;
+        throw new Error(
+          `DeepCoin API error: 401 Unauthorized - Signature verification failed. Check API credentials, timestamp, and signature generation.`
+        );
       } else if (response.status === 403) {
         throw new Error(
           `DeepCoin API error: 403 Forbidden - IP not whitelisted or insufficient permissions`
@@ -834,12 +818,30 @@ export class DeepCoinAPI implements BrokerAPI {
     try {
       if (typeof crypto !== "undefined" && crypto.createHmac) {
         const hmac = crypto.createHmac("sha256", this.apiSecret);
-        hmac.update(message);
+        hmac.update(message, "utf8");
         const expectedSignature = hmac.digest("base64");
-        return signature === expectedSignature;
+
+        // Additional validation for DeepCoin requirements
+        const isValidBase64 = /^[A-Za-z0-9+/]+={0,2}$/.test(signature);
+        const isValidLength = signature.length === 44; // Base64 SHA256 = 32 bytes = 44 chars
+        const exactMatch = signature === expectedSignature;
+
+        console.log("DeepCoin Signature Validation:", {
+          exactMatch,
+          isValidBase64,
+          isValidLength,
+          signatureLength: signature.length,
+          expectedLength: 44,
+          messageLength: message.length,
+          signaturePreview: signature.substring(0, 20) + "...",
+          expectedPreview: expectedSignature.substring(0, 20) + "...",
+        });
+
+        return exactMatch && isValidBase64 && isValidLength;
       }
       return false;
-    } catch (_error) {
+    } catch (error) {
+      console.error("DeepCoin Signature Validation Error:", error);
       return false;
     }
   }

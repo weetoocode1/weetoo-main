@@ -63,6 +63,7 @@
   "userDropdown": {
     "level": "Level",
     "complete": "Complete",
+    "guidebook": "Guidebook",
     "exp": "EXP",
     "xp": "XP",
     "profile": "Profile",

@@ -54,10 +54,10 @@ export function EditPostDialog({
   onPostUpdated,
 }: EditPostDialogProps) {
   const [editFormData, setEditFormData] = useState({
-    title: post.title,
+    title: post.title || "",
     excerpt: post.excerpt || "",
-    content: post.content,
-    board: post.board,
+    content: post.content || "",
+    board: post.board || "free",
     tags: post.tags?.join(", ") || "",
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -95,10 +95,10 @@ export function EditPostDialog({
   // Reset form when post changes
   useEffect(() => {
     setEditFormData({
-      title: post.title,
+      title: post.title || "",
       excerpt: post.excerpt || "",
-      content: post.content,
-      board: post.board,
+      content: post.content || "",
+      board: post.board || "free",
       tags: post.tags?.join(", ") || "",
     });
   }, [post]);
@@ -182,7 +182,7 @@ export function EditPostDialog({
             <Input
               id="title"
               type="text"
-              value={editFormData.title}
+              value={editFormData.title || ""}
               onChange={(e) =>
                 setEditFormData((prev) => ({
                   ...prev,
@@ -208,7 +208,7 @@ export function EditPostDialog({
                 Board <span className="text-red-500">*</span>
               </Label>
               <Select
-                value={editFormData.board}
+                value={editFormData.board || ""}
                 onValueChange={(value) =>
                   setEditFormData((prev) => ({ ...prev, board: value }))
                 }
@@ -235,7 +235,7 @@ export function EditPostDialog({
               <Input
                 id="tags"
                 type="text"
-                value={editFormData.tags}
+                value={editFormData.tags || ""}
                 onChange={(e) =>
                   setEditFormData((prev) => ({
                     ...prev,
@@ -257,7 +257,7 @@ export function EditPostDialog({
               </Label>
               <Textarea
                 id="content"
-                value={editFormData.content}
+                value={editFormData.content || ""}
                 onChange={(e) =>
                   setEditFormData((prev) => ({
                     ...prev,

@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { Resolver, useForm } from "react-hook-form";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,7 +41,7 @@ const profileFormSchema = z.object({
       message:
         "Nickname can only contain letters, numbers, underscores, periods, and hyphens.",
     }),
-  email: z.string({ required_error: "Please enter an email." }).email(),
+  email: z.string().email("Please enter a valid email."),
   bio: z
     .string()
     .max(200, { message: "Bio must not be longer than 200 characters." })
@@ -56,24 +56,19 @@ interface ProfileSettingsFormProps {
 
 export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
   const form = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileFormSchema),
+    resolver: zodResolver(
+      profileFormSchema
+    ) as unknown as Resolver<ProfileFormValues>,
     defaultValues: {
       fullName: user.fullName,
       nickname: user.nickname,
       email: user.email,
       bio: user.bio || "",
     },
-    mode: "onChange",
   });
 
-  async function onSubmit(data: ProfileFormValues) {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    console.log("Profile updated:", data);
-    // toast({
-    //   title: "Profile Updated",
-    //   description: "Your profile information has been successfully updated.",
-    //   variant: "default",
-    // })
+  function onSubmit(values: ProfileFormValues) {
+    console.log("Profile updated:", values);
     toast.success("Profile Updated", {
       description: "Your profile information has been successfully updated.",
     });

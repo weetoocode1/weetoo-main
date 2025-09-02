@@ -8,7 +8,7 @@ import {
   ReferralData,
   TradingHistory,
 } from "@/lib/broker/broker-types";
-import { BrokerFactory } from "@/lib/broker/broker-factory";
+import { hasBrokerCredentials } from "@/lib/broker/broker-utils";
 
 // Universal broker hook that works for any broker and action
 export function useBroker(
@@ -138,7 +138,22 @@ export function useBrokerAPIActive(brokerType: string) {
 export function useAvailableBrokers() {
   return useQuery({
     queryKey: ["brokers", "available"],
-    queryFn: () => BrokerFactory.getAvailableBrokers(),
+    queryFn: () => {
+      const allBrokers: BrokerType[] = [
+        "deepcoin",
+        "orangex",
+        "bingx",
+        "okx",
+        "bybit",
+        "gate",
+        "kucoin",
+        "mexc",
+        "binance",
+      ];
+      return allBrokers.filter((brokerType) =>
+        hasBrokerCredentials(brokerType)
+      );
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchOnWindowFocus: false,

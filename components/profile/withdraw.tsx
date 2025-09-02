@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
-import { Wallet, User, Shield, Clock, Coins } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Clock, Coins, Shield, User, Wallet } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 interface WithdrawalFormData {
   amount: number;
@@ -30,6 +30,7 @@ interface WithdrawalRequest {
 
 interface BankAccount {
   id: string;
+  account_holder_name?: string;
   is_verified?: boolean;
   verification_amount?: number;
   bank_name?: string;
@@ -77,25 +78,21 @@ const secureWithdrawalApi = {
     account_number: string;
     bank_name: string;
   }) {
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const response = await fetch("/api/secure-financial/bank-account", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
 
-    if (!user) throw new Error("User not authenticated");
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to create bank account");
+    }
 
-    const { data: bankAccount, error } = await supabase
-      .from("bank_accounts")
-      .insert({
-        user_id: user.id,
-        ...data,
-        is_verified: false,
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-    return bankAccount;
+    const result = await response.json();
+    return result.bankAccount;
   },
 
   // Verify bank account
@@ -116,26 +113,21 @@ const secureWithdrawalApi = {
       throw new Error(error.error || "Failed to verify bank account");
     }
 
-    return response.json();
+    const result = await response.json();
+    return result.bankAccount;
   },
 
   // Get user's bank accounts
   async getUserBankAccounts() {
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const response = await fetch("/api/secure-financial/bank-account");
 
-    if (!user) throw new Error("User not authenticated");
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to fetch bank accounts");
+    }
 
-    const { data, error } = await supabase
-      .from("bank_accounts")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (error) throw error;
-    return data || [];
+    const result = await response.json();
+    return result.bankAccounts || [];
   },
 };
 
@@ -366,7 +358,7 @@ export function Withdraw() {
       // 1) Ensure a bank account exists (find by exact match, else create)
       let bankAccountId: string | null = null;
       const existing = (bankAccounts || []).find(
-        (b) =>
+        (b: BankAccount) =>
           b.account_holder_name?.trim() === formData.accountHolderName.trim() &&
           b.account_number?.trim() === formData.bankAccountNumber.trim() &&
           (b.bank_name?.trim() || "") === formData.bankName.trim()

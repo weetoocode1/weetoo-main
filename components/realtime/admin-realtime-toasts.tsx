@@ -167,39 +167,39 @@ export function AdminRealtimeToasts() {
     isAdminRef.current = isAdmin;
 
     // Debug logging to troubleshoot route issues
-    console.log("AdminRealtimeToasts: Auth state changed", {
-      isAdmin,
-      userId: user?.id,
-      userRole: computed?.role,
-      pathname: window.location.pathname,
-    });
+    // console.log("AdminRealtimeToasts: Auth state changed", {
+    //   isAdmin,
+    //   userId: user?.id,
+    //   userRole: computed?.role,
+    //   pathname: window.location.pathname,
+    // });
   }, [isAdmin, user?.id, computed?.role]);
 
   useEffect(() => {
     // Debug: Log current state
-    console.log("AdminRealtimeToasts: Component mounted/updated", {
-      isAdmin,
-      userId: user?.id,
-      userRole: computed?.role,
-      pathname: window.location.pathname,
-      isAdminRef: isAdminRef.current,
-    });
+    // console.log("AdminRealtimeToasts: Component mounted/updated", {
+    //   isAdmin,
+    //   userId: user?.id,
+    //   userRole: computed?.role,
+    //   pathname: window.location.pathname,
+    //   isAdminRef: isAdminRef.current,
+    // });
 
     if (!isAdmin) {
-      console.log("AdminRealtimeToasts: not admin, skipping subscription", {
-        isAdmin,
-        userRole: computed?.role,
-        pathname: window.location.pathname,
-      });
+      // console.log("AdminRealtimeToasts: not admin, skipping subscription", {
+      //   isAdmin,
+      //   userRole: computed?.role,
+      //   pathname: window.location.pathname,
+      // });
       return;
     }
 
     // Only log once on initial setup
-    console.log("AdminRealtimeToasts: initializing for admin user", {
-      userId: user?.id,
-      userRole: computed?.role,
-      pathname: window.location.pathname,
-    });
+    // console.log("AdminRealtimeToasts: initializing for admin user", {
+    //   userId: user?.id,
+    //   userRole: computed?.role,
+    //   pathname: window.location.pathname,
+    // });
 
     // Use the notification configs and showToast function defined outside
 
@@ -258,7 +258,7 @@ export function AdminRealtimeToasts() {
 
         // If connection is old (>10 minutes) and had recent errors, refresh it
         if (connectionAge > 600000 && timeSinceLastError < 300000) {
-          console.log("AdminRealtimeToasts: connection aging, refreshing...");
+          // console.log("AdminRealtimeToasts: connection aging, refreshing...");
           establishConnection();
           return;
         }
@@ -296,15 +296,15 @@ export function AdminRealtimeToasts() {
           stale ||
           !connectionRef.current.isActive
         ) {
-          console.log(
-            "AdminRealtimeToasts: visibility recovery → re-establish"
-          );
+          // console.log(
+          //   "AdminRealtimeToasts: visibility recovery → re-establish"
+          // );
           establishConnection();
         }
       };
       const onOnline = () => {
         if (!isAdminRef.current) return;
-        console.log("AdminRealtimeToasts: network online → re-establish");
+        // console.log("AdminRealtimeToasts: network online → re-establish");
         establishConnection();
       };
       window.addEventListener("visibilitychange", onVisible);
@@ -362,15 +362,15 @@ export function AdminRealtimeToasts() {
           table: "notifications",
         },
         (payload) => {
-          console.log("AdminRealtimeToasts: Raw payload received:", payload);
+          // console.log("AdminRealtimeToasts: Raw payload received:", payload);
 
           if (!isAdminRef.current) {
-            console.log("AdminRealtimeToasts: Not admin, skipping");
+            // console.log("AdminRealtimeToasts: Not admin, skipping");
             return;
           }
 
           const row = payload.new as AdminNotificationPayload;
-          console.log("AdminRealtimeToasts: Parsed notification row:", row);
+          // console.log("AdminRealtimeToasts: Parsed notification row:", row);
 
           if (row?.audience !== "admin") {
             console.log(
@@ -381,11 +381,11 @@ export function AdminRealtimeToasts() {
           }
 
           // Debug logging
-          console.log("AdminRealtimeToasts: Processing admin notification", {
-            type: row.type,
-            audience: row.audience,
-            metadata: row.metadata,
-          });
+          // console.log("AdminRealtimeToasts: Processing admin notification", {
+          //   type: row.type,
+          //   audience: row.audience,
+          //   metadata: row.metadata,
+          // });
 
           // Update heartbeat on any activity
           connectionRef.current.lastHeartbeat = Date.now();
@@ -399,7 +399,7 @@ export function AdminRealtimeToasts() {
               row.body || undefined
             );
 
-          console.log("AdminRealtimeToasts: Using config:", config);
+          // console.log("AdminRealtimeToasts: Using config:", config);
 
           // Show toast with dynamic configuration
           showToast(config, row.metadata || {});
@@ -412,7 +412,7 @@ export function AdminRealtimeToasts() {
       // Subscribe with silent error handling
       channel.subscribe((status) => {
         if (status === "SUBSCRIBED") {
-          console.log("AdminRealtimeToasts: Channel SUBSCRIBED successfully");
+          // console.log("AdminRealtimeToasts: Channel SUBSCRIBED successfully");
           connectionRef.current.isConnecting = false;
           connectionRef.current.retryCount = 0; // Reset retry count on success
           connectionRef.current.channel = channel;
