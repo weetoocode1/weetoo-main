@@ -131,7 +131,7 @@ const secureWithdrawalApi = {
   },
 };
 
-export function Withdraw() {
+export function KORCoinsWithdrawal() {
   const { user, loading: authLoading, computed } = useAuth();
   const queryClient = useQueryClient();
 

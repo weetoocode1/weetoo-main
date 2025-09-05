@@ -3,6 +3,13 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -22,8 +29,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Calendar,
+  CheckCircle,
   ChevronLeft,
   ChevronRight,
+  Clock,
+  Copy,
   Download,
   Eye,
   Hash,
@@ -31,6 +42,7 @@ import {
   Search,
   Shield,
   User,
+  XCircle,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -71,6 +83,12 @@ export function AdminUidTable() {
 
   // Lightweight UI busy indicator for client-side interactions
   const [isUiBusy, setIsUiBusy] = useState(false);
+
+  // Modal states
+  const [selectedUid, setSelectedUid] = useState<UidRecord | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UidRecord | null>(null);
+  const [isUidModalOpen, setIsUidModalOpen] = useState(false);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
 
   // Refs for keyboard shortcuts
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -415,6 +433,21 @@ export function AdminUidTable() {
       setSortBy(field);
       setSortOrder("desc");
     }
+  };
+
+  const handleViewDetails = (record: UidRecord) => {
+    setSelectedUid(record);
+    setIsUidModalOpen(true);
+  };
+
+  const handleViewUser = (record: UidRecord) => {
+    setSelectedUser(record);
+    setIsUserModalOpen(true);
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copied to clipboard`);
   };
 
   // Format date as text for CSV to avoid Excel showing ####
@@ -845,23 +878,13 @@ export function AdminUidTable() {
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  onClick={() => {
-                                    // View UID details - you can implement this later
-                                    toast.info(
-                                      "View UID details functionality coming soon"
-                                    );
-                                  }}
+                                  onClick={() => handleViewDetails(record)}
                                 >
                                   <Eye className="mr-2 h-4 w-4" />
                                   View Details
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={() => {
-                                    // View user profile - you can implement this later
-                                    toast.info(
-                                      "View user profile functionality coming soon"
-                                    );
-                                  }}
+                                  onClick={() => handleViewUser(record)}
                                 >
                                   <User className="mr-2 h-4 w-4" />
                                   View User
@@ -926,21 +949,13 @@ export function AdminUidTable() {
                             <DropdownMenuLabel>UID Actions</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              onClick={() => {
-                                toast.info(
-                                  "View UID details functionality coming soon"
-                                );
-                              }}
+                              onClick={() => handleViewDetails(record)}
                             >
                               <Eye className="mr-2 h-4 w-4" />
                               View Details
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => {
-                                toast.info(
-                                  "View user profile functionality coming soon"
-                                );
-                              }}
+                              onClick={() => handleViewUser(record)}
                             >
                               <User className="mr-2 h-4 w-4" />
                               View User
@@ -1087,6 +1102,321 @@ export function AdminUidTable() {
           </div>
         </div>
       )}
+
+      {/* UID Details Modal */}
+      <Dialog open={isUidModalOpen} onOpenChange={setIsUidModalOpen}>
+        <DialogContent className="rounded-none max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Hash className="h-5 w-5" />
+              UID Details
+            </DialogTitle>
+            <DialogDescription>
+              Detailed information about this UID record
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedUid && (
+            <div className="space-y-6">
+              {/* UID Information */}
+              <div className="space-y-4">
+                <div className="border border-border rounded-none p-4">
+                  <h3 className="font-medium mb-3 flex items-center gap-2">
+                    <Hash className="h-4 w-4" />
+                    UID Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm text-muted-foreground">
+                        UID
+                      </label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="font-mono text-sm bg-muted px-2 py-1 rounded-none">
+                          {selectedUid.uid}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={() =>
+                            copyToClipboard(selectedUid.uid, "UID")
+                          }
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm text-muted-foreground">
+                        Exchange
+                      </label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                          style={{
+                            backgroundColor:
+                              selectedUid.exchange?.logo_color || "#6b7280",
+                          }}
+                        >
+                          {selectedUid.exchange?.name
+                            ?.charAt(0)
+                            ?.toUpperCase() ||
+                            selectedUid.exchange_id.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="font-medium">
+                          {selectedUid.exchange?.name ||
+                            selectedUid.exchange_id}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm text-muted-foreground">
+                        Status
+                      </label>
+                      <div className="mt-1">
+                        <div
+                          className={`inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-medium ${
+                            selectedUid.is_active
+                              ? "bg-green-100 text-green-800 border border-green-300"
+                              : "bg-gray-100 text-gray-800 border border-gray-300"
+                          }`}
+                        >
+                          {selectedUid.is_active ? (
+                            <>
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Active
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="w-3 h-3 mr-1" />
+                              Inactive
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm text-muted-foreground">
+                        UID ID
+                      </label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="font-mono text-xs text-muted-foreground">
+                          {selectedUid.id}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={() =>
+                            copyToClipboard(selectedUid.id, "UID ID")
+                          }
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Timestamps */}
+                <div className="border border-border rounded-none p-4">
+                  <h3 className="font-medium mb-3 flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Timestamps
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm text-muted-foreground">
+                        Created
+                      </label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">
+                          {new Date(selectedUid.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm text-muted-foreground">
+                        Last Updated
+                      </label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">
+                          {new Date(selectedUid.updated_at).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* User Details Modal */}
+      <Dialog open={isUserModalOpen} onOpenChange={setIsUserModalOpen}>
+        <DialogContent className="rounded-none max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              User Details
+            </DialogTitle>
+            <DialogDescription>
+              User information and profile details
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedUser && (
+            <div className="space-y-6">
+              {/* User Profile */}
+              <div className="flex items-center gap-4 p-4 border border-border rounded-none">
+                <Avatar className="h-16 w-16 ring-2 ring-muted/20">
+                  <AvatarImage
+                    src={selectedUser.user?.avatar_url}
+                    alt={`${selectedUser.user?.first_name} ${selectedUser.user?.last_name}`}
+                  />
+                  <AvatarFallback className="bg-gradient-to-br from-primary/10 to-primary/20 text-primary font-medium text-lg">
+                    {selectedUser.user?.first_name?.charAt(0)?.toUpperCase() ||
+                      "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <h3 className="text-lg font-medium">
+                    {selectedUser.user?.first_name &&
+                    selectedUser.user?.last_name
+                      ? `${selectedUser.user.first_name} ${selectedUser.user.last_name}`
+                      : "Anonymous User"}
+                  </h3>
+                  <p className="text-muted-foreground">
+                    {selectedUser.user?.email}
+                  </p>
+                </div>
+              </div>
+
+              {/* User Information */}
+              <div className="space-y-4">
+                <div className="border border-border rounded-none p-4">
+                  <h3 className="font-medium mb-3 flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    User Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm text-muted-foreground">
+                        First Name
+                      </label>
+                      <p className="text-sm font-medium mt-1">
+                        {selectedUser.user?.first_name || "Not provided"}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-muted-foreground">
+                        Last Name
+                      </label>
+                      <p className="text-sm font-medium mt-1">
+                        {selectedUser.user?.last_name || "Not provided"}
+                      </p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="text-sm text-muted-foreground">
+                        Email
+                      </label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-sm font-medium">
+                          {selectedUser.user?.email || "Not provided"}
+                        </span>
+                        {selectedUser.user?.email && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() =>
+                              copyToClipboard(
+                                selectedUser.user?.email || "",
+                                "Email"
+                              )
+                            }
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="text-sm text-muted-foreground">
+                        User ID
+                      </label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="font-mono text-xs text-muted-foreground">
+                          {selectedUser.user_id}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={() =>
+                            copyToClipboard(selectedUser.user_id, "User ID")
+                          }
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Associated UIDs */}
+                <div className="border border-border rounded-none p-4">
+                  <h3 className="font-medium mb-3 flex items-center gap-2">
+                    <Hash className="h-4 w-4" />
+                    Associated UID
+                  </h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 bg-muted/20 rounded-none">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"
+                          style={{
+                            backgroundColor:
+                              selectedUser.exchange?.logo_color || "#6b7280",
+                          }}
+                        >
+                          {selectedUser.exchange?.name
+                            ?.charAt(0)
+                            ?.toUpperCase() ||
+                            selectedUser.exchange_id.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-medium">
+                            {selectedUser.exchange?.name ||
+                              selectedUser.exchange_id}
+                          </p>
+                          <p className="text-sm text-muted-foreground font-mono">
+                            {selectedUser.uid}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-medium ${
+                            selectedUser.is_active
+                              ? "bg-green-100 text-green-800 border border-green-300"
+                              : "bg-gray-100 text-gray-800 border border-gray-300"
+                          }`}
+                        >
+                          {selectedUser.is_active ? "Active" : "Inactive"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

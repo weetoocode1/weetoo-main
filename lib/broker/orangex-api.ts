@@ -347,6 +347,14 @@ export class OrangeXAPI implements BrokerAPI {
   }
 
   // Implementation of BrokerAPI interface methods
+  // Alias for spot commission data
+  async "spot-commission"(
+    uid: string,
+    sourceType: "SPOT" = "SPOT"
+  ): Promise<CommissionData[]> {
+    return this.getCommissionData(uid, sourceType);
+  }
+
   async getReferrals(): Promise<ReferralData[]> {
     try {
       // OrangeX doesn't have a direct referrals endpoint

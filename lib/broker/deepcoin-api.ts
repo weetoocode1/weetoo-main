@@ -762,6 +762,43 @@ export class DeepCoinAPI implements BrokerAPI {
     }
   }
 
+  // Get daily rebates for a specific UID and date
+  async getDailyRebates(
+    uid: string,
+    date: string
+  ): Promise<{ rebateAmount: number }> {
+    try {
+      console.log(`Fetching daily rebates for UID ${uid} on date ${date}`);
+
+      // DeepCoin daily rebates endpoint (based on their API docs)
+      const response = await this.makeRequest<DeepCoinRebateListResponse>(
+        "GET",
+        `/agents/users/rebates?uid=${uid}&date=${date}`
+      );
+
+      if (response.code === "0" && response.data?.list) {
+        const totalRebate = response.data.list.reduce((sum, item) => {
+          const rebateAmount = parseFloat(
+            String(item.rebateAmount || item.amount || 0)
+          );
+          return sum + rebateAmount;
+        }, 0);
+
+        console.log(`UID ${uid} daily rebates for ${date}: $${totalRebate}`);
+        return { rebateAmount: totalRebate };
+      }
+
+      console.log(`No rebates found for UID ${uid} on date ${date}`);
+      return { rebateAmount: 0 };
+    } catch (error) {
+      console.error(
+        `DeepCoin daily rebates fetch failed for UID ${uid}:`,
+        error
+      );
+      return { rebateAmount: 0 };
+    }
+  }
+
   // Implementation of BrokerAPI interface methods
   async getCommissionData(
     uid: string,

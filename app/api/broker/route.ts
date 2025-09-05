@@ -1,15 +1,73 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { z } from "zod";
+
 export const runtime = "nodejs";
+
+// Input validation schema
+const brokerApiSchema = z.object({
+  broker: z.enum(["deepcoin", "orangex"]),
+  action: z.string().min(1).max(50),
+  uid: z
+    .string()
+    .regex(/^[0-9]{3,20}$/)
+    .optional(),
+  sourceType: z.string().optional(),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+});
 
 export async function POST(request: NextRequest) {
   try {
-    const { broker, action, uid, sourceType } = await request.json();
+    // SECURITY: Add authentication check
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-    if (!broker || !action) {
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+
+    // SECURITY: Validate input parameters
+    const validationResult = brokerApiSchema.safeParse(body);
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: "Broker and action are required" },
+        {
+          error: "Invalid input parameters",
+          details: validationResult.error.issues,
+        },
         { status: 400 }
       );
+    }
+
+    const { broker, action, uid, sourceType, date } = validationResult.data;
+
+    // SECURITY: Validate UID ownership for actions that require it
+    if (
+      uid &&
+      (action === "getDailyRebates" ||
+        action === "getCommissionData" ||
+        action === "spot-commission")
+    ) {
+      const { data: uidData, error: uidError } = await supabase
+        .from("user_broker_uids")
+        .select("id, user_id")
+        .eq("uid", uid)
+        .eq("user_id", user.id)
+        .single();
+
+      if (uidError || !uidData) {
+        return NextResponse.json(
+          { error: "UID not found or does not belong to user" },
+          { status: 403 }
+        );
+      }
     }
 
     try {
@@ -35,10 +93,24 @@ export async function POST(request: NextRequest) {
           result = method.call(brokerInstance);
         } else {
           // All other methods are async
-          const params = action === "getReferrals" ? [] : [uid];
-          if (action === "getCommissionData" && sourceType) {
-            params.push(sourceType);
+          let params: unknown[] = [];
+
+          if (action === "getReferrals") {
+            params = [];
+          } else if (action === "getDailyRebates") {
+            params = [uid, date];
+          } else if (
+            action === "getCommissionData" ||
+            action === "spot-commission"
+          ) {
+            params = [uid];
+            if (sourceType) {
+              params.push(sourceType);
+            }
+          } else {
+            params = [uid];
           }
+
           result = await method.call(brokerInstance, ...params);
         }
       } catch (methodError) {

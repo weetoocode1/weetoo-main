@@ -1,9 +1,13 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase/client";
+import { useEffect } from "react";
 
 export function useUserUids() {
-  return useQuery({
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
     queryKey: ["user-uids"],
     queryFn: async () => {
       const res = await fetch("/api/user-uids", { method: "GET" });
@@ -15,6 +19,69 @@ export function useUserUids() {
     refetchOnWindowFocus: false,
     refetchOnMount: true,
   });
+
+  // Set up realtime subscription for user_broker_uids table
+  useEffect(() => {
+    const supabase = createClient();
+
+    const channel = supabase
+      .channel("user-uids-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "user_broker_uids",
+        },
+        (payload) => {
+          console.log(
+            "Realtime update received for user_broker_uids:",
+            payload
+          );
+          // Invalidate and refetch the query to get updated data
+          queryClient.invalidateQueries({ queryKey: ["user-uids"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "user_broker_uids",
+        },
+        (payload) => {
+          console.log(
+            "Realtime insert received for user_broker_uids:",
+            payload
+          );
+          // Invalidate and refetch the query to get updated data
+          queryClient.invalidateQueries({ queryKey: ["user-uids"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "user_broker_uids",
+        },
+        (payload) => {
+          console.log(
+            "Realtime delete received for user_broker_uids:",
+            payload
+          );
+          // Invalidate and refetch the query to get updated data
+          queryClient.invalidateQueries({ queryKey: ["user-uids"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  return query;
 }
 
 export function useAddUserUid() {

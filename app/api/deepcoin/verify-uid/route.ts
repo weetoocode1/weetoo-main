@@ -71,11 +71,7 @@ export async function POST(request: NextRequest) {
 
     // Check if environment variables are set
     if (!API_KEY || !API_SECRET || !API_PASSPHRASE) {
-      console.error("Missing DeepCoin environment variables:", {
-        API_KEY: !!API_KEY,
-        API_SECRET: !!API_SECRET,
-        API_PASSPHRASE: !!API_PASSPHRASE,
-      });
+      console.error("Missing DeepCoin environment variables");
       return NextResponse.json(
         { error: "DeepCoin API credentials not configured" },
         { status: 500 }

@@ -46,6 +46,10 @@ export function useBroker(
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    // Show cached data instantly while revalidating in background
+    placeholderData: (previousData) => previousData,
+    // Avoid long retries that delay UI updates
+    retry: 0,
   });
 }
 

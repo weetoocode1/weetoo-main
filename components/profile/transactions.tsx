@@ -14,9 +14,15 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
-import { ArrowDownRight, ArrowUpRight, Download, Search } from "lucide-react";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  DollarSign,
+  Download,
+  Search,
+} from "lucide-react";
 
-type TxnType = "withdrawal" | "deposit";
+type TxnType = "withdrawal" | "deposit" | "uid-payback";
 
 interface TransactionRow {
   id: string;
@@ -24,11 +30,14 @@ interface TransactionRow {
   amount: number;
   final_amount?: number;
   won_paid?: number;
+  usd_paid?: number;
   status: string;
   created_at: string;
   meta?: {
     bank_name?: string;
     account_number?: string;
+    exchange_id?: string;
+    broker_uid?: string | number;
   };
 }
 
@@ -65,26 +74,48 @@ interface RawDepositData {
 // Union type for loading state
 type LoadingOrTransaction = TransactionRow | { id?: string };
 
+interface UserUidMetaRow {
+  id: string;
+  exchange_id: string;
+  uid: string | number;
+}
+
+interface BrokerWithdrawalRow {
+  id: string;
+  user_broker_uid_id: string;
+  amount_usd: number;
+  status: string;
+  created_at: string;
+}
+
 async function fetchTransactions(userId: string): Promise<TransactionRow[]> {
   const supabase = createClient();
 
-  // withdrawals
-  const { data: w } = await supabase
-    .from("withdrawal_requests")
-    .select(
-      `id, kor_coins_amount, final_amount, payout_sent, status, created_at, bank_account:bank_accounts(bank_name, account_number)`
-    )
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+  // Fetch withdrawals, deposits, and the user's UID list in parallel for speed
+  const [wRes, dRes, uidsRes] = await Promise.all([
+    supabase
+      .from("withdrawal_requests")
+      .select(
+        `id, kor_coins_amount, final_amount, payout_sent, status, created_at, bank_account:bank_accounts(bank_name, account_number)`
+      )
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("deposit_requests")
+      .select(
+        `id, kor_coins_amount, status, created_at, total_amount, won_amount, bank_account:bank_accounts(bank_name, account_number)`
+      )
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("user_broker_uids")
+      .select("id, exchange_id, uid")
+      .eq("user_id", userId),
+  ]);
 
-  // deposits (from deposit_requests)
-  const { data: d } = await supabase
-    .from("deposit_requests")
-    .select(
-      `id, kor_coins_amount, status, created_at, total_amount, won_amount, bank_account:bank_accounts(bank_name, account_number)`
-    )
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+  const w = wRes.data;
+  const d = dRes.data;
+  const userUids = uidsRes.data as UserUidMetaRow[] | null;
 
   const withdrawals: TransactionRow[] = (w || []).map(
     (r: RawWithdrawalData) => ({
@@ -119,7 +150,39 @@ async function fetchTransactions(userId: string): Promise<TransactionRow[]> {
     },
   }));
 
-  return [...withdrawals, ...deposits].sort(
+  // payback withdrawals (from broker_rebate_withdrawals linked via user_broker_uids)
+  const uidIds = (userUids || []).map((u) => u.id);
+  const uidMetaById: Record<
+    string,
+    { exchange_id: string; uid: string | number }
+  > = {};
+  (userUids || []).forEach((u) => {
+    uidMetaById[u.id] = { exchange_id: u.exchange_id, uid: u.uid };
+  });
+
+  let paybacks: TransactionRow[] = [];
+  if (uidIds.length > 0) {
+    const { data: bw } = await supabase
+      .from("broker_rebate_withdrawals")
+      .select("id, user_broker_uid_id, amount_usd, status, created_at")
+      .in("user_broker_uid_id", uidIds)
+      .order("created_at", { ascending: false });
+
+    paybacks = ((bw as BrokerWithdrawalRow[] | null) || []).map((r) => ({
+      id: r.id,
+      type: "uid-payback",
+      amount: r.amount_usd,
+      usd_paid: r.status === "completed" ? r.amount_usd : 0,
+      status: r.status === "completed" ? "sent" : r.status,
+      created_at: r.created_at,
+      meta: {
+        exchange_id: uidMetaById[r.user_broker_uid_id]?.exchange_id,
+        broker_uid: uidMetaById[r.user_broker_uid_id]?.uid,
+      },
+    }));
+  }
+
+  return [...withdrawals, ...deposits, ...paybacks].sort(
     (a, b) =>
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
@@ -277,6 +340,7 @@ export function Transactions() {
                   <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="deposit">Deposits</SelectItem>
                   <SelectItem value="withdrawal">Withdrawals</SelectItem>
+                  <SelectItem value="uid-payback">UID Payback</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -342,10 +406,15 @@ export function Transactions() {
                         <ArrowUpRight className="h-4 w-4 text-red-500" />
                         <span className="text-sm">Withdrawal</span>
                       </div>
-                    ) : (
+                    ) : (r as TransactionRow)?.type === "deposit" ? (
                       <div className="inline-flex items-center gap-2">
                         <ArrowDownRight className="h-4 w-4 text-emerald-500" />
                         <span className="text-sm">Deposit</span>
+                      </div>
+                    ) : (
+                      <div className="inline-flex items-center gap-2">
+                        <DollarSign className="h-4 w-4 text-emerald-500" />
+                        <span className="text-sm">UID Payback</span>
                       </div>
                     )}
                   </div>
@@ -364,9 +433,13 @@ export function Transactions() {
                       `- ${
                         (r as TransactionRow)?.amount?.toLocaleString?.() || 0
                       } KOR`
-                    ) : (
+                    ) : (r as TransactionRow)?.type === "deposit" ? (
                       `₩ ${
                         (r as TransactionRow)?.won_paid?.toLocaleString?.() || 0
+                      }`
+                    ) : (
+                      `$ ${
+                        (r as TransactionRow)?.amount?.toFixed?.(2) ?? "0.00"
                       }`
                     )}
                   </div>
@@ -381,14 +454,25 @@ export function Transactions() {
                       ) : (
                         <span className="text-muted-foreground">₩ 0</span>
                       )
+                    ) : (r as TransactionRow)?.type === "deposit" ? (
+                      (r as TransactionRow)?.status === "sent" ? (
+                        <span className="text-emerald-600">
+                          +{" "}
+                          {(r as TransactionRow)?.amount?.toLocaleString?.() ||
+                            0}{" "}
+                          KOR
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">0 KOR</span>
+                      )
                     ) : (r as TransactionRow)?.status === "sent" ? (
                       <span className="text-emerald-600">
-                        +{" "}
-                        {(r as TransactionRow)?.amount?.toLocaleString?.() || 0}{" "}
-                        KOR
+                        + ${" "}
+                        {(r as TransactionRow)?.usd_paid?.toFixed?.(2) ??
+                          "0.00"}
                       </span>
                     ) : (
-                      <span className="text-muted-foreground">0 KOR</span>
+                      <span className="text-muted-foreground">$ 0.00</span>
                     )}
                   </div>
                   <div className="md:col-span-1">

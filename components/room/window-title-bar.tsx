@@ -27,6 +27,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useChartStreaming } from "@/hooks/use-chart-streaming";
 import { useLivektHostAudio } from "@/hooks/use-livekt-host-audio";
 import { usePositions } from "@/hooks/use-positions";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,8 @@ import {
   MicOffIcon,
   PencilIcon,
   RefreshCwIcon,
+  Video,
+  VideoOff,
   Volume2Icon,
   XIcon,
 } from "lucide-react";
@@ -152,6 +155,17 @@ export function WindowTitleBar({
 }: WindowTitleBarProps) {
   const { isMicOn, toggleMic, currentUserId, roomConnected } =
     useLivektHostAudio({ roomType, hostId, roomId });
+
+  // Chart streaming controls
+  const {
+    isHost: isChartHost,
+    isStreaming,
+    error: streamingError,
+    startChartStream,
+    stopChartStream,
+  } = useChartStreaming(roomId, hostId);
+
+  // Host always streams at highest quality; no dialog needed
 
   const fetcher = (url: string) => fetch(url).then((res) => res.json());
   const { data: settings } = useSWR("/api/app-settings", fetcher);
@@ -629,6 +643,63 @@ export function WindowTitleBar({
 
         {/* Window Controls */}
         <div className="flex items-center gap-4 pointer-events-auto">
+          {/* Chart Streaming Controls - Only for Host */}
+          {isChartHost && (
+            <>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        if (isStreaming) {
+                          stopChartStream();
+                        } else {
+                          // Start immediately at highest quality
+                          startChartStream();
+                        }
+                      }}
+                      variant={isStreaming ? "destructive" : "default"}
+                      className={cn(
+                        isStreaming
+                          ? "bg-red-50 hover:bg-red-100 text-red-600"
+                          : "bg-blue-50 hover:bg-blue-100 text-blue-600"
+                      )}
+                    >
+                      {isStreaming ? (
+                        <VideoOff className="h-4 w-4" />
+                      ) : (
+                        <Video className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" align="center">
+                    <div className="text-center">
+                      <div>
+                        {isStreaming
+                          ? "Stop Chart Stream"
+                          : "Start Chart Stream"}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        {isStreaming
+                          ? "Sharing current tab"
+                          : "Share current tab with participants"}
+                      </div>
+                      {streamingError && (
+                        <div className="text-xs text-red-400 mt-1">
+                          Error: {streamingError}
+                        </div>
+                      )}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              {/* Start stream immediately at highest quality */}
+              {false && <div />}
+            </>
+          )}
+
           {/* Only for Voice Rooms, and only for the creator */}
           {roomType === "voice" && currentUserId === hostId && (
             <TooltipProvider>

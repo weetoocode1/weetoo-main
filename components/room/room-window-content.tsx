@@ -22,7 +22,6 @@ function RoomJoiner({ roomId }: { roomId: string }) {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      // console.log("[RoomJoiner] Current user:", user);
       if (!user) return;
       const { data: existing } = await supabase
         .from("trading_room_participants")
@@ -31,13 +30,11 @@ function RoomJoiner({ roomId }: { roomId: string }) {
         .eq("user_id", user.id)
         .is("left_at", null)
         .maybeSingle();
-      // console.log("[RoomJoiner] Existing participant:", existing, checkError);
       if (!existing) {
-        const {} = await supabase.from("trading_room_participants").insert({
+        await supabase.from("trading_room_participants").insert({
           room_id: roomId,
           user_id: user.id,
         });
-        // console.log("[RoomJoiner] Insert participant error:", insertError);
       }
     }
     joinRoom();
@@ -72,14 +69,6 @@ export function RoomWindowContent({
       if (user) {
         const hostStatus = user.id === hostId;
         setIsHost(hostStatus);
-        console.log(
-          "RoomWindowContent - User ID:",
-          user.id,
-          "Host ID:",
-          hostId,
-          "Is Host:",
-          hostStatus
-        );
       }
     };
     checkIfHost();
@@ -99,102 +88,101 @@ export function RoomWindowContent({
     }
   }, [marketData?.ticker?.lastPrice, onCurrentPrice]);
 
-  // Fetch open positions for the chart
-  // const { openPositions } = usePositions(roomId) as {
-  //   openPositions: Array<{
-  //     id: string;
-  //     symbol: string;
-  //     side: string;
-  //     quantity: number;
-  //     entry_price: number;
-  //     initial_margin?: number;
-  //     stop_loss?: number;
-  //     take_profit?: number;
-  //   }>;
-  // };
-
-  // Debug: Log when openPositions changes
-  // console.log(
-  //   "RoomWindowContent: openPositions updated:",
-  //   openPositions?.length,
-  //   "positions"
-  // );
-
-  // const candles = (data?.candles || []).map((candle: CandlestickData) => ({
-  //   time: candle.time,
-  //   open: candle.open,
-  //   high: candle.high,
-  //   low: candle.low,
-  //   close: candle.close,
-  // }));
-
   const chartOuterRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="h-[calc(100%-3rem)] bg-background flex flex-col gap-2 px-3 py-2">
+    <div className="h-[calc(100%-0rem)] bg-background flex flex-col gap-2 px-3 py-2">
       <RoomJoiner roomId={roomId} />
       {/* LiveKit participant audio playback */}
       {roomType === "voice" && (
         <LivektParticipantAudio roomId={roomId} hostId={hostId} />
       )}
-      <div className="border h-[80px] w-full flex">
-        <div className="w-full flex-[1]">
-          <MarketOverview symbol={symbol} data={marketData} />
+
+      {/* Top overview bar only for host */}
+      {isHost && (
+        <div className="border h-[80px] w-full flex">
+          <div className="w-full flex-[1]">
+            <MarketOverview symbol={symbol} data={marketData} />
+          </div>
+          <Separator className="h-full" orientation="vertical" />
+          <div className="w-full flex-1">
+            <TradingOverviewContainer roomId={roomId} key={roomId} />
+          </div>
         </div>
-        <Separator className="h-full" orientation="vertical" />
-        <div className="w-full flex-1">
-          <TradingOverviewContainer roomId={roomId} key={roomId} />
-        </div>
-      </div>
+      )}
+
       <div className="grid grid-cols-6 gap-2 h-full w-full">
-        <div className="col-span-5  w-full h-full gap-5">
-          <div className="flex flex-col gap-2 w-full h-full">
-            <div className="flex w-full h-[550px] gap-2">
-              <div
-                ref={chartOuterRef}
-                className="max-w-[972px] border-border border h-full w-full bg-background"
-              >
-                <TradingViewChartComponent symbol={symbol} isHost={isHost} />
+        {/* Left side */}
+        <div className="col-span-5 w-full h-full">
+          {/* Host: show full trading workstation. Participants: only the stream area full-size */}
+          {isHost ? (
+            <div className="flex flex-col gap-2 w-full h-full">
+              <div className="flex w-full h-[550px] gap-2">
+                <div
+                  ref={chartOuterRef}
+                  className="max-w-[972px] border-border border h-full w-full bg-background"
+                >
+                  <TradingViewChartComponent
+                    symbol={symbol}
+                    isHost={isHost}
+                    roomId={roomId}
+                    hostId={hostId}
+                  />
+                </div>
+                <div className="flex-1 border border-border h-full w-full bg-background p-2">
+                  <OrderBook symbol={symbol} data={marketData} />
+                </div>
+                <div className="flex-1 border border-border h-full w-full bg-background p-2">
+                  <TradingForm
+                    currentPrice={
+                      marketData?.ticker?.lastPrice
+                        ? parseFloat(marketData.ticker.lastPrice)
+                        : undefined
+                    }
+                    virtualBalance={virtualBalance}
+                    hostId={hostId}
+                    roomId={roomId}
+                    symbol={symbol}
+                  />
+                </div>
               </div>
-              <div className="flex-1 border border-border h-full w-full bg-background p-2">
-                <OrderBook symbol={symbol} data={marketData} />
-              </div>
-              <div className="flex-1 border border-border h-full w-full bg-background p-2">
-                <TradingForm
+              <div className="flex flex-1 w-full border">
+                <TradeHistoryTabs
+                  roomId={roomId}
                   currentPrice={
                     marketData?.ticker?.lastPrice
                       ? parseFloat(marketData.ticker.lastPrice)
                       : undefined
                   }
-                  virtualBalance={virtualBalance}
                   hostId={hostId}
-                  roomId={roomId}
-                  symbol={symbol}
                 />
               </div>
             </div>
-            <div className="flex flex-1 w-full border">
-              <TradeHistoryTabs
-                roomId={roomId}
-                currentPrice={
-                  marketData?.ticker?.lastPrice
-                    ? parseFloat(marketData.ticker.lastPrice)
-                    : undefined
-                }
-                hostId={hostId}
-              />
+          ) : (
+            // Participant: show only the stream area and let it fill available space
+            <div className="w-full h-full">
+              <div className="w-full h-full border border-border bg-background">
+                <TradingViewChartComponent
+                  symbol={symbol}
+                  isHost={false}
+                  roomId={roomId}
+                  hostId={hostId}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </div>
+
+        {/* Right sidebar: participants + chat, sticky */}
         <div className="col-span-1 w-full h-full">
-          <div className="flex w-full h-full flex-col gap-2">
+          <div className="flex w-full h-full flex-col gap-2 sticky top-2">
             <div
               className="w-full h-[300px] border border-border bg-background"
               data-testid="participants-list"
             >
               <ParticipantsList roomId={roomId} hostId={hostId} />
             </div>
-            <div className="w-full h-[515px] border border-border bg-background">
+            <div className="w-full flex-1 border border-border bg-background">
               <Chat roomId={roomId} creatorId={hostId} />
             </div>
           </div>

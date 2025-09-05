@@ -25,14 +25,14 @@ function getSignature(
 export async function GET(req: NextRequest) {
   try {
     // DEBUG: Log environment variables
-    console.log("=== ENVIRONMENT VARIABLES DEBUG ===");
-    console.log("DEEPCOIN_API_KEY:", process.env.DEEPCOIN_API_KEY);
-    console.log("DEEPCOIN_API_SECRET:", process.env.DEEPCOIN_API_SECRET);
-    console.log(
-      "DEEPCOIN_API_PASSPHRASE:",
-      process.env.DEEPCOIN_API_PASSPHRASE
-    );
-    console.log("==================================");
+    // console.log("=== ENVIRONMENT VARIABLES DEBUG ===");
+    // console.log("DEEPCOIN_API_KEY:", process.env.DEEPCOIN_API_KEY);
+    // console.log("DEEPCOIN_API_SECRET:", process.env.DEEPCOIN_API_SECRET);
+    // console.log(
+    //   "DEEPCOIN_API_PASSPHRASE:",
+    //   process.env.DEEPCOIN_API_PASSPHRASE
+    // );
+    // console.log("==================================");
 
     // Check if environment variables are set
     if (!API_KEY || !API_SECRET || !API_PASSPHRASE) {
