@@ -23,18 +23,37 @@ function RoomJoiner({ roomId }: { roomId: string }) {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-      const { data: existing } = await supabase
-        .from("trading_room_participants")
-        .select("id")
-        .eq("room_id", roomId)
-        .eq("user_id", user.id)
-        .is("left_at", null)
-        .maybeSingle();
-      if (!existing) {
-        await supabase.from("trading_room_participants").insert({
-          room_id: roomId,
-          user_id: user.id,
-        });
+
+      try {
+        const { data: existing } = await supabase
+          .from("trading_room_participants")
+          .select("id")
+          .eq("room_id", roomId)
+          .eq("user_id", user.id)
+          .is("left_at", null)
+          .maybeSingle();
+
+        if (!existing) {
+          const { error } = await supabase
+            .from("trading_room_participants")
+            .insert({
+              room_id: roomId,
+              user_id: user.id,
+            });
+
+          if (error) {
+            // Handle duplicate key constraint gracefully
+            if (error.code === "23505") {
+              console.log("User already in room, skipping duplicate insert");
+            } else {
+              console.error("Error joining room:", error);
+            }
+          } else {
+            console.log("Successfully joined room via RoomJoiner");
+          }
+        }
+      } catch (error) {
+        console.error("Error in RoomJoiner:", error);
       }
     }
     joinRoom();
@@ -182,7 +201,7 @@ export function RoomWindowContent({
             >
               <ParticipantsList roomId={roomId} hostId={hostId} />
             </div>
-            <div className="w-full flex-1 border border-border bg-background">
+            <div className="w-full h-[400px] lg:h-[514px] overflow-y-auto border border-border bg-background">
               <Chat roomId={roomId} creatorId={hostId} />
             </div>
           </div>

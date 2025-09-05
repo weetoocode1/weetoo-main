@@ -216,6 +216,18 @@ export function ParticipantsList({
 
       if (error) {
         console.error("Error joining room:", error);
+
+        // Handle duplicate key constraint gracefully
+        if (error.code === "23505") {
+          console.log(
+            "User already in room, updating UI to reflect current state"
+          );
+          // Don't show error for duplicate - just revalidate to get current state
+          mutate(["participants", roomId], undefined, { revalidate: true });
+          toast.success("You're already in this room!");
+          return;
+        }
+
         // Roll back optimistic update if error
         mutate(["participants", roomId], undefined, { revalidate: true });
         toast.error("Failed to join room: " + error.message);

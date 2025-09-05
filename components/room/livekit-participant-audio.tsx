@@ -54,14 +54,47 @@ export function LivektParticipantAudio({
   useEffect(() => {
     if (!roomId || !livekitToken || !currentUserId || currentUserId === hostId)
       return;
+
+    // Clean up existing connection
+    if (roomRef.current) {
+      roomRef.current.disconnect();
+      roomRef.current = null;
+    }
+
     let room: LiveKitClientRoom | null = null;
     import("livekit-client").then(async ({ Room, RoomEvent }) => {
-      room = new Room();
-      roomRef.current = room;
-      await room.connect(
-        process.env.NEXT_PUBLIC_LIVEKIT_API_URL!,
-        livekitToken
-      );
+      try {
+        room = new Room();
+        roomRef.current = room;
+
+        // Add connection error handling
+        room.on(RoomEvent.Disconnected, (reason) => {
+          console.log("LiveKit disconnected:", reason);
+        });
+
+        room.on(RoomEvent.Reconnecting, () => {
+          console.log("LiveKit reconnecting...");
+        });
+
+        room.on(RoomEvent.Reconnected, () => {
+          console.log("LiveKit reconnected");
+        });
+
+        await room.connect(
+          process.env.NEXT_PUBLIC_LIVEKIT_API_URL!,
+          livekitToken
+        );
+
+        console.log("Successfully connected to LiveKit room");
+      } catch (error) {
+        console.error("Failed to connect to LiveKit:", error);
+        // Don't show error to user for audio connection issues
+        return; // Exit early if connection failed
+      }
+
+      // Only proceed if room connection was successful
+      if (!room) return;
+
       // Listen for remote audio tracks
       room.on(
         RoomEvent.TrackSubscribed,
