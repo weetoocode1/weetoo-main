@@ -8,6 +8,7 @@ import {
   Link2,
   LucideIcon,
   MessageSquareText,
+  TrendingUpIcon,
   Users2,
 } from "lucide-react";
 
@@ -62,6 +63,11 @@ export const ADMIN_SECTIONS: AdminSection[] = [
       //   icon: MonitorPlay,
       // },
       { label: "KOR Coins", href: "/admin/kor-coins", icon: Coins },
+      {
+        label: "Rebate Management",
+        href: "/admin/rebate-management",
+        icon: TrendingUpIcon,
+      },
     ],
   },
   {

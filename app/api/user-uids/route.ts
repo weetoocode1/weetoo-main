@@ -86,7 +86,9 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from("user_broker_uids")
-      .select("id, exchange_id, uid, is_active, created_at, updated_at")
+      .select(
+        "id, exchange_id, uid, is_active, created_at, updated_at, rebate_balance_usd, rebate_lifetime_usd, rebate_last_day_usd, rebate_last_sync_at"
+      )
       .order("created_at", { ascending: true });
     if (error) throw error;
     return NextResponse.json({ uids: data || [] });

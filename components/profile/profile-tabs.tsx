@@ -17,14 +17,15 @@ import {
   UserIcon,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AllAccounts } from "./all-accounts";
 import { Profile } from "./profile";
 import { Referral } from "./referral";
 import { Transactions } from "./transactions";
 import { UidRegistration } from "./uid-registration";
-import { Withdraw } from "./withdraw";
+import { KORCoinsWithdrawal } from "./kor-coins-withdrawal";
+import { PaybackWithdrawal } from "./payback-withdrawal";
 
 const TABS = [
   {
@@ -52,8 +53,8 @@ const TABS = [
     requiresVerification: true,
   },
   {
-    key: "withdraw",
-    label: "Withdrawal",
+    key: "kor-coins-withdrawal",
+    label: "KOR Coins Withdrawal",
     icon: <CreditCardIcon className="w-4 h-4" />,
     requiresVerification: true,
   },
@@ -61,6 +62,12 @@ const TABS = [
     key: "uid-registration",
     label: "UID Registration",
     icon: <KeyRoundIcon className="w-4 h-4" />,
+    requiresVerification: true,
+  },
+  {
+    key: "payback-withdrawal",
+    label: "Payback Withdrawal",
+    icon: <CreditCardIcon className="w-4 h-4" />,
     requiresVerification: true,
   },
 ] as const;
@@ -72,8 +79,9 @@ const TAB_COMPONENTS = {
   referral: <Referral />,
   "all-accounts": <AllAccounts />,
   "all-transactions": <Transactions />,
-  withdraw: <Withdraw />,
+  "kor-coins-withdrawal": <KORCoinsWithdrawal />,
   "uid-registration": <UidRegistration />,
+  "payback-withdrawal": <PaybackWithdrawal />,
 };
 
 export function ProfileTabs() {
@@ -109,24 +117,42 @@ export function ProfileTabs() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabParam]);
 
-  const handleTabClick = (tab: TabKey) => {
-    const tabConfig = TABS.find((t) => t.key === tab);
+  // Listen for popstate events (back/forward navigation) - simplified
+  useEffect(() => {
+    const handlePopState = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tab = urlParams.get("tab") as TabKey | null;
+      if (tab) {
+        setSelectedTab(tab);
+      }
+    };
 
-    // Only check verification if user is loaded and tab requires verification
-    if (tabConfig?.requiresVerification && user && !user.identity_verified) {
-      // Still allow the tab to be selected to show verification screen
+    // Only add listener once, not on every selectedTab change
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []); // Remove selectedTab dependency to prevent constant re-registration
+
+  const handleTabClick = useCallback(
+    (tab: TabKey) => {
+      const tabConfig = TABS.find((t) => t.key === tab);
+
+      // Only check verification if user is loaded and tab requires verification
+      if (tabConfig?.requiresVerification && user && !user.identity_verified) {
+        // Still allow the tab to be selected to show verification screen
+        setSelectedTab(tab);
+        const params = new URLSearchParams(Array.from(searchParams.entries()));
+        params.set("tab", tab);
+        router.replace(`?${params.toString()}`, { scroll: false });
+        return;
+      }
+
       setSelectedTab(tab);
       const params = new URLSearchParams(Array.from(searchParams.entries()));
       params.set("tab", tab);
-      router.replace(`?${params.toString()}`);
-      return;
-    }
-
-    setSelectedTab(tab);
-    const params = new URLSearchParams(Array.from(searchParams.entries()));
-    params.set("tab", tab);
-    router.replace(`?${params.toString()}`);
-  };
+      router.replace(`?${params.toString()}`, { scroll: false });
+    },
+    [user, searchParams, router]
+  );
 
   // Check if current tab requires verification
   const currentTabRequiresVerification = TABS.find(

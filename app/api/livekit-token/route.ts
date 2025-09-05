@@ -32,7 +32,6 @@ export async function POST(req: Request) {
       canPublish: role === "host",
       canPublishData: role === "host",
       canSubscribe: true,
-      // canPublishSources: ["audio"], // Optionally restrict to audio only
     });
 
     const token = await at.toJwt();

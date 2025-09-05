@@ -311,17 +311,14 @@ export default function PostDetailClient({
             </div>
           )}
 
-          <div
-            className="prose prose-base sm:prose-lg dark:prose-invert max-w-none mx-auto whitespace-pre-line leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: post.content }}
-          />
+          <div className="prose prose-base sm:prose-lg dark:prose-invert max-w-none mx-auto whitespace-pre-line leading-relaxed" />
 
           {/* Post Actions: Likes, Comments, Share */}
           <div className="flex items-center gap-4 sm:gap-6 text-muted-foreground text-sm mt-6 mb-6 sm:mb-8">
             {authUser?.identity_verified ? (
               <LikeButton postId={post.id} initialLikes={post.likes} />
             ) : (
-              <button 
+              <button
                 className="flex items-center gap-1.5 opacity-50 cursor-not-allowed"
                 onClick={() => handleVerificationRequired("like posts")}
                 title="Identity verification required"
@@ -330,27 +327,33 @@ export default function PostDetailClient({
                 <span>Like</span>
               </button>
             )}
-            
-            <button 
+
+            <button
               className={`flex items-center gap-1.5 transition ${
-                authUser?.identity_verified 
-                  ? "hover:text-primary" 
+                authUser?.identity_verified
+                  ? "hover:text-primary"
                   : "opacity-50 cursor-not-allowed"
               }`}
               onClick={() => {
                 if (authUser?.identity_verified) {
                   // Scroll to comments section
-                  document.getElementById('comments-section')?.scrollIntoView({ behavior: 'smooth' });
+                  document
+                    .getElementById("comments-section")
+                    ?.scrollIntoView({ behavior: "smooth" });
                 } else {
                   handleVerificationRequired("comment on posts");
                 }
               }}
-              title={authUser?.identity_verified ? "View comments" : "Identity verification required"}
+              title={
+                authUser?.identity_verified
+                  ? "View comments"
+                  : "Identity verification required"
+              }
             >
               <MessageSquare className="h-5 w-5" />
               {commentCount} {commentCount === 1 ? "Comment" : "Comments"}
             </button>
-            
+
             {authUser?.identity_verified ? (
               <SharePost
                 post={{
@@ -361,7 +364,7 @@ export default function PostDetailClient({
                 className="text-muted-foreground hover:text-primary"
               />
             ) : (
-              <button 
+              <button
                 className="flex items-center gap-1.5 opacity-50 cursor-not-allowed"
                 onClick={() => handleVerificationRequired("share posts")}
                 title="Identity verification required"
@@ -390,7 +393,8 @@ export default function PostDetailClient({
                     Comments Restricted
                   </h3>
                   <p className="text-muted-foreground mb-4">
-                    You need to verify your identity to view and add comments on posts.
+                    You need to verify your identity to view and add comments on
+                    posts.
                   </p>
                   <div className="text-sm text-amber-600 dark:text-amber-400 font-medium">
                     🔒 Identity verification required

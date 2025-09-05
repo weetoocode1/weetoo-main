@@ -4,29 +4,14 @@ import {
   useBrokerAPIActive,
   useBrokerCommissionData,
   useBrokerReferrals,
-  useBrokerTradingVolume,
   useBrokerUIDVerification,
 } from "@/hooks/broker/use-broker-api";
-import {
-  useAddUserUid,
-  useDeleteUserUid,
-  useUpdateUserUid,
-  useUserUids,
-} from "@/hooks/use-user-uids";
-import { KeyRoundIcon, PlusIcon } from "lucide-react";
+import { useBrokerRebateWithdrawals } from "@/hooks/use-broker-rebate-withdrawals";
+import { useAddUserUid, useUserUids } from "@/hooks/use-user-uids";
+import { BadgeCheck, Copy, KeyRoundIcon, PlusIcon } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "../ui/alert-dialog";
+import { useRef } from "react";
+import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { UidRegistrationDialog } from "../uid/uid-registration-dialog";
 
@@ -69,6 +54,9 @@ interface UidRecord {
   uid: string;
   status: "pending" | "verified" | "failed";
   paybackRate: number;
+  rebateBalanceUsd?: number;
+  rebateLifetimeUsd?: number;
+  rebateLastDayUsd?: number;
 }
 
 type ServerUidRow = {
@@ -76,21 +64,21 @@ type ServerUidRow = {
   exchange_id: string;
   uid: string;
   is_active: boolean;
+  rebate_balance_usd?: number;
+  rebate_lifetime_usd?: number;
+  rebate_last_day_usd?: number;
 };
 
 export function UidRegistration() {
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
-
   const { data: serverUids, isLoading } = useUserUids();
   const addMutation = useAddUserUid();
-  const updateMutation = useUpdateUserUid();
-  const deleteMutation = useDeleteUserUid();
 
-  // Get active UID ID from server data
-  const activeUidId =
-    (serverUids as ServerUidRow[] | undefined)?.find((r) => r.is_active)?.id ||
-    null;
+  // Get all active UID IDs from server data
+  const activeUidIds = new Set(
+    (serverUids as ServerUidRow[] | undefined)
+      ?.filter((r) => r.is_active)
+      ?.map((r) => r.id) || []
+  );
 
   const handleUIDAdded = async (uid: string, brokerId: string) => {
     const broker = BROKERS.find((b) => b.id === brokerId);
@@ -99,27 +87,6 @@ export function UidRegistration() {
       uid,
       exchange_id: brokerId,
     });
-  };
-
-  const handleUIDUpdated = async (
-    id: string,
-    uid: string,
-    brokerId: string
-  ) => {
-    await updateMutation.mutateAsync({ id, uid, exchange_id: brokerId });
-    setEditingId(null);
-  };
-
-  const handleOpenChange = (open: boolean) => {
-    // Prevent unnecessary state flips that can cause re-renders
-    setIsOpen((prev) => {
-      if (prev === open) return prev;
-      return open;
-    });
-    if (!open) {
-      // Only clear when actually closing
-      setEditingId(null);
-    }
   };
 
   // Map server data to UI format
@@ -136,6 +103,9 @@ export function UidRegistration() {
           | "verified"
           | "failed",
         paybackRate: broker?.paybackRate ?? 0,
+        rebateBalanceUsd: row.rebate_balance_usd || 0,
+        rebateLifetimeUsd: row.rebate_lifetime_usd || 0,
+        rebateLastDayUsd: row.rebate_last_day_usd || 0,
       } as UidRecord;
     }
   );
@@ -159,24 +129,45 @@ export function UidRegistration() {
             </Button>
           }
           onUIDAdded={handleUIDAdded}
-          editingRecord={
-            editingId
-              ? uidRecords.find((r) => r.id === editingId) || null
-              : null
-          }
-          onUIDUpdated={handleUIDUpdated}
-          isOpen={isOpen}
-          onOpenChange={handleOpenChange}
         />
       </div>
 
       {/* Loading State */}
       {isLoading && (
-        <div className="mt-8 text-center py-12">
-          <div className="w-16 h-16 mx-auto mb-4 bg-muted/30 rounded-full flex items-center justify-center">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <div className="mt-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="bg-background border border-border p-5 animate-pulse"
+              >
+                {/* Header skeleton */}
+                <div className="flex items-center gap-4 mb-3">
+                  <div className="w-12 h-12 bg-muted/30" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-32 bg-muted/30" />
+                    <div className="h-3 w-24 bg-muted/20" />
+                  </div>
+                  <div className="h-5 w-12 bg-muted/30" />
+                </div>
+
+                {/* Big balance skeleton */}
+                <div className="p-6 bg-muted/10 border border-border" />
+
+                {/* Two stats skeleton */}
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div className="h-14 bg-muted/10 border border-border" />
+                  <div className="h-14 bg-muted/10 border border-border" />
+                </div>
+
+                {/* Footer skeleton */}
+                <div className="border-t border-border mt-4 pt-3 space-y-2">
+                  <div className="h-3 w-40 bg-muted/20" />
+                  <div className="h-3 w-32 bg-muted/20" />
+                </div>
+              </div>
+            ))}
           </div>
-          <h3 className="text-lg font-medium mb-2">Loading UIDs...</h3>
         </div>
       )}
 
@@ -190,21 +181,7 @@ export function UidRegistration() {
               <UIDCard
                 key={record.id}
                 record={record}
-                isActiveUid={activeUidId === record.id}
-                onSetActive={async () => {
-                  await updateMutation.mutateAsync({
-                    id: record.id,
-                    is_active: true,
-                  });
-                }}
-                onEdit={() => {
-                  // Avoid extra renders by batching
-                  if (editingId !== record.id) setEditingId(record.id);
-                  if (!isOpen) setIsOpen(true);
-                }}
-                onDelete={async () => {
-                  await deleteMutation.mutateAsync(record.id);
-                }}
+                isActiveUid={activeUidIds.has(record.id)}
               />
             ))}
           </div>
@@ -227,28 +204,19 @@ export function UidRegistration() {
   );
 }
 
-// Separate UID Card component to handle API integration
 function UIDCard({
   record,
   isActiveUid,
-  onSetActive,
-  onEdit,
-  onDelete,
 }: {
   record: UidRecord;
   isActiveUid: boolean;
-  onSetActive: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
 }) {
-  // Check if broker API should be active for this UID
   const isBrokerActive = useBrokerAPIActive(record.brokerId);
 
-  // UID verification - only active when broker API is active
-  // For DeepCoin, skip UID verification since referrals API works
   const uidVerification = useBrokerUIDVerification(
     record.brokerId,
     record.uid,
+
     isBrokerActive.data === true && record.brokerId !== "deepcoin"
   );
 
@@ -266,11 +234,27 @@ function UIDCard({
     isBrokerActive.data === true
   );
 
-  // Get trading volume data - only active when broker API is active
-  const tradingVolume = useBrokerTradingVolume(
-    record.brokerId,
-    record.uid,
-    isBrokerActive.data === true
+  // User withdrawals to compute Withdrawn and Withdrawable
+  const { data: userWithdrawals } = useBrokerRebateWithdrawals();
+  const withdrawnSum = (userWithdrawals || [])
+    .filter(
+      (w) => w.user_broker_uid_id === record.id && w.status === "completed"
+    )
+    .reduce((sum: number, w) => sum + (w.amount_usd || 0), 0);
+
+  const pendingSum = (userWithdrawals || [])
+    .filter(
+      (w) =>
+        w.user_broker_uid_id === record.id &&
+        (w.status === "pending" || w.status === "processing")
+    )
+    .reduce((sum: number, w) => sum + (w.amount_usd || 0), 0);
+
+  // Use the new rebate_balance_usd from user_broker_uids table
+  // This is now calculated by our internal ledger system
+  const withdrawableComputed = Math.max(
+    (record.rebateBalanceUsd || 0) - pendingSum,
+    0
   );
 
   // Safely handle the referral data structure
@@ -343,243 +327,194 @@ function UIDCard({
         isReferralItem(ref) && String(ref.uid) === String(record.uid)
     );
 
-  // Check if broker is active
-  const isActive = isBrokerActive.data === true;
+  // Cache last known successful verification to avoid flicker on transient errors
+  const lastVerifiedRef = useRef<Record<string, boolean>>({});
+
+  // Determine verified status using multiple sources and cache
+  const verifiedFromAPI =
+    (uidVerification.data?.verified ||
+      uidVerification.data?.data?.list?.[0]?.uidUpLevel) === true;
+
+  if (uidVerification.isSuccess && verifiedFromAPI) {
+    lastVerifiedRef.current[record.id] = true;
+  }
+
+  const verifiedFallback = lastVerifiedRef.current[record.id] === true;
+
+  // Consider DeepCoin referral success as verification as well
+  const verifiedOverall =
+    (uidVerification.isSuccess && verifiedFromAPI) ||
+    (!uidVerification.isSuccess && verifiedFallback) ||
+    isDeepCoinVerified;
+
+  // Determine if UID is actually active based on DB + overall verification
+  const isUidActuallyActive =
+    isActiveUid && (verifiedOverall || uidVerification.isLoading);
 
   return (
     <div
-      className={`group relative rounded-none overflow-hidden border bg-card ${
-        isActiveUid ? "border-emerald-500/50" : "border-border"
+      className={`relative bg-background border border-border transition-all duration-200 ${
+        isUidActuallyActive
+          ? "border-emerald-500/30 shadow-sm"
+          : "hover:border-border/60"
       }`}
     >
-      {/* Header Section */}
-      <div className="p-6 pb-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
-              <Image
-                src={BROKERS.find((b) => b.id === record.brokerId)?.logo || ""}
-                alt={`${record.brokerName} logo`}
-                width={28}
-                height={28}
-                className="object-contain"
-              />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-foreground mb-1">
+      {/* Header */}
+      <div className="p-5 pb-2 border-b border-border">
+        {/* Header Layout: Image on left, Name/UID on right */}
+        <div className="flex items-center gap-4 mb-3">
+          {/* Image on the left */}
+          <div className="w-12 h-12 bg-muted flex items-center justify-center">
+            <Image
+              src={BROKERS.find((b) => b.id === record.brokerId)?.logo || ""}
+              alt={`${record.brokerName} logo`}
+              width={32}
+              height={32}
+              className="object-contain"
+            />
+          </div>
+
+          {/* Name and UID on the right */}
+          <div className="flex-1 flex flex-col justify-center">
+            {/* Broker name */}
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="text-base font-medium text-foreground">
                 {record.brokerName}
               </h3>
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-muted-foreground font-mono">
-                  UID: {record.uid}
+              {(uidVerification.isSuccess && uidVerification.data?.verified) ||
+              isDeepCoinVerified ? (
+                <BadgeCheck className="h-4 w-4 text-emerald-500" />
+              ) : null}
+            </div>
+
+            {/* UID below the name */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1">
+                {record.uid}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(record.uid);
+                  toast.success("UID copied to clipboard");
+                }}
+                className="h-5 w-5 p-0 hover:bg-muted"
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Status Indicators and Active/Inactive on the far right */}
+          <div className="flex flex-col items-end gap-2">
+            {/* Active/Inactive Status - Top line */}
+            <div
+              className={`text-xs font-medium px-2 py-1 ${
+                isUidActuallyActive
+                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {uidVerification.isLoading ? (
+                <div className="w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+              ) : isUidActuallyActive ? (
+                "Active"
+              ) : (
+                "Inactive"
+              )}
+            </div>
+
+            {/* Status Indicators - Bottom line */}
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                {uidVerification.isLoading && !uidVerification.isError ? (
+                  <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
+                ) : (uidVerification.isSuccess &&
+                    uidVerification.data?.verified) ||
+                  isDeepCoinVerified ? (
+                  <div className="w-1.5 h-1.5 bg-emerald-500"></div>
+                ) : (
+                  <div className="w-1.5 h-1.5 bg-red-500"></div>
+                )}
+                <span>
+                  {uidVerification.isLoading && !uidVerification.isError
+                    ? "Verifying..."
+                    : (uidVerification.isSuccess &&
+                        uidVerification.data?.verified) ||
+                      isDeepCoinVerified
+                    ? "Verified"
+                    : uidVerification.isSuccess && uidVerification.data?.reason
+                    ? uidVerification.data.reason
+                    : "Failed"}
                 </span>
-                <div
-                  className={`flex items-center gap-1.5 px-2 py-1 rounded-full ${
-                    isActiveUid
-                      ? "bg-emerald-500/10 border border-emerald-500/30 visible"
-                      : "invisible border border-transparent"
-                  }`}
-                  style={{ minHeight: "24px" }}
-                >
+              </div>
+
+              {(referrals.isSuccess || isReferral !== undefined) && (
+                <div className="flex items-center gap-1.5">
                   <div
-                    className={`w-2 h-2 rounded-full ${
-                      isActiveUid ? "bg-emerald-500" : "bg-transparent"
+                    className={`w-1.5 h-1.5 ${
+                      isReferral ? "bg-emerald-500" : "bg-amber-500"
                     }`}
                   ></div>
-                  <span
-                    className={`text-xs font-medium ${
-                      isActiveUid ? "text-emerald-600" : "text-transparent"
-                    }`}
-                  >
-                    Active
-                  </span>
+                  <span>{isReferral ? "Referral" : "Direct"}</span>
                 </div>
-              </div>
+              )}
             </div>
           </div>
-
-          {/* Payback Rate temporarily hidden */}
-          <div className="text-right"></div>
         </div>
       </div>
 
-      {/* Status Indicators */}
-      <div className="px-6 pb-4">
-        <div className="flex items-center gap-4">
-          {/* UID Verification Status */}
-          <div className="flex items-center gap-2">
-            {uidVerification.isLoading && !uidVerification.isError ? (
-              <div className="w-3 h-3 border-2 border-foreground/40 border-t-transparent rounded-full animate-spin"></div>
-            ) : (uidVerification.isSuccess && uidVerification.data?.verified) ||
-              isDeepCoinVerified ? (
-              <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-            ) : (
-              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-            )}
-            <span className="text-sm text-muted-foreground">
-              {uidVerification.isLoading && !uidVerification.isError
-                ? "Verifying..."
-                : (uidVerification.isSuccess &&
-                    uidVerification.data?.verified) ||
-                  isDeepCoinVerified
-                ? "UID Verified"
-                : uidVerification.isSuccess && uidVerification.data?.reason
-                ? uidVerification.data.reason
-                : "Verification Failed"}
+      {/* Stats Grid */}
+      <div className="p-5 pb-2">
+        <div className="grid grid-cols-1 gap-3">
+          {/* Total accumulated payback */}
+          <div className="p-4 border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 text-center">
+            <div className="text-2xl font-semibold text-emerald-700 dark:text-emerald-300 font-mono mb-2">
+              ${record.rebateLifetimeUsd?.toFixed(2) || "0.00"}
+            </div>
+            <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+              Total Accumulated Payback
+            </div>
+          </div>
+
+          {/* Withdrawn and Withdrawable */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 text-center">
+              <div className="text-lg font-semibold text-blue-700 dark:text-blue-300 font-mono mb-1">
+                ${withdrawnSum.toFixed(2)}
+              </div>
+              <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                Withdrawn Amount
+              </div>
+            </div>
+
+            <div className="p-3 border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 text-center">
+              <div className="text-lg font-semibold text-amber-700 dark:text-amber-300 font-mono mb-1">
+                ${withdrawableComputed.toFixed(2)}
+              </div>
+              <div className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                Withdrawable Balance
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* Additional Info Footer */}
+      <div className="p-5 border-t border-border">
+        <div className="space-y-2 text-xs text-muted-foreground">
+          <div className="flex justify-between">
+            <span>Total Lifetime Rebate:</span>
+            <span className="text-foreground font-medium font-mono">
+              ${record.rebateLifetimeUsd?.toFixed(2) || "0.00"}
             </span>
           </div>
-
-          {/* Referral Status */}
-          {(referrals.isSuccess || isReferral !== undefined) && (
-            <div className="flex items-center gap-2">
-              <div
-                className={`w-3 h-3 rounded-full ${
-                  isReferral ? "bg-emerald-500" : "bg-amber-500"
-                }`}
-              ></div>
-              <span className="text-sm text-muted-foreground">
-                {isReferral ? "Referral UID" : "Not a referral"}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Metrics Grid */}
-      {isActive && (
-        <div className="px-6 pb-4">
-          <div className="grid grid-cols-2 gap-4">
-            {/* Trading Volume */}
-            <div className="bg-muted/30 rounded-none p-4 border border-border">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-3 h-3 bg-sky-500 rounded-full"></div>
-                <span className="text-xs text-muted-foreground font-medium">
-                  Trading Volume
-                </span>
-              </div>
-              <div className="text-lg font-semibold text-sky-500">
-                {tradingVolume.isLoading ? (
-                  <div className="w-16 h-5 bg-muted/50 rounded animate-pulse"></div>
-                ) : tradingVolume.isSuccess && tradingVolume.data ? (
-                  // Show trading volume from trading volume API
-                  `${tradingVolume.data} USDT`
-                ) : (
-                  "0.00 USDT"
-                )}
-              </div>
-            </div>
-
-            {/* Commission */}
-            <div className="bg-muted/30 rounded-none p-4 border border-border">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-                <span className="text-xs text-muted-foreground font-medium">
-                  Commission
-                </span>
-              </div>
-              <div className="text-lg font-semibold text-emerald-500">
-                {commission.isLoading ? (
-                  <div className="w-16 h-5 bg-muted/50 rounded animate-pulse"></div>
-                ) : commission.isSuccess &&
-                  commission.data &&
-                  commission.data.length > 0 ? (
-                  // Show commission from commission data
-                  `${
-                    commission.data[0]?.commission ||
-                    commission.data[0]?.myCommission ||
-                    "0.00"
-                  } USDT`
-                ) : (
-                  "0.00 USDT"
-                )}
-              </div>
-            </div>
+          <div className="flex justify-between">
+            <span>Last 24 Hours:</span>
+            <span className="text-foreground font-medium font-mono">
+              ${record.rebateLastDayUsd?.toFixed(2) || "0.00"}
+            </span>
           </div>
-        </div>
-      )}
-
-      {/* Action Buttons */}
-      <div className="px-6 py-4 border-t border-border rounded-b-lg bg-transparent">
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onSetActive}
-            disabled={isActiveUid}
-            className={`flex-1 h-10 rounded-none ${
-              isActiveUid
-                ? "border-emerald-500/30 text-emerald-600/70 cursor-default"
-                : "border-emerald-500/40 text-emerald-600 hover:text-emerald-700 hover:border-emerald-500/60 hover:bg-emerald-500/10"
-            }`}
-          >
-            {isActiveUid ? "Active" : "Set Active"}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onEdit}
-            className="flex-1 h-10 rounded-none border-border/40 hover:border-border/60 hover:bg-muted/40 transition-all duration-200"
-          >
-            <svg
-              className="w-4 h-4 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-              />
-            </svg>
-            Edit
-          </Button>
-
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 h-10 rounded-none border-red-500/30 hover:border-red-500/50 hover:bg-red-500/10 text-red-600 hover:text-red-700 transition-all duration-200"
-              >
-                <svg
-                  className="w-4 h-4 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
-                Delete
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="rounded-none">
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete UID</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete the UID for{" "}
-                  {record.brokerName}? This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel className="rounded-none">
-                  Cancel
-                </AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={onDelete}
-                  className="rounded-none bg-red-600 hover:bg-red-700"
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </div>
       </div>
     </div>
