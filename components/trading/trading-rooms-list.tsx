@@ -741,7 +741,7 @@ export function TradingRoomsList() {
       </Dialog>
 
       {/* Header with search and filters */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 mb-4">
         {/* Search Input */}
         <div className="relative w-[400px]">
           <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />

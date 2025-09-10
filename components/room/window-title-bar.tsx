@@ -308,6 +308,16 @@ export function WindowTitleBar({
   };
 
   const handleFileSelect = (file: File) => {
+    const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+    if (!file.type || !file.type.startsWith("image/")) {
+      toast.error("Only image files are allowed");
+      return;
+    }
+    if (file.size > MAX_IMAGE_SIZE) {
+      toast.error("Image must be 10MB or smaller");
+      return;
+    }
+
     setSelectedFile(file);
 
     // Create preview URL
@@ -327,7 +337,7 @@ export function WindowTitleBar({
       const { error: uploadError } = await supabaseClient.storage
         .from("room-thumbnails")
         .upload(fileName, selectedFile, {
-          contentType: "image/png",
+          contentType: selectedFile.type || "image/*",
           upsert: false,
         });
 

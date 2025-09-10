@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function Profile() {
   return (
-    <div className="max-w-[1650px] flex flex-1 w-full gap-10 mx-auto py-5">
+    <div className="max-w-[1650px] flex flex-1 w-full gap-10 mx-auto pt-20">
       <div className="border w-full flex flex-1">
         <Suspense fallback={<div>Loading...</div>}>
           <ProfileTabs />

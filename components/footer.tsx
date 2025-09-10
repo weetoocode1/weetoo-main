@@ -10,14 +10,16 @@ import { useTranslations } from "next-intl";
 
 export function Footer() {
   const t = useTranslations("footer");
+  const addressText = t("addressDetails").replace(/<br\s*\/?>/gi, "\n");
+
   return (
     <footer className="w-full bg-gradient-to-b from-background to-background/95 border-t border-border/50">
       {/* Main Footer */}
-      <div className="container mx-auto px-4 py-20">
+      <div className="max-w-[1600px] mx-auto px-4 py-20">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12">
           <div className="lg:col-span-5 space-y-8">
             <div className="space-y-6">
-              <span className="text-3xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent font-gmarket">
+              <span className="text-3xl font-bold bg-gradient-to-r from-primary via-primary/80 inline-block mb-2 to-primary/60 bg-clip-text text-transparent font-gmarket">
                 WEETOO
               </span>
               <p className="text-sm text-muted-foreground leading-relaxed max-w-md whitespace-pre-line">
@@ -113,10 +115,9 @@ export function Footer() {
                   <p className="text-sm font-medium text-foreground">
                     {t("address")}
                   </p>
-                  <p
-                    className="text-sm text-muted-foreground"
-                    dangerouslySetInnerHTML={{ __html: t("addressDetails") }}
-                  />
+                  <p className="text-sm text-muted-foreground whitespace-pre-line">
+                    {addressText}
+                  </p>
                 </div>
               </div>
             </div>
@@ -126,9 +127,9 @@ export function Footer() {
 
       {/* Investment Risk Notice */}
       <div className="border-t border-border/50">
-        <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="max-w-[1600px] mx-auto px-4 py-8">
           <div className="space-y-4">
-            <h3 className="text-base font-semibold text-foreground text-center">
+            <h3 className="text-base font-semibold text-foreground text-left">
               {t("investmentRiskNotice")}
             </h3>
             <div className="prose prose-sm text-muted-foreground max-w-none">
@@ -145,6 +146,11 @@ export function Footer() {
           </div>
         </div>
       </div>
+
+      {/* Preserved original background text */}
+      <p className="text-center text-5xl md:text-9xl lg:text-[16rem] bg-clip-text text-transparent bg-gradient-to-b from-neutral-50 dark:from-background to-neutral-200 dark:to-neutral-800 inset-x-0 font-extrabold select-none">
+        WEETOO
+      </p>
 
       {/* Bottom Bar */}
       <div className="border-t border-border/50">

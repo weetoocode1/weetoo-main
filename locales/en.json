@@ -17,14 +17,19 @@
     "participants": "participants",
     "by": "by",
     "public": "Public",
-    "private": "Private"
+    "private": "Private",
+    "viewMarkets": "View Markets",
+    "realTimeAnalytics": "Real-time Analytics",
+    "expertTraders": "Expert Traders",
+    "globalCommunity": "Global Community"
   },
   "brokers": {
     "payback": "Payback"
   },
   "header": {
     "login": "Login",
-    "register": "Register"
+    "register": "Register",
+    "theme": "Theme"
   },
   "menu": {
     "trading": "Trading",
@@ -147,7 +152,11 @@
     "rowsPerPage": "Rows per page",
     "showing": "Showing",
     "of": "of",
-    "users": "users"
+    "users": "users",
+    "leaderboards": "Leaderboards",
+    "refreshedWeekly": "Refreshed weekly",
+    "trackTopTraders": "Track the top Traders, Analysts, Educators, Win Streaks and Trading Volume. Refreshed weekly to spotlight consistent performance.",
+    "viewFullLeaderboard": "View Full Leaderboard"
   },
   "communityBoards": {
     "communityBoards": "Community Boards",
@@ -184,7 +193,10 @@
     "startYourJourney": "Start Your Journey",
     "readyToMasterTrading": "Ready to Master Trading?",
     "ctaDescription": "Join thousands of traders who are already learning and earning through our simulation platform.",
-    "getStartedNow": "Get Started Now"
+    "getStartedNow": "Get Started Now",
+    "readyToJoin": "Ready to Join?",
+    "joinDescription": "Learn with peers, review with intention, and practice inside a professional, distraction‑free space.",
+    "joinNow": "Join now"
   },
   "footer": {
     "companyDescription": "Solomon Partners (WEETOO_We are investors) is a crypto-related information and community platform designed for the general public. The main purpose of this site is to provide information, support community engagement, and offer a simulated trading system. It is not involved in actual investment brokerage, advisory services, trade inducement, or profit guarantees.\n\nWEETOO does not engage in any activities that fall under financial services, such as investment solicitation or financial product sales.",
@@ -199,7 +211,7 @@
     "contactUs": "Contact Us",
     "phone": "Phone",
     "address": "Address",
-    "addressDetails": "3012-53, 30th floor, Building A,<br />323 Incheon Tower-daero, Yeonsu-gu,<br />Incheon (Songdo-dong, Songdo Cent Road)",
+    "addressDetails": "3012-53, 30th floor, Building A,\n323 Incheon Tower-daero, Yeonsu-gu,\nIncheon (Songdo-dong, Songdo Cent Road)",
     "investmentRiskNotice": "Investment Risk Notice",
     "riskNoticeParagraph1": "Solomon Partners (WEETOO_We are investors) is a margin trading/overseas futures information site for the general public, so it does not provide services such as 'investment brokerage' or 'investment consulting and agency', and the trading history provided by our company is simulated investment content. Please note that actual CFD trading is a high-risk, high-return financial derivative product, and all losses are attributed to the trader.",
     "riskNoticeParagraph2": "Risk Disclaimer: Solomon Partners (WEETOO_We are Investors) is not responsible for any loss or damage caused by reliance on the information contained in this website, including market news, analysis, trading signals and Forex broker reviews. The data contained in this website is not necessarily real-time or accurate and the analysis is the opinion of the author and does not represent a recommendation by Solomon Partners (WEETOO_We are Investors) or its staff.",

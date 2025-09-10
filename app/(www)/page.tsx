@@ -1,6 +1,8 @@
 import { Metadata } from "next";
 import { HomeClient } from "./page-client";
 import { seoKeywords } from "./seo-keywords";
+import { getRankingsData } from "@/components/main-page/rankings-section";
+import { getBoardData } from "@/lib/data/board-data";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
@@ -53,6 +55,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Home() {
-  return <HomeClient />;
+export default async function Home() {
+  const [rankingsData, boardData] = await Promise.all([
+    getRankingsData(),
+    getBoardData(),
+  ]);
+
+  return <HomeClient rankingsData={rankingsData} boardData={boardData} />;
 }

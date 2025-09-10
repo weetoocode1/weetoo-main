@@ -8,8 +8,8 @@ export function TradingPageClient() {
   const t = useTranslations("trading");
 
   return (
-    <div className="container flex flex-col gap-4 mx-auto py-4 pb-10">
-      <div className="relative w-full h-64 overflow-hidden rounded-xl border border-border bg-gradient-to-b from-blue-50/30 to-transparent dark:from-blue-950/30 dark:to-transparent">
+    <div className="container flex flex-col mx-auto pt-20 pb-10">
+      <div className="relative w-full h-64 overflow-hidden rounded-xl border border-border bg-gradient-to-b from-blue-50/30 to-transparent dark:from-blue-950/30 dark:to-transparent mb-4">
         <div className="relative">
           <div className="absolute inset-0 bg-gradient-to-b from-blue-50/30 to-transparent dark:from-blue-950/30 dark:to-transparent"></div>
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>

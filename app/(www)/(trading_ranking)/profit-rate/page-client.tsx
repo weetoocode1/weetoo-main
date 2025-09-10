@@ -7,7 +7,7 @@ export function ProfitRatePageClient() {
   const t = useTranslations("profitRanking");
 
   return (
-    <div className="container flex flex-col mx-auto py-4 pb-10">
+    <div className="container flex flex-col mx-auto pt-20 pb-10">
       <div className="relative w-full h-64 overflow-hidden rounded-xl border border-border bg-gradient-to-b from-emerald-50/30 to-transparent dark:from-emerald-950/30 dark:to-transparent">
         <div className="relative">
           <div className="absolute inset-0 bg-gradient-to-b from-emerald-50/30 to-transparent dark:from-emerald-950/30 dark:to-transparent"></div>

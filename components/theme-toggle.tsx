@@ -1,24 +1,84 @@
 "use client";
 
-import * as React from "react";
-import { Moon, Sun } from "lucide-react";
-import { useTheme } from "next-themes";
+import { cn } from "@/lib/utils";
+import { MoonStarIcon, SunIcon } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
+import { Button } from "./ui/button";
 
-import { Button } from "@/components/ui/button";
+interface ThemeToggleProps {
+  className?: string;
+}
 
-export function ThemeToggle() {
-  const { setTheme, theme } = useTheme();
+export const ThemeToggle = ({ className }: ThemeToggleProps) => {
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const isDark = document.documentElement.classList.contains("dark");
+    setIsDarkMode(isDark);
+  }, []);
+
+  const changeTheme = useCallback(async () => {
+    if (!buttonRef.current) return;
+
+    await document.startViewTransition(() => {
+      flushSync(() => {
+        const dark = document.documentElement.classList.toggle("dark");
+        setIsDarkMode(dark);
+      });
+    }).ready;
+
+    const { top, left, width, height } =
+      buttonRef.current.getBoundingClientRect();
+    const y = top + height / 2;
+    const x = left + width / 2;
+
+    const right = window.innerWidth - left;
+    const bottom = window.innerHeight - top;
+    const maxRad = Math.hypot(Math.max(left, right), Math.max(top, bottom));
+
+    document.documentElement.animate(
+      {
+        clipPath: [
+          `circle(0px at ${x}px ${y}px)`,
+          `circle(${maxRad}px at ${x}px ${y}px)`,
+        ],
+      },
+      {
+        duration: 700,
+        easing: "ease-in-out",
+        pseudoElement: "::view-transition-new(root)",
+      }
+    );
+  }, []);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLButtonElement>) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        changeTheme();
+      }
+    },
+    [changeTheme]
+  );
 
   return (
     <Button
       variant="ghost"
       size="icon"
-      onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-      className="cursor-pointer border-border"
+      ref={buttonRef}
+      onClick={changeTheme}
+      onKeyDown={handleKeyDown}
+      className={cn("cursor-pointer", className)}
+      aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+      type="button"
     >
-      <Sun className="h-4.5 w-4.5 dark:hidden" />
-      <Moon className="hidden h-4.5 w-4.5 dark:block" />
-      <span className="sr-only">Toggle theme</span>
+      {isDarkMode ? (
+        <SunIcon className="size-4.5" />
+      ) : (
+        <MoonStarIcon className="size-4.5" />
+      )}
     </Button>
   );
-}
+};
