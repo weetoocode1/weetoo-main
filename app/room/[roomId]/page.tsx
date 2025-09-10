@@ -1,6 +1,7 @@
 import { RoomClientWrapper } from "@/components/room/room-client-wrapper";
 import { createClient } from "@/lib/supabase/server";
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 export async function generateMetadata({
   params,
@@ -29,6 +30,12 @@ export default async function TradingRoomPage({
 }) {
   const { roomId } = await params;
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect("/login");
+  }
   const { data: room, error } = await supabase
     .from("trading_rooms")
     .select(

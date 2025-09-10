@@ -9,7 +9,7 @@ export function BrokerPageClient() {
 
   return (
     <div>
-      <div className="container flex flex-col gap-10 mx-auto px-4 sm:px-6 py-4 pb-10">
+      <div className="container flex flex-col gap-10 mx-auto px-4 sm:px-6 py-4 pb-10 pt-20">
         <div className="relative w-full h-64 overflow-hidden rounded-xl border border-border bg-gradient-to-b from-blue-50/30 to-transparent dark:from-blue-950/30 dark:to-transparent">
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-b from-blue-50/30 to-transparent dark:from-blue-950/30 dark:to-transparent"></div>

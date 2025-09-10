@@ -59,11 +59,26 @@ export function CreatePostForm({ board }: { board?: string }) {
       console.log("Starting image upload process");
       if (imageFiles.length > 0) {
         const supabase = createClient();
+        const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+
         for (const file of imageFiles) {
+          // Client-side validation: type and size
+          if (!file.type || !file.type.startsWith("image/")) {
+            setLoading(false);
+            toast.error("Only image files are allowed");
+            return;
+          }
+          if (file.size > MAX_IMAGE_SIZE) {
+            setLoading(false);
+            toast.error("Image must be 10MB or smaller");
+            return;
+          }
+
           const { data, error } = await supabase.storage
             .from("post-images")
             .upload(`public/${Date.now()}-${file.name}`, file, {
               upsert: true,
+              contentType: file.type || "image/*",
             });
           if (error) {
             console.log("Image upload failed, setting loading to false");
@@ -263,7 +278,7 @@ export function CreatePostForm({ board }: { board?: string }) {
         </Tabs>
       </div>
       {/* Desktop: Side-by-side layout */}
-      <div className="hidden md:flex min-h-[calc(100vh-80px)] flex-row gap-2 container mx-auto pt-5">
+      <div className="hidden md:flex min-h-[calc(100vh-80px)] flex-row gap-2 container mx-auto pt-20">
         {/* Form Card */}
         <div className="w-full md:w-1/2 flex flex-col bg-card border border-border rounded-none shadow-lg p-8 mx-auto md:mx-0">
           {boardLabel}
@@ -326,7 +341,7 @@ export function CreatePostForm({ board }: { board?: string }) {
           </Label>
           <RichTextEditor key={editorKey} onChange={setContent} />
           {/* Actions */}
-          <div className="flex flex-col sm:flex-row gap-3 mt-auto justify-end">
+          <div className="flex flex-col sm:flex-row gap-3 mt-5 justify-end">
             <Button
               type="button"
               onClick={handlePublish}

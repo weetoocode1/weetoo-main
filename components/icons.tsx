@@ -438,4 +438,197 @@ export const Icons = {
       <path d="M22.125 0H1.875C.8394 0 0 .8394 0 1.875v20.25C0 23.1606.8394 24 1.875 24h20.25C23.1606 24 24 23.1606 24 22.125V1.875C24 .8394 23.1606 0 22.125 0zM12 18.75c-.591 0-1.1697-.0413-1.7317-.1209-.5626.3965-3.813 2.6797-4.1198 2.7225 0 0-.1258.0489-.2328-.0141s-.0876-.2282-.0876-.2282c.0322-.2198.8426-3.0183.992-3.5333-2.7452-1.36-4.5701-3.7686-4.5701-6.5135C2.25 6.8168 6.6152 3.375 12 3.375s9.75 3.4418 9.75 7.6875c0 4.2457-4.3652 7.6875-9.75 7.6875zM8.0496 9.8672h-.8777v3.3417c0 .2963-.2523.5372-.5625.5372s-.5625-.2409-.5625-.5372V9.8672h-.8777c-.3044 0-.552-.2471-.552-.5508s.2477-.5508.552-.5508h2.8804c.3044 0 .552.2471.552.5508s-.2477.5508-.552.5508zm10.9879 2.9566a.558.558 0 0 1 .108.4167.5588.5588 0 0 1-.2183.371.5572.5572 0 0 1-.3383.1135.558.558 0 0 1-.4493-.2236l-1.3192-1.7479-.1952.1952v1.2273a.5635.5635 0 0 1-.5627.5628.563.563 0 0 1-.5625-.5625V9.3281c0-.3102.2523-.5625.5625-.5625s.5625.2523.5625.5625v1.209l1.5694-1.5694c.0807-.0807.1916-.1252.312-.1252.1404 0 .2814.0606.3871.1661.0985.0984.1573.2251.1654.3566.0082.1327-.036.2542-.1241.3425l-1.2818 1.2817 1.3845 1.8344zm-8.3502-3.5023c-.095-.2699-.3829-.5475-.7503-.5557-.3663.0083-.6542.2858-.749.5551l-1.3455 3.5415c-.1708.5305-.0217.7272.1333.7988a.8568.8568 0 0 0 .3576.0776c.2346 0 .4139-.0952.4678-.2481l.2787-.7297 1.7152.0001.2785.7292c.0541.1532.2335.2484.4681.2484a.8601.8601 0 0 0 .3576-.0775c.1551-.0713.3041-.2681.1329-.7999l-1.3449-3.5398zm-1.3116 2.4433l.5618-1.5961.5618 1.5961H9.3757zm5.9056 1.3836c0 .2843-.2418.5156-.5391.5156h-1.8047c-.2973 0-.5391-.2314-.5391-.5156V9.3281c0-.3102.2576-.5625.5742-.5625s.5742.2523.5742.5625v3.3047h1.1953c.2974 0 .5392.2314.5392.5156z" />
     </svg>
   ),
+
+  ethereum: (props: IconProps) => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      xmlnsXlink="http://www.w3.org/1999/xlink"
+      width="1em"
+      height="1em"
+      viewBox="0 0 32 32"
+      {...props}
+    >
+      <defs>
+        <linearGradient id="eth__eth-c" x1="50%" x2="50%" y1="0%" y2="100%">
+          <stop offset="0%" stopColor="#FFF" stopOpacity={0.5} />
+          <stop offset="100%" stopOpacity={0.5} />
+        </linearGradient>
+        <circle id="eth__eth-b" cx={16} cy={15} r={15} />
+        <filter
+          id="eth__eth-a"
+          width="111.7%"
+          height="111.7%"
+          x="-5.8%"
+          y="-4.2%"
+          filterUnits="objectBoundingBox"
+        >
+          <feOffset dy={0.5} in="SourceAlpha" result="shadowOffsetOuter1" />
+          <feGaussianBlur
+            in="shadowOffsetOuter1"
+            result="shadowBlurOuter1"
+            stdDeviation={0.5}
+          />
+          <feComposite
+            in="shadowBlurOuter1"
+            in2="SourceAlpha"
+            operator="out"
+            result="shadowBlurOuter1"
+          />
+          <feColorMatrix
+            in="shadowBlurOuter1"
+            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.199473505 0"
+          />
+        </filter>
+        <path
+          id="eth__eth-e"
+          d="M16.4977734,20.9675435 L23.9999473,16.616495 L16.4977207,26.9946245 L16.4976173,26.9943278 L9,16.6164144 L16.4977734,20.9674935 Z M16.4977471,3.00004297 L23.9954941,15.2198561 L16.4977734,19.5730917 L9,15.2198561 L16.4977471,3.00004297 Z"
+        />
+        <filter
+          id="eth__eth-d"
+          width="123.3%"
+          height="114.6%"
+          x="-11.7%"
+          y="-5.2%"
+          filterUnits="objectBoundingBox"
+        >
+          <feOffset dy={0.5} in="SourceAlpha" result="shadowOffsetOuter1" />
+          <feGaussianBlur
+            in="shadowOffsetOuter1"
+            result="shadowBlurOuter1"
+            stdDeviation={0.5}
+          />
+          <feComposite
+            in="shadowBlurOuter1"
+            in2="SourceAlpha"
+            operator="out"
+            result="shadowBlurOuter1"
+          />
+          <feColorMatrix
+            in="shadowBlurOuter1"
+            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.204257246 0"
+          />
+        </filter>
+      </defs>
+      <g fill="none" fillRule="evenodd">
+        <use fill="#000" filter="url(#eth__eth-a)" xlinkHref="#eth__eth-b" />
+        <use fill="#627EEA" xlinkHref="#eth__eth-b" />
+        <use
+          fill="url(#eth__eth-c)"
+          style={{ mixBlendMode: "soft-light" }}
+          xlinkHref="#eth__eth-b"
+        />
+        <circle cx={16} cy={15} r={14.5} stroke="#000" strokeOpacity={0.097} />
+        <g fillRule="nonzero">
+          <use fill="#000" filter="url(#eth__eth-d)" xlinkHref="#eth__eth-e" />
+          <use
+            fill="#FFF"
+            fillOpacity={0}
+            fillRule="evenodd"
+            xlinkHref="#eth__eth-e"
+          />
+        </g>
+        <g fill="#FFF" fillRule="nonzero" transform="translate(9 3)">
+          <polygon
+            fillOpacity={0.602}
+            points="7.498 0 7.498 8.87 14.995 12.22"
+          />
+          <polygon points="7.498 0 0 12.22 7.498 8.87" />
+          <polygon
+            fillOpacity={0.602}
+            points="7.498 17.968 7.498 23.995 15 13.616"
+          />
+          <polygon points="7.498 23.995 7.498 17.967 0 13.616" />
+          <polygon
+            fillOpacity={0.2}
+            points="7.498 16.573 14.995 12.22 7.498 8.872"
+          />
+          <polygon
+            fillOpacity={0.602}
+            points="0 12.22 7.498 16.573 7.498 8.872"
+          />
+        </g>
+      </g>
+    </svg>
+  ),
+
+  bitcoin: (props: IconProps) => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      xmlnsXlink="http://www.w3.org/1999/xlink"
+      width="1em"
+      height="1em"
+      viewBox="0 0 32 32"
+      {...props}
+    >
+      <defs>
+        <linearGradient id="btc__btc-c" x1="50%" x2="50%" y1="0%" y2="100%">
+          <stop offset="0%" stopColor="#FFF" stopOpacity={0.5} />
+          <stop offset="100%" stopOpacity={0.5} />
+        </linearGradient>
+        <circle id="btc__btc-b" cx={16} cy={15} r={15} />
+        <filter
+          id="btc__btc-a"
+          width="111.7%"
+          height="111.7%"
+          x="-5.8%"
+          y="-4.2%"
+          filterUnits="objectBoundingBox"
+        >
+          <feOffset dy={0.5} in="SourceAlpha" result="shadowOffsetOuter1" />
+          <feGaussianBlur
+            in="shadowOffsetOuter1"
+            result="shadowBlurOuter1"
+            stdDeviation={0.5}
+          />
+          <feComposite
+            in="shadowBlurOuter1"
+            in2="SourceAlpha"
+            operator="out"
+            result="shadowBlurOuter1"
+          />
+          <feColorMatrix
+            in="shadowBlurOuter1"
+            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.199473505 0"
+          />
+        </filter>
+        <path
+          id="btc__btc-e"
+          d="M23.1889526,13.0201846 C23.5025526,10.9239385 21.9064911,9.79704615 19.7240911,9.04529231 L20.4320295,6.20566154 L18.7035372,5.77489231 L18.0143065,8.53969231 C17.5599065,8.42646154 17.0931988,8.31963077 16.6294449,8.21378462 L17.3235988,5.43076923 L15.5960911,5 L14.8876603,7.83864615 C14.5115372,7.75298462 14.1423065,7.66830769 13.7839065,7.5792 L13.7858757,7.57033846 L11.4021218,6.97513846 L10.9423065,8.82129231 C10.9423065,8.82129231 12.224768,9.1152 12.1976911,9.13341538 C12.8977526,9.30818462 13.0242757,9.77144615 13.0031065,10.1387077 L12.1967065,13.3736615 C12.2449526,13.3859692 12.3074757,13.4036923 12.3763988,13.4312615 C12.3187988,13.4169846 12.2572603,13.4012308 12.1937526,13.3859692 L11.0634142,17.9176615 C10.9777526,18.1303385 10.7606449,18.4493538 10.2712911,18.3282462 C10.2885218,18.3533538 9.01492185,18.0146462 9.01492185,18.0146462 L8.15682954,19.9932308 L10.4061834,20.5539692 C10.8246449,20.6588308 11.2347372,20.7686154 11.6384295,20.872 L10.9231065,23.7441231 L12.6496295,24.1748923 L13.3580603,21.3332923 C13.8296911,21.4612923 14.2875372,21.5794462 14.7355372,21.6907077 L14.029568,24.5190154 L15.7580603,24.9497846 L16.4733834,22.0830769 C19.4208295,22.6408615 21.6371988,22.4158769 22.5701218,19.7500308 C23.3218757,17.6035692 22.5327065,16.3654154 20.9819372,15.5580308 C22.1112911,15.2976 22.9619988,14.5547077 23.1889526,13.0201846 L23.1889526,13.0201846 Z M19.2396603,18.5581538 C18.7055065,20.7046154 15.0914757,19.5442462 13.9197834,19.2532923 L14.8689526,15.4482462 C16.0406449,15.7406769 19.7979372,16.3196308 19.2396603,18.5581538 Z M19.7743065,12.9891692 C19.2869218,14.9416615 16.2789218,13.9496615 15.303168,13.7064615 L16.1637218,10.2553846 C17.1394757,10.4985846 20.2818757,10.9524923 19.7743065,12.9891692 Z"
+        />
+        <filter
+          id="btc__btc-d"
+          width="123.2%"
+          height="117.5%"
+          x="-11.6%"
+          y="-6.3%"
+          filterUnits="objectBoundingBox"
+        >
+          <feOffset dy={0.5} in="SourceAlpha" result="shadowOffsetOuter1" />
+          <feGaussianBlur
+            in="shadowOffsetOuter1"
+            result="shadowBlurOuter1"
+            stdDeviation={0.5}
+          />
+          <feColorMatrix
+            in="shadowBlurOuter1"
+            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.204257246 0"
+          />
+        </filter>
+      </defs>
+      <g fill="none" fillRule="evenodd">
+        <use fill="#000" filter="url(#btc__btc-a)" xlinkHref="#btc__btc-b" />
+        <use fill="#F7931A" xlinkHref="#btc__btc-b" />
+        <use
+          fill="url(#btc__btc-c)"
+          style={{ mixBlendMode: "soft-light" }}
+          xlinkHref="#btc__btc-b"
+        />
+        <circle cx={16} cy={15} r={14.5} stroke="#000" strokeOpacity={0.097} />
+        <g fillRule="nonzero">
+          <use fill="#000" filter="url(#btc__btc-d)" xlinkHref="#btc__btc-e" />
+          <use fill="#FFF" fillRule="evenodd" xlinkHref="#btc__btc-e" />
+        </g>
+      </g>
+    </svg>
+  ),
 };

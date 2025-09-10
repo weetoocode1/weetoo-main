@@ -77,8 +77,8 @@ export function Header() {
   }, [authChecked, isLoggedIn]);
 
   return (
-    <header className="w-full border-dashed border-border border-b sticky top-0 z-50 bg-background ">
-      <div className="h-14 flex justify-between w-full items-center container mx-auto gap-2 md:gap-4 px-4">
+    <header className="fixed top-0 inset-x-0 z-50 bg-background border-border rounded-lg border-b w-full">
+      <div className="flex items-center lg:justify-between gap-12 md:gap-4 px-4 md:px-8 h-14 max-w-[1600px] mx-auto">
         <Link href="/" className="flex items-center">
           <span className="text-2xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent font-gmarket">
             WEETOO
@@ -91,7 +91,7 @@ export function Header() {
           <Menu />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 md:gap-2">
           <div className="hidden md:block">
             <LanguageToggle />
           </div>
@@ -100,34 +100,48 @@ export function Header() {
               <WeetooMarketDialog />
               <KorCoinsRechargeDialog />
               <CustomerSupportDialog />
-              <ThemeToggle />
+              <div className="hidden md:block">
+                <ThemeToggle />
+              </div>
             </>
           )}
           {renderAuthSection()}
 
           {/* Mobile Menu Button */}
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden"
-                aria-label="Toggle Menu"
-              >
-                <MenuIcon className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-              <VisuallyHidden>
-                <SheetHeader>
-                  <SheetTitle>Navigation Menu</SheetTitle>
-                </SheetHeader>
-              </VisuallyHidden>
-              <div className="flex flex-col gap-4 mt-4">
-                <Menu />
-              </div>
-            </SheetContent>
-          </Sheet>
+          <div className="md:hidden">
+            <Sheet>
+              <SheetTrigger asChild className="">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  aria-label="Toggle Menu"
+                >
+                  <MenuIcon className="h-4 w-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="mr-5">
+                <VisuallyHidden>
+                  <SheetHeader>
+                    <SheetTitle>Navigation Menu</SheetTitle>
+                  </SheetHeader>
+                </VisuallyHidden>
+                <div className="flex flex-col gap-4 mt-4">
+                  <Menu />
+                  {isLoggedIn && (
+                    <div className="md:hidden pt-4 border-t border-border">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-foreground">
+                          Theme
+                        </span>
+                        <ThemeToggle />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </div>
     </header>

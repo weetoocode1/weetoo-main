@@ -16,13 +16,10 @@ export default function RootLayout({
   const hideFooter = hideFooterRoutes.includes(pathname);
 
   return (
-    <div
-      className="flex-1 flex flex-col font-[family-name:var(--font-geist-sans)] min-h-screen w-full"
-      suppressHydrationWarning
-    >
+    <div className="min-h-screen w-full flex flex-col">
       {/* <UtilityBar /> */}
       <Header />
-      <main className="flex-1 flex flex-col">{children}</main>
+      <main className="flex-1">{children}</main>
       {!hideFooter && <Footer />}
       <FloatingChat />
     </div>

@@ -9,7 +9,7 @@ export function InvestmentCompetitionClient() {
   const t = useTranslations("investmentCompetition");
 
   return (
-    <div className="container flex flex-col gap-4 mx-auto py-4 pb-10">
+    <div className="container flex flex-col gap-4 mx-auto py-4 pb-10 pt-20">
       {/* Headings */}
       <div className="relative w-full overflow-hidden rounded-none border border-border bg-gradient-to-b from-purple-50/30 to-transparent dark:from-purple-950/30 dark:to-transparent">
         <div className="relative">

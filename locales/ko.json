@@ -17,14 +17,19 @@
     "participants": "참가자",
     "by": "작성자",
     "public": "공개",
-    "private": "비공개"
+    "private": "비공개",
+    "viewMarkets": "시장 보기",
+    "realTimeAnalytics": "실시간 분석",
+    "expertTraders": "전문 트레이더",
+    "globalCommunity": "글로벌 커뮤니티"
   },
   "brokers": {
     "payback": "환급"
   },
   "header": {
     "login": "로그인",
-    "register": "회원가입"
+    "register": "회원가입",
+    "theme": "테마"
   },
   "menu": {
     "trading": "트레이딩트레이더",
@@ -147,7 +152,11 @@
     "rowsPerPage": "페이지당 행 수",
     "showing": "표시 중",
     "of": "/",
-    "users": "사용자"
+    "users": "사용자",
+    "leaderboards": "리더보드",
+    "refreshedWeekly": "주간 갱신",
+    "trackTopTraders": "상위 트레이더, 애널리스트, 교육자, 연승 및 트레이딩 볼륨을 추적하세요. 일관된 성과를 부각시키기 위해 주간 갱신됩니다.",
+    "viewFullLeaderboard": "전체 리더보드 보기"
   },
   "communityBoards": {
     "communityBoards": "커뮤니티 게시판",
@@ -184,7 +193,10 @@
     "startYourJourney": "여정을 시작하세요",
     "readyToMasterTrading": "이제 당신의 트레이딩 전략을 시험해볼 시간입니다 !",
     "ctaDescription": "트레이딩 실력, 이제는 수치로 증명할 시간입니다. 이곳에서 수익을 향해 나아가는 트레이더들과 어깨를 나란히 하세요.",
-    "getStartedNow": "지금 시작하기"
+    "getStartedNow": "지금 시작하기",
+    "readyToJoin": "참여할 준비가 되셨나요?",
+    "joinDescription": "동료들과 함께 배우고, 의도적으로 검토하며, 전문적이고 방해받지 않는 공간에서 연습하세요.",
+    "joinNow": "지금 참여하기"
   },
   "footer": {
     "companyDescription": "Solomon Partners (WEETOO_We are investors)는 일반 대중을 위한 크립토(가상자산) 관련 정보 제공 및 커뮤니티 플랫폼입니다.본 사이트는 정보제공, 커뮤니티 운영, 모의투자 시스템 제공을 주된 목적으로 하며, 실제 투자 중개, 자문, 매매 유도 및 수익 보장과는 무관합니다.\n\nWEETOO는 대한민국 관련 법률을 준수하며, 투자 권유, 금융상품 판매 등 금융업에 해당하는 어떠한 행위도 하지 않습니다.",
@@ -199,7 +211,7 @@
     "contactUs": "연락처",
     "phone": "전화번호",
     "address": "주소",
-    "addressDetails": "인천 연수구 송도동 송도 센트로드<br />인천타워대로 323번길<br />A동 30층 3012-53호",
+    "addressDetails": "인천 연수구 송도동 송도 센트로드\n인천타워대로 323번길\nA동 30층 3012-53호",
     "investmentRiskNotice": "투자 위험 고지",
     "riskNoticeParagraph1": "Solomon Partners (WEETOO_We are investors)는 일반 대중을 위한 마진 트레이딩/해외 선물 정보 사이트이므로 '투자 중개' 또는 '투자 자문 및 대리'와 같은 서비스를 제공하지 않으며, 당사의 트레이딩 내역은 시뮬레이션 투자 콘텐츠입니다. 실제 CFD 트레이딩는 고위험, 고수익 금융 파생상품이며 모든 손실은 트레이더에게 귀속됨을 유의하시기 바랍니다.",
     "riskNoticeParagraph2": "위험 면책 조항: Solomon Partners (WEETOO_We are Investors)는 시장 뉴스, 분석, 트레이딩 신호 및 외환 브로커 리뷰를 포함한 이 웹사이트에 포함된 정보에 의존하여 발생하는 모든 손실이나 손해에 대해 책임지지 않습니다. 이 웹사이트에 포함된 데이터는 반드시 실시간이거나 정확하지 않을 수 있으며 분석은 저자의 의견이며 Solomon Partners (WEETOO_We are Investors) 또는 직원의 권장사항을 나타내지 않습니다.",

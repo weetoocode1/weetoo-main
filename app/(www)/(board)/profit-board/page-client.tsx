@@ -22,7 +22,7 @@ export function ProfitBoardPageClient() {
   };
 
   return (
-    <div className="container flex flex-col gap-3 mx-auto py-6 pb-12 px-4">
+    <div className="container flex flex-col gap-3 mx-auto py-6 pb-12 px-4 pt-20">
       <div className="flex flex-col md:flex-row items-center justify-between gap-3 p-5 bg-muted/30 border border-border">
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl md:text-3xl font-bold text-primary mb-0.5">
