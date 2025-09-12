@@ -310,92 +310,97 @@ export function TradeHistoryTabs({
               No open positions.
             </div>
           ) : (
-            <Table className="w-full table-fixed">
-              <TableHeader
-                className="bg-[--table-header-background] sticky top-0 z-10"
-                style={{
-                  display: "table",
-                  width: "100%",
-                  tableLayout: "fixed",
-                }}
-              >
-                <TableRow className="border-b border-border">
-                  <TableHead
-                    style={{ width: "12%" }}
-                    className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
+            <div className="w-full overflow-x-auto md:overflow-visible">
+              <div className="min-w-[720px] md:min-w-0">
+                <Table className="w-full table-fixed">
+                  <TableHeader
+                    className="bg-[--table-header-background] sticky top-0 z-10"
+                    style={{
+                      display: "table",
+                      width: "100%",
+                      tableLayout: "fixed",
+                    }}
                   >
-                    Symbol
-                  </TableHead>
-                  <TableHead
-                    style={{ width: "10%" }}
-                    className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
+                    <TableRow className="border-b border-border">
+                      <TableHead
+                        style={{ width: "12%" }}
+                        className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
+                      >
+                        Symbol
+                      </TableHead>
+                      <TableHead
+                        style={{ width: "10%" }}
+                        className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
+                      >
+                        Side
+                      </TableHead>
+                      <TableHead
+                        style={{ width: "16%" }}
+                        className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
+                      >
+                        Quantity
+                      </TableHead>
+                      <TableHead
+                        style={{ width: "14%" }}
+                        className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
+                      >
+                        Size
+                      </TableHead>
+                      <TableHead
+                        style={{ width: "14%" }}
+                        className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
+                      >
+                        <div className="flex items-center gap-1">
+                          Entry{" "}
+                          <Info className="h-3 w-3 text-muted-foreground" />
+                        </div>
+                      </TableHead>
+                      <TableHead
+                        style={{ width: "14%" }}
+                        className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
+                      >
+                        <div className="flex items-center gap-1">
+                          Initial Margin
+                          <Info className="h-3 w-3 text-muted-foreground" />
+                        </div>
+                      </TableHead>
+                      <TableHead
+                        style={{ width: "12%" }}
+                        className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
+                      >
+                        <div className="flex items-center gap-1">
+                          PNL <Info className="h-3 w-3 text-muted-foreground" />
+                        </div>
+                      </TableHead>
+                      <TableHead
+                        style={{ width: "8%" }}
+                        className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
+                      >
+                        Actions
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <tbody
+                    style={{
+                      display: "block",
+                      maxHeight: "160px",
+                      overflowY: "auto",
+                      width: "100%",
+                    }}
                   >
-                    Side
-                  </TableHead>
-                  <TableHead
-                    style={{ width: "16%" }}
-                    className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
-                  >
-                    Quantity
-                  </TableHead>
-                  <TableHead
-                    style={{ width: "14%" }}
-                    className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
-                  >
-                    Size
-                  </TableHead>
-                  <TableHead
-                    style={{ width: "14%" }}
-                    className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
-                  >
-                    <div className="flex items-center gap-1">
-                      Entry <Info className="h-3 w-3 text-muted-foreground" />
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    style={{ width: "14%" }}
-                    className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
-                  >
-                    <div className="flex items-center gap-1">
-                      Initial Margin
-                      <Info className="h-3 w-3 text-muted-foreground" />
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    style={{ width: "12%" }}
-                    className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
-                  >
-                    <div className="flex items-center gap-1">
-                      PNL <Info className="h-3 w-3 text-muted-foreground" />
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    style={{ width: "8%" }}
-                    className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
-                  >
-                    Actions
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <tbody
-                style={{
-                  display: "block",
-                  maxHeight: "160px",
-                  overflowY: "auto",
-                  width: "100%",
-                }}
-              >
-                {openPositions.map((position) => (
-                  <PositionRow
-                    key={position.id}
-                    position={position}
-                    isHost={isHost}
-                    closePosition={closePosition}
-                    roomId={roomId}
-                  />
-                ))}
-              </tbody>
-            </Table>
+                    {openPositions.map((position) => (
+                      <PositionRow
+                        key={position.id}
+                        position={position}
+                        isHost={isHost}
+                        closePosition={closePosition}
+                        roomId={roomId}
+                      />
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
+            </div>
           )}
         </div>
       </TabsContent>
@@ -409,120 +414,124 @@ export function TradeHistoryTabs({
               No trade history yet.
             </div>
           ) : (
-            <Table className="w-full table-fixed">
-              <TableHeader
-                className="bg-[--table-header-background] sticky top-0 z-10"
-                style={{
-                  display: "table",
-                  width: "100%",
-                  tableLayout: "fixed",
-                }}
-              >
-                <TableRow className="border-b border-border">
-                  <TableHead
-                    style={{ width: "16%" }}
-                    className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
-                  >
-                    Symbol
-                  </TableHead>
-                  <TableHead
-                    style={{ width: "12%" }}
-                    className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
-                  >
-                    Side
-                  </TableHead>
-                  <TableHead
-                    style={{ width: "18%" }}
-                    className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
-                  >
-                    Size
-                  </TableHead>
-                  <TableHead
-                    style={{ width: "18%" }}
-                    className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
-                  >
-                    Entry
-                  </TableHead>
-                  <TableHead
-                    style={{ width: "18%" }}
-                    className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
-                  >
-                    Exit
-                  </TableHead>
-                  <TableHead
-                    style={{ width: "18%" }}
-                    className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
-                  >
-                    PNL
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <tbody
-                style={{
-                  display: "block",
-                  maxHeight: "160px",
-                  overflowY: "auto",
-                  width: "100%",
-                }}
-              >
-                {closedPositions.map((item) => (
-                  <tr
-                    key={item.id}
+            <div className="w-full overflow-x-auto md:overflow-visible">
+              <div className="min-w-[720px] md:min-w-0">
+                <Table className="w-full table-fixed">
+                  <TableHeader
+                    className="bg-[--table-header-background] sticky top-0 z-10"
                     style={{
                       display: "table",
+                      width: "100%",
                       tableLayout: "fixed",
+                    }}
+                  >
+                    <TableRow className="border-b border-border">
+                      <TableHead
+                        style={{ width: "16%" }}
+                        className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
+                      >
+                        Symbol
+                      </TableHead>
+                      <TableHead
+                        style={{ width: "12%" }}
+                        className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
+                      >
+                        Side
+                      </TableHead>
+                      <TableHead
+                        style={{ width: "18%" }}
+                        className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
+                      >
+                        Size
+                      </TableHead>
+                      <TableHead
+                        style={{ width: "18%" }}
+                        className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
+                      >
+                        Entry
+                      </TableHead>
+                      <TableHead
+                        style={{ width: "18%" }}
+                        className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
+                      >
+                        Exit
+                      </TableHead>
+                      <TableHead
+                        style={{ width: "18%" }}
+                        className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
+                      >
+                        PNL
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <tbody
+                    style={{
+                      display: "block",
+                      maxHeight: "160px",
+                      overflowY: "auto",
                       width: "100%",
                     }}
-                    className="hover:bg-muted border-0 !border-b-0"
                   >
-                    <td
-                      className="text-foreground text-xs p-2 text-left"
-                      style={{ width: "16%" }}
-                    >
-                      {item.symbol ?? "-"}
-                    </td>
-                    <td
-                      className={`text-xs p-2 text-left ${
-                        (item.side ?? "").toLowerCase() === "long"
-                          ? "text-green-500"
-                          : "text-red-500"
-                      }`}
-                      style={{ width: "12%" }}
-                    >
-                      {item.side ?? "-"}
-                    </td>
-                    <td
-                      className="text-foreground text-xs p-2 text-left"
-                      style={{ width: "18%" }}
-                    >
-                      {item.size ?? "-"}
-                    </td>
-                    <td
-                      className="text-foreground text-xs p-2 text-left"
-                      style={{ width: "18%" }}
-                    >
-                      {item.entry_price ?? "-"}
-                    </td>
-                    <td
-                      className="text-foreground text-xs p-2 text-left"
-                      style={{ width: "18%" }}
-                    >
-                      {item.close_price ?? "-"}
-                    </td>
-                    <td
-                      className={`text-xs p-2 text-left ${
-                        (item.pnl ?? "").toString().includes("-")
-                          ? "text-red-500"
-                          : "text-green-500"
-                      }`}
-                      style={{ width: "18%" }}
-                    >
-                      {item.pnl ?? "-"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
+                    {closedPositions.map((item) => (
+                      <tr
+                        key={item.id}
+                        style={{
+                          display: "table",
+                          tableLayout: "fixed",
+                          width: "100%",
+                        }}
+                        className="hover:bg-muted border-0 !border-b-0"
+                      >
+                        <td
+                          className="text-foreground text-xs p-2 text-left"
+                          style={{ width: "16%" }}
+                        >
+                          {item.symbol ?? "-"}
+                        </td>
+                        <td
+                          className={`text-xs p-2 text-left ${
+                            (item.side ?? "").toLowerCase() === "long"
+                              ? "text-green-500"
+                              : "text-red-500"
+                          }`}
+                          style={{ width: "12%" }}
+                        >
+                          {item.side ?? "-"}
+                        </td>
+                        <td
+                          className="text-foreground text-xs p-2 text-left"
+                          style={{ width: "18%" }}
+                        >
+                          {item.size ?? "-"}
+                        </td>
+                        <td
+                          className="text-foreground text-xs p-2 text-left"
+                          style={{ width: "18%" }}
+                        >
+                          {item.entry_price ?? "-"}
+                        </td>
+                        <td
+                          className="text-foreground text-xs p-2 text-left"
+                          style={{ width: "18%" }}
+                        >
+                          {item.close_price ?? "-"}
+                        </td>
+                        <td
+                          className={`text-xs p-2 text-left ${
+                            (item.pnl ?? "").toString().includes("-")
+                              ? "text-red-500"
+                              : "text-green-500"
+                          }`}
+                          style={{ width: "18%" }}
+                        >
+                          {item.pnl ?? "-"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
+            </div>
           )}
         </div>
       </TabsContent>

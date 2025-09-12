@@ -417,14 +417,14 @@ ProfitCard.displayName = "ProfitCard";
 const MobileProfitCard = memo(({ data }: { data: CardData }) => {
   const numberFormatter = useMemo(() => new Intl.NumberFormat("en-US"), []);
   return (
-    <div className="relative rounded-xl border-2 border-border p-4 shadow-sm">
+    <div className="relative rounded-lg border border-border p-4 sm:p-5 shadow-sm bg-background/80">
       <div className="flex justify-end mb-4">
         <div className="w-8 h-8 rounded-full bg-muted text-foreground flex items-center justify-center text-sm font-bold shadow-md">
           #{data.rank}
         </div>
       </div>
       <div className="flex flex-col items-center gap-3 mb-4">
-        <Avatar className="w-16 h-16 ring-2 ring-border/30">
+        <Avatar className="w-14 h-14 sm:w-16 sm:h-16 ring-2 ring-border/30">
           <AvatarImage src={data.avatar_url || undefined} alt={data.name} />
           <AvatarFallback className="font-semibold text-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
             {data.name
@@ -435,34 +435,36 @@ const MobileProfitCard = memo(({ data }: { data: CardData }) => {
           </AvatarFallback>
         </Avatar>
         <div className="text-center">
-          <h3 className="text-lg font-bold text-foreground">{data.name}</h3>
+          <h3 className="text-base sm:text-lg font-bold text-foreground">
+            {data.name}
+          </h3>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-border/30">
-        <div className="flex items-center justify-between">
+      <div className="mt-2 pt-3 border-t border-border/30 space-y-2">
+        <div className="flex items-center justify-between py-2 border-b border-border/20">
           <div className="flex items-center gap-2 text-muted-foreground">
             <DollarSign className="w-4 h-4 text-emerald-400" />
-            <span className="text-sm font-medium">Total Profit Rate</span>
+            <span className="text-xs sm:text-sm font-medium">Profit Rate</span>
           </div>
-          <span className="font-semibold text-foreground">
+          <span className="font-semibold text-foreground text-sm sm:text-base whitespace-nowrap">
             {Number(data.totalReturn || 0).toFixed(2)}%
           </span>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between py-2 border-b border-border/20">
           <div className="flex items-center gap-2 text-muted-foreground">
             <DollarSign className="w-4 h-4 text-amber-400" />
-            <span className="text-sm font-medium">Portfolio</span>
+            <span className="text-xs sm:text-sm font-medium">Portfolio</span>
           </div>
-          <span className="font-semibold text-foreground">
+          <span className="font-semibold text-foreground text-sm sm:text-base whitespace-nowrap">
             {numberFormatter.format(Number(data.portfolio || 0))}
           </span>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between py-2">
           <div className="flex items-center gap-2 text-muted-foreground">
             <TrendingUp className="w-4 h-4 text-purple-400" />
-            <span className="text-sm font-medium">Trades</span>
+            <span className="text-xs sm:text-sm font-medium">Trades</span>
           </div>
-          <span className="font-semibold text-foreground">
+          <span className="font-semibold text-foreground text-sm sm:text-base whitespace-nowrap">
             {Number(data.trades || 0)}
           </span>
         </div>
@@ -557,22 +559,28 @@ export const ProfitRanking = memo(() => {
   return (
     <div className="space-y-16 mb-20">
       {/* Time Frame Tabs */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 mt-8 gap-4">
-        <div className="bg-muted/30 rounded-lg p-1 backdrop-blur-sm border border-border/50 ml-auto">
-          {(["daily", "weekly", "monthly"] as TimeFrame[]).map((timeFrame) => (
-            <button
-              key={timeFrame}
-              onClick={() => setSelectedTimeFrame(timeFrame)}
-              className={cn(
-                "px-3 sm:px-6 py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200",
-                selectedTimeFrame === timeFrame
-                  ? "bg-muted text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 mt-8 gap-4 pb-2 sm:pb-0">
+        <div className="w-full overflow-x-auto scrollbar-none self-end">
+          <div className="w-full flex justify-end">
+            <div className="bg-muted/30 rounded-lg p-1 backdrop-blur-sm border border-border/50 inline-flex">
+              {(["daily", "weekly", "monthly"] as TimeFrame[]).map(
+                (timeFrame) => (
+                  <button
+                    key={timeFrame}
+                    onClick={() => setSelectedTimeFrame(timeFrame)}
+                    className={cn(
+                      "px-3 sm:px-6 py-2 rounded-md text-xs sm:text-sm font-medium whitespace-nowrap transition-all duration-200",
+                      selectedTimeFrame === timeFrame
+                        ? "bg-muted text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {timeFrame.charAt(0).toUpperCase() + timeFrame.slice(1)}
+                  </button>
+                )
               )}
-            >
-              {timeFrame.charAt(0).toUpperCase() + timeFrame.slice(1)}
-            </button>
-          ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -615,7 +623,7 @@ export const ProfitRanking = memo(() => {
       </div>
 
       {/* Mobile Layout */}
-      <div className="lg:hidden space-y-4 px-4 -mt-8">
+      <div className="lg:hidden space-y-4 -mt-8">
         {isLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((rank) => (

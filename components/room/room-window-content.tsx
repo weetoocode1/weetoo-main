@@ -8,7 +8,6 @@ import { OrderBook } from "@/components/room/order-book";
 import { ParticipantsList } from "@/components/room/participants-list";
 import { TradeHistoryTabs } from "@/components/room/trade-history-tabs";
 import { TradingForm } from "@/components/room/trading-form";
-import { Separator } from "@/components/ui/separator";
 import { useBinanceFutures } from "@/hooks/use-binance-futures";
 import { createClient } from "@/lib/supabase/client";
 import React, { useEffect, useRef, useState } from "react";
@@ -119,27 +118,26 @@ export function RoomWindowContent({
 
       {/* Top overview bar only for host */}
       {isHost && (
-        <div className="border h-[80px] w-full flex">
-          <div className="w-full flex-[1]">
+        <div className="w-full flex flex-col xl:flex-row gap-2">
+          <div className="w-full xl:flex-[2] border md:min-h-[80px] h-auto">
             <MarketOverview symbol={symbol} data={marketData} />
           </div>
-          <Separator className="h-full" orientation="vertical" />
-          <div className="w-full flex-1">
+          <div className="w-full xl:flex-[1] border min-h-[120px] xl:min-h-[80px] h-auto xl:overflow-visible">
             <TradingOverviewContainer roomId={roomId} key={roomId} />
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-6 gap-2 h-full w-full">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-2 h-full w-full">
         {/* Left side */}
-        <div className="col-span-5 w-full h-full">
+        <div className="md:col-span-5 w-full h-full">
           {/* Host: show full trading workstation. Participants: only the stream area full-size */}
           {isHost ? (
             <div className="flex flex-col gap-2 w-full h-full">
-              <div className="flex w-full h-[550px] gap-2">
+              <div className="flex w-full gap-2 flex-col md:flex-row md:h-[550px] h-auto">
                 <div
                   ref={chartOuterRef}
-                  className="max-w-[972px] border-border border h-full w-full bg-background"
+                  className="md:max-w-[972px] max-w-full border-border border w-full bg-background md:h-full h-[320px]"
                 >
                   <TradingViewChartComponent
                     symbol={symbol}
@@ -148,10 +146,10 @@ export function RoomWindowContent({
                     hostId={hostId}
                   />
                 </div>
-                <div className="flex-1 border border-border h-full w-full bg-background p-2">
+                <div className="flex-1 border border-border w-full bg-background p-2 md:h-full h-[280px]">
                   <OrderBook symbol={symbol} data={marketData} />
                 </div>
-                <div className="flex-1 border border-border h-full w-full bg-background p-2">
+                <div className="flex-1 border border-border w-full bg-background p-2 md:h-full h-[320px]">
                   <TradingForm
                     currentPrice={
                       marketData?.ticker?.lastPrice
@@ -165,7 +163,7 @@ export function RoomWindowContent({
                   />
                 </div>
               </div>
-              <div className="flex flex-1 w-full border">
+              <div className="flex flex-1 w-full border md:min-h-0 min-h-[260px]">
                 <TradeHistoryTabs
                   roomId={roomId}
                   currentPrice={
@@ -180,7 +178,7 @@ export function RoomWindowContent({
           ) : (
             // Participant: show only the stream area and let it fill available space
             <div className="w-full h-full">
-              <div className="w-full h-full border border-border bg-background">
+              <div className="w-full border border-border bg-background md:h-full h-[360px]">
                 <TradingViewChartComponent
                   symbol={symbol}
                   isHost={false}
@@ -193,15 +191,15 @@ export function RoomWindowContent({
         </div>
 
         {/* Right sidebar: participants + chat, sticky */}
-        <div className="col-span-1 w-full h-full">
-          <div className="flex w-full h-full flex-col gap-2 sticky top-2">
+        <div className="md:col-span-1 w-full h-full">
+          <div className="flex w-full h-full flex-col gap-2 md:sticky md:top-2">
             <div
-              className="w-full h-[300px] border border-border bg-background"
+              className="w-full border border-border bg-background md:h-[300px] h-[220px]"
               data-testid="participants-list"
             >
               <ParticipantsList roomId={roomId} hostId={hostId} />
             </div>
-            <div className="w-full h-[400px] lg:h-[514px] overflow-y-auto border border-border bg-background">
+            <div className="w-full md:h-[400px] lg:h-[514px] h-[320px] overflow-y-auto border border-border bg-background">
               <Chat roomId={roomId} creatorId={hostId} />
             </div>
           </div>

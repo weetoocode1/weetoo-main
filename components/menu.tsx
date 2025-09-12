@@ -42,13 +42,12 @@ function LanguageToggleMobile() {
   );
 }
 
-export function Menu() {
+export function Menu({ onNavigate }: { onNavigate?: () => void }) {
   const t = useTranslations("menu");
   // const pathname = usePathname();
   const [openSections, setOpenSections] = React.useState<
     Record<string, boolean>
   >({
-    trading: false,
     leaderboard: false,
     community: false,
     information: false,
@@ -102,28 +101,18 @@ export function Menu() {
     },
   ];
 
+  const handleNavigate = () => onNavigate?.();
+
   const renderMobileMenu = () => (
     <div className="flex flex-col space-y-4">
       {/* Trading Section */}
-      <Collapsible
-        open={openSections.trading}
-        onOpenChange={() => toggleSection("trading")}
+      <Link
+        href="/trading"
+        className="py-2 text-sm font-medium"
+        onClick={handleNavigate}
       >
-        <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium">
-          {t("trading")}
-          <ChevronDown
-            className={cn(
-              "h-4 w-4 transition-transform duration-200",
-              openSections.trading ? "transform rotate-180" : ""
-            )}
-          />
-        </CollapsibleTrigger>
-        <CollapsibleContent className="pl-4 space-y-2">
-          <Link href="/trading" className="block py-2 text-sm">
-            {t("startTrading")}
-          </Link>
-        </CollapsibleContent>
-      </Collapsible>
+        {t("trading")}
+      </Link>
 
       {/* Leaderboard Section */}
       <Collapsible
@@ -140,22 +129,42 @@ export function Menu() {
           />
         </CollapsibleTrigger>
         <CollapsibleContent className="pl-4 space-y-2">
-          <Link href="/ranking" className="block py-2 text-sm">
+          <Link
+            href="/ranking"
+            className="block py-2 text-sm"
+            onClick={handleNavigate}
+          >
             {t("winRate")}
           </Link>
-          <Link href="/profit-rate" className="block py-2 text-sm">
+          <Link
+            href="/profit-rate"
+            className="block py-2 text-sm"
+            onClick={handleNavigate}
+          >
             {t("profitRate")}
           </Link>
           {/* <Link href="/kor-coins" className="block py-2 text-sm">
             {t("korCoinsRankings")}
           </Link> */}
-          <Link href="/most-activity" className="block py-2 text-sm">
+          <Link
+            href="/most-activity"
+            className="block py-2 text-sm"
+            onClick={handleNavigate}
+          >
             {t("mostActivity")}
           </Link>
-          <Link href="/sponsored" className="block py-2 text-sm">
+          <Link
+            href="/sponsored"
+            className="block py-2 text-sm"
+            onClick={handleNavigate}
+          >
             {t("sponsored")}
           </Link>
-          <Link href="/most-followed" className="block py-2 text-sm">
+          <Link
+            href="/most-followed"
+            className="block py-2 text-sm"
+            onClick={handleNavigate}
+          >
             {t("mostFollowed")}
           </Link>
         </CollapsibleContent>
@@ -181,6 +190,7 @@ export function Menu() {
               key={item.title}
               href={item.href}
               className="block py-2 text-sm"
+              onClick={handleNavigate}
             >
               {item.title}
             </Link>
@@ -189,7 +199,11 @@ export function Menu() {
       </Collapsible>
 
       {/* Investment Competition */}
-      <Link href="/investment-competition" className="py-2 text-sm font-medium">
+      <Link
+        href="/investment-competition"
+        className="py-2 text-sm font-medium"
+        onClick={handleNavigate}
+      >
         {t("investmentCompetition")}
       </Link>
 
@@ -213,6 +227,7 @@ export function Menu() {
               key={item.title}
               href={item.href}
               className="block py-2 text-sm"
+              onClick={handleNavigate}
             >
               {item.title}
             </Link>
@@ -221,7 +236,11 @@ export function Menu() {
       </Collapsible>
 
       {/* Exchange Section */}
-      <Link href={broker[0].href} className="py-2 text-sm font-medium">
+      <Link
+        href={broker[0].href}
+        className="py-2 text-sm font-medium"
+        onClick={handleNavigate}
+      >
         {t("broker")}
       </Link>
 
@@ -236,14 +255,11 @@ export function Menu() {
     <NavigationMenu viewport={false}>
       <NavigationMenuList>
         <NavigationMenuItem>
-          <NavigationMenuTrigger>{t("trading")}</NavigationMenuTrigger>
-          <NavigationMenuContent className="left-1/2 -translate-x-1/2">
-            <ul className="grid p-2 w-[325px]">
-              <ListItem href="/trading" title={t("startTrading")}>
-                {t("startTradingDesc")}
-              </ListItem>
-            </ul>
-          </NavigationMenuContent>
+          <NavigationMenuLink asChild>
+            <Link href="/trading" className={navigationMenuTriggerStyle()}>
+              {t("trading")}
+            </Link>
+          </NavigationMenuLink>
         </NavigationMenuItem>
 
         <NavigationMenuItem>

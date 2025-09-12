@@ -81,6 +81,7 @@ interface IdentityVerificationButtonProps {
   mobileNumber: string;
   text?: string; // Optional text prop for custom button text
   className?: string; // Optional className prop for custom styling
+  storeInDatabase?: boolean; // Whether to store verification in database immediately
   onVerificationSuccess: (
     verificationData: VerificationData,
     userData: UserData
@@ -108,30 +109,31 @@ interface IdentityVerificationButtonProps {
 // };
 
 // API function for storing verification status
-// const storeVerificationStatus = async (data: {
-//   identityVerificationId: string;
-//   identityVerificationTxId: string;
-//   verificationData: any;
-// }) => {
-//   const response = await fetch("/api/store-identity-verification", {
-//     method: "POST",
-//     headers: { "Content-Type": "application/json" },
-//     body: JSON.stringify(data),
-//   });
+const storeVerificationStatus = async (data: {
+  identityVerificationId: string;
+  identityVerificationTxId: string;
+  verificationData: VerificationData;
+}) => {
+  const response = await fetch("/api/store-identity-verification", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
 
-//   if (!response.ok) {
-//     const error = await response.json();
-//     throw new Error(error.error || "Failed to store verification");
-//   }
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to store verification");
+  }
 
-//   return response.json();
-// };
+  return response.json();
+};
 
 export function IdentityVerificationButton({
   isFormValid,
   mobileNumber,
   text = "Verify Identity", // Default text if not provided
   className = "", // Default empty className
+  storeInDatabase = true, // Default to true for backward compatibility
   onVerificationSuccess,
   onVerificationFailure,
 }: IdentityVerificationButtonProps) {
@@ -374,10 +376,34 @@ export function IdentityVerificationButton({
         // Mark as verified locally
         setIsVerified(true);
 
-        // Pass verification data and user data to parent component
-        onVerificationSuccess(verificationData, extractedUserData);
+        // Store verification status in database if requested
+        if (storeInDatabase) {
+          try {
+            await storeVerificationStatus({
+              identityVerificationId,
+              identityVerificationTxId:
+                response.identityVerificationTxId || identityVerificationId,
+              verificationData,
+            });
 
-        toast.success("Identity verification completed successfully!");
+            // Pass verification data and user data to parent component
+            onVerificationSuccess(verificationData, extractedUserData);
+
+            toast.success("Identity verification completed successfully!");
+          } catch (storeError) {
+            console.error("Failed to store verification status:", storeError);
+            toast.error(
+              "Verification completed but failed to save status. Please refresh the page."
+            );
+            setIsVerified(false);
+            onVerificationFailure();
+            return;
+          }
+        } else {
+          // Just pass the data to parent component without storing in database
+          onVerificationSuccess(verificationData, extractedUserData);
+          toast.success("Identity verification completed successfully!");
+        }
       } else {
         // Only show error if verification failed, don't duplicate error messages
         const verificationData = await verificationResult.json();

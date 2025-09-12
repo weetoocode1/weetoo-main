@@ -793,6 +793,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
           mobileNumber={mobileNumber}
           text="Verify Identity"
           className="bg-primary hover:bg-primary/90 text-primary-foreground"
+          storeInDatabase={false} // Don't store in database during registration
           onVerificationSuccess={(verificationData, userData) => {
             setIsIdentityVerified(true);
             setVerificationData(

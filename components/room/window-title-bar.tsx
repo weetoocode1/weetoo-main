@@ -401,16 +401,16 @@ export function WindowTitleBar({
   return (
     <div className="px-3 pt-2">
       <div
-        className="flex items-center justify-between h-14 px-4 border bg-muted/30 select-none"
+        className="flex flex-col lg:flex-row items-start lg:items-center justify-between h-auto lg:h-14 px-4 py-3 lg:py-0 border bg-muted/30 select-none gap-3 lg:gap-0"
         onMouseDown={onTitleBarMouseDown}
       >
         {/* Window Title */}
-        <div className="flex items-center gap-3">
-          <div className="w-6 h-6 bg-gradient-to-br from-[#c3e3fa] via-[#63b3e4] to-[#7cc3f0] rounded-md flex items-center justify-center">
+        <div className="flex items-center gap-3 w-full lg:w-auto">
+          <div className="w-6 h-6 bg-gradient-to-br from-[#c3e3fa] via-[#63b3e4] to-[#7cc3f0] rounded-md flex items-center justify-center flex-shrink-0">
             <span className="text-white text-xs font-bold">W</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="font-medium text-sm truncate max-w-[200px] sm:max-w-none">
+          <div className="flex items-center gap-2 min-w-0 flex-1 lg:flex-initial">
+            <span className="font-medium text-sm truncate max-w-[200px] sm:max-w-[300px] lg:max-w-none">
               {roomName}
             </span>
 
@@ -636,8 +636,8 @@ export function WindowTitleBar({
           currentUserId &&
           currentUserId !== hostId &&
           showLateJoinWarning && (
-            <div className="flex-1 mx-4 bg-yellow-50 border border-yellow-200 text-yellow-800 px-3 py-1 rounded text-sm flex items-center justify-between">
-              <span className="truncate">
+            <div className="w-full lg:flex-1 mx-0 lg:mx-4 bg-yellow-50 border border-yellow-200 text-yellow-800 px-3 py-1 rounded text-sm flex items-center justify-between">
+              <span className="truncate text-xs lg:text-sm">
                 🔊 Having trouble hearing the host? Ask Host to toggle their
                 microphone off and on again
               </span>
@@ -652,7 +652,7 @@ export function WindowTitleBar({
           )}
 
         {/* Window Controls */}
-        <div className="flex items-center gap-4 pointer-events-auto">
+        <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 lg:gap-4 pointer-events-auto w-full lg:w-auto justify-start lg:justify-end">
           {/* Chart Streaming Controls - Only for Host */}
           {isChartHost && (
             <>
@@ -765,14 +765,14 @@ export function WindowTitleBar({
           <Donation creatorId={hostId} roomId={roomId} key={roomId} />
 
           {/* Virtual Currency */}
-          <div className="flex items-center gap-1">
-            <span className="text-sm font-medium text-muted-foreground">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 min-w-0">
+            <span className="text-xs lg:text-sm font-medium text-muted-foreground whitespace-nowrap">
               Virtual Balance:
             </span>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="text-sm font-semibold cursor-help">
+                  <span className="text-xs lg:text-sm font-semibold cursor-help truncate">
                     $
                     {Math.max(0, virtualBalance)?.toLocaleString("en-US") ??
                       "-"}
@@ -849,28 +849,31 @@ export function WindowTitleBar({
           </div>
 
           {/* Cummulative Profit rate*/}
-          <div className="flex items-center gap-1">
-            <span className="text-sm font-medium text-muted-foreground">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 min-w-0">
+            <span className="text-xs lg:text-sm font-medium text-muted-foreground whitespace-nowrap">
               Cumulative Profit Rate:
             </span>
             {showSkeleton ? (
-              <Skeleton className="h-5 w-16 inline-block align-middle" />
+              <Skeleton className="h-4 lg:h-5 w-12 lg:w-16 inline-block align-middle" />
             ) : isNoTrades ? (
-              <span className="text-sm font-semibold">0.00%</span>
+              <span className="text-xs lg:text-sm font-semibold">0.00%</span>
             ) : (
-              <span className="text-sm font-semibold">
+              <span className="text-xs lg:text-sm font-semibold">
                 {profitRate >= 0 ? "+" : ""}
                 {profitRate.toFixed(2)}%
               </span>
             )}
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-1 w-full sm:w-auto">
             {/* Close Room Button */}
             {currentUserId === hostId && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="h-8">
+                  <Button
+                    variant="destructive"
+                    className="h-7 lg:h-8 text-xs lg:text-sm w-full sm:w-auto"
+                  >
                     Close Room
                   </Button>
                 </AlertDialogTrigger>
@@ -904,7 +907,7 @@ export function WindowTitleBar({
 
             <Button
               variant="destructive"
-              className="h-8"
+              className="h-7 lg:h-8 text-xs lg:text-sm w-full sm:w-auto"
               onClick={async () => {
                 if (!currentUserId) return;
 
@@ -932,9 +935,10 @@ export function WindowTitleBar({
                 }
               }}
             >
-              <LogOutIcon className="h-4 w-4" />
+              <LogOutIcon className="h-3 w-3 lg:h-4 lg:w-4" />
               <span className="sr-only">Leave Room</span>
-              Leave Room
+              <span className="hidden sm:inline">Leave Room</span>
+              <span className="sm:hidden">Leave</span>
             </Button>
           </div>
         </div>

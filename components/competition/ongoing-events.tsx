@@ -292,9 +292,9 @@ export function OngoingEvents() {
     return (
       <div className="space-y-4">
         {(isAdmin || hasCompetitionPermission) && (
-          <div className="flex justify-end gap-3">
-            <Skeleton className="h-10 w-40" />
-            <Skeleton className="h-10 w-40" />
+          <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
+            <Skeleton className="h-10 w-full sm:w-40" />
+            <Skeleton className="h-10 w-full sm:w-40" />
           </div>
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -327,7 +327,7 @@ export function OngoingEvents() {
     return (
       <div className="space-y-4">
         {(isAdmin || hasCompetitionPermission) && (
-          <div className="flex justify-end gap-3">
+          <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
             {isAdmin && (
               <ManagePermissionsDialog
                 open={permissionsDialogOpen}
@@ -359,7 +359,7 @@ export function OngoingEvents() {
   return (
     <div className="space-y-4">
       {(isAdmin || hasCompetitionPermission) && (
-        <div className="flex justify-end gap-3">
+        <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
           {isAdmin && (
             <ManagePermissionsDialog
               open={permissionsDialogOpen}

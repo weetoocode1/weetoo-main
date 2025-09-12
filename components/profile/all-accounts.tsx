@@ -73,18 +73,6 @@ export function AllAccounts() {
     return `${n[0]}${"•".repeat(Math.max(1, n.length - 2))}${n[n.length - 1]}`;
   };
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <div className="h-8 bg-muted rounded" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="h-40 bg-muted rounded" />
-          <div className="h-40 bg-muted rounded" />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <Card className="rounded-none border-none shadow-none">
@@ -92,7 +80,15 @@ export function AllAccounts() {
           <CardTitle className="text-lg">All Accounts</CardTitle>
         </CardHeader>
         <CardContent>
-          {verifiedAccounts.length === 0 ? (
+          {isLoading ? (
+            <div className="space-y-4">
+              <div className="h-8 bg-muted rounded" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="h-40 bg-muted rounded" />
+                <div className="h-40 bg-muted rounded" />
+              </div>
+            </div>
+          ) : verifiedAccounts.length === 0 ? (
             <div className="text-sm text-muted-foreground">
               No verified bank accounts yet.
             </div>

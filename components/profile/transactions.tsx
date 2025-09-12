@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Fragment } from "react";
 // Using custom badges below for clarity, not shared Badge
 import {
   Select,
@@ -322,18 +322,18 @@ export function Transactions() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search by id, type, status, or bank..."
-                className="pl-10 h-10 rounded-none"
+                className="pl-10 h-10 rounded-none w-full"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-[140px] h-10 rounded-none">
+                <SelectTrigger className="w-full sm:w-[140px] h-10 rounded-none">
                   <SelectValue placeholder="Filter by type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -344,7 +344,7 @@ export function Transactions() {
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px] h-10 rounded-none">
+                <SelectTrigger className="w-full sm:w-[140px] h-10 rounded-none">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -356,7 +356,7 @@ export function Transactions() {
               </Select>
               <Button
                 variant="outline"
-                className="rounded-none h-10"
+                className="rounded-none h-10 w-full sm:w-auto"
                 onClick={exportCsv}
               >
                 <Download className="h-4 w-4 mr-2" /> Export CSV
@@ -391,130 +391,289 @@ export function Transactions() {
               </div>
             ) : (
               filtered.map((r, idx) => (
-                <div
-                  key={(r as LoadingOrTransaction)?.id || idx}
-                  className="grid grid-cols-1 md:grid-cols-12 gap-2 px-4 py-3 border-b border-border/30 hover:bg-muted/10"
-                >
-                  <div className="md:col-span-3 font-mono text-sm break-all">
-                    {(r as LoadingOrTransaction)?.id || ""}
-                  </div>
-                  <div className="md:col-span-2">
-                    {loading ? (
-                      <div className="h-4 bg-muted rounded" />
-                    ) : (r as TransactionRow)?.type === "withdrawal" ? (
-                      <div className="inline-flex items-center gap-2">
-                        <ArrowUpRight className="h-4 w-4 text-red-500" />
-                        <span className="text-sm">Withdrawal</span>
+                <Fragment key={(r as LoadingOrTransaction)?.id || idx}>
+                  {/* Mobile card layout */}
+                  <div className="md:hidden p-3 border-b border-border/30 bg-background">
+                    <div className="divide-y divide-border/30">
+                      <div className="flex items-center justify-between gap-2 py-2 border-b-2 border-border">
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          ID
+                        </div>
+                        <div className="font-mono text-xs truncate max-w-[65%]">
+                          {(r as LoadingOrTransaction)?.id || ""}
+                        </div>
                       </div>
-                    ) : (r as TransactionRow)?.type === "deposit" ? (
-                      <div className="inline-flex items-center gap-2">
-                        <ArrowDownRight className="h-4 w-4 text-emerald-500" />
-                        <span className="text-sm">Deposit</span>
+                      <div className="flex items-center justify-between gap-2 py-2">
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Type
+                        </div>
+                        <div className="text-sm">
+                          {loading ? (
+                            <div className="h-4 w-20 bg-muted rounded" />
+                          ) : (r as TransactionRow)?.type === "withdrawal" ? (
+                            <div className="inline-flex items-center gap-1.5">
+                              <ArrowUpRight className="h-4 w-4 text-red-500" />{" "}
+                              Withdrawal
+                            </div>
+                          ) : (r as TransactionRow)?.type === "deposit" ? (
+                            <div className="inline-flex items-center gap-1.5">
+                              <ArrowDownRight className="h-4 w-4 text-emerald-500" />{" "}
+                              Deposit
+                            </div>
+                          ) : (
+                            <div className="inline-flex items-center gap-1.5">
+                              <DollarSign className="h-4 w-4 text-emerald-500" />{" "}
+                              UID Payback
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    ) : (
-                      <div className="inline-flex items-center gap-2">
-                        <DollarSign className="h-4 w-4 text-emerald-500" />
-                        <span className="text-sm">UID Payback</span>
+                      <div className="flex items-center justify-between gap-2 py-2">
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Amount
+                        </div>
+                        <div className="text-sm font-semibold">
+                          {loading ? (
+                            <div className="h-4 w-24 bg-muted rounded" />
+                          ) : (r as TransactionRow)?.type === "withdrawal" ? (
+                            `- ${
+                              (
+                                r as TransactionRow
+                              )?.amount?.toLocaleString?.() || 0
+                            } KOR`
+                          ) : (r as TransactionRow)?.type === "deposit" ? (
+                            `₩ ${
+                              (
+                                r as TransactionRow
+                              )?.won_paid?.toLocaleString?.() || 0
+                            }`
+                          ) : (
+                            `$ ${
+                              (r as TransactionRow)?.amount?.toFixed?.(2) ??
+                              "0.00"
+                            }`
+                          )}
+                        </div>
                       </div>
-                    )}
+                      <div className="flex items-center justify-between gap-2 py-2">
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Received
+                        </div>
+                        <div className="text-sm font-semibold">
+                          {loading ? (
+                            <div className="h-4 w-24 bg-muted rounded" />
+                          ) : (r as TransactionRow)?.type === "withdrawal" ? (
+                            (r as TransactionRow)?.status === "sent" ? (
+                              <span className="text-emerald-600">
+                                + ₩ {(r as TransactionRow)?.final_amount ?? 0}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">₩ 0</span>
+                            )
+                          ) : (r as TransactionRow)?.type === "deposit" ? (
+                            (r as TransactionRow)?.status === "sent" ? (
+                              <span className="text-emerald-600">
+                                +{" "}
+                                {(
+                                  r as TransactionRow
+                                )?.amount?.toLocaleString?.() || 0}{" "}
+                                KOR
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">
+                                0 KOR
+                              </span>
+                            )
+                          ) : (r as TransactionRow)?.status === "sent" ? (
+                            <span className="text-emerald-600">
+                              + ${" "}
+                              {(r as TransactionRow)?.usd_paid?.toFixed?.(2) ??
+                                "0.00"}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">
+                              $ 0.00
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 py-2">
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Status
+                        </div>
+                        <div>
+                          {loading ? (
+                            <div className="h-4 w-16 bg-muted rounded" />
+                          ) : (
+                            <div
+                              className={`inline-flex items-center gap-1.5 px-2 py-1 text-[11px] uppercase tracking-wide border ${
+                                (r as TransactionRow)?.status === "sent"
+                                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                  : (r as TransactionRow)?.status === "failed"
+                                  ? "border-red-200 bg-red-50 text-red-700"
+                                  : "border-amber-200 bg-amber-50 text-amber-700"
+                              }`}
+                            >
+                              <div
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  (r as TransactionRow)?.status === "sent"
+                                    ? "bg-emerald-500"
+                                    : (r as TransactionRow)?.status === "failed"
+                                    ? "bg-red-500"
+                                    : "bg-amber-500"
+                                }`}
+                              />
+                              {(r as TransactionRow)?.status === "sent"
+                                ? "Sent"
+                                : (r as TransactionRow)?.status === "failed"
+                                ? "Failed"
+                                : "Pending"}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 py-2 border-b-2 border-border">
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Date
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {loading ? (
+                            <div className="h-4 w-28 bg-muted rounded" />
+                          ) : (
+                            new Date(
+                              (r as TransactionRow)?.created_at || ""
+                            ).toLocaleString()
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div
-                    className={`md:col-span-2 font-semibold ${
-                      loading
-                        ? ""
-                        : (r as TransactionRow)?.type === "withdrawal"
-                        ? "text-red-500"
-                        : ""
-                    }`}
-                  >
-                    {loading ? (
-                      <div className="h-4 bg-muted rounded" />
-                    ) : (r as TransactionRow)?.type === "withdrawal" ? (
-                      `- ${
-                        (r as TransactionRow)?.amount?.toLocaleString?.() || 0
-                      } KOR`
-                    ) : (r as TransactionRow)?.type === "deposit" ? (
-                      `₩ ${
-                        (r as TransactionRow)?.won_paid?.toLocaleString?.() || 0
-                      }`
-                    ) : (
-                      `$ ${
-                        (r as TransactionRow)?.amount?.toFixed?.(2) ?? "0.00"
-                      }`
-                    )}
-                  </div>
-                  <div className="md:col-span-2 font-semibold">
-                    {loading ? (
-                      <div className="h-4 bg-muted rounded" />
-                    ) : (r as TransactionRow)?.type === "withdrawal" ? (
-                      (r as TransactionRow)?.status === "sent" ? (
+
+                  {/* Desktop grid row */}
+                  <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-3 border-b border-border/30 hover:bg-muted/10">
+                    <div className="col-span-3 font-mono text-sm break-all">
+                      {(r as LoadingOrTransaction)?.id || ""}
+                    </div>
+                    <div className="col-span-2">
+                      {loading ? (
+                        <div className="h-4 bg-muted rounded" />
+                      ) : (r as TransactionRow)?.type === "withdrawal" ? (
+                        <div className="inline-flex items-center gap-2">
+                          <ArrowUpRight className="h-4 w-4 text-red-500" />
+                          <span className="text-sm">Withdrawal</span>
+                        </div>
+                      ) : (r as TransactionRow)?.type === "deposit" ? (
+                        <div className="inline-flex items-center gap-2">
+                          <ArrowDownRight className="h-4 w-4 text-emerald-500" />
+                          <span className="text-sm">Deposit</span>
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center gap-2">
+                          <DollarSign className="h-4 w-4 text-emerald-500" />
+                          <span className="text-sm">UID Payback</span>
+                        </div>
+                      )}
+                    </div>
+                    <div
+                      className={`col-span-2 font-semibold ${
+                        loading
+                          ? ""
+                          : (r as TransactionRow)?.type === "withdrawal"
+                          ? "text-red-500"
+                          : ""
+                      }`}
+                    >
+                      {loading ? (
+                        <div className="h-4 bg-muted rounded" />
+                      ) : (r as TransactionRow)?.type === "withdrawal" ? (
+                        `- ${
+                          (r as TransactionRow)?.amount?.toLocaleString?.() || 0
+                        } KOR`
+                      ) : (r as TransactionRow)?.type === "deposit" ? (
+                        `₩ ${
+                          (r as TransactionRow)?.won_paid?.toLocaleString?.() ||
+                          0
+                        }`
+                      ) : (
+                        `$ ${
+                          (r as TransactionRow)?.amount?.toFixed?.(2) ?? "0.00"
+                        }`
+                      )}
+                    </div>
+                    <div className="col-span-2 font-semibold">
+                      {loading ? (
+                        <div className="h-4 bg-muted rounded" />
+                      ) : (r as TransactionRow)?.type === "withdrawal" ? (
+                        (r as TransactionRow)?.status === "sent" ? (
+                          <span className="text-emerald-600">
+                            + ₩ {(r as TransactionRow)?.final_amount ?? 0}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">₩ 0</span>
+                        )
+                      ) : (r as TransactionRow)?.type === "deposit" ? (
+                        (r as TransactionRow)?.status === "sent" ? (
+                          <span className="text-emerald-600">
+                            +{" "}
+                            {(
+                              r as TransactionRow
+                            )?.amount?.toLocaleString?.() || 0}{" "}
+                            KOR
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">0 KOR</span>
+                        )
+                      ) : (r as TransactionRow)?.status === "sent" ? (
                         <span className="text-emerald-600">
-                          + ₩ {(r as TransactionRow)?.final_amount ?? 0}
+                          + ${" "}
+                          {(r as TransactionRow)?.usd_paid?.toFixed?.(2) ??
+                            "0.00"}
                         </span>
                       ) : (
-                        <span className="text-muted-foreground">₩ 0</span>
-                      )
-                    ) : (r as TransactionRow)?.type === "deposit" ? (
-                      (r as TransactionRow)?.status === "sent" ? (
-                        <span className="text-emerald-600">
-                          +{" "}
-                          {(r as TransactionRow)?.amount?.toLocaleString?.() ||
-                            0}{" "}
-                          KOR
-                        </span>
+                        <span className="text-muted-foreground">$ 0.00</span>
+                      )}
+                    </div>
+                    <div className="col-span-1">
+                      {loading ? (
+                        <div className="h-4 bg-muted rounded" />
                       ) : (
-                        <span className="text-muted-foreground">0 KOR</span>
-                      )
-                    ) : (r as TransactionRow)?.status === "sent" ? (
-                      <span className="text-emerald-600">
-                        + ${" "}
-                        {(r as TransactionRow)?.usd_paid?.toFixed?.(2) ??
-                          "0.00"}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">$ 0.00</span>
-                    )}
-                  </div>
-                  <div className="md:col-span-1">
-                    {loading ? (
-                      <div className="h-4 bg-muted rounded" />
-                    ) : (
-                      <div
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs uppercase tracking-wide border ${
-                          (r as TransactionRow)?.status === "sent"
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                            : (r as TransactionRow)?.status === "failed"
-                            ? "border-red-200 bg-red-50 text-red-700"
-                            : "border-amber-200 bg-amber-50 text-amber-700"
-                        }`}
-                      >
                         <div
-                          className={`w-1.5 h-1.5 rounded-full ${
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs uppercase tracking-wide border ${
                             (r as TransactionRow)?.status === "sent"
-                              ? "bg-emerald-500"
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                               : (r as TransactionRow)?.status === "failed"
-                              ? "bg-red-500"
-                              : "bg-amber-500"
+                              ? "border-red-200 bg-red-50 text-red-700"
+                              : "border-amber-200 bg-amber-50 text-amber-700"
                           }`}
-                        />
-                        {(r as TransactionRow)?.status === "sent"
-                          ? "Sent"
-                          : (r as TransactionRow)?.status === "failed"
-                          ? "Failed"
-                          : "Pending"}
-                      </div>
-                    )}
+                        >
+                          <div
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              (r as TransactionRow)?.status === "sent"
+                                ? "bg-emerald-500"
+                                : (r as TransactionRow)?.status === "failed"
+                                ? "bg-red-500"
+                                : "bg-amber-500"
+                            }`}
+                          />
+                          {(r as TransactionRow)?.status === "sent"
+                            ? "Sent"
+                            : (r as TransactionRow)?.status === "failed"
+                            ? "Failed"
+                            : "Pending"}
+                        </div>
+                      )}
+                    </div>
+                    <div className="col-span-2 text-sm text-muted-foreground">
+                      {loading ? (
+                        <div className="h-4 bg-muted rounded" />
+                      ) : (
+                        new Date(
+                          (r as TransactionRow)?.created_at || ""
+                        ).toLocaleString()
+                      )}
+                    </div>
                   </div>
-                  <div className="md:col-span-2 text-sm text-muted-foreground">
-                    {loading ? (
-                      <div className="h-4 bg-muted rounded" />
-                    ) : (
-                      new Date(
-                        (r as TransactionRow)?.created_at || ""
-                      ).toLocaleString()
-                    )}
-                  </div>
-                </div>
+                </Fragment>
               ))
             )}
           </div>

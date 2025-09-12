@@ -47,12 +47,13 @@ export function NotificationStats({ stats }: NotificationStatsProps) {
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 w-full">
       {statCards.map((stat, index) => {
         const Icon = stat.icon;
         return (
           <div key={index} className="relative">
             <Card className="border border-border rounded-none shadow-none hover:shadow-sm transition-shadow">
+              {/* Corner decorations */}
               <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-primary pointer-events-none" />
               <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-primary pointer-events-none" />
               <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-primary pointer-events-none" />
@@ -67,7 +68,9 @@ export function NotificationStats({ stats }: NotificationStatsProps) {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
+                <div className="text-2xl font-bold">
+                  {stat.value.toLocaleString()}
+                </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   {stat.description}
                 </p>

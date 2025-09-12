@@ -41,8 +41,26 @@ const TradingRoomCard = ({
   isLive?: boolean;
   t: (key: string) => string;
 }) => {
+  const handleCardClick = () => {
+    window.location.href = "/trading";
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleCardClick();
+    }
+  };
+
   return (
-    <div className="relative h-fit w-80 cursor-pointer overflow-hidden rounded-lg bg-card border border-border/50 hover:border-primary/30 hover:shadow-sm transition-all duration-200 group touch-manipulation select-none">
+    <div
+      className="relative h-fit w-80 cursor-pointer overflow-hidden rounded-lg bg-card border border-border/50 hover:border-primary/30 hover:shadow-sm transition-all duration-200 group touch-manipulation select-none"
+      onClick={handleCardClick}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+      role="button"
+      aria-label={`Join ${roomName} trading room`}
+    >
       {/* Thumbnail */}
       <div className="relative">
         <Image

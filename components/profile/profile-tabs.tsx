@@ -165,30 +165,41 @@ export function ProfileTabs() {
   if (!isClient) {
     return (
       <>
-        {/* Redesigned Left Tabs */}
-        <div className="w-[250px] p-4 border-r flex flex-col text-sm gap-2 bg-background flex-shrink-0">
+        {/* Mobile: Horizontal scrollable tabs, Desktop: Vertical tabs */}
+        <div className="w-full lg:w-[250px] p-2 lg:p-4 border-b lg:border-r lg:border-b-0 flex flex-row lg:flex-col text-sm gap-1 lg:gap-2 bg-background flex-shrink-0 overflow-x-auto lg:overflow-x-visible min-h-[60px] lg:min-h-0 sticky top-14 z-30 lg:static">
           {TABS.map((tab) => (
             <button
               key={tab.key}
-              className={`text-left h-10 px-4 transition font-medium flex gap-2 items-center cursor-pointer
+              className={`text-left h-10 px-3 lg:px-4 transition font-medium flex gap-2 items-center cursor-pointer whitespace-nowrap flex-shrink-0 bg-background
                 ${
                   selectedTab === tab.key
-                    ? "border font-semibold"
+                    ? "border font-semibold bg-accent"
                     : "hover:bg-accent text-muted-foreground"
                 }
               `}
               onClick={() => handleTabClick(tab.key as TabKey)}
             >
               {tab.icon}
-              <span>{tab.label}</span>
+              <span className="hidden sm:inline">{tab.label}</span>
+              <span className="sm:hidden text-xs">
+                {tab.key === "all-accounts"
+                  ? "Accounts"
+                  : tab.key === "all-transactions"
+                  ? "Transactions"
+                  : tab.key === "kor-coins-withdrawal"
+                  ? "KOR Coins"
+                  : tab.key === "uid-registration"
+                  ? "UID"
+                  : tab.key === "payback-withdrawal"
+                  ? "Payback"
+                  : tab.label.split(" ")[0]}
+              </span>
             </button>
           ))}
         </div>
-        {/* Right Content */}
-        <div className="flex-1 flex flex-col min-h-0 h-[calc(100vh-100px)] overflow-y-auto scrollbar-none">
-          {selectedTab in TAB_COMPONENTS
-            ? TAB_COMPONENTS[selectedTab as keyof typeof TAB_COMPONENTS]
-            : null}
+        {/* Right Content (static placeholder during SSR to avoid mismatch) */}
+        <div className="flex-1 flex flex-col min-h-0 h-[calc(100vh-160px)] lg:h-[calc(100vh-100px)] overflow-y-auto scrollbar-none">
+          <div className="p-4 text-sm text-muted-foreground">Loading...</div>
         </div>
       </>
     );
@@ -196,8 +207,8 @@ export function ProfileTabs() {
 
   return (
     <>
-      {/* Redesigned Left Tabs */}
-      <div className="w-[250px] p-4 border-r flex flex-col text-sm gap-2 bg-background flex-shrink-0">
+      {/* Mobile: Horizontal scrollable tabs, Desktop: Vertical tabs */}
+      <div className="w-full lg:w-[250px] p-2 lg:p-4 border-b lg:border-r lg:border-b-0 flex flex-row lg:flex-col text-sm gap-1 lg:gap-2 bg-background flex-shrink-0 overflow-x-auto lg:overflow-x-visible min-h-[60px] lg:min-h-0 sticky top-14 z-30 lg:static">
         {TABS.map((tab) => {
           const isDisabled =
             tab.requiresVerification && user && !user.identity_verified;
@@ -206,10 +217,10 @@ export function ProfileTabs() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    className={`text-left h-10 px-4 transition font-medium flex gap-2 items-center cursor-pointer
+                    className={`text-left h-10 px-3 lg:px-4 transition font-medium flex gap-2 items-center cursor-pointer whitespace-nowrap flex-shrink-0 bg-background
                       ${
                         selectedTab === tab.key
-                          ? "border font-semibold"
+                          ? "border font-semibold bg-accent"
                           : isDisabled
                           ? "opacity-70 hover:bg-accent/50 text-muted-foreground"
                           : "hover:bg-accent text-muted-foreground"
@@ -218,7 +229,20 @@ export function ProfileTabs() {
                     onClick={() => handleTabClick(tab.key as TabKey)}
                   >
                     {tab.icon}
-                    <span>{tab.label}</span>
+                    <span className="hidden sm:inline">{tab.label}</span>
+                    <span className="sm:hidden text-xs">
+                      {tab.key === "all-accounts"
+                        ? "Accounts"
+                        : tab.key === "all-transactions"
+                        ? "Transactions"
+                        : tab.key === "kor-coins-withdrawal"
+                        ? "KOR Coins"
+                        : tab.key === "uid-registration"
+                        ? "UID"
+                        : tab.key === "payback-withdrawal"
+                        ? "Payback"
+                        : tab.label.split(" ")[0]}
+                    </span>
                     {isDisabled && (
                       <AlertTriangle className="w-3 h-3 ml-auto text-amber-500" />
                     )}
@@ -235,15 +259,15 @@ export function ProfileTabs() {
         })}
       </div>
       {/* Right Content */}
-      <div className="flex-1 flex flex-col min-h-0 h-[calc(100vh-100px)] overflow-y-auto scrollbar-none">
+      <div className="flex-1 flex flex-col min-h-0 h-[calc(100vh-160px)] lg:h-[calc(100vh-100px)] overflow-y-auto scrollbar-none">
         {isCurrentTabRestricted ? (
-          <div className="flex-1 flex items-center justify-center p-8">
-            <div className="text-center space-y-6 max-w-md">
+          <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
+            <div className="text-center space-y-4 sm:space-y-6 max-w-md w-full">
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="w-16 h-16 mx-auto bg-amber-100 dark:bg-amber-950/20 rounded-full flex items-center justify-center cursor-help">
-                      <AlertTriangle className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto bg-amber-100 dark:bg-amber-950/20 rounded-full flex items-center justify-center cursor-help">
+                      <AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 text-amber-600 dark:text-amber-400" />
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -251,11 +275,11 @@ export function ProfileTabs() {
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              <div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">
+              <div className="px-4 sm:px-0">
+                <h3 className="text-base sm:text-lg font-semibold text-foreground mb-2">
                   Identity Verification Required
                 </h3>
-                <p className="text-muted-foreground mb-6">
+                <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">
                   You need to verify your identity to access this feature. This
                   helps ensure security and compliance.
                 </p>

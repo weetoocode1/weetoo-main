@@ -1,6 +1,12 @@
 "use client";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotificationStats } from "@/hooks/use-notifications";
 import { useSidebarStore } from "@/lib/store/sidebar-store";
@@ -11,15 +17,29 @@ import { motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { ADMIN_SECTIONS } from "@/lib/admin-navigation";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
-export function LeftSidebar() {
+interface LeftSidebarProps {
+  isMobile?: boolean;
+  mobileSheetOpen?: boolean;
+  setMobileSheetOpen?: (open: boolean) => void;
+}
+
+export function LeftSidebar({
+  isMobile = false,
+  mobileSheetOpen: controlledOpen,
+  setMobileSheetOpen: setControlledOpen,
+}: LeftSidebarProps) {
   const { computed } = useAuth();
   const pathname = usePathname();
   const isCollapsed = useSidebarStore((state) => state.isCollapsed);
   const { data: notificationStats } = useNotificationStats();
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const mobileSheetOpen = controlledOpen ?? uncontrolledOpen;
+  const setMobileSheetOpen = setControlledOpen ?? setUncontrolledOpen;
 
   // User cache for instant loading
   const { cachedUser, setCachedUser } = useUserCache();
@@ -78,18 +98,14 @@ export function LeftSidebar() {
     }),
   })).filter((section) => section.items.length > 0); // Remove empty sections
 
-  return (
-    <aside
-      className={cn(
-        "h-full border-r bg-background flex flex-col transition-all duration-300 ease-in-out overflow-hidden min-w-0",
-        isCollapsed ? "w-0" : "w-64"
-      )}
-    >
+  // Sidebar content component
+  const SidebarContent = () => (
+    <>
       <div className="h-14 border-b flex items-center px-4">
         <span
           className={cn(
             "font-medium text-foreground transition-opacity duration-200",
-            isCollapsed ? "opacity-0" : "opacity-100"
+            isCollapsed && !isMobile ? "opacity-0" : "opacity-100"
           )}
         >
           Admin
@@ -103,7 +119,7 @@ export function LeftSidebar() {
                 <div
                   className={cn(
                     "px-3 pb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide transition-opacity duration-200",
-                    isCollapsed ? "opacity-0" : "opacity-100"
+                    isCollapsed && !isMobile ? "opacity-0" : "opacity-100"
                   )}
                 >
                   {section.title}
@@ -130,6 +146,7 @@ export function LeftSidebar() {
                           "relative border border-transparent",
                           isActive && "text-foreground border-border"
                         )}
+                        onClick={() => isMobile && setMobileSheetOpen(false)}
                       >
                         {isActive && (
                           <motion.div
@@ -153,19 +170,23 @@ export function LeftSidebar() {
                         <span
                           className={cn(
                             "truncate transition-opacity duration-200 flex-1",
-                            isCollapsed ? "opacity-0" : "opacity-100"
+                            isCollapsed && !isMobile
+                              ? "opacity-0"
+                              : "opacity-100"
                           )}
                         >
                           {item.label}
                         </span>
                         {/* Notification count badge */}
-                        {isNotifications && unreadCount > 0 && !isCollapsed && (
-                          <div className="flex-shrink-0">
-                            <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-medium border bg-red-500 text-white rounded-none min-w-[20px] h-5">
-                              {formatNotificationCount(unreadCount)}
-                            </span>
-                          </div>
-                        )}
+                        {isNotifications &&
+                          unreadCount > 0 &&
+                          (!isCollapsed || isMobile) && (
+                            <div className="flex-shrink-0">
+                              <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-medium border bg-red-500 text-white rounded-none min-w-[20px] h-5">
+                                {formatNotificationCount(unreadCount)}
+                              </span>
+                            </div>
+                          )}
                       </Link>
                     );
                   })}
@@ -181,6 +202,7 @@ export function LeftSidebar() {
           <Link
             href="/trading"
             className="flex items-center gap-3 text-sm transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted/80 w-full p-3"
+            onClick={() => isMobile && setMobileSheetOpen(false)}
           >
             <TrendingUpIcon className="h-4 w-4 shrink-0" />
             <span className="truncate transition-opacity duration-200 flex-1">
@@ -204,7 +226,7 @@ export function LeftSidebar() {
           <div
             className={cn(
               "flex min-w-0 flex-1 flex-col transition-opacity duration-200",
-              isCollapsed ? "opacity-0" : "opacity-100"
+              isCollapsed && !isMobile ? "opacity-0" : "opacity-100"
             )}
           >
             <span className="truncate text-sm font-medium text-foreground">
@@ -216,6 +238,37 @@ export function LeftSidebar() {
           </div>
         </div>
       </div>
+    </>
+  );
+
+  // Mobile/Tablet: Return sheet with trigger
+  if (isMobile) {
+    return (
+      <Sheet open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
+        {/* Trigger moved to SidebarHeading for mobile */}
+        <SheetContent side="left" className="w-64 p-0">
+          <VisuallyHidden>
+            <SheetHeader>
+              <SheetTitle>Admin Menu</SheetTitle>
+            </SheetHeader>
+          </VisuallyHidden>
+          <div className="h-full bg-background flex flex-col">
+            <SidebarContent />
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  // Desktop: Return regular sidebar
+  return (
+    <aside
+      className={cn(
+        "h-full border-r bg-background flex flex-col transition-all duration-300 ease-in-out overflow-hidden min-w-0",
+        isCollapsed ? "w-0" : "w-64"
+      )}
+    >
+      <SidebarContent />
     </aside>
   );
 }

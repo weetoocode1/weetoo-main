@@ -456,7 +456,7 @@ export function WithdrawTable() {
           {/* Desktop Table */}
           <div className="hidden lg:block">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[1000px]">
                 <thead>
                   <tr className="border-b border-border/50 bg-muted/20">
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
@@ -568,7 +568,7 @@ export function WithdrawTable() {
                         {getStatusBadge(request.status)}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-col gap-1">
                           <Select
                             value={request.status}
                             onValueChange={getRowStatusChangeHandler(
@@ -576,7 +576,7 @@ export function WithdrawTable() {
                             )}
                             disabled={request.status === "failed"}
                           >
-                            <SelectTrigger className="w-40 shadow-none rounded-none h-10">
+                            <SelectTrigger className="w-full shadow-none rounded-none h-10">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>

@@ -16,12 +16,12 @@ export function TradingOverview({ stats }: { stats?: TradingStats }) {
   const totalSellPnl = stats?.total?.sell ?? 0;
 
   return (
-    <div className="flex h-full w-full">
-      <div className="w-full p-2">
-        <div className="text-center select-none">
+    <div className="flex h-full w-full flex-col lg:flex-row lg:items-center lg:justify-evenly lg:flex-nowrap min-w-0">
+      <div className="w-full lg:w-1/2 p-2 lg:py-1 min-w-0 flex-shrink">
+        <div className="text-left lg:text-center">
           <span className="text-muted-foreground text-sm">Today Records</span>
-          <div className="flex gap-4 mt-1 justify-center">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col lg:flex-row gap-2 lg:gap-4 mt-1 justify-start lg:justify-center">
+            <div className="flex items-center gap-2 justify-start lg:justify-center min-w-0 flex-shrink">
               <span className="text-sm">Buy</span>
               <span
                 className={`text-sm ${
@@ -31,7 +31,7 @@ export function TradingOverview({ stats }: { stats?: TradingStats }) {
                 {todayBuyPnl >= 0 ? "↑" : "↓"} {todayBuyPnl.toFixed(2)}%
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 justify-start lg:justify-center min-w-0 flex-shrink">
               <span className="text-sm">Sell</span>
               <span
                 className={`text-sm ${
@@ -44,11 +44,11 @@ export function TradingOverview({ stats }: { stats?: TradingStats }) {
           </div>
         </div>
       </div>
-      <div className="w-full p-2">
-        <div className="text-center select-none">
+      <div className="w-full lg:w-1/2 p-2 lg:py-1 min-w-0 flex-shrink">
+        <div className="text-left lg:text-center">
           <span className="text-muted-foreground text-sm">Total Records</span>
-          <div className="flex gap-4 mt-1 justify-center">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col lg:flex-row gap-2 lg:gap-4 mt-1 justify-start lg:justify-center">
+            <div className="flex items-center gap-2 justify-start lg:justify-center min-w-0 flex-shrink">
               <span className="text-sm">Buy</span>
               <span
                 className={`text-sm ${
@@ -58,7 +58,7 @@ export function TradingOverview({ stats }: { stats?: TradingStats }) {
                 {totalBuyPnl >= 0 ? "↑" : "↓"} {totalBuyPnl.toFixed(2)}%
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 justify-start lg:justify-center min-w-0 flex-shrink">
               <span className="text-sm">Sell</span>
               <span
                 className={`text-sm ${
