@@ -72,7 +72,7 @@ export function AdminNotificationClient() {
     <div className="space-y-6">
       {/* Stats Cards */}
       {statsLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}

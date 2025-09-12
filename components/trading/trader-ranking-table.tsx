@@ -290,7 +290,7 @@ export const TraderRankingTable = memo(
     }));
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 px-4 sm:px-0">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
           <div className="flex-1">
             <h2 className="text-2xl font-bold text-foreground">

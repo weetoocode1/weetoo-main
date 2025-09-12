@@ -321,7 +321,70 @@ export function SponsoredRanking() {
           </div>
         </div>
 
-        <div className="bg-background/60 backdrop-blur-sm rounded-2xl border border-border/50 overflow-hidden shadow-xl">
+        {/* Mobile list (cards) */}
+        <div className="md:hidden bg-background/60 backdrop-blur-sm rounded-2xl border border-border/50 overflow-hidden shadow-xl divide-y divide-border/50">
+          {tableData.map((user) => {
+            const isTop3 = (user.rank || 0) <= 3;
+            const rankStyle = isTop3
+              ? rankStyles[user.rank as keyof typeof rankStyles]
+              : null;
+            return (
+              <div key={user.id} className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold",
+                        isTop3
+                          ? rankStyle?.badge
+                          : "bg-muted/60 text-foreground"
+                      )}
+                    >
+                      {user.rank}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="w-10 h-10 ring-2 ring-border/30">
+                        <AvatarImage
+                          src={user.avatar_url}
+                          alt={user.nickname}
+                        />
+                        <AvatarFallback className="text-sm font-semibold bg-muted/60">
+                          {user.nickname?.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="text-sm font-semibold">
+                        {user.nickname}
+                      </div>
+                    </div>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "text-[10px] font-medium",
+                      isTop3 && rankStyle?.badge
+                    )}
+                  >
+                    Level {user.level}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="text-muted-foreground">Donation</div>
+                  <div className="text-right font-semibold">
+                    {user.total_donation?.toLocaleString()}
+                  </div>
+                  <div className="text-muted-foreground">Change</div>
+                  <div className="text-right flex items-center justify-end gap-1 text-muted-foreground">
+                    <Minus className="w-3 h-3" />
+                    <span className="text-xs font-medium">0</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop table (md+) */}
+        <div className="hidden md:block bg-background/60 backdrop-blur-sm rounded-2xl border border-border/50 overflow-hidden shadow-xl">
           {/* Table Header */}
           <div className="grid grid-cols-12 gap-4 px-6 py-5 bg-gradient-to-r from-muted/40 via-muted/30 to-muted/40 border-b border-border/50 font-semibold text-sm text-muted-foreground">
             <div className="col-span-1">Rank</div>
@@ -333,7 +396,7 @@ export function SponsoredRanking() {
 
           {/* Table Rows */}
           <div className="divide-y divide-border/50">
-            {tableData.map((user, index) => {
+            {tableData.map((user) => {
               const isTop3 = (user.rank || 0) <= 3;
               const rankStyle = isTop3
                 ? rankStyles[user.rank as keyof typeof rankStyles]
@@ -348,7 +411,6 @@ export function SponsoredRanking() {
                       "bg-gradient-to-r from-muted/20 via-muted/10 to-muted/20"
                   )}
                 >
-                  {/* Background glow for top 3 */}
                   {isTop3 && (
                     <div
                       className={cn(
@@ -358,7 +420,6 @@ export function SponsoredRanking() {
                     />
                   )}
 
-                  {/* Rank */}
                   <div className="col-span-1 flex items-center">
                     {isTop3 ? (
                       <div
@@ -368,13 +429,7 @@ export function SponsoredRanking() {
                           rankStyle?.badge
                         )}
                       >
-                        {user.rank === 1 ? (
-                          <Trophy className="w-5 h-5 text-yellow-500" />
-                        ) : user.rank === 2 ? (
-                          <Medal className="w-5 h-5 text-slate-400" />
-                        ) : (
-                          <Award className="w-5 h-5 text-amber-500" />
-                        )}
+                        {user.rank}
                       </div>
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center text-sm font-bold text-foreground">
@@ -383,7 +438,6 @@ export function SponsoredRanking() {
                     )}
                   </div>
 
-                  {/* User */}
                   <div className="col-span-4 flex items-center gap-4">
                     <Avatar
                       className={cn(
@@ -421,7 +475,6 @@ export function SponsoredRanking() {
                     </div>
                   </div>
 
-                  {/* Level */}
                   <div className="col-span-2 flex items-center">
                     <Badge
                       variant="outline"
@@ -434,7 +487,6 @@ export function SponsoredRanking() {
                     </Badge>
                   </div>
 
-                  {/* Donation */}
                   <div className="col-span-3 flex items-center gap-2">
                     <Icons.coins className="w-4 h-4 text-yellow-500" />
                     <div
@@ -447,9 +499,7 @@ export function SponsoredRanking() {
                     </div>
                   </div>
 
-                  {/* Change */}
                   <div className="col-span-2 flex items-center">
-                    {/* Placeholder for change, as we don't have change data in the view */}
                     <div className="flex items-center gap-1 text-muted-foreground">
                       <Minus className="w-3 h-3" />
                       <span className="text-xs font-medium">0</span>

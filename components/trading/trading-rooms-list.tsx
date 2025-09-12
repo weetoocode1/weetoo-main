@@ -740,11 +740,142 @@ export function TradingRoomsList() {
         </DialogContent>
       </Dialog>
 
-      {/* Header with search and filters */}
-      <div className="flex items-center justify-between gap-4 mb-4">
-        {/* Search Input */}
-        <div className="relative w-[400px]">
-          <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      {/* Mobile/Tablet header (two rows) */}
+      <div className="mb-4 lg:hidden">
+        {/* Search row */}
+        <div className="px-3 sm:px-0 mb-2 sm:mb-3">
+          <div className="relative w-full sm:w-[420px]">
+            <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              ref={inputRef}
+              className="pl-10 pr-10 h-10 w-full"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search rooms, symbols, or creators..."
+            />
+            {searchTerm && (
+              <button
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                onClick={() => setSearchTerm("")}
+              >
+                <CircleXIcon className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Filters + Create row */}
+        <div className="flex items-center justify-between gap-2 px-3 sm:px-0">
+          {/* Scrollable filters group on mobile */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none -mx-1 px-1 py-1">
+              {/* Type Filter */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 px-3 flex-shrink-0"
+                  >
+                    <FilterIcon className="h-4 w-4 mr-2" />
+                    Type
+                    {selectedCategories.length > 0 && (
+                      <Badge variant="secondary" className="ml-2">
+                        {selectedCategories.length}
+                      </Badge>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-4" align="start">
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm">Room Type</h4>
+                    {uniqueCategoryValues.map((value, i) => (
+                      <div key={value} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`${id}-category-${i}`}
+                          checked={selectedCategories.includes(value)}
+                          onCheckedChange={(checked: boolean) =>
+                            handleCategoryChange(checked, value)
+                          }
+                        />
+                        <Label
+                          htmlFor={`${id}-category-${i}`}
+                          className="flex-1 text-sm cursor-pointer"
+                        >
+                          {value === "voice" ? "Voice" : "Chat"}
+                        </Label>
+                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                          {categoryCounts.get(value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              {/* Access Filter */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 px-3 flex-shrink-0"
+                  >
+                    <FilterIcon className="h-4 w-4 mr-2" />
+                    Access
+                    {selectedAccess.length > 0 && (
+                      <Badge variant="secondary" className="ml-2">
+                        {selectedAccess.length}
+                      </Badge>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-4" align="start">
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm">Room Access</h4>
+                    {accessOptions.map((option, i) => (
+                      <div
+                        key={option.value}
+                        className="flex items-center space-x-2"
+                      >
+                        <Checkbox
+                          id={`${id}-access-${i}`}
+                          checked={selectedAccess.includes(option.value)}
+                          onCheckedChange={(checked: boolean) =>
+                            handleAccessChange(checked, option.value)
+                          }
+                        />
+                        <Label
+                          htmlFor={`${id}-access-${i}`}
+                          className="flex-1 text-sm cursor-pointer"
+                        >
+                          {option.label}
+                        </Label>
+                        {option.value === "public" ? (
+                          <GlobeIcon className="h-3 w-3 text-blue-500" />
+                        ) : (
+                          <LockIcon className="h-3 w-3 text-orange-500" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+
+          {/* Create Room Button */}
+          <div className="flex-shrink-0 ml-2">
+            <CreateRoom />
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop header (single row, unchanged layout) */}
+      <div className="hidden lg:flex items-center justify-between gap-4 mb-4">
+        {/* Search */}
+        <div className="relative w-[420px]">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             ref={inputRef}
             className="pl-10 pr-10 h-10"
@@ -754,7 +885,7 @@ export function TradingRoomsList() {
           />
           {searchTerm && (
             <button
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               onClick={() => setSearchTerm("")}
             >
               <CircleXIcon className="h-4 w-4" />
@@ -762,7 +893,6 @@ export function TradingRoomsList() {
           )}
         </div>
 
-        {/* Filter Buttons */}
         <div className="flex items-center gap-3">
           {/* Type Filter */}
           <Popover>
@@ -783,14 +913,14 @@ export function TradingRoomsList() {
                 {uniqueCategoryValues.map((value, i) => (
                   <div key={value} className="flex items-center space-x-2">
                     <Checkbox
-                      id={`${id}-category-${i}`}
+                      id={`${id}-category-lg-${i}`}
                       checked={selectedCategories.includes(value)}
                       onCheckedChange={(checked: boolean) =>
                         handleCategoryChange(checked, value)
                       }
                     />
                     <Label
-                      htmlFor={`${id}-category-${i}`}
+                      htmlFor={`${id}-category-lg-${i}`}
                       className="flex-1 text-sm cursor-pointer"
                     >
                       {value === "voice" ? "Voice" : "Chat"}
@@ -826,14 +956,14 @@ export function TradingRoomsList() {
                     className="flex items-center space-x-2"
                   >
                     <Checkbox
-                      id={`${id}-access-${i}`}
+                      id={`${id}-access-lg-${i}`}
                       checked={selectedAccess.includes(option.value)}
                       onCheckedChange={(checked: boolean) =>
                         handleAccessChange(checked, option.value)
                       }
                     />
                     <Label
-                      htmlFor={`${id}-access-${i}`}
+                      htmlFor={`${id}-access-lg-${i}`}
                       className="flex-1 text-sm cursor-pointer"
                     >
                       {option.label}
@@ -849,30 +979,13 @@ export function TradingRoomsList() {
             </PopoverContent>
           </Popover>
 
-          {/* Clear Filters */}
-          {/* {(selectedCategories.length > 0 ||
-            selectedAccess.length > 0 ||
-            searchTerm) && (
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setSearchTerm("");
-                setSelectedCategories([]);
-                setSelectedAccess([]);
-              }}
-              className="h-10 px-4 text-muted-foreground hover:text-foreground"
-            >
-              Clear
-            </Button>
-          )} */}
-
-          {/* Create Room Button */}
+          {/* Create Room */}
           <CreateRoom />
         </div>
       </div>
 
       {/* Grid of room cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 sm:px-0">
         {isLoading ? (
           // Loading skeletons that match the card design
           Array.from({ length: 8 }).map((_, i) => (

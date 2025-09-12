@@ -29,6 +29,7 @@ export function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -74,11 +75,11 @@ export function Header() {
         </Button>
       </>
     );
-  }, [authChecked, isLoggedIn]);
+  }, [authChecked, isLoggedIn, t]);
 
   return (
     <header className="fixed top-0 inset-x-0 z-50 bg-background border-border rounded-lg border-b w-full">
-      <div className="flex items-center lg:justify-between gap-12 md:gap-4 px-4 md:px-8 h-14 max-w-[1600px] mx-auto">
+      <div className="flex items-center justify-between gap-12 md:gap-4 px-4 md:px-0 h-14 max-w-[1600px] mx-auto">
         <Link href="/" className="flex items-center">
           <span className="text-2xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent font-gmarket">
             WEETOO
@@ -109,7 +110,7 @@ export function Header() {
 
           {/* Mobile Menu Button */}
           <div className="md:hidden">
-            <Sheet>
+            <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
               <SheetTrigger asChild className="">
                 <Button
                   variant="ghost"
@@ -127,7 +128,7 @@ export function Header() {
                   </SheetHeader>
                 </VisuallyHidden>
                 <div className="flex flex-col gap-4 mt-4">
-                  <Menu />
+                  <Menu onNavigate={() => setMenuOpen(false)} />
                   {isLoggedIn && (
                     <div className="md:hidden pt-4 border-t border-border">
                       <div className="flex items-center justify-between">

@@ -250,10 +250,13 @@ export function Referral() {
     setCustomError(null);
   };
 
-  const shareUrl =
-    typeof window !== "undefined" && code
-      ? `${window.location.origin}/register?ref=${code}`
-      : "";
+  const [shareUrl, setShareUrl] = useState("");
+
+  useEffect(() => {
+    if (code) {
+      setShareUrl(`${window.location.origin}/register?ref=${code}`);
+    }
+  }, [code]);
 
   const handleShare = () => {
     setShareOpen(true);
@@ -272,14 +275,14 @@ export function Referral() {
   const handleNext = () => setPage((p) => Math.min(totalPages, p + 1));
 
   return (
-    <div className="p-4 select-none">
-      <div className="flex items-center justify-between w-full">
-        <h2 className="text-xl font-semibold">Referral Code</h2>
-        <div className="flex gap-1 items-center">
-          {codeLoading && <Skeleton className="w-32 h-10" />}
+    <div className="p-2 sm:p-4 select-none">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-4">
+        <h2 className="text-lg sm:text-xl font-semibold">Referral Code</h2>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-1 items-stretch sm:items-center">
+          {codeLoading && <Skeleton className="w-full sm:w-32 h-10" />}
           {code && !codeLoading && (
-            <div className="border-2 border-dotted px-10 h-10 flex items-center">
-              <span className="select-none font-mono text-sm font-semibold">
+            <div className="border-2 border-dotted px-4 sm:px-10 h-10 flex items-center justify-center">
+              <span className="select-none font-mono text-sm font-semibold truncate">
                 {code}
               </span>
             </div>
@@ -287,7 +290,7 @@ export function Referral() {
           {!code && !codeLoading && (
             <Button
               variant="outline"
-              className="bg-muted px-8 h-10 rounded-none font-semibold"
+              className="bg-muted px-4 sm:px-8 h-10 rounded-none font-semibold w-full sm:w-auto"
               onClick={handleGetCode}
               disabled={generateCodeMutation.isPending}
             >
@@ -297,11 +300,11 @@ export function Referral() {
             </Button>
           )}
           {code && !codeLoading && (
-            <>
+            <div className="flex gap-1 items-center">
               <Button
                 variant="outline"
                 size="icon"
-                className="rounded-none h-10 px-5"
+                className="rounded-none h-10 px-3 sm:px-5 flex-1 sm:flex-none"
                 onClick={handleCopy}
               >
                 {copied ? (
@@ -314,7 +317,7 @@ export function Referral() {
               <Button
                 variant="outline"
                 size="icon"
-                className="rounded-none h-10 px-5"
+                className="rounded-none h-10 px-3 sm:px-5 flex-1 sm:flex-none"
                 onClick={handleCustomize}
                 aria-label="Customize Referral Code"
               >
@@ -323,13 +326,13 @@ export function Referral() {
               <Button
                 variant="outline"
                 size="icon"
-                className="rounded-none h-10 px-5"
+                className="rounded-none h-10 px-3 sm:px-5 flex-1 sm:flex-none"
                 onClick={handleShare}
                 aria-label="Share Referral Code"
               >
                 <Share2Icon className="w-4 h-4" />
               </Button>
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -342,183 +345,222 @@ export function Referral() {
       {/* Referral Dashboard */}
       <div className="mt-8 w-full">
         {/* Stats Row */}
-        <div className="flex flex-row gap-4 mb-4 w-full">
-          <div className="flex-1 flex flex-col items-center justify-center py-7 bg-muted border rounded-none">
-            <UsersIcon className="w-5 h-5 mb-1 text-primary" />
-            <span className="text-lg font-bold">
+        <div className="grid grid-cols-3 gap-1 sm:gap-4 mb-4 w-full">
+          <div className="flex flex-col items-center justify-center py-3 sm:py-7 bg-muted border rounded-none">
+            <UsersIcon className="w-3 h-3 sm:w-5 sm:h-5 mb-1 text-primary" />
+            <span className="text-sm sm:text-lg font-bold">
               {dashboardLoading ? (
-                <Skeleton className="h-6 w-16" />
+                <Skeleton className="h-4 sm:h-6 w-8 sm:w-16" />
               ) : (
                 totalReferred
               )}
             </span>
-            <span className="text-xs text-muted-foreground">
-              Total Referred
+            <span className="text-xs text-muted-foreground text-center leading-tight">
+              <span className="sm:hidden">Referred</span>
+              <span className="hidden sm:inline">Total Referred</span>
             </span>
           </div>
-          <div className="flex-1 flex flex-col items-center justify-center py-7 bg-muted border rounded-none">
-            <Icons.coins className="w-5 h-5 mb-1 text-yellow-500" />
-            <span className="text-lg font-bold">
+          <div className="flex flex-col items-center justify-center py-3 sm:py-7 bg-muted border rounded-none">
+            <Icons.coins className="w-3 h-3 sm:w-5 sm:h-5 mb-1 text-yellow-500" />
+            <span className="text-sm sm:text-lg font-bold text-center">
               {dashboardLoading ? (
-                <Skeleton className="h-6 w-24" />
+                <Skeleton className="h-4 sm:h-6 w-12 sm:w-24" />
               ) : (
-                `${totalEarned} KORCOINS`
+                <span className="truncate text-xs sm:text-base">
+                  <span className="sm:hidden">{totalEarned}</span>
+                  <span className="hidden sm:inline">
+                    {totalEarned} KORCOINS
+                  </span>
+                </span>
               )}
             </span>
-            <span className="text-xs text-muted-foreground">Total Earned</span>
+            <span className="text-xs text-muted-foreground text-center leading-tight">
+              <span className="sm:hidden">Earned</span>
+              <span className="hidden sm:inline">Total Earned</span>
+            </span>
           </div>
-          <div className="flex-1 flex flex-col items-center justify-center py-7 bg-muted border rounded-none">
-            <Icons.coins className="w-5 h-5 mb-1 text-yellow-500" />
-            <span className="text-lg font-bold">
+          <div className="flex flex-col items-center justify-center py-3 sm:py-7 bg-muted border rounded-none">
+            <Icons.coins className="w-3 h-3 sm:w-5 sm:h-5 mb-1 text-yellow-500" />
+            <span className="text-sm sm:text-lg font-bold text-center">
               {dashboardLoading ? (
-                <Skeleton className="h-6 w-20" />
+                <Skeleton className="h-4 sm:h-6 w-10 sm:w-20" />
               ) : (
-                `${pendingPayout} KORCOINS`
+                <span className="truncate text-xs sm:text-base">
+                  <span className="sm:hidden">{pendingPayout}</span>
+                  <span className="hidden sm:inline">
+                    {pendingPayout} KORCOINS
+                  </span>
+                </span>
               )}
             </span>
-            <span className="text-xs text-muted-foreground">
-              Pending Payout
+            <span className="text-xs text-muted-foreground text-center leading-tight">
+              <span className="sm:hidden">Pending</span>
+              <span className="hidden sm:inline">Pending Payout</span>
             </span>
           </div>
         </div>
 
         {/* Referral History Table */}
         <div className="w-full border rounded-none">
-          <div className="flex items-center justify-between px-6 py-3 border-b">
-            <h3 className="font-semibold">Referral History</h3>
+          <div className="flex items-center justify-between px-3 sm:px-6 py-3 border-b">
+            <h3 className="font-semibold text-sm sm:text-base">
+              Referral History
+            </h3>
             {dashboardLoading && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                Loading...
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-primary"></div>
+                <span className="hidden sm:inline">Loading...</span>
               </div>
             )}
           </div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="px-6 py-3 text-left font-semibold">Joiner</th>
-                <th className="px-6 py-3 text-left font-semibold">Join Date</th>
-                <th className="px-6 py-3 text-left font-semibold">Status</th>
-                <th className="px-6 py-3 text-left font-semibold">Earnings</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dashboardLoading ? (
-                Array.from({ length: rowsPerPage }).map((_, i) => (
-                  <tr key={i}>
-                    <td className="px-6 py-3">
-                      <Skeleton className="h-4 w-24" />
-                    </td>
-                    <td className="px-6 py-3">
-                      <Skeleton className="h-4 w-20" />
-                    </td>
-                    <td className="px-6 py-3">
-                      <Skeleton className="h-4 w-16" />
-                    </td>
-                    <td className="px-6 py-3">
-                      <Skeleton className="h-4 w-16" />
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs sm:text-sm min-w-[400px]">
+              <thead>
+                <tr className="border-b">
+                  <th className="px-3 sm:px-6 py-3 text-left font-semibold">
+                    Joiner
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 text-left font-semibold">
+                    Join Date
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 text-left font-semibold">
+                    Status
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 text-left font-semibold">
+                    Earnings
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {dashboardLoading ? (
+                  Array.from({ length: rowsPerPage }).map((_, i) => (
+                    <tr key={i}>
+                      <td className="px-3 sm:px-6 py-3">
+                        <Skeleton className="h-3 sm:h-4 w-20 sm:w-24" />
+                      </td>
+                      <td className="px-3 sm:px-6 py-3">
+                        <Skeleton className="h-3 sm:h-4 w-16 sm:w-20" />
+                      </td>
+                      <td className="px-3 sm:px-6 py-3">
+                        <Skeleton className="h-3 sm:h-4 w-12 sm:w-16" />
+                      </td>
+                      <td className="px-3 sm:px-6 py-3">
+                        <Skeleton className="h-3 sm:h-4 w-12 sm:w-16" />
+                      </td>
+                    </tr>
+                  ))
+                ) : dashboardError ? (
+                  <tr>
+                    <td colSpan={4} className="text-center py-6 sm:py-8">
+                      <div className="flex flex-col items-center gap-2 px-4">
+                        <div className="text-red-500 text-xs sm:text-sm">
+                          Failed to load referral dashboard.
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.location.reload()}
+                          className="rounded-none text-xs"
+                        >
+                          Retry
+                        </Button>
+                      </div>
                     </td>
                   </tr>
-                ))
-              ) : dashboardError ? (
-                <tr>
-                  <td colSpan={4} className="text-center py-8">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="text-red-500 text-sm">
-                        Failed to load referral dashboard.
+                ) : paginatedReferrals.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="text-center text-muted-foreground py-6 sm:py-8"
+                    >
+                      <div className="flex flex-col items-center gap-2 px-4">
+                        <UsersIcon className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground/50" />
+                        <div className="text-sm sm:text-base">
+                          No referrals yet.
+                        </div>
+                        <div className="text-xs text-muted-foreground text-center">
+                          Share your referral code to get started!
+                        </div>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.location.reload()}
-                        className="rounded-none"
-                      >
-                        Retry
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ) : paginatedReferrals.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="text-center text-muted-foreground py-8"
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <UsersIcon className="w-8 h-8 text-muted-foreground/50" />
-                      <div>No referrals yet.</div>
-                      <div className="text-xs text-muted-foreground">
-                        Share your referral code to get started!
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                paginatedReferrals.map((row, i) => (
-                  <tr
-                    key={row.email + row.date + i}
-                    className={
-                      i !== paginatedReferrals.length - 1
-                        ? "border-b"
-                        : undefined
-                    }
-                  >
-                    <td className="px-6 py-3">{row.email}</td>
-                    <td className="px-6 py-3">{row.date}</td>
-                    <td className="px-6 py-3">{row.status}</td>
-                    <td className="px-6 py-3">{row.earnings}</td>
+                    </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-          {totalPages > 1 && (
-            <div className="flex justify-end items-center gap-2 px-6 py-3 border-t rounded-none">
-              <button
-                className="px-3 py-1 border bg-muted rounded-none text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                onClick={handlePrev}
-                disabled={page === 1 || dashboardLoading}
-              >
-                Prev
-              </button>
-              <span className="text-xs">
-                Page {page} of {totalPages || 1}
-              </span>
-              <button
-                className="px-3 py-1 border bg-muted rounded-none text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                onClick={handleNext}
-                disabled={page === totalPages || dashboardLoading}
-              >
-                Next
-              </button>
-            </div>
-          )}
+                ) : (
+                  paginatedReferrals.map((row, i) => (
+                    <tr
+                      key={row.email + row.date + i}
+                      className={
+                        i !== paginatedReferrals.length - 1
+                          ? "border-b"
+                          : undefined
+                      }
+                    >
+                      <td className="px-3 sm:px-6 py-3 truncate max-w-[120px] sm:max-w-none">
+                        {row.email}
+                      </td>
+                      <td className="px-3 sm:px-6 py-3 text-xs sm:text-sm">
+                        {row.date}
+                      </td>
+                      <td className="px-3 sm:px-6 py-3 text-xs sm:text-sm">
+                        {row.status}
+                      </td>
+                      <td className="px-3 sm:px-6 py-3 text-xs sm:text-sm">
+                        {row.earnings}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+            {totalPages > 1 && (
+              <div className="flex justify-center sm:justify-end items-center gap-2 px-3 sm:px-6 py-3 border-t rounded-none">
+                <button
+                  className="px-2 sm:px-3 py-1 border bg-muted rounded-none text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handlePrev}
+                  disabled={page === 1 || dashboardLoading}
+                >
+                  Prev
+                </button>
+                <span className="text-xs">
+                  Page {page} of {totalPages || 1}
+                </span>
+                <button
+                  className="px-2 sm:px-3 py-1 border bg-muted rounded-none text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleNext}
+                  disabled={page === totalPages || dashboardLoading}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Customize Referral Code Dialog */}
       <Dialog open={customizeOpen} onOpenChange={handleDialogClose}>
-        <DialogContent className="max-w-md rounded-none">
-          <DialogTitle className="mb-4">Customize Referral Code</DialogTitle>
+        <DialogContent className="max-w-md mx-4 sm:mx-auto rounded-none">
+          <DialogTitle className="mb-4 text-base sm:text-lg">
+            Customize Referral Code
+          </DialogTitle>
           <div className="mb-4">
             <div className="text-xs text-muted-foreground mb-2">
               Current Code
             </div>
-            <div className="border-2 border-dotted px-10 py-3 text-2xl font-mono font-bold text-center select-none rounded-none bg-background">
+            <div className="border-2 border-dotted px-4 sm:px-10 py-3 text-lg sm:text-2xl font-mono font-bold text-center select-none rounded-none bg-background">
               {customizing ? (
-                <Skeleton className="w-32 h-8 mx-auto" />
+                <Skeleton className="w-24 sm:w-32 h-6 sm:h-8 mx-auto" />
               ) : (
-                pendingCode || code
+                <span className="truncate">{pendingCode || code}</span>
               )}
             </div>
           </div>
-          <div className="mb-2 text-sm text-muted-foreground">
+          <div className="mb-2 text-xs sm:text-sm text-muted-foreground">
             Enter a new code (4-12 characters, A-Z and 0-9 only).
             <br />
             <span className="block">
               Your old code will be replaced and cannot be used again.
             </span>
-            <span className="block mt-2 font-semibold text-destructive-foreground text-sm">
+            <span className="block mt-2 font-semibold text-destructive-foreground text-xs sm:text-sm">
               Note:
             </span>
             <span className="block text-xs text-destructive-foreground mb-1">
@@ -528,7 +570,7 @@ export function Referral() {
             </span>
           </div>
           <Input
-            className="w-full border h-10 mb-2 rounded-none !bg-transparent font-mono text-base"
+            className="w-full border h-10 mb-2 rounded-none !bg-transparent font-mono text-sm sm:text-base"
             placeholder="Enter custom code"
             value={customInput}
             onChange={(e) => setCustomInput(e.target.value.toUpperCase())}
@@ -537,12 +579,14 @@ export function Referral() {
             autoFocus
           />
           {customError && (
-            <div className="text-red-500 text-sm mb-2">{customError}</div>
+            <div className="text-red-500 text-xs sm:text-sm mb-2">
+              {customError}
+            </div>
           )}
-          <div className="flex justify-end gap-2 mt-2">
+          <div className="flex flex-col sm:flex-row justify-end gap-2 mt-2">
             <Button
               variant="outline"
-              className="rounded-none"
+              className="rounded-none w-full sm:w-auto"
               onClick={handleDialogClose}
               disabled={customizing}
             >
@@ -550,7 +594,7 @@ export function Referral() {
             </Button>
             <Button
               variant="default"
-              className="rounded-none"
+              className="rounded-none w-full sm:w-auto"
               onClick={handleCustomSave}
               disabled={customizing || !customInput || !!customError}
             >
@@ -562,20 +606,22 @@ export function Referral() {
 
       {/* Share Referral Code Dialog */}
       <Dialog open={shareOpen} onOpenChange={handleShareDialogClose}>
-        <DialogContent className="max-w-md rounded-none">
-          <DialogTitle className="mb-4">Share Your Referral Code</DialogTitle>
+        <DialogContent className="max-w-md mx-4 sm:mx-auto rounded-none">
+          <DialogTitle className="mb-4 text-base sm:text-lg">
+            Share Your Referral Code
+          </DialogTitle>
           <div className="mb-4">
             <div className="text-xs text-muted-foreground mb-2">
               Your Referral Code
             </div>
-            <div className="flex items-center justify-center gap-2 border-2 border-dotted px-6 py-3 text-2xl font-mono font-bold text-center select-none rounded-none bg-background">
+            <div className="flex items-center justify-center gap-2 border-2 border-dotted px-4 sm:px-6 py-3 text-lg sm:text-2xl font-mono font-bold text-center select-none rounded-none bg-background">
               <span className="truncate">{code}</span>
             </div>
           </div>
-          <div className="mb-2 text-sm text-muted-foreground text-center">
+          <div className="mb-2 text-xs sm:text-sm text-muted-foreground text-center">
             Share your code and invite friends to join!
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 w-full">
+          <div className="grid grid-cols-2 gap-2 w-full">
             <Button
               variant="outline"
               className="w-full flex items-center justify-center rounded-none h-10"
@@ -588,11 +634,11 @@ export function Referral() {
               }}
             >
               {shareCopied ? (
-                <CheckIcon className="w-5 h-5 text-green-500" />
+                <CheckIcon className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
               ) : (
-                <CopyIcon className="w-5 h-5 grayscale" />
+                <CopyIcon className="w-4 h-4 sm:w-5 sm:h-5 grayscale" />
               )}
-              <span className="text-xs truncate sr-only">Copy Link</span>
+              <span className="text-xs truncate ml-1">Copy Link</span>
             </Button>
             <Button
               variant="outline"
@@ -606,8 +652,8 @@ export function Referral() {
                 )
               }
             >
-              <Icons.threads className="w-5 h-5 grayscale" />
-              <span className="text-xs truncate sr-only">Threads</span>
+              <Icons.threads className="w-4 h-4 sm:w-5 sm:h-5 grayscale" />
+              <span className="text-xs truncate ml-1">Threads</span>
             </Button>
             <Button
               variant="outline"
@@ -621,8 +667,8 @@ export function Referral() {
                 )
               }
             >
-              <Icons.facebook className="w-5 h-5 grayscale" />
-              <span className="text-xs truncate sr-only">Facebook</span>
+              <Icons.facebook className="w-4 h-4 sm:w-5 sm:h-5 grayscale" />
+              <span className="text-xs truncate ml-1">Facebook</span>
             </Button>
             <Button
               variant="outline"
@@ -636,8 +682,8 @@ export function Referral() {
                 )
               }
             >
-              <Icons.twitter className="w-5 h-5 grayscale" />
-              <span className="text-xs truncate sr-only">X</span>
+              <Icons.twitter className="w-4 h-4 sm:w-5 sm:h-5 grayscale" />
+              <span className="text-xs truncate ml-1">X</span>
             </Button>
           </div>
         </DialogContent>

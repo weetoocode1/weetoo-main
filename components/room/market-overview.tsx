@@ -55,10 +55,10 @@ export function MarketOverview({
 
   return (
     <div
-      className="flex items-center justify-between w-full h-full p-4 text-sm select-none"
+      className="flex flex-col md:flex-row md:items-center md:justify-between w-full h-full p-4 text-sm select-none gap-3"
       data-testid="market-overview"
     >
-      <div className="flex items-center gap-2 h-full">
+      <div className="flex flex-col md:flex-row items-start md:items-center gap-2 h-full">
         <div className="flex flex-col items-start px-2">
           <div className="flex items-center gap-1 cursor-pointer hover:bg-zinc-800 p-1 rounded-md">
             <p className="text-sm font-semibold">{symbol}</p>
@@ -67,7 +67,9 @@ export function MarketOverview({
             USDT Futures Trading
           </p>
         </div>
-        <div className="h-full w-[1px] bg-border mx-2"></div>
+        {/* separator: horizontal on mobile, vertical on desktop */}
+        <div className="block md:hidden h-[1px] w-full bg-border my-1" />
+        <div className="hidden md:block h-full w-[1px] bg-border mx-2" />
         <div className="flex flex-col items-start justify-center h-full px-2">
           <p
             data-testid="current-price"
@@ -92,14 +94,14 @@ export function MarketOverview({
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-4 h-full">
-        <div className="flex flex-col items-center justify-center px-2 min-w-[100px]">
+      <div className="grid grid-cols-2 md:flex md:flex-nowrap md:items-center gap-3 md:gap-2 h-full w-full md:w-full md:min-w-0">
+        <div className="flex flex-col items-start md:items-center justify-center px-2 min-w-[96px] md:min-w-fit">
           <p className="text-muted-foreground text-xs">Change (24H)</p>
           <p
             className={
               ticker && parseFloat(ticker.priceChange) < 0
-                ? "text-red-500 font-semibold min-w-[110px] text-[0.77rem]"
-                : "text-green-500 font-semibold min-w-[110px] text-[0.77rem]"
+                ? "text-red-500 font-semibold min-w-[100px] text-[0.77rem]"
+                : "text-green-500 font-semibold min-w-[100px] text-[0.77rem]"
             }
           >
             {ticker && ticker.priceChange && ticker.priceChangePercent
@@ -109,10 +111,10 @@ export function MarketOverview({
               : "-"}
           </p>
         </div>
-        <div className="flex flex-col items-center justify-center px-2 min-w-[100px]">
+        <div className="flex flex-col items-start md:items-center justify-center px-2 min-w-[96px] md:min-w-fit">
           <p className="text-muted-foreground text-xs">High (24H)</p>
-          <div className="flex justify-center items-center w-full">
-            <p className="text-foreground font-semibold min-w-[110px] text-center">
+          <div className="flex justify-start md:justify-center items-center w-full">
+            <p className="text-foreground font-semibold min-w-[100px] text-left md:text-center">
               {ticker && ticker.highPrice
                 ? parseFloat(ticker.highPrice).toLocaleString(undefined, {
                     maximumFractionDigits: 2,
@@ -121,10 +123,10 @@ export function MarketOverview({
             </p>
           </div>
         </div>
-        <div className="flex flex-col items-center justify-center px-2 min-w-[100px]">
+        <div className="flex flex-col items-start md:items-center justify-center px-2 min-w-[96px]">
           <p className="text-muted-foreground text-xs">Low (24H)</p>
-          <div className="flex justify-center items-center w-full">
-            <p className="text-foreground font-semibold min-w-[110px] text-center">
+          <div className="flex justify-start md:justify-center items-center w-full">
+            <p className="text-foreground font-semibold min-w-[100px] text-left md:text-center">
               {ticker && ticker.lowPrice
                 ? parseFloat(ticker.lowPrice).toLocaleString(undefined, {
                     maximumFractionDigits: 2,
@@ -133,10 +135,10 @@ export function MarketOverview({
             </p>
           </div>
         </div>
-        <div className="flex flex-col items-center justify-center px-2 min-w-[150px]">
+        <div className="flex flex-col items-start md:items-center justify-center px-2 min-w-[130px] md:min-w-fit">
           <p className="text-muted-foreground text-xs">Turnover (24H)</p>
-          <div className="flex justify-center items-center w-full">
-            <p className="text-foreground font-semibold min-w-[130px] text-center">
+          <div className="flex justify-start md:justify-center items-center w-full">
+            <p className="text-foreground font-semibold min-w-[120px] text-left md:text-center">
               {ticker && ticker.quoteVolume
                 ? parseFloat(ticker.quoteVolume).toLocaleString(undefined, {
                     maximumFractionDigits: 2,
@@ -145,10 +147,10 @@ export function MarketOverview({
             </p>
           </div>
         </div>
-        <div className="flex flex-col items-center justify-center px-2 min-w-[150px]">
+        <div className="flex flex-col items-start md:items-center justify-center px-2 min-w-[130px] md:min-w-fit">
           <p className="text-muted-foreground text-xs">Volume (24H)</p>
-          <div className="flex justify-center items-center w-full">
-            <p className="text-foreground font-semibold min-w-[130px] text-center">
+          <div className="flex justify-start md:justify-center items-center w-full">
+            <p className="text-foreground font-semibold min-w-[120px] text-left md:text-center">
               {ticker && ticker.volume
                 ? parseFloat(ticker.volume).toLocaleString(undefined, {
                     maximumFractionDigits: 2,
@@ -157,10 +159,10 @@ export function MarketOverview({
             </p>
           </div>
         </div>
-        <div className="flex flex-col items-center justify-center px-2 min-w-[150px]">
+        <div className="flex flex-col items-start md:items-center justify-center px-2 min-w-[130px] md:min-w-fit">
           <p className="text-muted-foreground text-xs">Open Int. (24H)</p>
-          <div className="flex justify-center items-center w-full">
-            <p className="text-foreground font-semibold min-w-[130px] text-center">
+          <div className="flex justify-start md:justify-center items-center w-full">
+            <p className="text-foreground font-semibold min-w-[120px] text-left md:text-center">
               {openInterest
                 ? parseFloat(openInterest).toLocaleString(undefined, {
                     maximumFractionDigits: 2,
@@ -169,7 +171,7 @@ export function MarketOverview({
             </p>
           </div>
         </div>
-        <div className="flex flex-col items-center justify-center px-2 min-w-[180px]">
+        <div className="flex flex-col items-start md:items-center justify-center px-2 min-w-[150px] md:min-w-fit">
           <p className="text-muted-foreground text-xs">Funding/Time</p>
           <div className="flex items-center gap-2">
             <p

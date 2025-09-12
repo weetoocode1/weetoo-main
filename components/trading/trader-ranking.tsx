@@ -894,7 +894,7 @@ export const TraderRanking = memo(() => {
       )} */}
 
       {/* Time Frame Tabs */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 mt-8 gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 mt-8 gap-4 px-4 sm:px-0 pb-2 sm:pb-0">
         <div className="bg-muted/30 rounded-lg p-1 backdrop-blur-sm border border-border/50 ml-auto">
           {(["daily", "weekly", "monthly"] as TimeFrame[]).map((timeFrame) => (
             <button

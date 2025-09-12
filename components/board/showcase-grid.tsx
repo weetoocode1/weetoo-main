@@ -58,56 +58,58 @@ export function ShowcaseGrid({ board }: ShowcaseGridProps) {
   // Grid layout order for each box
   const gridOrder = [
     {
-      className: "col-span-2 row-span-2",
-      size: "text-3xl md:text-4xl",
+      className: "col-span-1 sm:col-span-2 lg:col-span-2 row-span-2",
+      size: "text-xl sm:text-2xl md:text-3xl lg:text-4xl",
       num: "01",
     },
     {
-      className: "col-span-2 row-span-1",
-      size: "text-2xl md:text-3xl",
+      className: "col-span-1 sm:col-span-2 lg:col-span-2 row-span-1",
+      size: "text-lg sm:text-xl md:text-2xl lg:text-3xl",
       num: "02",
     },
     {
-      className: "col-span-2 row-span-1",
-      size: "text-xl md:text-2xl",
+      className: "col-span-1 sm:col-span-2 lg:col-span-2 row-span-1",
+      size: "text-base sm:text-lg md:text-xl lg:text-2xl",
       num: "03",
     },
     {
-      className: "col-span-2 row-span-1",
-      size: "text-2xl md:text-3xl",
+      className: "col-span-1 sm:col-span-2 lg:col-span-2 row-span-1",
+      size: "text-lg sm:text-xl md:text-2xl lg:text-3xl",
       num: "04",
     },
     {
-      className: "col-span-1 row-span-1",
-      size: "text-lg md:text-xl",
+      className: "col-span-1 sm:col-span-1 lg:col-span-1 row-span-1",
+      size: "text-sm sm:text-base md:text-lg lg:text-xl",
       num: "05",
     },
     {
-      className: "col-span-1 row-span-1",
-      size: "text-lg md:text-xl",
+      className: "col-span-1 sm:col-span-1 lg:col-span-1 row-span-1",
+      size: "text-sm sm:text-base md:text-lg lg:text-xl",
       num: "06",
     },
   ];
 
   if (loading) {
     return (
-      <div className="grid grid-cols-4 grid-rows-3 gap-2 h-[700px] select-none">
+      <div className="flex flex-col lg:grid lg:grid-cols-4 lg:grid-rows-3 gap-3 lg:gap-2 h-auto lg:h-[700px] select-none">
         {gridOrder.map((_, i) => (
           <div
             key={i}
-            className={`${gridOrder[i].className} border bg-background shadow-lg flex flex-col justify-end p-8 relative overflow-hidden`}
+            className={`${gridOrder[i].className} border bg-background shadow-lg flex flex-col justify-end p-4 lg:p-8 relative overflow-hidden h-48 lg:h-auto`}
           >
             {/* Background skeleton */}
             <Skeleton className="absolute inset-0" />
 
             {/* Content skeleton */}
             <div className="relative z-10">
-              <Skeleton className={`${gridOrder[i].size} h-8 w-3/4 mb-2`} />
+              <Skeleton
+                className={`${gridOrder[i].size} h-6 lg:h-8 w-3/4 mb-2`}
+              />
               <Skeleton className="h-3 w-1/2" />
             </div>
 
             {/* Number skeleton */}
-            <Skeleton className="absolute right-6 top-6 h-16 w-16 rounded-full opacity-20 z-10" />
+            <Skeleton className="absolute right-3 lg:right-6 top-3 lg:top-6 h-8 w-8 lg:h-16 lg:w-16 rounded-full opacity-20 z-10" />
           </div>
         ))}
       </div>
@@ -115,12 +117,12 @@ export function ShowcaseGrid({ board }: ShowcaseGridProps) {
   }
 
   return (
-    <div className="grid grid-cols-4 grid-rows-3 gap-2 h-[700px] select-none">
+    <div className="flex flex-col lg:grid lg:grid-cols-4 lg:grid-rows-3 gap-3 lg:gap-2 h-auto lg:h-[700px] select-none">
       {showcasePosts.map((post, i) => (
         <Link
           key={post.id ? post.id : `placeholder-${i}`}
           href={post.isPlaceholder ? "#" : `/${board}/${post.id}`}
-          className={`${gridOrder[i].className} border bg-background shadow-lg flex flex-col justify-end p-8 relative overflow-hidden group transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer block`}
+          className={`${gridOrder[i].className} border bg-background shadow-lg flex flex-col justify-end p-4 lg:p-8 relative overflow-hidden group transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer h-48 lg:h-auto`}
         >
           {/* Background Image */}
           {post.images && post.images.length > 0 && (
@@ -166,7 +168,7 @@ export function ShowcaseGrid({ board }: ShowcaseGridProps) {
 
           {/* Number overlay */}
           <span
-            className={`absolute right-6 top-6 text-4xl md:text-5xl lg:text-7xl font-black z-10 select-none transition-all duration-300 ${
+            className={`absolute right-3 sm:right-4 lg:right-6 top-3 sm:top-4 lg:top-6 text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-7xl font-black z-10 select-none transition-all duration-300 ${
               post.isPlaceholder
                 ? "text-muted-foreground/30 group-hover:text-muted-foreground/50"
                 : "text-white/60 group-hover:text-white/80"
