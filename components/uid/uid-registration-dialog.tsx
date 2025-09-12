@@ -83,6 +83,7 @@ interface UidRegistrationDialogProps {
   onUIDUpdated?: (id: string, uid: string, brokerId: string) => void;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  defaultBrokerId?: string; // Optional: preselect broker when opening (non-breaking)
 }
 
 export function UidRegistrationDialog({
@@ -93,6 +94,7 @@ export function UidRegistrationDialog({
   onUIDUpdated,
   isOpen,
   onOpenChange,
+  defaultBrokerId,
 }: UidRegistrationDialogProps) {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
 
@@ -136,6 +138,13 @@ export function UidRegistrationDialog({
     editingRecord?.uid,
     dialogIsOpen,
   ]);
+
+  // Preselect default broker when opening (only if not editing)
+  useEffect(() => {
+    if (dialogIsOpen && defaultBrokerId && !editingRecord) {
+      form.setValue("brokerId", defaultBrokerId);
+    }
+  }, [dialogIsOpen, defaultBrokerId, editingRecord, form]);
 
   return (
     <Dialog open={dialogIsOpen} onOpenChange={handleOpenChange}>
