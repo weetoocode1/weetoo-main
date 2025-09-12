@@ -8,7 +8,13 @@ import {
 } from "@/hooks/broker/use-broker-api";
 import { useBrokerRebateWithdrawals } from "@/hooks/use-broker-rebate-withdrawals";
 import { useAddUserUid, useUserUids } from "@/hooks/use-user-uids";
-import { BadgeCheck, Copy, KeyRoundIcon, PlusIcon } from "lucide-react";
+import {
+  BadgeCheck,
+  ChevronRight,
+  Copy,
+  KeyRoundIcon,
+  PlusIcon,
+} from "lucide-react";
 import Image from "next/image";
 import { useRef } from "react";
 import { toast } from "sonner";
@@ -46,6 +52,12 @@ const BROKERS = [
     logo: "/broker/orangex.webp",
   },
 ];
+
+// Referral signup links per broker (extendable)
+const REFERRAL_LINKS: Record<string, string> = {
+  deepcoin: "https://s.deepcoin.com/jdcibde",
+  orangex: "https://affiliates.orangex.com/affiliates/b/t4atgsg2",
+};
 
 interface UidRecord {
   id: string;
@@ -407,7 +419,7 @@ function UIDCard({
           </div>
 
           {/* Status Indicators and Active/Inactive on the far right */}
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-col items-end gap-2 min-w-[200px]">
             {/* Active/Inactive Status - Top line */}
             <div
               className={`text-xs font-medium px-2 py-1 ${
@@ -426,40 +438,50 @@ function UIDCard({
             </div>
 
             {/* Status Indicators - Bottom line */}
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1.5">
-                {uidVerification.isLoading && !uidVerification.isError ? (
-                  <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
-                ) : (uidVerification.isSuccess &&
-                    uidVerification.data?.verified) ||
-                  isDeepCoinVerified ? (
-                  <div className="w-1.5 h-1.5 bg-emerald-500"></div>
-                ) : (
-                  <div className="w-1.5 h-1.5 bg-red-500"></div>
-                )}
-                <span>
-                  {uidVerification.isLoading && !uidVerification.isError
-                    ? "Verifying..."
-                    : (uidVerification.isSuccess &&
-                        uidVerification.data?.verified) ||
-                      isDeepCoinVerified
-                    ? "Verified"
-                    : uidVerification.isSuccess && uidVerification.data?.reason
-                    ? uidVerification.data.reason
-                    : "Failed"}
-                </span>
+            <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground w-full">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  {uidVerification.isLoading && !uidVerification.isError ? (
+                    <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
+                  ) : (uidVerification.isSuccess &&
+                      uidVerification.data?.verified) ||
+                    isDeepCoinVerified ? (
+                    <div className="w-1.5 h-1.5 bg-emerald-500"></div>
+                  ) : (
+                    <div className="w-1.5 h-1.5 bg-red-500"></div>
+                  )}
+                  <span>
+                    {uidVerification.isLoading && !uidVerification.isError
+                      ? "Verifying..."
+                      : (uidVerification.isSuccess &&
+                          uidVerification.data?.verified) ||
+                        isDeepCoinVerified
+                      ? "Verified"
+                      : uidVerification.isSuccess &&
+                        uidVerification.data?.reason
+                      ? uidVerification.data.reason
+                      : "UID not verified"}
+                  </span>
+                </div>
+
+                {(referrals.isSuccess || isReferral !== undefined) &&
+                  !isReferral && (
+                    <a
+                      href={REFERRAL_LINKS[record.brokerId]}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer"
+                    >
+                      <div className="w-1.5 h-1.5 bg-amber-500"></div>
+                      <span className="text-muted-foreground">
+                        Not referral
+                      </span>
+                      <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                    </a>
+                  )}
               </div>
 
-              {(referrals.isSuccess || isReferral !== undefined) && (
-                <div className="flex items-center gap-1.5">
-                  <div
-                    className={`w-1.5 h-1.5 ${
-                      isReferral ? "bg-emerald-500" : "bg-amber-500"
-                    }`}
-                  ></div>
-                  <span>{isReferral ? "Referral" : "Direct"}</span>
-                </div>
-              )}
+              {/* Referral link removed by request */}
             </div>
           </div>
         </div>

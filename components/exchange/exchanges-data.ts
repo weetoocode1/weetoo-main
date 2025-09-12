@@ -31,7 +31,8 @@ export const EXCHANGES: Exchange[] = [
     event: "20% Deposit Credit",
     averageRebatePerUser: "$2,450",
     tags: ["TOP", "LEADER"],
-    description: "Bybit is a leading cryptocurrency derivatives exchange.",
+    description:
+      "Bybit is a leading crypto derivatives exchange known for deep liquidity and fast execution. It offers advanced tools, competitive fees, and robust risk controls for active traders.",
     features: [
       "High leverage and fast execution",
       "Various futures trading options",
@@ -53,7 +54,7 @@ export const EXCHANGES: Exchange[] = [
     averageRebatePerUser: "$2,180",
     tags: ["HIGH", "TRENDING"],
     description:
-      "OKX is a world-class cryptocurrency exchange supporting spot, futures, and options trading.",
+      "OKX is a world-class exchange supporting spot, futures, and options. It focuses on reliability, rich tooling, and an ecosystem of yield and DeFi products.",
     features: [
       "Stable platform with various trading tools",
       "Diverse financial products",
@@ -75,7 +76,7 @@ export const EXCHANGES: Exchange[] = [
     averageRebatePerUser: "$1,950",
     tags: ["PREMIUM", "FAST"],
     description:
-      "Bitget is a global cryptocurrency exchange offering futures trading and copy trading services.",
+      "Bitget is a global exchange offering futures and copy trading. It emphasizes social features, campaign rewards, and a straightforward experience for newcomers.",
     features: [
       "High payback rate and various events",
       "Copy trading functionality",
@@ -97,7 +98,7 @@ export const EXCHANGES: Exchange[] = [
     averageRebatePerUser: "$1,680",
     tags: ["PREMIUM"],
     description:
-      "BingX is an innovative cryptocurrency exchange offering social trading and copy trading features.",
+      "BingX is an innovative exchange with social and copy-trading capabilities. It blends community insights with approachable tools and steady campaigns.",
     features: [
       "Social trading functionality",
       "High payback benefits",
@@ -119,7 +120,7 @@ export const EXCHANGES: Exchange[] = [
     averageRebatePerUser: "$1,420",
     tags: ["BASIC"],
     description:
-      "DeepCoin is a global digital asset exchange providing professional cryptocurrency trading services.",
+      "DeepCoin is a global digital asset exchange focused on professional trading. It provides steady liquidity, core derivatives, and essential risk management tools.",
     features: [
       "High payback rate",
       "Stable trading system",
@@ -141,7 +142,7 @@ export const EXCHANGES: Exchange[] = [
     averageRebatePerUser: "$1,150",
     tags: ["BASIC"],
     description:
-      "OrangeX is a cryptocurrency exchange with innovative trading features.",
+      "OrangeX is a cryptocurrency exchange highlighting modern UX and innovative features. It targets ease of use with steady promotions and accessible markets.",
     features: [
       "Innovative trading features",
       "User-friendly platform",
@@ -163,7 +164,7 @@ export const EXCHANGES: Exchange[] = [
     averageRebatePerUser: "$980",
     tags: ["BASIC"],
     description:
-      "Blofin is a cryptocurrency exchange focused on derivatives trading.",
+      "Blofin is a derivatives-focused exchange offering a professional toolkit. It caters to active traders with analytics, margin products, and solid execution.",
     features: [
       "Derivatives trading focus",
       "Advanced trading tools",
@@ -185,7 +186,7 @@ export const EXCHANGES: Exchange[] = [
     averageRebatePerUser: "$850",
     tags: ["BASIC"],
     description:
-      "LBank is a global cryptocurrency exchange with comprehensive trading services.",
+      "LBank is a global exchange with comprehensive spot and derivatives markets. It supports a wide range of assets and aims for consistent availability.",
     features: [
       "Comprehensive trading services",
       "Global accessibility",
@@ -207,7 +208,7 @@ export const EXCHANGES: Exchange[] = [
     averageRebatePerUser: "$720",
     tags: ["BASIC"],
     description:
-      "Gate.io is a cryptocurrency exchange known for its wide range of altcoins.",
+      "Gate.io is known for a broad range of altcoins and steady market depth. It provides diversified products and a stable core trading experience.",
     features: ["Wide range of altcoins", "Stable platform", "Global user base"],
   },
   {
@@ -224,7 +225,7 @@ export const EXCHANGES: Exchange[] = [
     averageRebatePerUser: "$650",
     tags: ["BASIC"],
     description:
-      "XT is a global digital asset trading platform offering various cryptocurrency trading services.",
+      "XT is a global digital asset platform with broad asset coverage. It offers familiar trading flows and regular campaigns for engaged users.",
     features: [
       "High payback benefits",
       "Support for various altcoins",
@@ -246,7 +247,7 @@ export const EXCHANGES: Exchange[] = [
     averageRebatePerUser: "$580",
     tags: ["BASIC"],
     description:
-      "Tapbit is a cryptocurrency exchange with a user-friendly interface and various trading options.",
+      "Tapbit is a user-friendly exchange providing core spot and derivatives markets. It focuses on accessibility, clear UI, and frequent promotional events.",
     features: [
       "User-friendly interface",
       "High payback benefits",
@@ -268,7 +269,7 @@ export const EXCHANGES: Exchange[] = [
     averageRebatePerUser: "$520",
     tags: ["BASIC"],
     description:
-      "MEXC is a global cryptocurrency exchange offering spot and futures trading.",
+      "MEXC is a global exchange offering spot and futures with broad token listings. It emphasizes liquidity, responsive execution, and competitive campaigns.",
     features: [
       "Global cryptocurrency exchange",
       "Spot and futures trading",
