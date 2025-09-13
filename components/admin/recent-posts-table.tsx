@@ -80,13 +80,13 @@ const columns: ColumnDef<RecentPost>[] = [
     cell: ({ row }) => {
       const post = row.original;
       const authorName =
-        post.author.first_name && post.author.last_name
+        post.author && post.author.first_name && post.author.last_name
           ? `${post.author.first_name} ${post.author.last_name}`
           : "Anonymous";
       return (
         <div className="flex items-center gap-3">
           <Avatar className="h-9 w-9 ring-2 ring-muted/20">
-            <AvatarImage src={post.author.avatar_url} alt={authorName} />
+            <AvatarImage src={post.author?.avatar_url} alt={authorName} />
             <AvatarFallback className="bg-gradient-to-br from-primary/10 to-primary/20 text-primary font-medium">
               {authorName.charAt(0)?.toUpperCase() || "A"}
             </AvatarFallback>

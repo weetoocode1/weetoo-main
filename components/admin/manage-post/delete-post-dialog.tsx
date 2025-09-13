@@ -157,7 +157,9 @@ export function DeletePostDialog({
                           Author:
                         </span>
                         <span className="font-medium">
-                          {post.author
+                          {post.author &&
+                          post.author.first_name &&
+                          post.author.last_name
                             ? `${post.author.first_name} ${post.author.last_name}`
                             : "Unknown"}
                         </span>

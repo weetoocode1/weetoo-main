@@ -69,9 +69,10 @@ export function ViewPostDialog({
 
   const boardConfig = getBoardConfig(post.board);
   // const BoardIcon = boardConfig.icon;
-  const authorName = post.author
-    ? `${post.author.first_name} ${post.author.last_name}`
-    : "Unknown Author";
+  const authorName =
+    post.author && post.author.first_name && post.author.last_name
+      ? `${post.author.first_name} ${post.author.last_name}`
+      : "Unknown Author";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

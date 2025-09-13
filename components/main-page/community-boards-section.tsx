@@ -221,6 +221,9 @@ const convertToPostData = (
   // Format author name properly - handle both API response and PostAuthor interface
   const getAuthorName = () => {
     const author = post.author as ExtendedAuthor;
+    if (!author) {
+      return "Anonymous";
+    }
     if (isUserAuthor(author) && author.first_name && author.last_name) {
       return `${author.first_name} ${author.last_name}`;
     }
@@ -239,6 +242,9 @@ const convertToPostData = (
   // Get author avatar - handle both API response and PostAuthor interface
   const getAuthorAvatar = () => {
     const author = post.author as ExtendedAuthor;
+    if (!author) {
+      return "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face";
+    }
     if (isUserAuthor(author) && author.avatar_url) {
       return author.avatar_url;
     }
