@@ -55,7 +55,7 @@ export default function AdminLayout({
 
         <main className="flex-1 flex flex-col h-full">
           <SidebarHeading onOpenMobileMenu={() => setMobileSheetOpen(true)} />
-          <div className="overflow-y-auto p-2 sm:p-4 scrollbar-none">
+          <div className="overflow-y-auto p-2 sm:p-4 scrollbar-none flex-1">
             {children}
           </div>
         </main>

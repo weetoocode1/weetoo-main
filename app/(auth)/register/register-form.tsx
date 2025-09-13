@@ -406,12 +406,14 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
     debounceTimeout.current = setTimeout(async () => {
       const code = rawInput.trim().toUpperCase();
       lastLookupValue.current = rawInput;
+
       // Lookup referral code
       const { data: codeRow, error: codeError } = await supabase
         .from("referral_codes")
         .select("user_id")
         .eq("code", code)
         .maybeSingle();
+
       // Only update if input hasn't changed
       if (lastLookupValue.current !== rawInput) return;
       if (codeError || !codeRow) {
@@ -419,18 +421,21 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
         setReferralError("Referral code not found.");
         return;
       }
+
       // Lookup user by user_id
       const { data: userRow, error: userError } = await supabase
         .from("users")
         .select("first_name, last_name")
         .eq("id", codeRow.user_id)
         .maybeSingle();
+
       if (lastLookupValue.current !== rawInput) return;
       if (userError || !userRow) {
         setReferrer(null);
         setReferralError("Referrer not found.");
         return;
       }
+
       setReferralError(null);
       setReferrer({
         first_name: userRow.first_name,

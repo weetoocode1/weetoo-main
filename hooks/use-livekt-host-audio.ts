@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { suppressLiveKitErrorsGlobally } from "@/lib/livekit-error-handler";
 import {
   Room as LiveKitClientRoom,
   createLocalAudioTrack,
@@ -72,6 +73,9 @@ export function useLivektHostAudio({
       livekitToken &&
       roomId
     ) {
+      // Suppress LiveKit data channel errors in console
+      const cleanupConsole = suppressLiveKitErrorsGlobally();
+
       import("livekit-client").then(async ({ Room, RoomEvent }) => {
         const room = new Room();
         roomRef.current = room;
@@ -107,6 +111,9 @@ export function useLivektHostAudio({
         }
       });
       cleanup = () => {
+        // Restore original console.error
+        cleanupConsole();
+
         // Unpublish and stop audio track on cleanup
         if (audioTrackRef.current && roomRef.current) {
           roomRef.current.localParticipant.unpublishTrack(

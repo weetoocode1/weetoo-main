@@ -778,31 +778,26 @@ export function RankingsSection({ data }: RankingsSectionProps) {
         "winrate",
         data.returnRateData,
         TrendingUp,
-        `Top 5 — ${t("winRate")}`
+        `${t("winRate")}`
       ),
       processCategory(
         "profitrate",
         data.virtualMoneyData,
         BarChart3,
-        `Top 5 — ${t("profitRate")}`
+        `${t("profitRate")}`
       ),
-      processCategory(
-        "activity",
-        data.activityData,
-        Zap,
-        `Top 5 — ${t("activityXp")}`
-      ),
+      processCategory("activity", data.activityData, Zap, `${t("activityXp")}`),
       processCategory(
         "sponsored",
         data.donationData,
         DollarSign,
-        `Top 5 — ${t("sponsored")}`
+        `${t("sponsored")}`
       ),
       processCategory(
         "followers",
         data.followersData,
         Users,
-        `Top 5 — ${t("mostFollowed")}`
+        `${t("mostFollowed")}`
       ),
     ];
 

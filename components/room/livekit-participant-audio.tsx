@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { suppressLiveKitErrorsGlobally } from "@/lib/livekit-error-handler";
 import {
   Room as LiveKitClientRoom,
   RemoteParticipant,
@@ -61,6 +62,9 @@ export function LivektParticipantAudio({
       roomRef.current = null;
     }
 
+    // Suppress LiveKit data channel errors in console
+    const cleanupConsole = suppressLiveKitErrorsGlobally();
+
     let room: LiveKitClientRoom | null = null;
     import("livekit-client").then(async ({ Room, RoomEvent }) => {
       try {
@@ -78,6 +82,17 @@ export function LivektParticipantAudio({
 
         room.on(RoomEvent.Reconnected, () => {
           console.log("LiveKit reconnected");
+        });
+
+        // Handle data channel errors gracefully
+        room.on(RoomEvent.DataReceived, (payload) => {
+          // Handle data channel messages if needed
+          console.log("LiveKit data received:", payload);
+        });
+
+        // Add error handling for data channel issues
+        room.on(RoomEvent.ConnectionStateChanged, (state) => {
+          console.log("LiveKit connection state changed:", state);
         });
 
         await room.connect(
@@ -156,6 +171,9 @@ export function LivektParticipantAudio({
       handleAudioStatus();
     });
     return () => {
+      // Restore original console.error
+      cleanupConsole();
+
       if (roomRef.current) {
         roomRef.current.disconnect();
         roomRef.current = null;
