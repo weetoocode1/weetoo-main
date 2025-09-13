@@ -58,6 +58,9 @@ export function useChartStreaming(roomId: string, hostId: string) {
   const roomRef = useRef<LiveKitClientRoom | null>(null);
   const isHost = currentUserId === hostId;
   const localTrackRef = useRef<LocalVideoTrack | null>(null);
+  const subscriptionInProgressRef = useRef<boolean>(false);
+  const aggressiveCheckRef = useRef<NodeJS.Timeout | null>(null);
+  const periodicCheckRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get current user
   useEffect(() => {
@@ -156,19 +159,52 @@ export function useChartStreaming(roomId: string, hostId: string) {
 
         const subscribeHostIfAny = (rp: RemoteParticipant) => {
           if (rp.identity !== hostId) return;
+
+          // Prevent race conditions by checking if subscription is already in progress
+          if (subscriptionInProgressRef.current) {
+            console.log("🔄 Subscription already in progress, skipping...");
+            return;
+          }
+
           rp.getTrackPublications().forEach((pub: TrackPublication) => {
             if (pub.kind === "video") {
-              try {
-                // Prefer requestSubscription API when present
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                (pub as any).setSubscribed
-                  ? // Some SDKs expose setSubscribed on publication
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    (pub as any).setSubscribed(true)
-                  : // Otherwise request subscription on the participant
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    (rp as any).requestSubscription?.(pub.trackSid, true);
-              } catch (_) {}
+              console.log(
+                `Found host video: subscribed=${
+                  pub.isSubscribed
+                }, track=${!!pub.track}`
+              );
+              if (!pub.isSubscribed) {
+                console.log("🔄 Host video not subscribed, subscribing now...");
+                subscriptionInProgressRef.current = true;
+                try {
+                  // Prefer requestSubscription API when present
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  (pub as any).setSubscribed
+                    ? // Some SDKs expose setSubscribed on publication
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      (pub as any).setSubscribed(true)
+                    : // Otherwise request subscription on the participant
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      (rp as any).requestSubscription?.(pub.trackSid, true);
+
+                  // Reset subscription flag after a delay
+                  setTimeout(() => {
+                    subscriptionInProgressRef.current = false;
+                  }, 2000);
+                } catch (e) {
+                  console.warn("Failed to subscribe to host video:", e);
+                  subscriptionInProgressRef.current = false;
+                }
+              } else if (pub.isSubscribed && pub.track) {
+                // Already subscribed, update state immediately
+                console.log("✅ Host video already subscribed, updating state");
+                setState((prev) => ({
+                  ...prev,
+                  isHostStreaming: true,
+                  hostVideoTrack: pub.track as RemoteVideoTrack,
+                  hostVideoPublication: pub,
+                }));
+              }
             }
           });
         };
@@ -178,11 +214,59 @@ export function useChartStreaming(roomId: string, hostId: string) {
           subscribeHostIfAny(rp);
         });
 
+        // Add aggressive subscription check for participants who join before host starts streaming
+        if (!isHost && room) {
+          aggressiveCheckRef.current = setInterval(() => {
+            const currentRoom = roomRef.current;
+            if (!currentRoom) return;
+            const host = currentRoom.remoteParticipants.get(hostId);
+            if (host) {
+              const videoPubs = host
+                .getTrackPublications()
+                .filter((p) => p.kind === "video");
+              if (videoPubs.length > 0) {
+                const hasActiveVideo = videoPubs.some(
+                  (p) => p.isSubscribed && p.track && !p.track.isMuted
+                );
+                if (!hasActiveVideo && !subscriptionInProgressRef.current) {
+                  console.log(
+                    "🔄 No active video found, attempting aggressive resubscription"
+                  );
+                  subscribeHostIfAny(host);
+                }
+              }
+            }
+          }, 3000); // Check every 3 seconds for the first 30 seconds
+
+          // Stop aggressive checking after 30 seconds
+          setTimeout(() => {
+            if (aggressiveCheckRef.current) {
+              clearInterval(aggressiveCheckRef.current);
+              aggressiveCheckRef.current = null;
+            }
+          }, 30000);
+        }
+
         // Listen for host track publications and subscribe explicitly
         room.on(
           RoomEventEnum.TrackPublished,
-          (_pub: TrackPublication, participant: RemoteParticipant) => {
-            subscribeHostIfAny(participant);
+          (pub: TrackPublication, participant: RemoteParticipant) => {
+            if (participant.identity === hostId && pub.kind === "video") {
+              console.log(
+                "🎥 Host video track published - subscribing immediately"
+              );
+              // Force immediate subscription to new video tracks, but prevent race conditions
+              if (!subscriptionInProgressRef.current) {
+                setTimeout(() => {
+                  subscribeHostIfAny(participant);
+                }, 100);
+              } else {
+                console.log("🔄 Subscription already in progress, queuing...");
+                setTimeout(() => {
+                  subscribeHostIfAny(participant);
+                }, 2000);
+              }
+            }
           }
         );
 
@@ -197,15 +281,19 @@ export function useChartStreaming(roomId: string, hostId: string) {
             if (track.kind === "video" && participant.identity === hostId) {
               console.log("🎥 Host video track subscribed for participant");
 
+              // Reset subscription flag since we successfully subscribed
+              subscriptionInProgressRef.current = false;
+
               // Immediately update state for instant video display
               setState((prev) => ({
                 ...prev,
                 isHostStreaming: true,
                 hostVideoTrack: track as RemoteVideoTrack,
                 hostVideoPublication: publication,
+                error: null, // Clear any previous errors
               }));
 
-              // Set high quality once - no aggressive enforcement
+              // Set high quality and priority
               try {
                 const pub = publication as any;
                 if (pub.setVideoQuality) {
@@ -220,10 +308,46 @@ export function useChartStreaming(roomId: string, hostId: string) {
                 console.warn("Failed to set high quality for participant:", e);
               }
 
-              // No aggressive quality monitoring - let LiveKit handle it naturally
-              console.log(
-                "✅ Host video subscribed - no aggressive monitoring"
-              );
+              // Add track event listeners for better monitoring
+              track.on("muted", () => {
+                console.log("🎥 Host video track muted");
+              });
+
+              track.on("unmuted", () => {
+                console.log("🎥 Host video track unmuted");
+              });
+
+              track.on("ended", () => {
+                console.log("🎥 Host video track ended");
+                setState((prev) => ({
+                  ...prev,
+                  isHostStreaming: false,
+                  hostVideoTrack: null,
+                  hostVideoPublication: null,
+                }));
+              });
+
+              // Monitor track stream state changes (adaptive streaming)
+              // Note: streamStateChanged might not be available in all LiveKit versions
+              try {
+                (track as any).on?.("streamStateChanged", (state: string) => {
+                  console.log(
+                    "🎥 Host video track stream state changed:",
+                    state
+                  );
+                  if (state === "paused") {
+                    console.log(
+                      "🎥 Video stream paused due to network conditions"
+                    );
+                  } else if (state === "active") {
+                    console.log("🎥 Video stream resumed");
+                  }
+                });
+              } catch (e) {
+                console.log("streamStateChanged event not available:", e);
+              }
+
+              console.log("✅ Host video subscribed successfully");
 
               // Start quality monitoring for participants
               if (!isHost) {
@@ -598,64 +722,52 @@ export function useChartStreaming(roomId: string, hostId: string) {
             participant: RemoteParticipant
           ) => {
             if (track.kind === "video" && participant.identity === hostId) {
-              console.log(
-                "❌ Host video track unsubscribed - attempting immediate resubscribe"
-              );
+              console.log("❌ Host video track unsubscribed");
 
-              // Immediate resubscribe attempt
+              // Clear the video track from state immediately
+              setState((prev) => ({
+                ...prev,
+                hostVideoTrack: null,
+                hostVideoPublication: null,
+              }));
+
+              // Check if host is still streaming after a short delay
               setTimeout(() => {
                 const r = roomRef.current as LiveKitClientRoom | null;
                 if (!r) return;
+
                 const host = r.remoteParticipants.get(hostId);
-                const pubs = host?.getTrackPublications() || [];
-                const videoPubs = pubs.filter((p) => p.kind === "video");
+                if (!host) {
+                  console.log(
+                    "❌ Host disconnected - clearing streaming state"
+                  );
+                  setState((prev) => ({
+                    ...prev,
+                    isHostStreaming: false,
+                  }));
+                  return;
+                }
+
+                const pubs = host.getTrackPublications();
+                const videoPubs = pubs.filter(
+                  (p) => p.kind === "video" && p.isSubscribed
+                );
 
                 if (videoPubs.length > 0) {
                   console.log(
-                    "🔄 Host has video publications - attempting resubscribe"
+                    "🔄 Host still has active video tracks - will resubscribe automatically"
                   );
-                  videoPubs.forEach((pub) => {
-                    if (!pub.isSubscribed) {
-                      try {
-                        if ((pub as any).setSubscribed) {
-                          (pub as any).setSubscribed(true);
-                          console.log("✅ Resubscribed to host video");
-                        }
-                      } catch (e) {
-                        console.warn("Failed to resubscribe:", e);
-                      }
-                    }
-                  });
+                  // Don't force resubscribe - let LiveKit handle it naturally
                 } else {
                   console.log(
-                    "🔍 No video publications found - host may have stopped streaming"
+                    "❌ No active video tracks - host stopped streaming"
                   );
-                  // Only clear state after 30 seconds of no video publications
-                  setTimeout(() => {
-                    const r2 = roomRef.current as LiveKitClientRoom | null;
-                    if (!r2) return;
-                    const host2 = r2.remoteParticipants.get(hostId);
-                    const pubs2 = host2?.getTrackPublications() || [];
-                    const hasVideo2 = pubs2.some((p) => p.kind === "video");
-
-                    if (!hasVideo2) {
-                      console.log(
-                        "✅ Confirmed host has no video after 30s - clearing state"
-                      );
-                      try {
-                        (track as any)._cleanupStats?.();
-                      } catch (_) {}
-                      setState((prev) => ({
-                        ...prev,
-                        isHostStreaming: false,
-                        hostVideoTrack: null,
-                        hostVideoPublication: null,
-                        qualityStats: {},
-                      }));
-                    }
-                  }, 30000);
+                  setState((prev) => ({
+                    ...prev,
+                    isHostStreaming: false,
+                  }));
                 }
-              }, 1000); // Quick resubscribe attempt
+              }, 2000);
             }
           }
         );
@@ -835,6 +947,58 @@ export function useChartStreaming(roomId: string, hostId: string) {
           }, 500);
         }
 
+        // Add connection state monitoring for better debugging
+        room.on(RoomEventEnum.ConnectionStateChanged, (state) => {
+          console.log("LiveKit connection state changed:", state);
+          if (state === "disconnected") {
+            setState((prev) => ({
+              ...prev,
+              isStreaming: false,
+              isHostStreaming: false,
+              hostVideoTrack: null,
+              hostVideoPublication: null,
+            }));
+          }
+        });
+
+        // Add reconnecting state monitoring
+        room.on(RoomEventEnum.Reconnecting, () => {
+          console.log("LiveKit reconnecting...");
+        });
+
+        // Add periodic subscription check for participants to ensure they stay subscribed
+        if (!isHost && room) {
+          periodicCheckRef.current = setInterval(() => {
+            const currentRoom = roomRef.current;
+            if (!currentRoom) return;
+            const host = currentRoom.remoteParticipants.get(hostId);
+            if (host) {
+              const videoPubs = host
+                .getTrackPublications()
+                .filter((p) => p.kind === "video");
+              if (videoPubs.length > 0) {
+                const hasSubscribedVideo = videoPubs.some(
+                  (p) => p.isSubscribed && p.track
+                );
+                if (!hasSubscribedVideo && !subscriptionInProgressRef.current) {
+                  console.log(
+                    "🔄 No subscribed video found, attempting to resubscribe"
+                  );
+                  subscribeHostIfAny(host);
+                }
+              }
+            }
+          }, 10000); // Check every 10 seconds
+
+          // Clean up interval on component unmount
+          return () => {
+            if (periodicCheckRef.current) {
+              clearInterval(periodicCheckRef.current);
+              periodicCheckRef.current = null;
+            }
+          };
+        }
+
         // Optional: swallow low-level datachannel errors in dev
         try {
           const engine = (room as any)?.engine;
@@ -877,6 +1041,20 @@ export function useChartStreaming(roomId: string, hostId: string) {
           r.disconnect();
         }
       } catch (_) {}
+
+      // Clean up all intervals
+      if (aggressiveCheckRef.current) {
+        clearInterval(aggressiveCheckRef.current);
+        aggressiveCheckRef.current = null;
+      }
+      if (periodicCheckRef.current) {
+        clearInterval(periodicCheckRef.current);
+        periodicCheckRef.current = null;
+      }
+
+      // Reset subscription flag
+      subscriptionInProgressRef.current = false;
+
       roomRef.current = null;
       localTrackRef.current = null;
     };

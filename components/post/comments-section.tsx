@@ -24,6 +24,7 @@ import { MoreVertical } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useRealtimeUpdates } from "@/hooks/use-realtime-updates";
 
 export interface PostComment {
   id: string;
@@ -108,7 +109,8 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
       if (!res.ok) throw new Error("Failed to fetch comments");
       const data = await res.json();
       setComments(data);
-      console.log("[fetchComments] comments.length:", data.length);
+      // Update the parent component's comment count
+      updateCommentCount(data.length);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to fetch comments");
     } finally {
@@ -120,6 +122,15 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
     fetchComments();
     // eslint-disable-next-line
   }, [postId]);
+
+  // Set up realtime updates for comments (only after hydration)
+  useRealtimeUpdates({
+    postId,
+    onCommentUpdate: () => {
+      console.log("🔄 Realtime comment update triggered");
+      fetchComments();
+    },
+  });
 
   // Add comment or reply
   const handleSubmit = async (e: React.FormEvent) => {
@@ -139,11 +150,10 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
         const { error } = await res.json();
         throw new Error(error || "Failed to add comment");
       }
-      const { commentCount: newCount } = await res.json();
       setCommentInput("");
       setReplyTo(null);
-      fetchComments();
-      if (typeof newCount === "number") updateCommentCount(newCount);
+      // Fetch comments will update the count automatically
+      await fetchComments();
       toast.success("Comment added");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to add comment");
@@ -162,9 +172,8 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
         const { error } = await res.json();
         throw new Error(error || "Failed to delete comment");
       }
-      const { commentCount: newCount } = await res.json();
-      fetchComments();
-      if (typeof newCount === "number") updateCommentCount(newCount);
+      // Fetch comments will update the count automatically
+      await fetchComments();
       toast.success("Comment deleted");
     } catch (err: unknown) {
       toast.error(
@@ -232,7 +241,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
               </span>
               {isOwn && (
                 <div className="ml-auto flex items-center">
-                  <DropdownMenu>
+                  <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
                       <button
                         className="p-1 rounded-full text-muted-foreground  focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
@@ -347,7 +356,9 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
         {loading ? (
           <Skeleton className="w-24 h-6" />
         ) : (
-          `${comments.length} Comment${comments.length !== 1 ? "s" : ""}`
+          `${commentCount || comments.length} Comment${
+            (commentCount || comments.length) !== 1 ? "s" : ""
+          }`
         )}
       </h2>
       {/* Add comment input */}

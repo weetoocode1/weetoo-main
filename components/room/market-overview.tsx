@@ -2,7 +2,10 @@
 
 import { Info } from "lucide-react";
 import { useEffect, useState } from "react";
+import useSWR from "swr";
 
+export const TRADER_PNL_KEY = (roomId: string) =>
+  `/api/room/${encodeURIComponent(roomId)}/trader-pnl`;
 interface TickerData {
   lastPrice: string;
   priceChange: string;
@@ -23,9 +26,11 @@ interface MarketOverviewData {
 export function MarketOverview({
   symbol,
   data,
+  roomId,
 }: {
   symbol: string;
   data: MarketOverviewData;
+  roomId: string;
 }) {
   const ticker = data?.ticker;
   const openInterest = data?.openInterest;
@@ -53,11 +58,22 @@ export function MarketOverview({
     return () => clearInterval(interval);
   }, [nextFundingTime]);
 
+  const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+  const { data: traderPnl } = useSWR(TRADER_PNL_KEY(roomId), fetcher);
+
+  // Extract trading stats for inline display
+  const todayBuyPnl = traderPnl?.today?.buy ?? 0;
+  const todaySellPnl = traderPnl?.today?.sell ?? 0;
+  const totalBuyPnl = traderPnl?.total?.buy ?? 0;
+  const totalSellPnl = traderPnl?.total?.sell ?? 0;
+
   return (
     <div
-      className="flex flex-col md:flex-row md:items-center md:justify-between w-full h-full p-4 text-sm select-none gap-3"
+      className="flex flex-col lg:flex-row lg:items-center lg:justify-between w-full h-full p-4 text-sm select-none gap-3"
       data-testid="market-overview"
     >
+      {/* Left Section: Symbol and Price */}
       <div className="flex flex-col md:flex-row items-start md:items-center gap-2 h-full">
         <div className="flex flex-col items-start px-2">
           <div className="flex items-center gap-1 cursor-pointer hover:bg-zinc-800 p-1 rounded-md">
@@ -94,14 +110,16 @@ export function MarketOverview({
           </p>
         </div>
       </div>
-      <div className="grid grid-cols-2 md:flex md:flex-nowrap md:items-center gap-3 md:gap-2 h-full w-full md:w-full md:min-w-0">
-        <div className="flex flex-col items-start md:items-center justify-center px-2 min-w-[96px] md:min-w-fit">
+
+      {/* Main Market Data Row */}
+      <div className="flex flex-wrap lg:flex-nowrap items-center gap-2 lg:gap-1 h-full w-full lg:w-auto lg:min-w-0 flex-1 overflow-x-auto lg:overflow-x-visible">
+        <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[90px] lg:min-w-[100px]">
           <p className="text-muted-foreground text-xs">Change (24H)</p>
           <p
             className={
               ticker && parseFloat(ticker.priceChange) < 0
-                ? "text-red-500 font-semibold min-w-[100px] text-[0.77rem]"
-                : "text-green-500 font-semibold min-w-[100px] text-[0.77rem]"
+                ? "text-red-500 font-semibold text-xs lg:text-sm whitespace-nowrap"
+                : "text-green-500 font-semibold text-xs lg:text-sm whitespace-nowrap"
             }
           >
             {ticker && ticker.priceChange && ticker.priceChangePercent
@@ -111,76 +129,66 @@ export function MarketOverview({
               : "-"}
           </p>
         </div>
-        <div className="flex flex-col items-start md:items-center justify-center px-2 min-w-[96px] md:min-w-fit">
+        <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[90px] lg:min-w-[100px]">
           <p className="text-muted-foreground text-xs">High (24H)</p>
-          <div className="flex justify-start md:justify-center items-center w-full">
-            <p className="text-foreground font-semibold min-w-[100px] text-left md:text-center">
-              {ticker && ticker.highPrice
-                ? parseFloat(ticker.highPrice).toLocaleString(undefined, {
-                    maximumFractionDigits: 2,
-                  })
-                : "-"}
-            </p>
-          </div>
+          <p className="text-foreground font-semibold text-xs lg:text-sm whitespace-nowrap">
+            {ticker && ticker.highPrice
+              ? parseFloat(ticker.highPrice).toLocaleString(undefined, {
+                  maximumFractionDigits: 2,
+                })
+              : "-"}
+          </p>
         </div>
-        <div className="flex flex-col items-start md:items-center justify-center px-2 min-w-[96px]">
+        <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[90px] lg:min-w-[100px]">
           <p className="text-muted-foreground text-xs">Low (24H)</p>
-          <div className="flex justify-start md:justify-center items-center w-full">
-            <p className="text-foreground font-semibold min-w-[100px] text-left md:text-center">
-              {ticker && ticker.lowPrice
-                ? parseFloat(ticker.lowPrice).toLocaleString(undefined, {
-                    maximumFractionDigits: 2,
-                  })
-                : "-"}
-            </p>
-          </div>
+          <p className="text-foreground font-semibold text-xs lg:text-sm whitespace-nowrap">
+            {ticker && ticker.lowPrice
+              ? parseFloat(ticker.lowPrice).toLocaleString(undefined, {
+                  maximumFractionDigits: 2,
+                })
+              : "-"}
+          </p>
         </div>
-        <div className="flex flex-col items-start md:items-center justify-center px-2 min-w-[130px] md:min-w-fit">
+        <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[100px] lg:min-w-[120px]">
           <p className="text-muted-foreground text-xs">Turnover (24H)</p>
-          <div className="flex justify-start md:justify-center items-center w-full">
-            <p className="text-foreground font-semibold min-w-[120px] text-left md:text-center">
-              {ticker && ticker.quoteVolume
-                ? parseFloat(ticker.quoteVolume).toLocaleString(undefined, {
-                    maximumFractionDigits: 2,
-                  })
-                : "-"}
-            </p>
-          </div>
+          <p className="text-foreground font-semibold text-xs lg:text-sm whitespace-nowrap">
+            {ticker && ticker.quoteVolume
+              ? parseFloat(ticker.quoteVolume).toLocaleString(undefined, {
+                  maximumFractionDigits: 2,
+                })
+              : "-"}
+          </p>
         </div>
-        <div className="flex flex-col items-start md:items-center justify-center px-2 min-w-[130px] md:min-w-fit">
+        <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[100px] lg:min-w-[120px]">
           <p className="text-muted-foreground text-xs">Volume (24H)</p>
-          <div className="flex justify-start md:justify-center items-center w-full">
-            <p className="text-foreground font-semibold min-w-[120px] text-left md:text-center">
-              {ticker && ticker.volume
-                ? parseFloat(ticker.volume).toLocaleString(undefined, {
-                    maximumFractionDigits: 2,
-                  })
-                : "-"}
-            </p>
-          </div>
+          <p className="text-foreground font-semibold text-xs lg:text-sm whitespace-nowrap">
+            {ticker && ticker.volume
+              ? parseFloat(ticker.volume).toLocaleString(undefined, {
+                  maximumFractionDigits: 2,
+                })
+              : "-"}
+          </p>
         </div>
-        <div className="flex flex-col items-start md:items-center justify-center px-2 min-w-[130px] md:min-w-fit">
+        <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[100px] lg:min-w-[120px]">
           <p className="text-muted-foreground text-xs">Open Int. (24H)</p>
-          <div className="flex justify-start md:justify-center items-center w-full">
-            <p className="text-foreground font-semibold min-w-[120px] text-left md:text-center">
-              {openInterest
-                ? parseFloat(openInterest).toLocaleString(undefined, {
-                    maximumFractionDigits: 2,
-                  })
-                : "-"}
-            </p>
-          </div>
+          <p className="text-foreground font-semibold text-xs lg:text-sm whitespace-nowrap">
+            {openInterest
+              ? parseFloat(openInterest).toLocaleString(undefined, {
+                  maximumFractionDigits: 2,
+                })
+              : "-"}
+          </p>
         </div>
-        <div className="flex flex-col items-start md:items-center justify-center px-2 min-w-[150px] md:min-w-fit">
+        <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[120px] lg:min-w-[140px]">
           <p className="text-muted-foreground text-xs">Funding/Time</p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <p
               className={
                 fundingRate == null
-                  ? "text-muted-foreground font-semibold"
+                  ? "text-muted-foreground font-semibold text-xs lg:text-sm"
                   : parseFloat(fundingRate) >= 0
-                  ? "text-green-500 font-semibold"
-                  : "text-red-500 font-semibold"
+                  ? "text-green-500 font-semibold text-xs lg:text-sm"
+                  : "text-red-500 font-semibold text-xs lg:text-sm"
               }
             >
               {fundingRate == null
@@ -189,8 +197,64 @@ export function MarketOverview({
                     parseFloat(fundingRate) * 100
                   ).toFixed(4)}%`}
             </p>
-            <p className="text-foreground font-semibold">{timeLeft}</p>
-            <Info size={16} className="text-muted-foreground" />
+            <p className="text-foreground font-semibold text-xs lg:text-sm">
+              {timeLeft}
+            </p>
+            <Info size={14} className="text-muted-foreground lg:w-4 lg:h-4" />
+          </div>
+        </div>
+
+        {/* Today Records - Integrated into main row */}
+        <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[140px] lg:min-w-[160px]">
+          <p className="text-muted-foreground text-xs">Today Records</p>
+          <div className="flex items-center gap-2 lg:gap-3">
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-foreground">Buy</span>
+              <span
+                className={`text-xs lg:text-sm font-semibold whitespace-nowrap ${
+                  todayBuyPnl >= 0 ? "text-green-500" : "text-red-500"
+                }`}
+              >
+                {todayBuyPnl >= 0 ? "↑" : "↓"} {todayBuyPnl.toFixed(2)}%
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-foreground">Sell</span>
+              <span
+                className={`text-xs lg:text-sm font-semibold whitespace-nowrap ${
+                  todaySellPnl >= 0 ? "text-green-500" : "text-red-500"
+                }`}
+              >
+                {todaySellPnl >= 0 ? "↑" : "↓"} {todaySellPnl.toFixed(2)}%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Total Records - Integrated into main row */}
+        <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[140px] lg:min-w-[160px]">
+          <p className="text-muted-foreground text-xs">Total Records</p>
+          <div className="flex items-center gap-2 lg:gap-3">
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-foreground">Buy</span>
+              <span
+                className={`text-xs lg:text-sm font-semibold whitespace-nowrap ${
+                  totalBuyPnl >= 0 ? "text-green-500" : "text-red-500"
+                }`}
+              >
+                {totalBuyPnl >= 0 ? "↑" : "↓"} {totalBuyPnl.toFixed(2)}%
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-foreground">Sell</span>
+              <span
+                className={`text-xs lg:text-sm font-semibold whitespace-nowrap ${
+                  totalSellPnl >= 0 ? "text-green-500" : "text-red-500"
+                }`}
+              >
+                {totalSellPnl >= 0 ? "↑" : "↓"} {totalSellPnl.toFixed(2)}%
+              </span>
+            </div>
           </div>
         </div>
       </div>

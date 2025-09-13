@@ -42,28 +42,94 @@ export const TradingViewChartComponent = React.memo(
       error: streamingError,
     } = useChartStreaming(roomId || "", hostId || "");
 
-    // Attach video track to video element with no remote constraints
+    // Attach video track to video element with robust error handling
     useEffect(() => {
       if (hostVideoTrack && videoRef.current) {
         console.log("🎥 Attaching host video track to video element");
 
-        // Attach the track
-        hostVideoTrack.attach(videoRef.current);
-
-        // Configure video element for better quality
         const videoElement = videoRef.current;
+
+        // Configure video element first
         videoElement.muted = true; // Ensure muted to prevent audio issues
         videoElement.playsInline = true; // Important for mobile
         videoElement.autoplay = true;
+        videoElement.controls = false; // Hide controls for cleaner look
 
         // Set video quality attributes
         videoElement.style.width = "100%";
         videoElement.style.height = "100%";
         videoElement.style.objectFit = "contain";
+        videoElement.style.backgroundColor = "black";
+
+        // Add event listeners for better debugging
+        const handleLoadStart = () => console.log("🎥 Video load started");
+        const handleLoadedData = () => console.log("🎥 Video data loaded");
+        const handleCanPlay = () => console.log("🎥 Video can play");
+        const handleError = (e: Event) => console.error("🎥 Video error:", e);
+        const handleEnded = () => console.log("🎥 Video ended");
+
+        videoElement.addEventListener("loadstart", handleLoadStart);
+        videoElement.addEventListener("loadeddata", handleLoadedData);
+        videoElement.addEventListener("canplay", handleCanPlay);
+        videoElement.addEventListener("error", handleError);
+        videoElement.addEventListener("ended", handleEnded);
+
+        // Attach the track with error handling
+        try {
+          hostVideoTrack.attach(videoElement);
+          console.log("✅ Video track attached successfully");
+        } catch (error) {
+          console.error("❌ Failed to attach video track:", error);
+        }
+
+        // Add periodic check to ensure video stays active
+        const checkVideoHealth = () => {
+          if (videoElement.paused && !videoElement.ended) {
+            console.log("🎥 Video paused unexpectedly, attempting to play");
+            videoElement
+              .play()
+              .catch((e) => console.warn("Failed to resume video:", e));
+          }
+
+          // Check if video has srcObject but no video data
+          if (videoElement.srcObject && videoElement.readyState < 2) {
+            console.log(
+              "🎥 Video has srcObject but no data, checking track state"
+            );
+            // Force re-attach if track is still available
+            if (hostVideoTrack && !hostVideoTrack.isMuted) {
+              console.log("🎥 Re-attaching video track");
+              try {
+                hostVideoTrack.detach(videoElement);
+                hostVideoTrack.attach(videoElement);
+              } catch (e) {
+                console.warn("Failed to re-attach video track:", e);
+              }
+            }
+          }
+        };
+
+        const healthCheckInterval = setInterval(checkVideoHealth, 5000);
 
         return () => {
           console.log("🎥 Detaching host video track from video element");
-          hostVideoTrack.detach(videoRef.current!);
+
+          clearInterval(healthCheckInterval);
+
+          // Remove event listeners
+          videoElement.removeEventListener("loadstart", handleLoadStart);
+          videoElement.removeEventListener("loadeddata", handleLoadedData);
+          videoElement.removeEventListener("canplay", handleCanPlay);
+          videoElement.removeEventListener("error", handleError);
+          videoElement.removeEventListener("ended", handleEnded);
+
+          // Detach the track
+          try {
+            hostVideoTrack.detach(videoElement);
+            console.log("✅ Video track detached successfully");
+          } catch (error) {
+            console.error("❌ Failed to detach video track:", error);
+          }
         };
       }
     }, [hostVideoTrack]);
@@ -145,6 +211,17 @@ export const TradingViewChartComponent = React.memo(
             onLoadedData={() => console.log("🎥 Video data loaded")}
             onCanPlay={() => console.log("🎥 Video can play")}
             onError={(e) => console.error("🎥 Video error:", e)}
+            onStalled={() => console.log("🎥 Video stalled")}
+            onSuspend={() => console.log("🎥 Video suspended")}
+            onWaiting={() => console.log("🎥 Video waiting")}
+            onPlay={() => console.log("🎥 Video playing")}
+            onPause={() => console.log("🎥 Video paused")}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              backgroundColor: "black",
+            }}
           />
           <div className="absolute top-2 right-2 flex items-center gap-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
             <Video className="h-3 w-3" />
@@ -171,6 +248,12 @@ export const TradingViewChartComponent = React.memo(
             <p className="text-sm text-muted-foreground">
               Waiting for host to start chart streaming...
             </p>
+            <div className="mt-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Checking for video stream...
+              </p>
+            </div>
             {streamingError && (
               <p className="text-xs text-red-500 mt-2">
                 Error: {streamingError}

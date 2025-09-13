@@ -29,6 +29,7 @@ import { useRouter } from "next/navigation";
 import * as React from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { useRealtimeUpdates } from "@/hooks/use-realtime-updates";
 
 const calculateReadingTime = (
   text: string,
@@ -62,6 +63,7 @@ export default function PostDetailClient({
   const [current, setCurrent] = React.useState(0);
   const [currentUser, setCurrentUser] = React.useState<User | null>(null);
   const [commentCount, setCommentCount] = React.useState(post.comments);
+  const [viewCount, setViewCount] = React.useState(post.views);
   const [mounted, setMounted] = React.useState(false);
 
   // Verification restriction handlers
@@ -132,6 +134,23 @@ export default function PostDetailClient({
   }, []);
 
   useTrackPostView(post.id);
+
+  // Set up realtime updates for views, likes, and comments (only after hydration)
+  useRealtimeUpdates({
+    postId: post.id,
+    onViewUpdate: (newViewCount) => {
+      console.log("🔄 Realtime view update:", newViewCount);
+      setViewCount(newViewCount);
+    },
+    onLikeUpdate: (newLikeCount) => {
+      console.log("🔄 Realtime like update:", newLikeCount);
+      // This will be handled by the LikeButton component's own realtime updates
+    },
+    onCommentUpdate: () => {
+      console.log("🔄 Realtime comment update triggered");
+      // This will be handled by the CommentsSection component's own realtime updates
+    },
+  });
 
   if (!post) return <div className="text-center py-20">Post not found.</div>;
 
@@ -212,7 +231,7 @@ export default function PostDetailClient({
               <span className="hidden sm:inline">·</span>
               <div className="flex items-center gap-1.5">
                 <Eye className="h-3 w-3" />
-                <span>{post.views} views</span>
+                <span>{viewCount} views</span>
               </div>
               <span className="hidden sm:inline">·</span>
               <div className="flex items-center gap-1.5">
