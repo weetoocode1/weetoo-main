@@ -1,17 +1,17 @@
 "use client";
 
+import { IdentityVerificationButton } from "@/components/identity-verification-button";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { IdentityVerificationButton } from "@/components/identity-verification-button";
-import { useQuery } from "@tanstack/react-query";
 
 const NAVER_CLIENT_ID = process.env.NEXT_PUBLIC_NAVER_CLIENT_ID;
 const NAVER_REDIRECT_URI =
@@ -143,7 +143,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
           .from("referral_codes")
           .select("user_id")
           .eq("code", code)
-          .single();
+          .maybeSingle();
         if (codeError || !codeRow) {
           setReferrer(null);
           setReferralError("Referral code not found.");
@@ -154,7 +154,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
           .from("users")
           .select("first_name, last_name")
           .eq("id", codeRow.user_id)
-          .single();
+          .maybeSingle();
         if (userError || !userRow) {
           setReferrer(null);
           setReferralError("Referrer not found.");
@@ -310,7 +310,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
                 .from("referral_codes")
                 .select("id, user_id")
                 .eq("code", referralCodeState.trim().toUpperCase())
-                .single();
+                .maybeSingle();
               if (codeRow) {
                 // 2. Insert into referrals table
                 await supabase.from("referrals").insert({
@@ -324,7 +324,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
                   .from("users")
                   .select("kor_coins")
                   .eq("id", newUser.id)
-                  .single();
+                  .maybeSingle();
                 const currentKorCoins = userRow?.kor_coins || 0;
                 await supabase
                   .from("users")
@@ -411,7 +411,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
         .from("referral_codes")
         .select("user_id")
         .eq("code", code)
-        .single();
+        .maybeSingle();
       // Only update if input hasn't changed
       if (lastLookupValue.current !== rawInput) return;
       if (codeError || !codeRow) {
@@ -424,7 +424,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
         .from("users")
         .select("first_name, last_name")
         .eq("id", codeRow.user_id)
-        .single();
+        .maybeSingle();
       if (lastLookupValue.current !== rawInput) return;
       if (userError || !userRow) {
         setReferrer(null);
