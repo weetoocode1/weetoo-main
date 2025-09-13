@@ -192,6 +192,8 @@ export function ManagePostTable() {
         (post.excerpt && post.excerpt.toLowerCase().includes(searchLower)) ||
         (post.content && post.content.toLowerCase().includes(searchLower)) ||
         (post.author &&
+          post.author.first_name &&
+          post.author.last_name &&
           `${post.author.first_name} ${post.author.last_name}`
             .toLowerCase()
             .includes(searchLower)) ||
@@ -387,9 +389,10 @@ export function ManagePostTable() {
             {virtualPosts.map((post) => {
               const boardConfig = getBoardConfig(post.board);
               const BoardIcon = boardConfig.icon;
-              const authorName = post.author
-                ? `${post.author.first_name} ${post.author.last_name}`
-                : "Unknown Author";
+              const authorName =
+                post.author && post.author.first_name && post.author.last_name
+                  ? `${post.author.first_name} ${post.author.last_name}`
+                  : "Unknown Author";
 
               return (
                 <div
