@@ -61,6 +61,10 @@ export function useChartStreaming(roomId: string, hostId: string) {
   const subscriptionInProgressRef = useRef<boolean>(false);
   const aggressiveCheckRef = useRef<NodeJS.Timeout | null>(null);
   const periodicCheckRef = useRef<NodeJS.Timeout | null>(null);
+  const connectionAttemptRef = useRef<boolean>(false);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const retryCountRef = useRef<number>(0);
+  const maxRetries = 3;
 
   // Get current user
   useEffect(() => {
@@ -68,6 +72,29 @@ export function useChartStreaming(roomId: string, hostId: string) {
     supabase.auth.getUser().then(({ data }) => {
       setCurrentUserId(data?.user?.id || null);
     });
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+      if (aggressiveCheckRef.current) {
+        clearInterval(aggressiveCheckRef.current);
+        aggressiveCheckRef.current = null;
+      }
+      if (periodicCheckRef.current) {
+        clearInterval(periodicCheckRef.current);
+        periodicCheckRef.current = null;
+      }
+      if (roomRef.current) {
+        roomRef.current.disconnect();
+        roomRef.current = null;
+      }
+      connectionAttemptRef.current = false;
+    };
   }, []);
 
   // Warn host if their tab is backgrounded (browsers throttle updates)
@@ -233,18 +260,31 @@ export function useChartStreaming(roomId: string, hostId: string) {
                     "🔄 No active video found, attempting aggressive resubscription"
                   );
                   subscribeHostIfAny(host);
+                } else if (hasActiveVideo) {
+                  // Video is active, update state to ensure UI reflects current state
+                  const activePub = videoPubs.find(
+                    (p) => p.isSubscribed && p.track && !p.track.isMuted
+                  );
+                  if (activePub && activePub.track) {
+                    setState((prev) => ({
+                      ...prev,
+                      isHostStreaming: true,
+                      hostVideoTrack: activePub.track as RemoteVideoTrack,
+                      hostVideoPublication: activePub,
+                    }));
+                  }
                 }
               }
             }
-          }, 3000); // Check every 3 seconds for the first 30 seconds
+          }, 2000); // Check every 2 seconds for better responsiveness
 
-          // Stop aggressive checking after 30 seconds
+          // Stop aggressive checking after 60 seconds (increased from 30)
           setTimeout(() => {
             if (aggressiveCheckRef.current) {
               clearInterval(aggressiveCheckRef.current);
               aggressiveCheckRef.current = null;
             }
-          }, 30000);
+          }, 60000);
         }
 
         // Listen for host track publications and subscribe explicitly
@@ -266,6 +306,61 @@ export function useChartStreaming(roomId: string, hostId: string) {
                   subscribeHostIfAny(participant);
                 }, 2000);
               }
+            }
+          }
+        );
+
+        // Listen for track unsubscriptions to handle video disappearing
+        room.on(
+          RoomEventEnum.TrackUnsubscribed,
+          (track: any, pub: TrackPublication, participant: any) => {
+            if (participant.identity === hostId && pub.kind === "video") {
+              console.log(
+                "🎥 Host video track unsubscribed - attempting resubscription"
+              );
+              setState((prev) => ({
+                ...prev,
+                isHostStreaming: false,
+                hostVideoTrack: null,
+                hostVideoPublication: null,
+              }));
+
+              // Attempt to resubscribe after a short delay
+              setTimeout(() => {
+                if (!subscriptionInProgressRef.current) {
+                  subscribeHostIfAny(participant);
+                }
+              }, 1000);
+            }
+          }
+        );
+
+        // Listen for track muted/unmuted events
+        room.on(
+          RoomEventEnum.TrackMuted,
+          (pub: TrackPublication, participant: any) => {
+            if (participant.identity === hostId && pub.kind === "video") {
+              console.log("🎥 Host video track muted");
+              setState((prev) => ({
+                ...prev,
+                isHostStreaming: false,
+                hostVideoTrack: null,
+                hostVideoPublication: null,
+              }));
+            }
+          }
+        );
+
+        room.on(
+          RoomEventEnum.TrackUnmuted,
+          (pub: TrackPublication, participant: any) => {
+            if (participant.identity === hostId && pub.kind === "video") {
+              console.log("🎥 Host video track unmuted - resubscribing");
+              setTimeout(() => {
+                if (!subscriptionInProgressRef.current) {
+                  subscribeHostIfAny(participant);
+                }
+              }, 500);
             }
           }
         );
@@ -1096,11 +1191,20 @@ export function useChartStreaming(roomId: string, hostId: string) {
     return false;
   };
 
-  // On-demand connect helper
+  // On-demand connect helper with retry logic
   const ensureConnected = useCallback(async (): Promise<boolean> => {
+    // Prevent multiple simultaneous connection attempts
+    if (connectionAttemptRef.current) {
+      console.log("Connection attempt already in progress, skipping...");
+      return false;
+    }
+
+    connectionAttemptRef.current = true;
+
     try {
       const lk: any = await import("livekit-client");
       let token = livekitToken;
+
       if (!token && currentUserId && roomId) {
         try {
           const res = await fetch("/api/livekit-token", {
@@ -1112,12 +1216,25 @@ export function useChartStreaming(roomId: string, hostId: string) {
               role: isHost ? "host" : "participant",
             }),
           });
+
+          if (!res.ok) {
+            throw new Error(`Token request failed: ${res.status}`);
+          }
+
           const data = await res.json();
           token = data.token;
           setLivekitToken(token);
-        } catch (_) {}
+        } catch (error) {
+          console.error("Failed to fetch LiveKit token:", error);
+          connectionAttemptRef.current = false;
+          return false;
+        }
       }
-      if (!token) return false;
+
+      if (!token) {
+        connectionAttemptRef.current = false;
+        return false;
+      }
 
       let r: any = roomRef.current;
       if (!r) {
@@ -1130,16 +1247,68 @@ export function useChartStreaming(roomId: string, hostId: string) {
           stopLocalTrackOnUnpublish: true,
         } as any);
         roomRef.current = r;
+
+        // Add connection event handlers
+        r.on(RoomEvent.Disconnected, (reason: any) => {
+          console.log("LiveKit disconnected:", reason);
+          connectionAttemptRef.current = false;
+          retryCountRef.current = 0;
+        });
+
+        r.on(RoomEvent.Reconnecting, () => {
+          console.log("LiveKit reconnecting...");
+        });
+
+        r.on(RoomEvent.Reconnected, () => {
+          console.log("LiveKit reconnected");
+          connectionAttemptRef.current = false;
+          retryCountRef.current = 0;
+        });
+
+        r.on(RoomEvent.ConnectionStateChanged, (state: any) => {
+          console.log("LiveKit connection state changed:", state);
+          if (state === "disconnected") {
+            connectionAttemptRef.current = false;
+          }
+        });
       }
+
       if (r.state !== "connected") {
         await r.connect(process.env.NEXT_PUBLIC_LIVEKIT_API_URL!, token);
         setState((prev) => ({ ...prev, room: r }));
       }
+
+      connectionAttemptRef.current = false;
       return r.state === "connected";
-    } catch (_) {
+    } catch (error) {
+      console.error("LiveKit connection failed:", error);
+      connectionAttemptRef.current = false;
+
+      // Implement exponential backoff retry
+      if (retryCountRef.current < maxRetries) {
+        retryCountRef.current++;
+        const delay = Math.pow(2, retryCountRef.current) * 1000; // 2s, 4s, 8s
+
+        console.log(
+          `Retrying connection in ${delay}ms (attempt ${retryCountRef.current}/${maxRetries})`
+        );
+
+        retryTimeoutRef.current = setTimeout(() => {
+          ensureConnected();
+        }, delay);
+      } else {
+        console.error("Max retry attempts reached, giving up");
+        retryCountRef.current = 0;
+        setState((prev) => ({
+          ...prev,
+          error:
+            "Failed to connect to LiveKit after multiple attempts. Please refresh the page.",
+        }));
+      }
+
       return false;
     }
-  }, [livekitToken, currentUserId, roomId, isHost]);
+  }, [livekitToken, currentUserId, roomId, isHost, maxRetries]);
 
   // Helper to announce host preset to participants
   const broadcastHostPreset = useCallback(() => {

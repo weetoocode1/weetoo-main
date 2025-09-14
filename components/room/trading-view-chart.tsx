@@ -67,12 +67,22 @@ export const TradingViewChartComponent = React.memo(
         const handleCanPlay = () => console.log("🎥 Video can play");
         const handleError = (e: Event) => console.error("🎥 Video error:", e);
         const handleEnded = () => console.log("🎥 Video ended");
+        const handleStalled = () => console.warn("🎥 Video stalled");
+        const handleSuspend = () => console.warn("🎥 Video suspended");
+        const handleWaiting = () => console.warn("🎥 Video waiting");
+        const handlePlay = () => console.log("🎥 Video playing");
+        const handlePause = () => console.warn("🎥 Video paused");
 
         videoElement.addEventListener("loadstart", handleLoadStart);
         videoElement.addEventListener("loadeddata", handleLoadedData);
         videoElement.addEventListener("canplay", handleCanPlay);
         videoElement.addEventListener("error", handleError);
         videoElement.addEventListener("ended", handleEnded);
+        videoElement.addEventListener("stalled", handleStalled);
+        videoElement.addEventListener("suspend", handleSuspend);
+        videoElement.addEventListener("waiting", handleWaiting);
+        videoElement.addEventListener("play", handlePlay);
+        videoElement.addEventListener("pause", handlePause);
 
         // Attach the track with error handling
         try {
@@ -82,13 +92,37 @@ export const TradingViewChartComponent = React.memo(
           console.error("❌ Failed to attach video track:", error);
         }
 
-        // Add periodic check to ensure video stays active
+        // Enhanced video health monitoring
+        let consecutiveFailures = 0;
+        const maxFailures = 3;
+
         const checkVideoHealth = () => {
+          // Check if video element is visible and has proper dimensions
+          const rect = videoElement.getBoundingClientRect();
+          const isVisible =
+            rect.width > 0 &&
+            rect.height > 0 &&
+            !videoElement.hidden &&
+            videoElement.offsetParent !== null;
+
+          if (!isVisible) {
+            console.warn("🎥 Video element not visible, dimensions:", rect);
+            return;
+          }
+
+          // Check if video is paused unexpectedly
           if (videoElement.paused && !videoElement.ended) {
             console.log("🎥 Video paused unexpectedly, attempting to play");
             videoElement
               .play()
-              .catch((e) => console.warn("Failed to resume video:", e));
+              .then(() => {
+                console.log("✅ Video resumed successfully");
+                consecutiveFailures = 0;
+              })
+              .catch((e) => {
+                console.warn("Failed to resume video:", e);
+                consecutiveFailures++;
+              });
           }
 
           // Check if video has srcObject but no video data
@@ -96,25 +130,66 @@ export const TradingViewChartComponent = React.memo(
             console.log(
               "🎥 Video has srcObject but no data, checking track state"
             );
-            // Force re-attach if track is still available
-            if (hostVideoTrack && !hostVideoTrack.isMuted) {
+
+            // Check if track is still valid and not muted
+            if (
+              hostVideoTrack &&
+              !hostVideoTrack.isMuted &&
+              hostVideoTrack.mediaStreamTrack
+            ) {
               console.log("🎥 Re-attaching video track");
               try {
                 hostVideoTrack.detach(videoElement);
-                hostVideoTrack.attach(videoElement);
+                // Small delay to ensure proper cleanup
+                setTimeout(() => {
+                  hostVideoTrack.attach(videoElement);
+                  console.log("✅ Video track re-attached");
+                }, 100);
               } catch (e) {
                 console.warn("Failed to re-attach video track:", e);
+                consecutiveFailures++;
               }
+            } else {
+              console.warn("🎥 Video track is muted or invalid");
+              consecutiveFailures++;
+            }
+          }
+
+          // If we have too many consecutive failures, try to force a complete re-attach
+          if (consecutiveFailures >= maxFailures) {
+            console.warn(
+              "🎥 Too many consecutive failures, forcing complete re-attach"
+            );
+            try {
+              hostVideoTrack.detach(videoElement);
+              setTimeout(() => {
+                hostVideoTrack.attach(videoElement);
+                consecutiveFailures = 0;
+              }, 500);
+            } catch (e) {
+              console.error("Failed to force re-attach:", e);
             }
           }
         };
 
-        const healthCheckInterval = setInterval(checkVideoHealth, 5000);
+        // More frequent health checks for the first 30 seconds
+        const healthCheckInterval = setInterval(checkVideoHealth, 2000);
+
+        // Reduce frequency after initial period
+        const reduceFrequencyTimeout = setTimeout(() => {
+          clearInterval(healthCheckInterval);
+          const slowHealthCheckInterval = setInterval(checkVideoHealth, 10000);
+
+          return () => {
+            clearInterval(slowHealthCheckInterval);
+          };
+        }, 30000);
 
         return () => {
           console.log("🎥 Detaching host video track from video element");
 
           clearInterval(healthCheckInterval);
+          clearTimeout(reduceFrequencyTimeout);
 
           // Remove event listeners
           videoElement.removeEventListener("loadstart", handleLoadStart);
@@ -122,6 +197,11 @@ export const TradingViewChartComponent = React.memo(
           videoElement.removeEventListener("canplay", handleCanPlay);
           videoElement.removeEventListener("error", handleError);
           videoElement.removeEventListener("ended", handleEnded);
+          videoElement.removeEventListener("stalled", handleStalled);
+          videoElement.removeEventListener("suspend", handleSuspend);
+          videoElement.removeEventListener("waiting", handleWaiting);
+          videoElement.removeEventListener("play", handlePlay);
+          videoElement.removeEventListener("pause", handlePause);
 
           // Detach the track
           try {
