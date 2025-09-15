@@ -10,53 +10,29 @@ import { ParticipantsList } from "@/components/room/participants-list";
 import { TradeHistoryTabs } from "@/components/room/trade-history-tabs";
 import { TradingForm } from "@/components/room/trading-form";
 import { useBinanceFutures } from "@/hooks/use-binance-futures";
+import { useRoomParticipant } from "@/hooks/use-room-participant";
 import { createClient } from "@/lib/supabase/client";
 import React, { useEffect, useRef, useState } from "react";
 import { TradingViewChartComponent } from "./trading-view-chart";
 
 function RoomJoiner({ roomId }: { roomId: string }) {
+  const [user, setUser] = useState<{ id: string } | null>(null);
+
   useEffect(() => {
-    async function joinRoom() {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user ? { id: data.user.id } : null);
+    });
+  }, []);
 
-      try {
-        const { data: existing } = await supabase
-          .from("trading_room_participants")
-          .select("id")
-          .eq("room_id", roomId)
-          .eq("user_id", user.id)
-          .is("left_at", null)
-          .maybeSingle();
+  const { joinRoom } = useRoomParticipant(roomId, user);
 
-        if (!existing) {
-          const { error } = await supabase
-            .from("trading_room_participants")
-            .insert({
-              room_id: roomId,
-              user_id: user.id,
-            });
-
-          if (error) {
-            // Handle duplicate key constraint gracefully
-            if (error.code === "23505") {
-              console.log("User already in room, skipping duplicate insert");
-            } else {
-              console.error("Error joining room:", error);
-            }
-          } else {
-            console.log("Successfully joined room via RoomJoiner");
-          }
-        }
-      } catch (error) {
-        console.error("Error in RoomJoiner:", error);
-      }
+  useEffect(() => {
+    if (user && roomId) {
+      joinRoom();
     }
-    joinRoom();
-  }, [roomId]);
+  }, [user, roomId, joinRoom]);
+
   return null;
 }
 

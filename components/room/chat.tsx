@@ -2,6 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useRoomParticipant } from "@/hooks/use-room-participant";
 import { createClient } from "@/lib/supabase/client";
 import { Crown, MessageSquare, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -43,8 +44,14 @@ export function Chat({ roomId, creatorId }: ChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [message, setMessage] = useState("");
   const [user, setUser] = useState<User | null>(null);
-  const [isParticipant, setIsParticipant] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const {
+    isParticipant,
+    isLoading: isParticipantLoading,
+    error: participantError,
+    joinRoom,
+  } = useRoomParticipant(roomId, user);
 
   useEffect(() => {
     const supabase = createClient();
@@ -53,21 +60,11 @@ export function Chat({ roomId, creatorId }: ChatProps) {
     });
   }, []);
 
-  // Check if user is a participant
-  useEffect(() => {
-    if (!user || !roomId) return;
-    const supabase = createClient();
-    supabase
-      .from("trading_room_participants")
-      .select("id")
-      .eq("room_id", roomId)
-      .eq("user_id", user.id)
-      .is("left_at", null)
-      .maybeSingle()
-      .then(({ data }) => {
-        setIsParticipant(!!data);
-      });
-  }, [user, roomId]);
+  // Handle join room when user is not a participant
+  const handleJoinRoom = async () => {
+    if (!user) return;
+    await joinRoom();
+  };
 
   useEffect(() => {
     if (!roomId) return;
@@ -244,28 +241,43 @@ export function Chat({ roomId, creatorId }: ChatProps) {
           <div ref={scrollRef} />
         </div>
       </ScrollArea>
-      <form
-        onSubmit={handleSendMessage}
-        className="p-3 border-t border-border flex gap-2 bg-background sticky bottom-0"
-      >
-        <Input
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder={
-            isParticipant ? "Type your message..." : "Join the room to chat"
-          }
-          className="flex-1 rounded-none"
-          disabled={!isParticipant}
-        />
-        <Button
-          type="submit"
-          size="icon"
-          className="rounded-none"
-          disabled={!message.trim() || !isParticipant}
+      {!isParticipant ? (
+        <div className="p-3 border-t border-border bg-background sticky bottom-0">
+          <Button
+            onClick={handleJoinRoom}
+            disabled={isParticipantLoading}
+            className="w-full"
+          >
+            {isParticipantLoading ? "Joining..." : "Join Room to Chat"}
+          </Button>
+          {participantError && (
+            <p className="text-xs text-red-500 mt-1 text-center">
+              {participantError}
+            </p>
+          )}
+        </div>
+      ) : (
+        <form
+          onSubmit={handleSendMessage}
+          className="p-3 border-t border-border flex gap-2 bg-background sticky bottom-0"
         >
-          <Send className="h-4 w-4" />
-        </Button>
-      </form>
+          <Input
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Type your message..."
+            className="flex-1 rounded-none"
+            disabled={isParticipantLoading}
+          />
+          <Button
+            type="submit"
+            size="icon"
+            className="rounded-none"
+            disabled={!message.trim() || isParticipantLoading}
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </form>
+      )}
     </div>
   );
 }

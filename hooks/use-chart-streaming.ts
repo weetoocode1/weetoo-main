@@ -41,6 +41,7 @@ interface ChartStreamingState {
 export function useChartStreaming(roomId: string, hostId: string) {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [livekitToken, setLivekitToken] = useState<string | null>(null);
+  const [tokenExpiresAt, setTokenExpiresAt] = useState<number | null>(null);
   const [state, setState] = useState<ChartStreamingState>({
     isStreaming: false,
     isHostStreaming: false,
@@ -65,6 +66,20 @@ export function useChartStreaming(roomId: string, hostId: string) {
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef<number>(0);
   const maxRetries = 3;
+
+  // Helper function to check if a participant is the host
+  const isHostParticipant = useCallback(
+    (participant: RemoteParticipant) => {
+      const isHost =
+        participant.identity.startsWith("host-") &&
+        participant.identity.includes(hostId);
+      console.log(
+        `🔍 Checking participant ${participant.identity}: isHost=${isHost}`
+      );
+      return isHost;
+    },
+    [hostId]
+  );
 
   // Get current user
   useEffect(() => {
@@ -116,9 +131,11 @@ export function useChartStreaming(roomId: string, hostId: string) {
   }, [isHost]);
 
   // Fetch LiveKit token for video streaming
-  useEffect(() => {
-    if (roomId && currentUserId) {
-      fetch("/api/livekit-token", {
+  const fetchToken = useCallback(async () => {
+    if (!roomId || !currentUserId) return;
+
+    try {
+      const response = await fetch("/api/livekit-token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -126,27 +143,64 @@ export function useChartStreaming(roomId: string, hostId: string) {
           roomId,
           role: isHost ? "host" : "participant",
         }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          setLivekitToken(data.token);
-        })
-        .catch(() => {
-          setState((prev) => ({
-            ...prev,
-            error: "Failed to get LiveKit token",
-          }));
-        });
+      });
+
+      if (!response.ok) {
+        throw new Error(`Token request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setLivekitToken(data.token);
+      setTokenExpiresAt(data.expiresAt);
+      console.log(
+        `🔑 Token fetched for ${
+          isHost ? "host" : "participant"
+        } ${currentUserId}`
+      );
+    } catch (error) {
+      console.error("Failed to fetch LiveKit token:", error);
+      setState((prev) => ({
+        ...prev,
+        error: "Failed to get LiveKit token",
+      }));
     }
   }, [roomId, currentUserId, isHost]);
+
+  useEffect(() => {
+    fetchToken();
+  }, [fetchToken]);
+
+  // Token refresh mechanism
+  useEffect(() => {
+    if (!tokenExpiresAt) return;
+
+    const timeUntilExpiry = tokenExpiresAt - Date.now();
+    const refreshTime = Math.max(
+      timeUntilExpiry - 60 * 60 * 1000,
+      5 * 60 * 1000
+    ); // Refresh 1 hour before expiry or at least 5 minutes
+
+    if (refreshTime > 0) {
+      const refreshTimeout = setTimeout(() => {
+        console.log("🔄 Refreshing LiveKit token before expiry");
+        fetchToken();
+      }, refreshTime);
+
+      return () => clearTimeout(refreshTimeout);
+    }
+  }, [tokenExpiresAt, fetchToken]);
 
   // Connect to LiveKit room
   useEffect(() => {
     if (!roomId || !livekitToken || !currentUserId) return;
 
     let room: LiveKitClientRoom | null = null;
+    let isConnecting = false;
 
     const connectToRoom = async () => {
+      if (isConnecting) return;
+      isConnecting = true;
+
       try {
         const lk: any = await import("livekit-client");
         try {
@@ -154,11 +208,25 @@ export function useChartStreaming(roomId: string, hostId: string) {
         } catch (_) {}
         const RoomCtor = lk.Room as typeof LiveKitClientRoom;
         const RoomEventEnum = lk.RoomEvent as typeof RoomEvent;
+
         // Enable dynacast/adaptive for stability and quality
         room = new RoomCtor({
           adaptiveStream: isHost ? true : false,
           dynacast: true,
           stopLocalTrackOnUnpublish: true,
+          // Add reconnection settings
+          reconnectPolicy: {
+            nextRetryDelayInMs: (context: any) => {
+              // Exponential backoff with jitter
+              const delay = Math.min(
+                1000 * Math.pow(2, context.retryCount),
+                30000
+              );
+              const jitter = Math.random() * 1000;
+              return delay + jitter;
+            },
+            maxRetries: 10,
+          },
           publishDefaults: isHost
             ? {
                 // Prefer VP9 for sharper screen content; SDK will fall back when unsupported
@@ -177,6 +245,45 @@ export function useChartStreaming(roomId: string, hostId: string) {
         } as any);
         roomRef.current = room;
 
+        // Add connection event handlers
+        room.on(RoomEventEnum.Connected, () => {
+          console.log("✅ Connected to LiveKit room");
+          setState((prev) => ({ ...prev, error: null }));
+        });
+
+        room.on(RoomEventEnum.Disconnected, (reason) => {
+          console.log("❌ Disconnected from LiveKit room:", reason);
+          setState((prev) => ({
+            ...prev,
+            isHostStreaming: false,
+            hostVideoTrack: null,
+            hostVideoPublication: null,
+            error: `Disconnected: ${reason}`,
+          }));
+
+          // If disconnected due to token issues, try to refresh token
+          if (
+            reason &&
+            (reason.toString().includes("CLIENT_DISCONNECTED") ||
+              reason.toString().includes("SERVER_DISCONNECTED"))
+          ) {
+            console.log("🔄 Attempting to refresh token after disconnection");
+            setTimeout(() => {
+              fetchToken();
+            }, 2000);
+          }
+        });
+
+        room.on(RoomEventEnum.Reconnecting, () => {
+          console.log("🔄 Reconnecting to LiveKit room...");
+          setState((prev) => ({ ...prev, error: "Reconnecting..." }));
+        });
+
+        room.on(RoomEventEnum.Reconnected, () => {
+          console.log("✅ Reconnected to LiveKit room");
+          setState((prev) => ({ ...prev, error: null }));
+        });
+
         await room.connect(
           process.env.NEXT_PUBLIC_LIVEKIT_API_URL!,
           livekitToken
@@ -185,7 +292,8 @@ export function useChartStreaming(roomId: string, hostId: string) {
         setState((prev) => ({ ...prev, room, error: null }));
 
         const subscribeHostIfAny = (rp: RemoteParticipant) => {
-          if (rp.identity !== hostId) return;
+          // Check if this participant is the host using helper function
+          if (!isHostParticipant(rp)) return;
 
           // Prevent race conditions by checking if subscription is already in progress
           if (subscriptionInProgressRef.current) {
@@ -237,7 +345,11 @@ export function useChartStreaming(roomId: string, hostId: string) {
         };
 
         // On initial join, subscribe if host is already publishing
+        console.log("🔍 Checking existing participants on room join:");
         room.remoteParticipants.forEach((rp: RemoteParticipant) => {
+          console.log(
+            `  - Participant: ${rp.identity} (looking for host: ${hostId})`
+          );
           subscribeHostIfAny(rp);
         });
 
@@ -245,8 +357,15 @@ export function useChartStreaming(roomId: string, hostId: string) {
         if (!isHost && room) {
           aggressiveCheckRef.current = setInterval(() => {
             const currentRoom = roomRef.current;
-            if (!currentRoom) return;
-            const host = currentRoom.remoteParticipants.get(hostId);
+            if (!currentRoom || currentRoom.state !== "connected") return;
+
+            // Find host participant by checking identity pattern
+            const host = Array.from(
+              currentRoom.remoteParticipants.values()
+            ).find(
+              (p) =>
+                p.identity.startsWith("host-") && p.identity.includes(hostId)
+            );
             if (host) {
               const videoPubs = host
                 .getTrackPublications()
@@ -291,7 +410,14 @@ export function useChartStreaming(roomId: string, hostId: string) {
         room.on(
           RoomEventEnum.TrackPublished,
           (pub: TrackPublication, participant: RemoteParticipant) => {
-            if (participant.identity === hostId && pub.kind === "video") {
+            console.log(
+              `🔍 Track published: ${pub.kind} by ${participant.identity} (looking for host: ${hostId})`
+            );
+            if (
+              participant.identity.startsWith("host-") &&
+              participant.identity.includes(hostId) &&
+              pub.kind === "video"
+            ) {
               console.log(
                 "🎥 Host video track published - subscribing immediately"
               );
@@ -314,7 +440,11 @@ export function useChartStreaming(roomId: string, hostId: string) {
         room.on(
           RoomEventEnum.TrackUnsubscribed,
           (track: any, pub: TrackPublication, participant: any) => {
-            if (participant.identity === hostId && pub.kind === "video") {
+            if (
+              participant.identity.startsWith("host-") &&
+              participant.identity.includes(hostId) &&
+              pub.kind === "video"
+            ) {
               console.log(
                 "🎥 Host video track unsubscribed - attempting resubscription"
               );
@@ -339,7 +469,11 @@ export function useChartStreaming(roomId: string, hostId: string) {
         room.on(
           RoomEventEnum.TrackMuted,
           (pub: TrackPublication, participant: any) => {
-            if (participant.identity === hostId && pub.kind === "video") {
+            if (
+              participant.identity.startsWith("host-") &&
+              participant.identity.includes(hostId) &&
+              pub.kind === "video"
+            ) {
               console.log("🎥 Host video track muted");
               setState((prev) => ({
                 ...prev,
@@ -354,7 +488,11 @@ export function useChartStreaming(roomId: string, hostId: string) {
         room.on(
           RoomEventEnum.TrackUnmuted,
           (pub: TrackPublication, participant: any) => {
-            if (participant.identity === hostId && pub.kind === "video") {
+            if (
+              participant.identity.startsWith("host-") &&
+              participant.identity.includes(hostId) &&
+              pub.kind === "video"
+            ) {
               console.log("🎥 Host video track unmuted - resubscribing");
               setTimeout(() => {
                 if (!subscriptionInProgressRef.current) {
@@ -373,8 +511,17 @@ export function useChartStreaming(roomId: string, hostId: string) {
             publication: TrackPublication,
             participant: RemoteParticipant
           ) => {
-            if (track.kind === "video" && participant.identity === hostId) {
-              console.log("🎥 Host video track subscribed for participant");
+            console.log(
+              `🔍 Track subscribed: ${track.kind} by ${participant.identity} (looking for host: ${hostId})`
+            );
+            if (
+              track.kind === "video" &&
+              participant.identity.startsWith("host-") &&
+              participant.identity.includes(hostId)
+            ) {
+              console.log(
+                "🎥 Host video track subscribed for participant - STREAM SHOULD NOW BE VISIBLE!"
+              );
 
               // Reset subscription flag since we successfully subscribed
               subscriptionInProgressRef.current = false;
@@ -816,7 +963,11 @@ export function useChartStreaming(roomId: string, hostId: string) {
             _publication: TrackPublication,
             participant: RemoteParticipant
           ) => {
-            if (track.kind === "video" && participant.identity === hostId) {
+            if (
+              track.kind === "video" &&
+              participant.identity.startsWith("host-") &&
+              participant.identity.includes(hostId)
+            ) {
               console.log("❌ Host video track unsubscribed");
 
               // Clear the video track from state immediately
@@ -831,7 +982,12 @@ export function useChartStreaming(roomId: string, hostId: string) {
                 const r = roomRef.current as LiveKitClientRoom | null;
                 if (!r) return;
 
-                const host = r.remoteParticipants.get(hostId);
+                // Find host participant by checking identity pattern
+                const host = Array.from(r.remoteParticipants.values()).find(
+                  (p) =>
+                    p.identity.startsWith("host-") &&
+                    p.identity.includes(hostId)
+                );
                 if (!host) {
                   console.log(
                     "❌ Host disconnected - clearing streaming state"
@@ -873,7 +1029,8 @@ export function useChartStreaming(roomId: string, hostId: string) {
           (publication: TrackPublication, participant: RemoteParticipant) => {
             if (
               publication.kind === "video" &&
-              participant.identity === hostId
+              participant.identity.startsWith("host-") &&
+              participant.identity.includes(hostId)
             ) {
               console.log("❌ Host video track unpublished");
               setState((prev) => ({
@@ -891,7 +1048,10 @@ export function useChartStreaming(roomId: string, hostId: string) {
         room.on(
           RoomEventEnum.ParticipantDisconnected,
           (participant: RemoteParticipant) => {
-            if (participant.identity === hostId) {
+            if (
+              participant.identity.startsWith("host-") &&
+              participant.identity.includes(hostId)
+            ) {
               console.log("❌ Host participant disconnected");
               setState((prev) => ({
                 ...prev,
@@ -1066,7 +1226,13 @@ export function useChartStreaming(roomId: string, hostId: string) {
           periodicCheckRef.current = setInterval(() => {
             const currentRoom = roomRef.current;
             if (!currentRoom) return;
-            const host = currentRoom.remoteParticipants.get(hostId);
+            // Find host participant by checking identity pattern
+            const host = Array.from(
+              currentRoom.remoteParticipants.values()
+            ).find(
+              (p) =>
+                p.identity.startsWith("host-") && p.identity.includes(hostId)
+            );
             if (host) {
               const videoPubs = host
                 .getTrackPublications()
@@ -1105,7 +1271,12 @@ export function useChartStreaming(roomId: string, hostId: string) {
           RoomEventEnum.DataReceived,
           (payload: Uint8Array, participant?: RemoteParticipant) => {
             try {
-              if (!participant || participant.identity !== hostId) return;
+              if (
+                !participant ||
+                !participant.identity.startsWith("host-") ||
+                !participant.identity.includes(hostId)
+              )
+                return;
               const txt = new TextDecoder().decode(payload);
               const msg = JSON.parse(txt);
               if (
@@ -1120,10 +1291,13 @@ export function useChartStreaming(roomId: string, hostId: string) {
           }
         );
       } catch (error) {
+        console.error("Failed to connect to LiveKit room:", error);
         setState((prev) => ({
           ...prev,
-          error: "Failed to connect to streaming room",
+          error: `Failed to connect: ${error}`,
         }));
+      } finally {
+        isConnecting = false;
       }
     };
 
@@ -1948,7 +2122,10 @@ export function useChartStreaming(roomId: string, hostId: string) {
         return;
       }
 
-      const host = r.remoteParticipants.get(hostId);
+      // Find host participant by checking identity pattern
+      const host = Array.from(r.remoteParticipants.values()).find(
+        (p) => p.identity.startsWith("host-") && p.identity.includes(hostId)
+      );
       if (!host) {
         console.log("🔍 Host not found - waiting for host to join");
         return;
