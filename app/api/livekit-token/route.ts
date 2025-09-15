@@ -23,20 +23,49 @@ export async function POST(req: Request) {
       );
     }
 
+    // Create unique identity to prevent conflicts
+    const uniqueIdentity = `${role}-${userId}-${Date.now()}`;
+
     const at = new AccessToken(apiKey, apiSecret, {
-      identity: userId,
+      identity: uniqueIdentity,
+      // Set token expiration to 24 hours for long sessions
+      ttl: 24 * 60 * 60, // 24 hours in seconds
     });
+
+    // Add comprehensive grants for both host and participants
     at.addGrant({
       room: roomId,
       roomJoin: true,
       canPublish: role === "host",
       canPublishData: role === "host",
       canSubscribe: true,
+      // Additional permissions for better stability
+      canUpdateOwnMetadata: true,
+      hidden: false,
+      recorder: false,
+    });
+
+    // Add metadata to help with debugging
+    at.metadata = JSON.stringify({
+      userId,
+      role,
+      roomId,
+      timestamp: Date.now(),
     });
 
     const token = await at.toJwt();
-    return NextResponse.json({ token });
-  } catch (_err) {
+
+    console.log(
+      `🔑 Generated LiveKit token for ${role} ${userId} in room ${roomId}`
+    );
+
+    return NextResponse.json({
+      token,
+      identity: uniqueIdentity,
+      expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours from now
+    });
+  } catch (error) {
+    console.error("Failed to generate LiveKit token:", error);
     return NextResponse.json(
       { error: "Failed to generate token" },
       { status: 500 }
