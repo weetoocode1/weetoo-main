@@ -45,32 +45,16 @@ export function LanguageProvider({
     }
   }, []);
 
-  // Sync locale changes triggered elsewhere in the app (same tab) and across tabs
+  // Sync locale changes across tabs via localStorage events only
   useEffect(() => {
-    const handleLanguageChanged = (e: Event) => {
-      const custom = e as CustomEvent<{ locale: string }>;
-      const newLocale = custom.detail?.locale;
-      if (newLocale && newLocale !== locale) {
-        handleSetLocale(newLocale);
-      }
-    };
-
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "locale" && e.newValue && e.newValue !== locale) {
         handleSetLocale(e.newValue);
       }
     };
 
-    window.addEventListener(
-      "languageChanged",
-      handleLanguageChanged as EventListener
-    );
     window.addEventListener("storage", handleStorage);
     return () => {
-      window.removeEventListener(
-        "languageChanged",
-        handleLanguageChanged as EventListener
-      );
       window.removeEventListener("storage", handleStorage);
     };
   }, [locale]);
@@ -81,13 +65,6 @@ export function LanguageProvider({
 
     // Update HTML lang attribute
     document.documentElement.lang = newLocale;
-
-    // Dispatch custom event for layout to listen to
-    window.dispatchEvent(
-      new CustomEvent("languageChanged", {
-        detail: { locale: newLocale },
-      })
-    );
 
     // Load messages for the new locale
     if (newLocale === "en") {
