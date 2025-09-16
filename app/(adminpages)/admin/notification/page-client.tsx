@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useTranslations } from "next-intl";
 
 interface Notification {
   id: string;
@@ -26,6 +27,7 @@ interface Notification {
 }
 
 export function AdminNotificationClient() {
+  const t = useTranslations("admin.notifications.page");
   const [selectedNotification, setSelectedNotification] =
     useState<Notification | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -56,12 +58,10 @@ export function AdminNotificationClient() {
     return (
       <div className="p-8 text-center">
         <div className="text-red-500">
-          <div className="text-lg font-medium mb-2">
-            Error loading notifications
-          </div>
+          <div className="text-lg font-medium mb-2">{t("error.title")}</div>
           <div className="text-sm mb-4">{errorMessage}</div>
           <div className="mt-4 text-xs text-muted-foreground">
-            Check browser console for more details
+            {t("error.detailsHint")}
           </div>
         </div>
       </div>
@@ -117,37 +117,39 @@ export function AdminNotificationClient() {
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Notification Details</DialogTitle>
+            <DialogTitle>{t("details.title")}</DialogTitle>
           </DialogHeader>
           {selectedNotification && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="font-medium">ID:</span>
+                  <span className="font-medium">{t("details.id")}:</span>
                   <p className="text-muted-foreground font-mono text-xs break-all">
                     {selectedNotification.id}
                   </p>
                 </div>
                 <div>
-                  <span className="font-medium">Type:</span>
+                  <span className="font-medium">{t("details.type")}:</span>
                   <p className="text-muted-foreground">
                     {selectedNotification.type}
                   </p>
                 </div>
                 <div>
-                  <span className="font-medium">Audience:</span>
+                  <span className="font-medium">{t("details.audience")}:</span>
                   <p className="text-muted-foreground capitalize">
                     {selectedNotification.audience}
                   </p>
                 </div>
                 <div>
-                  <span className="font-medium">Status:</span>
+                  <span className="font-medium">{t("details.status")}:</span>
                   <p className="text-muted-foreground">
-                    {selectedNotification.read ? "Read" : "Unread"}
+                    {selectedNotification.read
+                      ? t("status.read")
+                      : t("status.unread")}
                   </p>
                 </div>
                 <div>
-                  <span className="font-medium">Created:</span>
+                  <span className="font-medium">{t("details.created")}:</span>
                   <p className="text-muted-foreground">
                     {new Date(selectedNotification.created_at).toLocaleString()}
                   </p>
@@ -156,7 +158,9 @@ export function AdminNotificationClient() {
 
               {selectedNotification.title && (
                 <div>
-                  <span className="font-medium">Title:</span>
+                  <span className="font-medium">
+                    {t("details.titleLabel")}:
+                  </span>
                   <p className="text-muted-foreground">
                     {selectedNotification.title}
                   </p>
@@ -165,7 +169,7 @@ export function AdminNotificationClient() {
 
               {selectedNotification.body && (
                 <div>
-                  <span className="font-medium">Body:</span>
+                  <span className="font-medium">{t("details.body")}:</span>
                   <p className="text-muted-foreground">
                     {selectedNotification.body}
                   </p>
@@ -175,7 +179,9 @@ export function AdminNotificationClient() {
               {selectedNotification.metadata &&
                 Object.keys(selectedNotification.metadata).length > 0 && (
                   <div>
-                    <span className="font-medium">Metadata:</span>
+                    <span className="font-medium">
+                      {t("details.metadata")}:
+                    </span>
                     <pre className="text-muted-foreground text-xs bg-muted/20 p-2 rounded overflow-auto">
                       {JSON.stringify(selectedNotification.metadata, null, 2)}
                     </pre>

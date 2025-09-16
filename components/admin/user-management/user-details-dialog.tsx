@@ -19,6 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useTranslations } from "next-intl";
 
 interface User {
   id: string;
@@ -60,6 +61,7 @@ export function UserDetailsDialog({
   open,
   onOpenChange,
 }: UserDetailsDialogProps) {
+  const t = useTranslations("admin.userManagement.detailsDialog");
   const [adminInfo, setAdminInfo] = useState<AdminInfo | null>(null);
 
   const humanizeRole = (role: string) => {
@@ -101,11 +103,9 @@ export function UserDetailsDialog({
       <DialogContent className="!max-w-6xl !w-full rounded-none">
         <DialogHeader className="gap-0">
           <DialogTitle className="text-xl font-semibold">
-            User Details
+            {t("title")}
           </DialogTitle>
-          <DialogDescription>
-            Comprehensive user account information
-          </DialogDescription>
+          <DialogDescription>{t("description")}</DialogDescription>
         </DialogHeader>
 
         <div className="flex gap-4">
@@ -146,7 +146,7 @@ export function UserDetailsDialog({
                 <div className="space-y-3 text-left">
                   <div className="flex justify-between items-center py-2.5 px-3 bg-muted/20 border border-border/30 rounded-sm">
                     <span className="text-xs text-muted-foreground font-medium">
-                      Role
+                      {t("labels.role")}
                     </span>
                     <span className="text-xs font-semibold text-foreground bg-background px-2 py-1 rounded-sm">
                       {humanizeRole(user.role)}
@@ -155,7 +155,7 @@ export function UserDetailsDialog({
 
                   <div className="flex justify-between items-center py-2.5 px-3 bg-muted/20 border border-border/30 rounded-sm">
                     <span className="text-xs text-muted-foreground font-medium">
-                      Status
+                      {t("labels.status")}
                     </span>
                     <span
                       className={`text-xs font-semibold px-2 py-1 rounded-sm ${
@@ -164,13 +164,15 @@ export function UserDetailsDialog({
                           : "bg-destructive/20 text-destructive border border-destructive/30"
                       }`}
                     >
-                      {user.identity_verified ? "Verified" : "Unverified"}
+                      {user.identity_verified
+                        ? t("badges.verified")
+                        : t("badges.unverified")}
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center py-2.5 px-3 bg-muted/20 border border-border/30 rounded-sm">
                     <span className="text-xs text-muted-foreground font-medium">
-                      KOR Coins
+                      {t("labels.korCoins")}
                     </span>
                     <span className="text-xs font-semibold text-foreground font-mono">
                       {user.kor_coins?.toLocaleString() || 0}
@@ -179,7 +181,7 @@ export function UserDetailsDialog({
 
                   <div className="flex justify-between items-center py-2.5 px-3 bg-muted/20 border border-border/30 rounded-sm">
                     <span className="text-xs text-muted-foreground font-medium">
-                      Joined
+                      {t("labels.joined")}
                     </span>
                     <span className="text-xs font-semibold text-foreground">
                       {new Date(user.created_at).toLocaleDateString()}
@@ -194,7 +196,7 @@ export function UserDetailsDialog({
                       <div className="pt-3 border-t border-border/40">
                         <div className="flex justify-between items-center py-2.5 px-3 bg-primary/5 border border-primary/20 rounded-sm">
                           <span className="text-xs text-primary font-medium">
-                            Verified by
+                            {t("labels.verifiedBy")}
                           </span>
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-semibold text-foreground">

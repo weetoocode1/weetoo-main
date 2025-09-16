@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface Post {
   id: string;
@@ -49,6 +50,7 @@ export function DeletePostDialog({
   onOpenChange,
   onPostDeleted,
 }: DeletePostDialogProps) {
+  const t = useTranslations("admin.managePosts.deleteDialog");
   const [isDeleting, setIsDeleting] = useState(false);
 
   const getBoardConfig = (board: string) => {
@@ -92,12 +94,12 @@ export function DeletePostDialog({
         throw error;
       }
 
-      toast.success("Post deleted successfully!");
+      toast.success(t("toast.deleted"));
       onPostDeleted();
       onOpenChange(false);
     } catch (error) {
       console.error("Error deleting post:", error);
-      toast.error("Failed to delete post. Please try again.");
+      toast.error(t("toast.failed"));
     } finally {
       setIsDeleting(false);
     }
@@ -107,7 +109,7 @@ export function DeletePostDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full lg:max-w-[45rem] h-[70vh] bg-background p-0 flex flex-col gap-0">
         <DialogTitle asChild>
-          <VisuallyHidden>Delete Post</VisuallyHidden>
+          <VisuallyHidden>{t("aria.title")}</VisuallyHidden>
         </DialogTitle>
 
         {/* Fixed Header */}
@@ -119,7 +121,7 @@ export function DeletePostDialog({
             </h1>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <AlertTriangle className="h-4 w-4 text-destructive" />
-              <span>This post will be permanently deleted</span>
+              <span>{t("warning.header")}</span>
             </div>
           </div>
         </div>
@@ -132,12 +134,8 @@ export function DeletePostDialog({
               <div className="flex items-start gap-3">
                 <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
                 <div className="text-sm text-red-700">
-                  <strong className="text-sm">Warning:</strong>
-                  <p className="mt-1 text-xs">
-                    Deleting this post will permanently remove all content,
-                    metadata, likes, comments, images, tags, and analytics. This
-                    action cannot be undone.
-                  </p>
+                  <strong className="text-sm">{t("warning.title")}</strong>
+                  <p className="mt-1 text-xs">{t("warning.body")}</p>
                 </div>
               </div>
             </div>
@@ -145,7 +143,7 @@ export function DeletePostDialog({
             {/* Post Preview */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-foreground">
-                Post Preview
+                {t("preview.title")}
               </h3>
               <div className="bg-muted/20 border border-border/30 rounded-none p-4">
                 <div className="space-y-4 text-sm">
@@ -154,7 +152,7 @@ export function DeletePostDialog({
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground font-medium w-20">
-                          Author:
+                          {t("preview.author")}:
                         </span>
                         <span className="font-medium">
                           {post.author &&
@@ -166,13 +164,13 @@ export function DeletePostDialog({
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground font-medium w-20">
-                          Board:
+                          {t("preview.board")}:
                         </span>
                         <span className="font-medium">{boardConfig.label}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground font-medium w-20">
-                          Created:
+                          {t("preview.created")}:
                         </span>
                         <span className="font-medium">
                           {new Date(post.created_at).toLocaleDateString(
@@ -187,7 +185,7 @@ export function DeletePostDialog({
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground font-medium w-20">
-                          Views:
+                          {t("preview.views")}:
                         </span>
                         <span className="font-medium">{post.views}</span>
                       </div>
@@ -195,7 +193,7 @@ export function DeletePostDialog({
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground font-medium w-20">
-                          ID:
+                          {t("preview.id")}:
                         </span>
                         <span className="font-medium font-mono text-xs break-all">
                           {post.id}
@@ -203,13 +201,13 @@ export function DeletePostDialog({
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground font-medium w-20">
-                          Likes:
+                          {t("preview.likes")}:
                         </span>
                         <span className="font-medium">{post.likes}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground font-medium w-20">
-                          Comments:
+                          {t("preview.comments")}:
                         </span>
                         <span className="font-medium">{post.comments}</span>
                       </div>
@@ -219,7 +217,7 @@ export function DeletePostDialog({
                   {/* Content Preview - Full Width */}
                   <div className="space-y-2 pt-2 border-t border-border/30">
                     <span className="text-muted-foreground font-medium">
-                      Content Preview:
+                      {t("preview.content")}
                     </span>
                     <div className="pl-0">
                       <span className="font-medium">
@@ -244,7 +242,7 @@ export function DeletePostDialog({
               disabled={isDeleting}
               className="rounded-none h-10"
             >
-              Cancel
+              {t("actions.cancel")}
             </Button>
             <Button
               variant="destructive"
@@ -255,12 +253,12 @@ export function DeletePostDialog({
               {isDeleting ? (
                 <>
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
-                  Deleting...
+                  {t("actions.deleting")}
                 </>
               ) : (
                 <>
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Post
+                  {t("actions.deletePost")}
                 </>
               )}
             </Button>

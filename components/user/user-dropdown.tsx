@@ -66,33 +66,81 @@ export function UserDropdown() {
     };
   }, []);
 
-  // Real-time subscription to user's KOR coins updates
+  // Real-time subscription to user's updates (kor_coins, exp, level) and rewards inserts
   useEffect(() => {
     if (!user?.id) return;
 
     const supabase = createClient();
 
-    // Subscribe to real-time updates for this user's KOR coins
-    const channel = supabase.channel(`user-kor-coins-dropdown-${user.id}`).on(
-      "postgres_changes",
-      {
-        event: "UPDATE",
-        schema: "public",
-        table: "users",
-        filter: `id=eq.${user.id}`,
-      },
-      (payload) => {
-        const newData = payload.new as { kor_coins?: number };
-        if (newData?.kor_coins !== undefined) {
-          console.log(
-            "UserDropdown: KOR coins updated via real-time:",
-            newData.kor_coins
-          );
-          // Force a re-render to update KOR coins display
+    // Award daily login once per UTC day on first mount/navigation
+    (async () => {
+      try {
+        const lastAwardedKey = `daily_login_awarded_${user.id}`;
+        const lastDay = sessionStorage.getItem(lastAwardedKey);
+        const todayUtc = new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
+        if (lastDay !== todayUtc) {
+          const { error } = await supabase.rpc("award_daily_login", {
+            p_user_id: user.id,
+          });
+          if (!error) {
+            sessionStorage.setItem(lastAwardedKey, todayUtc);
+          }
+        }
+      } catch (_) {
+        // ignore
+      }
+    })();
+
+    // Subscribe to real-time updates for this user's balances
+    const channel = supabase
+      .channel(`user-stats-and-rewards-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "users",
+          filter: `id=eq.${user.id}`,
+        },
+        (payload) => {
+          const newData = payload.new as {
+            kor_coins?: number;
+            exp?: number;
+            level?: number;
+          };
+          console.log("UserDropdown: user updated via real-time:", newData);
+          // Force a re-render to update displayed stats
           setKorCoinsUpdateTrigger((prev) => prev + 1);
         }
-      }
-    );
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "rewards",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const newReward = payload.new as {
+            exp_delta?: number;
+            kor_delta?: number;
+            title?: string;
+            type?: string;
+          };
+          const expDelta = newReward?.exp_delta ?? 0;
+          const korDelta = newReward?.kor_delta ?? 0;
+          if (expDelta > 0 || korDelta > 0) {
+            const parts: string[] = [];
+            if (expDelta > 0) parts.push(`+${expDelta} XP`);
+            if (korDelta > 0) parts.push(`+${korDelta} KOR`);
+            const label = newReward?.title || newReward?.type || "Reward";
+            toast.success(`${label}: ${parts.join(", ")}`);
+          }
+          // Trigger UI refresh
+          setKorCoinsUpdateTrigger((prev) => prev + 1);
+        }
+      );
 
     channel.subscribe();
 
@@ -348,7 +396,7 @@ export function UserDropdown() {
             {/* Admin Dashboard: Only for admin or super_admin */}
             {isAdmin && (
               <>
-                <Link href="/admin-verification">
+                <Link href="/admin-verification" target="_blank">
                   <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2.5 hover:bg-accent transition-colors">
                     <ShieldIcon className="w-4 h-4 mr-3 text-muted-foreground" />
                     {t("goToAdminDashboard")}

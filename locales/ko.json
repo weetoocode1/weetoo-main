@@ -1,8 +1,8 @@
 {
   "hero": {
-    "tradeSmarter": "더 스마트하게 트레이딩하세요",
-    "experienceNextGen": "Weetoo와 함께 차세대 트레이딩를 경험하세요",
-    "joinCommunity": "활발한 커뮤니티에 참여하여 리스크 없이 트레이딩 기술을 배우고, 경쟁하며 성장하세요.",
+    "tradeSmarter": "글로벌 최초 데모 트레이딩 방송 플랫폼",
+    "experienceNextGen": "WEETOO_우리는 투자자다",
+    "joinCommunity": "혼자가 아닌 함께하는 트레이딩 연습도,실전도 WEETOO와 함께",
     "getStarted": "시작하기",
     "latestNews": "최신 뉴스",
     "stayAhead": "실시간 시장 뉴스로 앞서 나가세요",
@@ -18,7 +18,7 @@
     "by": "작성자",
     "public": "공개",
     "private": "비공개",
-    "viewMarkets": "시장 보기",
+    "viewMarkets": "시장분석",
     "realTimeAnalytics": "실시간 분석",
     "expertTraders": "전문 트레이더",
     "globalCommunity": "글로벌 커뮤니티"
@@ -35,33 +35,39 @@
     "trading": "트레이딩",
     "startTrading": "트레이딩 룸",
     "startTradingDesc": "실시간으로 진행되는 모의투자에서 전략을 함께 나눠보세요 .",
-    "leaderboard": "리더보드",
+    "leaderboard": "랭킹",
     "winRate": "승률",
-    "winRateDesc": "승률 기준 상위 트레이더 확인",
+    "winRateDesc": "지는 법을 모르는 트레이더 🔥",
     "profitRate": "수익률",
-    "profitRateDesc": "수익률 기준 상위 트레이더 확인",
+    "profitRateDesc": "수익률로 말하는 엘리트 트레이더 💸",
     "korCoinsRankings": "후원 랭킹",
     "korCoinsRankingsDesc": "가장 많은 후원을 받은 유저를 확인해보세요",
     "mostActivity": "가장 활발한 활동 (XP)",
-    "mostActivityDesc": "최고 XP 획득자 및 가장 활발한 커뮤니티 멤버",
+    "mostActivityDesc": "커뮤니티 핵심 멤버 💪",
+    "mostActivityPage": "가장 활발한 활동 (XP)",
+    "mostActivityDescPage": "이 랭킹은 게시글 작성, 댓글 참여, 전략 공유, 후원 활동 등 커뮤니티 기여도를 기반으로 산정됩니다. 많은 활동을 통해 얻은 XP(경험치)는 레벨 상승으로 이어지며, 커뮤니티 내 영향력 지표가 됩니다. 단순 참여보다 지속적인 활동·지식 공유·소통 기여도에 주목해보세요 🌟",
     "sponsored": "후원",
-    "sponsoredDesc": "최고 기부 기여도 사용자",
+    "sponsoredDesc": "팬심 폭발, 후원이 쏟아진 스타 💰",
+    "sponsoredPage": "후원",
+    "sponsoredDescPage": "이 랭킹은 커뮤니티 멤버들이 받은 총 코코인 금액을 기준으로 산정됩니다. 높은 후원은 실력뿐만 아니라 팬심과 신뢰를 동시에 얻은 트레이더임을 의미해요. 단순한 수익률보다 얼마나 많은 사람들이 그를 지지했는지에 주목해보세요 💛",
     "mostFollowed": "팔로워",
-    "mostFollowedDesc": "가장 인기 있고 팔로우받는 트레이더",
+    "mostFollowedDesc": "신뢰받는 인기 스타 트레이더 ✨",
+    "mostFollowedPage": "팔로워",
+    "mostFollowedDescPage": "이 랭킹은 각 트레이더가 보유한 총 팔로워 수를 기준으로 산정됩니다. 많은 팔로워는 단순한 실력뿐 아니라 신뢰·매력·소통 능력까지 갖춘 인기 트레이더임을 의미해요. 숫자 이상의 가치, 사람들을 움직이는 영향력에 주목해보세요 💫",
     "community": "커뮤니티",
-    "freeBulletinBoard": "자유 게시판",
-    "freeBulletinBoardDesc": "시장 트렌드, 전략 및 일반 트레이딩 주제에 대한 열린 토론",
-    "profitBulletinBoard": "수익 게시판",
-    "profitBulletinBoardDesc": "검증된 결과와 입증된 전략으로 수익성 있는 트레이딩을 공유하세요",
-    "educationBulletinBoard": "교육 게시판",
-    "educationBulletinBoardDesc": "전문가 튜토리얼, 가이드 및 교육용 트레이딩 콘텐츠를 배우세요",
+    "freeBulletinBoard": "WEETOO 라운지",
+    "freeBulletinBoardDesc": "트레이딩, 밈, 잡담, 뭐든지 수다 떠는 우리들의 놀이터 🎉",
+    "profitBulletinBoard": "수익 쇼케이스",
+    "profitBulletinBoardDesc": "오늘 수익 인증하고 자랑은 필수! 💸",
+    "educationBulletinBoard": "WEETOO 아카데미",
+    "educationBulletinBoardDesc": "초보도 고수도 함께 성장하는 트레이딩 학교 🎓",
     "investmentCompetition": "투자 대회",
     "information": "정보",
     "comprehensiveData": "종합 데이터",
-    "comprehensiveDataDesc": "실시간 시장 데이터, 차트, 분석 및 트레이딩 지표에 접근하세요",
+    "comprehensiveDataDesc": "차트·지표·분석까지 한눈에  데이터 맛집 📊",
     "news": "뉴스",
-    "newsDesc": "최신 암호화폐 뉴스, 시장 분석 및 규제 업데이트를 받아보세요",
-    "broker": "브로커",
+    "newsDesc": "코인시장을 읽는 빠른 한 줄 🗞️",
+    "broker": "페이백",
     "brokerComparison": "브로커 비교",
     "brokerComparisonDesc": "한국 암호화폐 트레이딩소 비교 - 수수료, 기능, 보안 및 트레이딩 쌍"
   },
@@ -109,13 +115,13 @@
   "weetooMarket": {
     "weetooMarket": "위투 마켓",
     "shopDescription": "계정을 위한 디지털 서비스와 기능을 구매하세요.",
-    "memberHistoryReset": "회원 활동 기록 초기화 (통합)",
-    "memberHistoryResetDesc": "모든 회원 활동 기록을 한 번에 초기화합니다.",
+    "memberHistoryReset": "전적초기화",
+    "memberHistoryResetDesc": "트레이딩 기록을 전부 초기화 합니다",
     "chatRoomHistoryReset": "채팅방 기록 초기화",
     "chatRoomHistoryResetDesc": "채팅방 대화를 즉시 삭제합니다.",
     "messageUsageRights": "메시지 사용 권한",
     "messageUsageRightsDesc": "추가 메시지 전송 권한을 해제합니다.",
-    "cash": "현금",
+    "cash": "코코인",
     "total": "총계",
     "purchase": "구매"
   },
@@ -219,8 +225,8 @@
     "copyrightText": "Solomon Partners (WEETOO_We are investors). All rights reserved."
   },
   "trading": {
-    "tradingRooms": "트레이딩방",
-    "tradingRoomsDescription": "트레이딩방에 참여하여 협업하고, 전략을 공유하고, 트레이딩하세요"
+    "tradingRooms": "트레이딩",
+    "tradingRoomsDescription": "당신의 전략을 증명할 무대가 여기 있습니다.실시간으로 벌어지는 승부의 세계 — 지금 도전해보세요 ⚔️"
   },
   "tradingRooms": {
     "room": "방",
@@ -292,11 +298,11 @@
   },
   "ranking": {
     "winRateRankings": "승률 랭킹",
-    "topWinRateTraders": "승률과 트레이딩 성공률로 상위 트레이더를 발견하세요"
+    "topWinRateTraders": "이 랭킹은 각 트레이더의 총 트레이딩 횟수 대비 승리한 포지션 비율을 기준으로 산정됩니다. 최근 성과에 가중치를 두어, 꾸준한 실력과 지속적인 성장세를 동시에 평가해요. 트레이딩 횟수, 연승 기록도 함께 확인해 실제 실력을 비교해보세요. ⚡"
   },
   "profitRanking": {
     "profitRateRankings": "수익률 랭킹",
-    "topProfitRateTraders": "수익률, 가상 머니 증가 및 트레이딩 활동으로 상위 트레이더를 확인하세요"
+    "topProfitRateTraders": "이 랭킹은 각 트레이더의 초기 자산 대비 누적 수익률을 기준으로 산정됩니다. 수익률뿐만 아니라 거래 횟수, 가상머니의 규모, 손익 변동 추이도 함께 살펴보며 실력을 평가하세요. 짧은 단기 성과보다 꾸준한 수익곡선과 안정적 성장세에 주목하는 것이 중요합니다 📈"
   },
   "traderRanking": {
     "online": "온라인",
@@ -316,7 +322,7 @@
   },
   "investmentCompetition": {
     "title": "투자 대회",
-    "description": "우리 투자 대회에서 다른 투자자들과 트레이딩 기술을 테스트하세요. 리더보드를 올라가고 놀라운 상품을 받으세요.",
+    "description": "누구나 참가할 수 있는 트레이딩 대회!  실력을 시험하고, 이름을 남기고, 전설이 되어보세요 ✨",
     "ongoingEvents": "진행 중인 이벤트",
     "pastEvents": "지난 이벤트",
     "noOngoingCompetitions": "진행 중인 대회 없음",
@@ -400,8 +406,8 @@
     "added": "추가됨"
   },
   "broker": {
-    "title": "파트너 트레이딩소 비교",
-    "description": "암호화폐 트레이딩소 비교 - 수수료, 기능, 보안 및 트레이딩 쌍"
+    "title": "페이백",
+    "description": "당신의 거래, 더 많은 보상으로 돌려드립니다. 최고 페이백을 제공하는 파트너 거래소 TOP 리스트 💵. 이제 거래는 수익만 보는 게 아닙니다 . 혜택까지 챙기세요!"
   },
   "exchange": {
     "paybackRate": "환급률",
@@ -445,6 +451,1333 @@
     "cancel": "취소",
     "saveChanges": "변경사항 저장",
     "saving": "저장 중..."
+  },
+  "admin": {
+    "leftSidebar": {
+      "header": "관리자",
+      "adminMenu": "관리자 메뉴",
+      "goBackToTrading": "트레이딩으로 돌아가기",
+      "roles": {
+        "super_admin": "슈퍼 관리자",
+        "admin": "관리자",
+        "user": "사용자"
+      },
+      "sections": {
+        "General": "일반",
+        "Management": "관리",
+        "Operations": "운영",
+        "Finance": "재무"
+      },
+      "items": {
+        "Overview": "개요",
+        "Notifications": "알림",
+        "Activity Log": "활동 로그",
+        "Manage Posts": "게시물 관리",
+        "User Management": "사용자 관리",
+        "Admin Notes": "관리자 노트",
+        "UID Management": "UID 관리",
+        "KOR Coins": "KOR 코인",
+        "Rebate Management": "리베이트 관리",
+        "Reward Rules": "보상 규칙",
+        "Bank Accounts": "은행 계좌",
+        "Deposits": "입금 관리",
+        "Withdrawals": "출금 관리"
+      }
+    },
+    "overview": {
+      "title": "개요",
+      "stats": {
+        "totalUsers": {
+          "title": "총 사용자",
+          "description": "플랫폼 규모",
+          "subDescription": "전체 가입자 수"
+        },
+        "newUsers": {
+          "title": "신규 사용자",
+          "description": "오늘 가입자",
+          "subDescription": "일일 신규 가입"
+        },
+        "newSignups": {
+          "title": "신규 가입",
+          "description": "주간 증가",
+          "subDescription": "이번 주 신규 사용자"
+        },
+        "totalKorCoins": {
+          "title": "총 KOR 코인",
+          "description": "경제 활동",
+          "subDescription": "플랫폼 전체 코인"
+        },
+        "postsToday": {
+          "title": "오늘 게시물",
+          "description": "콘텐츠 활동",
+          "subDescription": "일일 콘텐츠 생성"
+        },
+        "activeRooms": {
+          "title": "활성 방",
+          "description": "핵심 기능 사용",
+          "subDescription": "실시간 트레이딩 방"
+        },
+        "depositsPending": {
+          "title": "대기 중 입금",
+          "description": "수익 파이프라인",
+          "subDescription": "승인 대기"
+        },
+        "pendingReports": {
+          "title": "대기 중 신고",
+          "description": "관리자 작업량",
+          "subDescription": "검토할 이슈"
+        }
+      },
+      "charts": {
+        "userGrowth": {
+          "title": "사용자 증가",
+          "description": "최근 30일 간 총 사용자 수를 표시",
+          "series": {
+            "users": "총 사용자"
+          }
+        },
+        "korCoins": {
+          "title": "KOR 코인 활동",
+          "description": "최근 30일 간 일일 KOR 코인 사용량",
+          "series": {
+            "coins": "KOR 코인"
+          }
+        }
+      },
+      "tables": {
+        "recentPosts": {
+          "title": "최근 게시물",
+          "description": "모든 게시판의 최신 게시물",
+          "totalPosts": "총 게시물",
+          "by": "작성자",
+          "columns": {
+            "post": "게시물",
+            "board": "게시판",
+            "likes": "좋아요",
+            "likesLower": "좋아요",
+            "views": "조회수",
+            "viewsLower": "조회수",
+            "created": "작성일",
+            "by": "작성자"
+          },
+          "board": {
+            "free": "자유 게시판",
+            "profit": "수익 게시판",
+            "education": "교육 게시판"
+          }
+        },
+        "recentUsers": {
+          "title": "최근 사용자",
+          "description": "최신 사용자 가입 및 활동",
+          "totalUsers": "총 사용자",
+          "columns": {
+            "user": "사용자",
+            "role": "역할",
+            "korCoins": "KOR 코인",
+            "coinsLower": "코인",
+            "joined": "가입일"
+          }
+        }
+      }
+    },
+    "notifications": {
+      "page": {
+        "error": {
+          "title": "알림 로딩 오류",
+          "detailsHint": "자세한 내용은 브라우저 콘솔을 확인하세요"
+        },
+        "details": {
+          "title": "알림 상세",
+          "id": "ID",
+          "type": "유형",
+          "audience": "대상",
+          "status": "상태",
+          "created": "생성일",
+          "titleLabel": "제목",
+          "body": "내용",
+          "metadata": "메타데이터"
+        },
+        "status": { "read": "읽음", "unread": "읽지 않음" }
+      },
+      "stats": {
+        "total": { "title": "전체 알림", "description": "모든 알림" },
+        "unread": { "title": "읽지 않음", "description": "확인이 필요함" },
+        "read": { "title": "읽음", "description": "이미 확인됨" },
+        "other": { "title": "기타", "description": "추가 알림" }
+      },
+      "table": {
+        "searchPlaceholder": "알림 검색... (Ctrl+F)",
+        "filters": {
+          "allCategories": "전체 카테고리",
+          "allStatus": "전체 상태",
+          "read": "읽음",
+          "unread": "읽지 않음"
+        },
+        "columns": {
+          "notification": "알림",
+          "type": "유형",
+          "category": "카테고리",
+          "status": "상태",
+          "time": "시간",
+          "actions": "작업"
+        },
+        "by": "작성자",
+        "unknown": "알 수 없음",
+        "status": { "read": "읽음", "unread": "읽지 않음" },
+        "menu": {
+          "open": "메뉴 열기",
+          "title": "알림 작업",
+          "viewDetails": "자세히 보기",
+          "markAsRead": "읽음으로 표시",
+          "markReadShort": "읽음 표시"
+        },
+        "empty": {
+          "title": "알림을 찾을 수 없습니다",
+          "subtitle": "검색 조건을 조정해보세요"
+        },
+        "pagination": {
+          "showing": "총 {total}개 중 {start}-{end} 표시",
+          "previous": "이전",
+          "next": "다음"
+        },
+        "relativeTime": {
+          "minutes": "{value}분 전",
+          "hours": "{value}시간 전",
+          "days": "{value}일 전"
+        },
+        "generated": {
+          "requestKor": "{user} 님이 {amount} KOR를 요청했습니다",
+          "actionBy": "{user}의 작업",
+          "noDetails": "추가 정보가 없습니다"
+        }
+      }
+    },
+    "activityLog": {
+      "stats": {
+        "rewardsToday": "오늘의 리워드",
+        "expAwardedToday": "오늘 지급된 경험치",
+        "korAwardedToday": "오늘 지급된 KOR",
+        "activeRules": "활성 규칙"
+      },
+      "statsDescriptions": {
+        "rewardsToday": "오늘 발생한 모든 리워드 이벤트",
+        "activeRules": "현재 활성화된 리워드 규칙",
+        "sumAcross": "모든 리워드 합계"
+      },
+      "table": {
+        "searchPlaceholder": "리워드 검색...",
+        "columns": {
+          "user": "사용자",
+          "rewardType": "리워드 유형",
+          "exp": "경험치",
+          "kor": "KOR",
+          "date": "날짜",
+          "actions": "작업"
+        }
+      },
+      "filters": {
+        "allTypes": "전체 유형",
+        "typeNames": {
+          "post_created": "게시물 작성",
+          "post_commented": "댓글 작성",
+          "post_liked": "게시물 좋아요",
+          "post_shared": "게시물 공유",
+          "daily_login": "일일 로그인",
+          "room_created": "방 생성"
+        }
+      },
+      "mobile": {
+        "type": "유형",
+        "exp": "경험치",
+        "kor": "KOR"
+      },
+      "pagination": {
+        "showing": "총 {total}개 중 {start}-{end} 표시",
+        "previous": "이전",
+        "next": "다음"
+      }
+    },
+    "rewardRules": {
+      "sections": {
+        "basicInfo": "기본 정보",
+        "rewardValues": "보상 값",
+        "dailyLimits": "일일 한도"
+      },
+      "stats": {
+        "totalRewards": {
+          "title": "총 보상",
+          "description": "지금까지 지급된 모든 보상"
+        },
+        "totalExpAwarded": {
+          "title": "총 지급된 EXP",
+          "description": "분배된 경험치 포인트"
+        },
+        "totalKorAwarded": {
+          "title": "총 지급된 KOR",
+          "description": "분배된 KOR 코인"
+        },
+        "activeRules": {
+          "title": "활성 규칙",
+          "description": "현재 활성화된 보상 규칙"
+        }
+      },
+      "table": {
+        "columns": {
+          "type": "유형",
+          "title": "제목",
+          "expPerAction": "액션당 EXP",
+          "korPerAction": "액션당 KOR",
+          "dailyCountLimit": "일일 한도",
+          "status": "상태",
+          "actions": "작업"
+        },
+        "menu": {
+          "open": "메뉴 열기",
+          "title": "규칙 작업",
+          "viewDetails": "세부 정보 보기",
+          "editRule": "규칙 편집"
+        },
+        "searchPlaceholder": "보상 규칙 검색...",
+        "filters": {
+          "allTypes": "모든 유형",
+          "allStatuses": "모든 상태"
+        },
+        "empty": {
+          "title": "보상 규칙을 찾을 수 없습니다",
+          "subtitle": "현재 필터와 일치하는 보상 규칙이 없습니다"
+        }
+      },
+      "detailsDialog": {
+        "description": "{type} 보상 규칙에 대한 자세한 정보를 확인하세요",
+        "status": {
+          "active": "활성",
+          "inactive": "비활성"
+        },
+        "sections": {
+          "basicInfo": "기본 정보",
+          "rewardValues": "보상 값",
+          "dailyLimits": "일일 한도",
+          "timestamps": "타임스탬프"
+        },
+        "fields": {
+          "type": "규칙 유형",
+          "status": "상태",
+          "description": "설명",
+          "expPerAction": "액션당 EXP",
+          "korPerAction": "액션당 KOR",
+          "dailyCountLimit": "일일 횟수 한도",
+          "dailyExpLimit": "일일 EXP 한도",
+          "dailyKorLimit": "일일 KOR 한도",
+          "createdAt": "생성일",
+          "updatedAt": "수정일"
+        }
+      },
+      "status": {
+        "active": "활성",
+        "inactive": "비활성"
+      },
+      "editDialog": {
+        "title": "보상 규칙 편집",
+        "description": "{type}에 대한 보상 구성을 수정합니다",
+        "fields": {
+          "title": "제목",
+          "description": "설명",
+          "expPerAction": "액션당 EXP",
+          "korPerAction": "액션당 KOR",
+          "dailyCountLimit": "일일 횟수 한도",
+          "dailyExpLimit": "일일 EXP 한도",
+          "dailyKorLimit": "일일 KOR 한도",
+          "active": "활성"
+        },
+        "actions": {
+          "cancel": "취소",
+          "save": "변경사항 저장",
+          "saving": "저장 중..."
+        }
+      }
+    },
+    "managePosts": {
+      "stats": {
+        "totalPosts": {
+          "title": "총 게시물",
+          "description": "모든 게시판의 게시물"
+        },
+        "totalViews": {
+          "title": "총 조회수",
+          "description": "게시물 조회수 합계"
+        },
+        "totalLikes": {
+          "title": "총 좋아요",
+          "description": "게시물 좋아요 합계"
+        },
+        "postsToday": {
+          "title": "오늘의 게시물",
+          "description": "오늘 작성된 게시물"
+        }
+      },
+      "table": {
+        "searchPlaceholder": "게시물 검색... (Ctrl+F)",
+        "count": "총 {total}개 중 {filtered}개",
+        "filters": { "allBoards": "전체 게시판" },
+        "boards": {
+          "free": "자유 게시판",
+          "education": "교육 게시판",
+          "profit": "수익 게시판"
+        },
+        "empty": {
+          "noPostsFound": "게시물을 찾을 수 없습니다",
+          "noPostsYet": "아직 게시물이 없습니다",
+          "noMatch": "{board}에서 \"{term}\"(와)과 일치하는 게시물이 없습니다",
+          "noPostsCreated": "아직 생성된 게시물이 없습니다"
+        },
+        "excerpt": { "none": "요약이 없습니다" },
+        "menu": {
+          "view": "보기",
+          "edit": "편집",
+          "delete": "삭제",
+          "deleting": "삭제 중..."
+        },
+        "pagination": {
+          "showing": "총 {total}개 중 {start}-{end} 표시",
+          "previous": "이전",
+          "next": "다음"
+        }
+      },
+      "deleteDialog": {
+        "aria": { "title": "게시물 삭제" },
+        "warning": {
+          "header": "이 게시물은 영구적으로 삭제됩니다",
+          "title": "경고:",
+          "body": "이 게시물을 삭제하면 콘텐츠, 메타데이터, 좋아요, 댓글, 이미지, 태그 및 분석 정보가 영구적으로 제거됩니다. 이 작업은 되돌릴 수 없습니다."
+        },
+        "preview": {
+          "title": "게시물 미리보기",
+          "author": "작성자",
+          "board": "게시판",
+          "created": "작성일",
+          "views": "조회수",
+          "id": "ID",
+          "likes": "좋아요",
+          "comments": "댓글",
+          "content": "내용 미리보기:"
+        },
+        "actions": {
+          "cancel": "취소",
+          "deleting": "삭제 중...",
+          "deletePost": "게시물 삭제"
+        },
+        "toast": {
+          "deleted": "게시물이 삭제되었습니다!",
+          "failed": "게시물 삭제에 실패했습니다. 다시 시도해주세요."
+        }
+      },
+      "editDialog": {
+        "aria": { "title": "게시물 편집" },
+        "fields": {
+          "title": "제목",
+          "board": "게시판",
+          "tags": "태그",
+          "content": "내용"
+        },
+        "placeholders": {
+          "title": "게시물 제목을 입력하세요",
+          "board": "게시판을 선택하세요",
+          "tags": "쉼표로 구분하여 태그 입력",
+          "content": "게시물 내용을 입력하세요"
+        },
+        "boards": {
+          "free": "자유 게시판",
+          "education": "교육 게시판",
+          "profit": "수익 게시판"
+        },
+        "footer": {
+          "board": "게시판",
+          "created": "작성일",
+          "id": "ID",
+          "views": "조회수",
+          "likes": "좋아요",
+          "comments": "댓글"
+        },
+        "actions": {
+          "cancel": "취소",
+          "saving": "저장 중...",
+          "saveChanges": "변경사항 저장"
+        },
+        "validation": { "required": "제목과 내용은 필수입니다" },
+        "toast": {
+          "saved": "게시물이 성공적으로 업데이트되었습니다!",
+          "failed": "게시물 업데이트에 실패했습니다. 다시 시도해주세요."
+        }
+      },
+      "viewDialog": {
+        "aria": { "title": "게시물 상세" },
+        "unknownAuthor": "작성자 미상",
+        "footer": {
+          "board": "게시판",
+          "created": "작성일",
+          "id": "ID",
+          "views": "조회수",
+          "likes": "좋아요",
+          "comments": "댓글"
+        }
+      }
+    },
+    "userManagement": {
+      "stats": {
+        "totalUsers": { "title": "총 사용자", "description": "전체 가입자" },
+        "adminUsers": {
+          "title": "관리자 수",
+          "description": "관리자 및 운영자"
+        },
+        "totalCoins": {
+          "title": "총 KOR 코인",
+          "description": "유통 중인 코인 합계"
+        },
+        "newUsersThisMonth": {
+          "title": "이번 달 신규",
+          "description": "이번 달 가입자"
+        }
+      },
+      "table": {
+        "searchPlaceholder": "사용자 검색... (Ctrl+F)",
+        "export": "내보내기",
+        "filters": { "allRoles": "전체 역할" },
+        "roles": {
+          "user": "사용자",
+          "admin": "관리자",
+          "super_admin": "슈퍼 관리자"
+        },
+        "columns": {
+          "user": "사용자",
+          "role": "역할",
+          "korCoins": "KOR 코인",
+          "warnings": "경고",
+          "identity": "신원",
+          "actions": "작업"
+        },
+        "badges": { "verified": "인증됨", "unverified": "미인증" },
+        "menu": {
+          "open": "메뉴 열기",
+          "title": "사용자 작업",
+          "viewDetails": "자세히 보기",
+          "editUser": "사용자 편집",
+          "issueWarning": "경고 발급",
+          "banUser": "사용자 차단",
+          "unbanUser": "차단 해제",
+          "verifyIdentity": "신원 인증",
+          "unverifyIdentity": "신원 인증 해제"
+        },
+        "empty": {
+          "title": "사용자를 찾을 수 없습니다",
+          "subtitle": "검색 조건을 조정해보세요"
+        },
+        "pagination": {
+          "showing": "총 {total}명 중 {start}-{end} 표시",
+          "previous": "이전",
+          "next": "다음"
+        }
+      },
+      "detailsDialog": {
+        "title": "사용자 상세",
+        "description": "사용자 계정 정보",
+        "labels": {
+          "role": "역할",
+          "status": "상태",
+          "korCoins": "KOR 코인",
+          "joined": "가입일",
+          "verifiedBy": "인증자",
+          "email": "이메일",
+          "phone": "전화번호",
+          "nickname": "닉네임",
+          "gender": "성별",
+          "birthDate": "생년월일",
+          "identityName": "실명",
+          "warnings": "경고",
+          "lastUpdated": "최종 업데이트",
+          "identityId": "신원 ID",
+          "verifiedOn": "인증일"
+        },
+        "sections": { "personal": "개인 정보", "account": "계정 정보" },
+        "badges": { "verified": "인증됨", "unverified": "미인증" },
+        "roles": {
+          "user": "사용자",
+          "admin": "관리자",
+          "super_admin": "슈퍼 관리자"
+        },
+        "actions": { "close": "닫기" }
+      }
+    },
+    "adminNotes": {
+      "stats": {
+        "totalNotes": { "title": "총 노트", "description": "모든 관리자 노트" },
+        "highPriority": {
+          "title": "높은 우선순위",
+          "description": "높은 우선순위 노트"
+        },
+        "thisWeek": {
+          "title": "이번 주",
+          "description": "이번 주에 생성된 노트"
+        },
+        "thisMonth": {
+          "title": "이번 달",
+          "description": "이번 달에 생성된 노트"
+        }
+      },
+      "table": {
+        "searchPlaceholder": "노트 검색... (Ctrl+F)",
+        "filters": { "allPriorities": "모든 우선순위" },
+        "priorities": { "high": "높음", "medium": "보통", "low": "낮음" },
+        "createNote": "노트 생성",
+        "empty": {
+          "title": "노트를 찾을 수 없습니다",
+          "searchCriteria": "검색 조건을 조정해 보세요",
+          "getStarted": "첫 번째 관리자 노트를 생성해 보세요"
+        },
+        "unknownUser": "알 수 없는 사용자",
+        "unknownAdmin": "알 수 없는 관리자",
+        "userLabel": "사용자",
+        "generalNote": "일반 노트",
+        "createdBy": "생성자",
+        "actions": { "view": "보기", "edit": "편집", "delete": "삭제" },
+        "pagination": {
+          "showing": "{total}개 결과 중 {start}-{end}개 표시",
+          "previous": "이전",
+          "next": "다음"
+        },
+        "deleteDialog": {
+          "title": "노트 삭제",
+          "description": "이 노트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+          "cancel": "취소",
+          "delete": "삭제"
+        }
+      },
+      "createDialog": {
+        "title": "관리자 노트 생성",
+        "description": "사용자 또는 플랫폼 활동에 대한 새로운 내부 노트를 생성합니다.",
+        "userLabel": "사용자 (선택사항)",
+        "loadingUsers": "사용자 로딩 중...",
+        "userPlaceholder": "사용자 선택 (선택사항)",
+        "generalNoteOption": "특정 사용자 없음 (일반 노트)",
+        "noteContent": "노트 내용",
+        "notePlaceholder": "노트 내용을 입력하세요...",
+        "priority": "우선순위",
+        "priorities": { "low": "낮음", "medium": "보통", "high": "높음" },
+        "date": "날짜",
+        "pickDate": "날짜 선택",
+        "cancel": "취소",
+        "createNote": "노트 생성",
+        "creating": "생성 중...",
+        "validation": {
+          "noteRequired": "노트 내용을 입력해 주세요",
+          "userRequired": "유효한 사용자 옵션을 선택해 주세요"
+        },
+        "success": { "created": "노트가 성공적으로 생성되었습니다!" },
+        "error": { "failed": "노트 생성에 실패했습니다. 다시 시도해 주세요." }
+      },
+      "editDialog": {
+        "title": "관리자 노트 편집",
+        "description": "기존 관리자 노트를 수정합니다.",
+        "userLabel": "사용자 (선택사항)",
+        "loadingUsers": "사용자 로딩 중...",
+        "userPlaceholder": "사용자 선택 (선택사항)",
+        "generalNoteOption": "특정 사용자 없음 (일반 노트)",
+        "noteContent": "노트 내용",
+        "notePlaceholder": "노트 내용을 입력하세요...",
+        "priority": "우선순위",
+        "priorities": { "low": "낮음", "medium": "보통", "high": "높음" },
+        "date": "날짜",
+        "pickDate": "날짜 선택",
+        "createdAt": "생성일",
+        "lastUpdated": "마지막 업데이트",
+        "never": "없음",
+        "cancel": "취소",
+        "updateNote": "노트 업데이트",
+        "updating": "업데이트 중...",
+        "validation": {
+          "noteRequired": "노트 내용을 입력해 주세요",
+          "userRequired": "유효한 사용자 옵션을 선택해 주세요"
+        },
+        "success": { "updated": "노트가 성공적으로 업데이트되었습니다!" },
+        "error": {
+          "failed": "노트 업데이트에 실패했습니다. 다시 시도해 주세요."
+        }
+      },
+      "viewDialog": {
+        "title": "관리자 노트 세부사항",
+        "description": "이 관리자 노트에 대한 포괄적인 정보를 확인합니다.",
+        "noteId": "노트 ID",
+        "noteContent": "노트 내용",
+        "userInformation": "사용자 정보",
+        "user": "사용자",
+        "createdBy": "생성자",
+        "datesAndMetadata": "날짜 및 메타데이터",
+        "noteDate": "노트 날짜",
+        "createdAt": "생성일",
+        "lastUpdated": "마지막 업데이트",
+        "unknownUser": "알 수 없는 사용자",
+        "unknownAdmin": "알 수 없는 관리자",
+        "priorities": {
+          "high": "높은 우선순위",
+          "medium": "보통 우선순위",
+          "low": "낮은 우선순위"
+        },
+        "close": "닫기"
+      }
+    },
+    "uidManagement": {
+      "stats": {
+        "totalUids": {
+          "title": "총 UID",
+          "description": "등록된 모든 UID"
+        },
+        "activeUids": {
+          "title": "활성 UID",
+          "description": "현재 활성화된 UID"
+        },
+        "totalExchanges": {
+          "title": "총 거래소",
+          "description": "지원되는 거래소"
+        },
+        "newUidsThisMonth": {
+          "title": "이번 달 신규",
+          "description": "이번 달 추가된 UID"
+        }
+      },
+      "table": {
+        "searchPlaceholder": "UID 검색... (Ctrl+F)",
+        "filters": {
+          "allExchanges": "모든 거래소",
+          "allStatus": "모든 상태",
+          "active": "활성",
+          "inactive": "비활성"
+        },
+        "columns": {
+          "user": "사용자",
+          "uid": "UID",
+          "exchange": "거래소",
+          "status": "상태",
+          "created": "생성일",
+          "actions": "작업"
+        },
+        "status": {
+          "active": "활성",
+          "inactive": "비활성"
+        },
+        "menu": {
+          "open": "메뉴 열기",
+          "title": "UID 작업",
+          "viewDetails": "자세히 보기",
+          "viewUser": "사용자 보기"
+        },
+        "empty": {
+          "title": "UID 기록을 찾을 수 없습니다",
+          "subtitle": "검색 조건을 조정해보세요"
+        },
+        "pagination": {
+          "showing": "총 {total}개 중 {start}-{end} 표시",
+          "previous": "이전",
+          "next": "다음"
+        },
+        "export": "내보내기",
+        "exporting": "내보내는 중...",
+        "exportSuccess": "{count}개의 UID 기록을 CSV로 성공적으로 내보냈습니다!",
+        "exportError": "UID 기록 내보내기에 실패했습니다. 다시 시도해주세요."
+      },
+      "uidDetailsDialog": {
+        "title": "UID 상세",
+        "description": "이 UID 기록에 대한 자세한 정보",
+        "sections": {
+          "uidInformation": "UID 정보",
+          "timestamps": "타임스탬프"
+        },
+        "labels": {
+          "uid": "UID",
+          "exchange": "거래소",
+          "status": "상태",
+          "uidId": "UID ID",
+          "created": "생성일",
+          "lastUpdated": "마지막 업데이트"
+        },
+        "status": {
+          "active": "활성",
+          "inactive": "비활성"
+        },
+        "copyToClipboard": "{label}이(가) 클립보드에 복사되었습니다"
+      },
+      "userDetailsDialog": {
+        "title": "사용자 상세",
+        "description": "사용자 정보 및 프로필 세부사항",
+        "sections": {
+          "userInformation": "사용자 정보",
+          "associatedUid": "연결된 UID"
+        },
+        "labels": {
+          "firstName": "이름",
+          "lastName": "성",
+          "email": "이메일",
+          "userId": "사용자 ID",
+          "notProvided": "제공되지 않음"
+        },
+        "status": {
+          "active": "활성",
+          "inactive": "비활성"
+        },
+        "copyToClipboard": "{label}이(가) 클립보드에 복사되었습니다"
+      }
+    },
+    "korCoins": {
+      "stats": {
+        "totalCoins": {
+          "title": "총 KOR 코인",
+          "description": "유통 중인 모든 코인"
+        },
+        "activeUsers": {
+          "title": "활성 사용자",
+          "description": "KOR 코인을 보유한 사용자"
+        },
+        "totalTransactions": {
+          "title": "총 거래",
+          "description": "모든 코인 거래"
+        },
+        "averageBalance": {
+          "title": "평균 잔액",
+          "description": "사용자당 평균"
+        }
+      },
+      "table": {
+        "searchPlaceholder": "사용자 검색... (Ctrl+F)",
+        "show": "표시:",
+        "columns": {
+          "user": "사용자",
+          "balance": "잔액",
+          "status": "상태",
+          "joined": "가입일",
+          "actions": "작업"
+        },
+        "status": {
+          "high": "높음",
+          "medium": "보통",
+          "low": "낮음",
+          "unknown": "알 수 없음"
+        },
+        "menu": {
+          "open": "메뉴 열기",
+          "title": "사용자 작업",
+          "viewProfile": "프로필 보기",
+          "addCoins": "코인 추가",
+          "subtractCoins": "코인 차감"
+        },
+        "empty": {
+          "title": "사용자를 찾을 수 없습니다",
+          "subtitle": "검색 조건을 조정해보세요",
+          "noUsers": "사용자를 찾을 수 없습니다"
+        },
+        "pagination": {
+          "showing": "총 {total}명 중 {start}-{end} 표시",
+          "previous": "이전",
+          "next": "다음"
+        }
+      },
+      "chart": {
+        "title": "KOR 코인 활동",
+        "description": "최근 30일 간 일일 KOR 코인 사용량",
+        "monthlyActivity": "월간 활동",
+        "series": {
+          "coins": "KOR 코인"
+        }
+      },
+      "balanceAdjustmentDialog": {
+        "title": {
+          "add": "KOR 코인 추가",
+          "subtract": "KOR 코인 차감"
+        },
+        "description": {
+          "add": "{name}님의 잔액에 코인 추가",
+          "subtract": "{name}님의 잔액에서 코인 차감"
+        },
+        "currentBalance": "현재 잔액",
+        "amountLabel": "{action}할 금액",
+        "amountPlaceholder": "{action}할 금액을 입력하세요",
+        "reasonLabel": "조정 사유",
+        "reasonOptional": "(선택사항)",
+        "reasonPlaceholder": "이 조정에 대한 사유를 입력하세요 (선택사항)...",
+        "warning": {
+          "title": "중요 공지",
+          "message": "이 작업은 감사 추적에 기록되며 되돌릴 수 없습니다. 진행하기 전에 모든 정보가 정확한지 확인해주세요."
+        },
+        "actions": {
+          "cancel": "취소",
+          "processing": "처리 중...",
+          "addCoins": "코인 추가",
+          "subtractCoins": "코인 차감"
+        },
+        "validation": {
+          "amountRequired": "금액을 입력해주세요",
+          "amountInvalid": "유효한 금액을 입력해주세요",
+          "insufficientBalance": "{balance} 코인보다 많이 차감할 수 없습니다. 최대 차감 가능: {balance}"
+        },
+        "success": {
+          "added": "{name}님에게 {amount} KOR 코인을 성공적으로 추가했습니다",
+          "subtracted": "{name}님에게서 {amount} KOR 코인을 성공적으로 차감했습니다"
+        },
+        "error": {
+          "failed": "잔액 조정에 실패했습니다. 다시 시도해주세요."
+        }
+      },
+      "viewProfileDialog": {
+        "title": "사용자 프로필",
+        "sections": {
+          "userInformation": "사용자 정보",
+          "balanceInformation": "잔액 정보"
+        },
+        "labels": {
+          "emailAddress": "이메일 주소",
+          "korCoins": "KOR 코인",
+          "memberSince": "가입일",
+          "balanceStatus": "잔액 상태"
+        },
+        "status": {
+          "high": "높음",
+          "medium": "보통",
+          "low": "낮음"
+        },
+        "actions": {
+          "close": "닫기"
+        }
+      }
+    },
+    "rebateManagement": {
+      "page": {
+        "tabs": {
+          "withdrawalRequests": "출금 요청",
+          "brokerRebates": "브로커 리베이트",
+          "userRebates": "사용자 리베이트"
+        },
+        "actions": {
+          "syncRebates": "리베이트 동기화",
+          "exportWithdrawals": "출금 내역 내보내기"
+        },
+        "messages": {
+          "rebatesSynced": "리베이트가 성공적으로 동기화되었습니다",
+          "rebatesSyncFailed": "리베이트 동기화에 실패했습니다",
+          "withdrawalsExported": "출금 내역이 성공적으로 내보내졌습니다",
+          "withdrawalsExportFailed": "출금 내역 내보내기에 실패했습니다",
+          "syncError": "리베이트 동기화 중 오류가 발생했습니다",
+          "exportError": "출금 내역 내보내기 중 오류가 발생했습니다"
+        }
+      },
+      "stats": {
+        "totalEarned": {
+          "title": "총 수익",
+          "description": "모든 브로커에서"
+        },
+        "totalPaidOut": {
+          "title": "총 지급액",
+          "description": "사용자에게"
+        },
+        "pendingWithdrawals": {
+          "title": "대기 중인 출금",
+          "description": "승인 대기 중"
+        },
+        "activeUsers": {
+          "title": "활성 사용자",
+          "description": "{rate}% 전환율"
+        }
+      },
+      "withdrawalRequests": {
+        "columns": {
+          "userId": "사용자 ID",
+          "brokerUid": "브로커 UID",
+          "amount": "금액",
+          "status": "상태",
+          "requested": "요청일",
+          "actions": "작업"
+        },
+        "status": {
+          "completed": "완료",
+          "pending": "대기 중",
+          "processing": "처리 중",
+          "rejected": "거부됨"
+        },
+        "actions": {
+          "approve": "승인",
+          "reject": "거부",
+          "processed": "처리됨",
+          "rejected": "거부됨"
+        },
+        "dialogs": {
+          "approve": {
+            "title": "출금 승인",
+            "description": "${amount}의 출금을 승인하시겠습니까?",
+            "cancel": "취소",
+            "confirm": "승인"
+          },
+          "reject": {
+            "title": "출금 거부",
+            "description": "${amount}의 출금을 거부하시겠습니까?",
+            "cancel": "취소",
+            "confirm": "거부"
+          }
+        },
+        "mobile": {
+          "amount": "금액:",
+          "requested": "요청일:"
+        },
+        "empty": {
+          "title": "출금 요청을 찾을 수 없습니다",
+          "subtitle": "사용자가 요청하면 출금 요청이 여기에 표시됩니다"
+        },
+        "messages": {
+          "withdrawalApproved": "출금이 성공적으로 승인되었습니다",
+          "withdrawalRejected": "출금이 성공적으로 거부되었습니다",
+          "approveFailed": "출금 승인에 실패했습니다",
+          "rejectFailed": "출금 거부에 실패했습니다",
+          "approveError": "출금 승인 중 오류가 발생했습니다",
+          "rejectError": "출금 거부 중 오류가 발생했습니다"
+        }
+      },
+      "brokerRebates": {
+        "columns": {
+          "brokerUid": "브로커 UID",
+          "exchange": "거래소",
+          "date": "날짜",
+          "amount": "금액",
+          "created": "생성일"
+        },
+        "mobile": {
+          "date": "날짜:",
+          "created": "생성일:"
+        },
+        "empty": {
+          "title": "브로커 리베이트를 찾을 수 없습니다",
+          "subtitle": "크론 작업 실행 후 브로커 리베이트가 여기에 표시됩니다"
+        }
+      },
+      "userRebates": {
+        "columns": {
+          "userId": "사용자 ID",
+          "brokerUid": "브로커 UID",
+          "amount": "금액",
+          "status": "상태",
+          "created": "생성일"
+        },
+        "status": {
+          "withdrawn": "출금됨",
+          "withdrawable": "출금 가능",
+          "pending": "대기 중"
+        },
+        "mobile": {
+          "amount": "금액:",
+          "created": "생성일:"
+        },
+        "empty": {
+          "title": "사용자 리베이트를 찾을 수 없습니다",
+          "subtitle": "크론 작업 실행 후 사용자 리베이트가 여기에 표시됩니다"
+        }
+      }
+    },
+    "bankAccounts": {
+      "page": {
+        "title": "은행 계좌 관리"
+      },
+      "table": {
+        "searchPlaceholder": "은행 계좌 검색... (Ctrl+F)",
+        "addButton": "은행 계좌 추가",
+        "columns": {
+          "bankAccount": "은행 계좌",
+          "accountDetails": "계좌 정보",
+          "status": "상태",
+          "created": "생성일",
+          "actions": "작업"
+        },
+        "status": {
+          "primary": "주계좌",
+          "secondary": "보조계좌",
+          "inactive": "비활성"
+        },
+        "labels": {
+          "accountNumber": "계좌번호"
+        },
+        "menu": {
+          "open": "메뉴 열기",
+          "title": "은행 계좌 작업",
+          "editAccount": "계좌 수정",
+          "setAsPrimary": "주계좌로 설정",
+          "deleteAccount": "계좌 삭제"
+        },
+        "mobile": {
+          "accountNumber": "계좌번호",
+          "created": "생성일"
+        },
+        "empty": {
+          "title": "은행 계좌를 찾을 수 없습니다",
+          "subtitle": "입금을 받기 위해 첫 번째 은행 계좌를 추가하세요",
+          "searchSubtitle": "검색 조건을 조정해보세요"
+        },
+        "pagination": {
+          "showing": "총 {total}개 중 {start}-{end} 표시",
+          "previous": "이전",
+          "next": "다음"
+        },
+        "messages": {
+          "primaryUpdated": "주계좌가 성공적으로 업데이트되었습니다",
+          "primaryUpdateFailed": "주계좌 업데이트에 실패했습니다",
+          "cannotDeletePrimary": "주계좌는 삭제할 수 없습니다. 먼저 다른 계좌를 주계좌로 설정하세요."
+        }
+      },
+      "addDialog": {
+        "title": "은행 계좌 추가",
+        "description": "입금을 받기 위한 새로운 은행 계좌를 추가하세요. 첫 번째 계좌는 자동으로 주계좌로 설정됩니다.",
+        "form": {
+          "bankName": {
+            "label": "은행명",
+            "placeholder": "예: 신한은행, 국민은행",
+            "required": "*"
+          },
+          "accountNumber": {
+            "label": "계좌번호",
+            "placeholder": "예: 123-456789-01-234",
+            "required": "*"
+          },
+          "accountHolder": {
+            "label": "예금주명",
+            "placeholder": "예: 위투 컴퍼니 주식회사",
+            "required": "*"
+          }
+        },
+        "actions": {
+          "cancel": "취소",
+          "adding": "추가 중...",
+          "addAccount": "은행 계좌 추가"
+        },
+        "messages": {
+          "success": "은행 계좌가 성공적으로 추가되었습니다",
+          "failed": "은행 계좌 추가에 실패했습니다",
+          "fillRequired": "모든 필수 필드를 입력해주세요"
+        }
+      },
+      "editDialog": {
+        "title": "은행 계좌 수정",
+        "description": "은행 계좌 정보를 업데이트하세요. 변경사항은 즉시 반영됩니다.",
+        "form": {
+          "bankName": {
+            "label": "은행명",
+            "placeholder": "예: 신한은행, 국민은행",
+            "required": "*"
+          },
+          "accountNumber": {
+            "label": "계좌번호",
+            "placeholder": "예: 123-456789-01-234",
+            "required": "*"
+          },
+          "accountHolder": {
+            "label": "예금주명",
+            "placeholder": "예: 위투 컴퍼니 주식회사",
+            "required": "*"
+          }
+        },
+        "accountInfo": {
+          "title": "계좌 정보",
+          "currentStatus": "현재 상태:",
+          "primaryAccount": "주계좌",
+          "secondaryAccount": "보조계좌",
+          "created": "생성일:"
+        },
+        "quickActions": {
+          "title": "빠른 작업",
+          "makePrimary": "주계좌로 설정",
+          "settingAsPrimary": "주계좌로 설정 중..."
+        },
+        "actions": {
+          "cancel": "취소",
+          "updating": "업데이트 중...",
+          "updateAccount": "계좌 업데이트"
+        },
+        "messages": {
+          "success": "은행 계좌가 성공적으로 업데이트되었습니다",
+          "failed": "은행 계좌 업데이트에 실패했습니다",
+          "primarySuccess": "은행 계좌가 주계좌로 설정되었습니다",
+          "primaryFailed": "은행 계좌를 주계좌로 설정하는데 실패했습니다",
+          "fillRequired": "모든 필수 필드를 입력해주세요"
+        }
+      },
+      "deleteDialog": {
+        "title": "은행 계좌 삭제",
+        "description": "이 은행 계좌를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+        "accountDetails": {
+          "bankName": "은행명:",
+          "accountNumber": "계좌번호:",
+          "accountHolder": "예금주명:",
+          "created": "생성일:"
+        },
+        "actions": {
+          "cancel": "취소",
+          "deleting": "삭제 중...",
+          "deleteAccount": "계좌 삭제"
+        },
+        "messages": {
+          "success": "은행 계좌가 성공적으로 삭제되었습니다",
+          "failed": "은행 계좌 삭제에 실패했습니다"
+        }
+      }
+    },
+    "depositManagement": {
+      "page": {
+        "title": "입금 관리"
+      },
+      "stats": {
+        "totalDeposits": {
+          "title": "총 입금",
+          "description": "모든 입금 요청"
+        },
+        "pendingVerification": {
+          "title": "검증 대기",
+          "description": "은행 검증 대기 중"
+        },
+        "verifiedAccounts": {
+          "title": "검증된 계정",
+          "description": "성공적으로 검증된 계정"
+        },
+        "completedDeposits": {
+          "title": "완료된 입금",
+          "description": "성공적으로 처리됨"
+        }
+      },
+      "table": {
+        "searchPlaceholder": "사용자 이름, 이메일 또는 입금 ID로 검색... (Ctrl+F)",
+        "statusFilter": {
+          "all": "모든 상태",
+          "pending": "대기 중",
+          "completed": "완료",
+          "failed": "실패"
+        },
+        "clearFilters": "초기화",
+        "exportCsv": "CSV 내보내기",
+        "columns": {
+          "user": "사용자",
+          "korCoins": "KOR 코인",
+          "wonAmount": "원화 금액",
+          "bankDetails": "은행 정보",
+          "paymentReference": "결제 참조",
+          "status": "상태",
+          "statusActions": "상태 및 작업"
+        },
+        "status": {
+          "pending": "대기 중",
+          "completed": "완료",
+          "failed": "실패"
+        },
+        "statusActions": {
+          "changeStatus": "상태 변경:",
+          "korCoinsSent": "✓ KOR 코인 전송됨",
+          "processing": "⏳ 처리 중..."
+        },
+        "mobile": {
+          "korCoins": "KOR 코인",
+          "wonAmount": "원화 금액",
+          "bank": "은행",
+          "accountNumber": "계좌번호",
+          "paymentReference": "결제 참조",
+          "level": "레벨"
+        },
+        "empty": {
+          "title": "입금 요청을 찾을 수 없습니다",
+          "subtitle": "검색 조건을 조정해보세요"
+        },
+        "pagination": {
+          "showing": "총 {total}개 중 {start}-{end} 표시",
+          "previous": "이전",
+          "next": "다음"
+        },
+        "loading": "입금 요청 로딩 중...",
+        "messages": {
+          "korCoinsSent": "KOR 코인이 성공적으로 전송되었습니다!",
+          "korCoinsFailed": "KOR 코인 전송에 실패했습니다",
+          "statusUpdated": "상태가 성공적으로 업데이트되었습니다!",
+          "statusUpdateFailed": "상태 업데이트에 실패했습니다",
+          "markedAsFailed": "실패로 표시됨",
+          "markFailedError": "실패 표시에 실패했습니다",
+          "exportFailed": "CSV 내보내기에 실패했습니다"
+        }
+      }
+    },
+    "withdrawManagement": {
+      "page": {
+        "title": "출금 관리"
+      },
+      "stats": {
+        "totalWithdrawals": {
+          "title": "총 출금",
+          "description": "모든 출금 요청"
+        },
+        "pendingVerification": {
+          "title": "검증 대기",
+          "description": "계정 검증 대기 중"
+        },
+        "verifiedAccounts": {
+          "title": "검증된 계정",
+          "description": "성공적으로 검증된 계정"
+        },
+        "rejectedWithdrawals": {
+          "title": "거부된 출금",
+          "description": "실패하거나 거부됨"
+        }
+      },
+      "table": {
+        "searchPlaceholder": "사용자 이름, 이메일 또는 출금 ID로 검색... (Ctrl+F)",
+        "statusFilter": {
+          "all": "모든 상태",
+          "pending": "대기 중",
+          "verified": "검증됨",
+          "failed": "실패"
+        },
+        "clearFilters": "초기화",
+        "exportCsv": "CSV 내보내기",
+        "columns": {
+          "id": "ID",
+          "user": "사용자",
+          "korCoins": "KOR 코인",
+          "bankDetails": "은행 정보",
+          "verificationWithdrawal": "검증/출금",
+          "status": "상태",
+          "actions": "작업"
+        },
+        "status": {
+          "pending": "대기 중",
+          "sent": "전송됨",
+          "verified": "검증됨",
+          "failed": "실패",
+          "unknown": "알 수 없음"
+        },
+        "actions": {
+          "markAsSent": "전송됨으로 표시",
+          "sent": "전송됨",
+          "changeStatus": "상태 변경:",
+          "afterSending": "전송 후 전송됨으로 표시를 클릭하여 잠금하세요."
+        },
+        "mobile": {
+          "korCoins": "KOR 코인",
+          "accountNumber": "계좌번호",
+          "verificationAmount": "검증 금액",
+          "level": "레벨",
+          "send": "전송:"
+        },
+        "empty": {
+          "title": "출금 요청을 찾을 수 없습니다",
+          "subtitle": "검색 조건을 조정해보세요"
+        },
+        "pagination": {
+          "showing": "총 {total}개 중 {start}-{end} 표시",
+          "previous": "이전",
+          "next": "다음"
+        },
+        "loading": "출금 요청 로딩 중...",
+        "messages": {
+          "statusUpdated": "상태가 업데이트되었습니다",
+          "statusUpdateFailed": "상태 업데이트에 실패했습니다"
+        }
+      }
+    }
   },
   "common": {
     "loading": "로딩 중...",

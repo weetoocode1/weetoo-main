@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Coins, Shield, TrendingUp, Users } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface UserStats {
   totalUsers: number;
@@ -14,6 +15,7 @@ interface UserStats {
 }
 
 export function UserStats() {
+  const t = useTranslations("admin.userManagement.stats");
   const {
     data: stats,
     isLoading,
@@ -107,30 +109,30 @@ export function UserStats() {
 
   const statCards = [
     {
-      title: "Total Users",
+      title: t("totalUsers.title"),
       value: stats?.totalUsers || 0,
-      description: "All registered users",
+      description: t("totalUsers.description"),
       icon: Users,
       color: "text-blue-600",
     },
     {
-      title: "Admin Users",
+      title: t("adminUsers.title"),
       value: stats?.adminUsers || 0,
-      description: "Administrators and moderators",
+      description: t("adminUsers.description"),
       icon: Shield,
       color: "text-purple-600",
     },
     {
-      title: "Total KOR Coins",
+      title: t("totalCoins.title"),
       value: stats?.totalCoins.toLocaleString() || "0",
-      description: "All coins in circulation",
+      description: t("totalCoins.description"),
       icon: Coins,
       color: "text-yellow-600",
     },
     {
-      title: "New This Month",
+      title: t("newUsersThisMonth.title"),
       value: stats?.newUsersThisMonth || 0,
-      description: "Users joined this month",
+      description: t("newUsersThisMonth.description"),
       icon: TrendingUp,
       color: "text-emerald-600",
     },

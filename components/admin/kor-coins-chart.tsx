@@ -16,16 +16,18 @@ import {
 } from "@/components/ui/chart";
 import { useChartData } from "@/hooks/use-chart-data";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslations } from "next-intl";
 
 const chartConfig = {
   coins: {
-    label: "KOR Coins",
+    label: "coins",
     color: "var(--chart-2)",
   },
 } satisfies ChartConfig;
 
 export function KorCoinsChart() {
   const { data: chartData, isLoading } = useChartData();
+  const t = useTranslations("admin.overview.charts.korCoins");
 
   if (isLoading) {
     return (
@@ -39,10 +41,8 @@ export function KorCoinsChart() {
 
           <CardHeader className="flex flex-col items-stretch border-b !p-0 sm:flex-row">
             <div className="flex flex-1 flex-col justify-center gap-1 px-6 pt-4 pb-3 sm:!py-0">
-              <CardTitle>KOR Coins Activity</CardTitle>
-              <CardDescription>
-                Showing daily KOR Coins usage for the last 30 days
-              </CardDescription>
+              <CardTitle>{t("title")}</CardTitle>
+              <CardDescription>{t("description")}</CardDescription>
             </div>
             <div className="flex">
               <div className="relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left sm:border-t-0 sm:border-l sm:px-8 sm:py-6">
@@ -61,6 +61,9 @@ export function KorCoinsChart() {
 
   const korCoinsData = chartData?.korCoinsActivity || [];
   const latestCoins = korCoinsData[korCoinsData.length - 1]?.coins || 0;
+  const localizedConfig = {
+    coins: { ...chartConfig.coins, label: t("series.coins") },
+  } as ChartConfig;
 
   return (
     <div className="relative">
@@ -73,15 +76,13 @@ export function KorCoinsChart() {
 
         <CardHeader className="flex flex-col items-stretch border-b !p-0 sm:flex-row">
           <div className="flex flex-1 flex-col justify-center gap-1 px-6 pt-4 pb-3 sm:!py-0">
-            <CardTitle>KOR Coins Activity</CardTitle>
-            <CardDescription>
-              Showing daily KOR Coins usage for the last 30 days
-            </CardDescription>
+            <CardTitle>{t("title")}</CardTitle>
+            <CardDescription>{t("description")}</CardDescription>
           </div>
           <div className="flex">
             <div className="relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left sm:border-t-0 sm:border-l sm:px-8 sm:py-6">
               <span className="text-muted-foreground text-xs">
-                {chartConfig.coins.label}
+                {localizedConfig.coins.label}
               </span>
               <span className="text-lg leading-none font-bold sm:text-3xl">
                 {latestCoins.toLocaleString()}
@@ -91,7 +92,7 @@ export function KorCoinsChart() {
         </CardHeader>
         <CardContent className="px-2 sm:p-6">
           <ChartContainer
-            config={chartConfig}
+            config={localizedConfig}
             className="aspect-auto h-[250px] w-full"
           >
             <BarChart
@@ -141,7 +142,7 @@ export function KorCoinsChart() {
               />
               <Bar
                 dataKey="coins"
-                fill={chartConfig.coins.color}
+                fill={localizedConfig.coins.color}
                 radius={[0, 0, 0, 0]}
               />
             </BarChart>

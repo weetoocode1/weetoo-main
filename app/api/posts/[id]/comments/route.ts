@@ -54,8 +54,22 @@ export async function POST(
   if (postError)
     return NextResponse.json({ error: postError.message }, { status: 500 });
 
+  // Attempt to award comment reward. Do not block comment creation on reward errors.
+  let reward: { id: string } | null = null;
+  try {
+    const { data: rewardData, error: rewardError } = await supabase.rpc(
+      "award_post_comment",
+      { p_user_id: user.id, p_post_id: postId, p_comment_id: newCommentId }
+    );
+    if (!rewardError) {
+      reward = rewardData;
+    }
+  } catch (_) {
+    // ignore
+  }
+
   return NextResponse.json(
-    { comment, commentCount: postData.comments },
+    { comment, commentCount: postData.comments, reward },
     { status: 201 }
   );
 }

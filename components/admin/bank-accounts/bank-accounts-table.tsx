@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { EditBankAccountDialog } from "./edit-bank-account-dialog";
 import { DeleteBankAccountDialog } from "./delete-bank-account-dialog";
 
@@ -48,6 +49,7 @@ interface BankAccountsTableProps {
 }
 
 export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
+  const t = useTranslations("admin.bankAccounts.table");
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -117,10 +119,10 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "bank-accounts"] });
-      toast.success("Primary bank account updated successfully");
+      toast.success(t("messages.primaryUpdated"));
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to update primary bank account");
+      toast.error(error.message || t("messages.primaryUpdateFailed"));
     },
   });
 
@@ -270,9 +272,7 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
 
   const handleDeleteBankAccount = async (account: BankAccount) => {
     if (account.is_primary) {
-      toast.error(
-        "Cannot delete the primary bank account. Set another account as primary first."
-      );
+      toast.error(t("messages.cannotDeletePrimary"));
       return;
     }
 
@@ -358,7 +358,7 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             ref={searchInputRef}
-            placeholder="Search bank accounts... (Ctrl+F)"
+            placeholder={t("searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 w-64 shadow-none rounded-none h-10"
@@ -370,7 +370,7 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
             className="bg-primary hover:bg-primary/90 rounded-none"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Add Bank Account
+            {t("addButton")}
           </Button>
         </div>
       </div>
@@ -398,7 +398,7 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
                         onClick={() => handleSort("bank_name")}
                         className="flex items-center gap-2 font-medium text-xs uppercase tracking-wider hover:text-primary transition-colors"
                       >
-                        Bank Account
+                        {t("columns.bankAccount")}
                         <span className="text-muted-foreground">
                           {sortBy === "bank_name"
                             ? sortOrder === "asc"
@@ -409,14 +409,14 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
                       </button>
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Account Details
+                      {t("columns.accountDetails")}
                     </th>
                     <th className="px-6 py-4 text-left">
                       <button
                         onClick={() => handleSort("is_primary")}
                         className="flex items-center gap-2 font-medium text-xs uppercase tracking-wider hover:text-primary transition-colors"
                       >
-                        Status
+                        {t("columns.status")}
                         <span className="text-muted-foreground">
                           {sortBy === "is_primary"
                             ? sortOrder === "asc"
@@ -427,10 +427,10 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
                       </button>
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Created
+                      {t("columns.created")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Actions
+                      {t("columns.actions")}
                     </th>
                   </tr>
                 </thead>
@@ -463,7 +463,7 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
                             {account.account_number}
                           </span>
                           <span className="text-xs text-muted-foreground">
-                            Account Number
+                            {t("labels.accountNumber")}
                           </span>
                         </div>
                       </td>
@@ -472,16 +472,16 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
                           {account.is_primary ? (
                             <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-yellow-200 bg-yellow-50 text-yellow-700 text-xs font-medium">
                               <Star className="h-3 w-3" />
-                              <span>Primary</span>
+                              <span>{t("status.primary")}</span>
                             </div>
                           ) : (
                             <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-gray-200 bg-gray-50 text-gray-700 text-xs font-medium">
-                              <span>Secondary</span>
+                              <span>{t("status.secondary")}</span>
                             </div>
                           )}
                           {!account.is_active && (
                             <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-red-200 bg-red-50 text-red-700 text-xs font-medium">
-                              <span>Inactive</span>
+                              <span>{t("status.inactive")}</span>
                             </div>
                           )}
                         </div>
@@ -505,7 +505,9 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
+                                <span className="sr-only">
+                                  {t("menu.open")}
+                                </span>
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -514,7 +516,7 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
                               className="w-48 rounded-none"
                             >
                               <DropdownMenuLabel>
-                                Bank Account Actions
+                                {t("menu.title")}
                               </DropdownMenuLabel>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
@@ -524,7 +526,7 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
                                 }}
                               >
                                 <Edit className="mr-2 h-4 w-4" />
-                                Edit Account
+                                {t("menu.editAccount")}
                               </DropdownMenuItem>
                               {!account.is_primary && (
                                 <>
@@ -538,7 +540,7 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
                                     className="text-yellow-600 focus:text-yellow-600"
                                   >
                                     <Star className="mr-2 h-4 w-4" />
-                                    Set as Primary
+                                    {t("menu.setAsPrimary")}
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     onClick={() =>
@@ -547,7 +549,7 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
                                     className="text-red-600 focus:text-red-600"
                                   >
                                     <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete Account
+                                    {t("menu.deleteAccount")}
                                   </DropdownMenuItem>
                                 </>
                               )}
@@ -591,11 +593,11 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
                       {account.is_primary ? (
                         <div className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-yellow-200 bg-yellow-50 text-yellow-700 text-xs font-medium">
                           <Star className="h-3 w-3" />
-                          <span>Primary</span>
+                          <span>{t("status.primary")}</span>
                         </div>
                       ) : (
                         <div className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-gray-200 bg-gray-50 text-gray-700 text-xs font-medium">
-                          <span>Secondary</span>
+                          <span>{t("status.secondary")}</span>
                         </div>
                       )}
                     </div>
@@ -607,7 +609,7 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
                       <Building2 className="h-4 w-4 text-muted-foreground" />
                       <div>
                         <div className="text-xs text-muted-foreground">
-                          Account Number
+                          {t("mobile.accountNumber")}
                         </div>
                         <div className="font-mono font-medium">
                           {account.account_number}
@@ -618,7 +620,7 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
                       <User className="h-4 w-4 text-muted-foreground" />
                       <div>
                         <div className="text-xs text-muted-foreground">
-                          Created
+                          {t("mobile.created")}
                         </div>
                         <div className="font-medium">
                           {new Date(account.created_at).toLocaleDateString(
@@ -640,13 +642,13 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
+                            <span className="sr-only">{t("menu.open")}</span>
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
                           <DropdownMenuLabel>
-                            Bank Account Actions
+                            {t("menu.title")}
                           </DropdownMenuLabel>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -656,7 +658,7 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
                             }}
                           >
                             <Edit className="mr-2 h-4 w-4" />
-                            Edit Account
+                            {t("menu.editAccount")}
                           </DropdownMenuItem>
                           {!account.is_primary && (
                             <>
@@ -670,14 +672,14 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
                                 className="text-yellow-600 focus:text-yellow-600"
                               >
                                 <Star className="mr-2 h-4 w-4" />
-                                Set as Primary
+                                {t("menu.setAsPrimary")}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleDeleteBankAccount(account)}
                                 className="text-red-600 focus:text-red-600"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Delete Account
+                                {t("menu.deleteAccount")}
                               </DropdownMenuItem>
                             </>
                           )}
@@ -695,12 +697,10 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
             <div className="p-8 text-center">
               <div className="text-muted-foreground">
                 <div className="text-lg font-medium mb-2">
-                  No bank accounts found
+                  {t("empty.title")}
                 </div>
                 <div className="text-sm">
-                  {searchTerm
-                    ? "Try adjusting your search criteria"
-                    : "Add your first bank account to start receiving deposits"}
+                  {searchTerm ? t("empty.searchSubtitle") : t("empty.subtitle")}
                 </div>
               </div>
             </div>
@@ -712,9 +712,11 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Showing {startIndex + 1}-
-            {Math.min(endIndex, sortedBankAccounts.length)} of{" "}
-            {sortedBankAccounts.length} results
+            {t("pagination.showing", {
+              start: startIndex + 1,
+              end: Math.min(endIndex, sortedBankAccounts.length),
+              total: sortedBankAccounts.length,
+            })}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -724,7 +726,7 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
               disabled={currentPage === 1}
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
-              Previous
+              {t("pagination.previous")}
             </Button>
             <div className="flex items-center gap-1">
               {generatePaginationButtons()}
@@ -737,7 +739,7 @@ export function BankAccountsTable({ onAddAccount }: BankAccountsTableProps) {
               }
               disabled={currentPage === totalPages}
             >
-              Next
+              {t("pagination.next")}
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </div>

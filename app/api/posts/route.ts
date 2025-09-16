@@ -36,7 +36,21 @@ export async function POST(req: NextRequest) {
 
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data, { status: 201 });
+  // Try to award post creation reward via secure RPC. Do not block post creation on reward errors.
+  let reward: { id: string } | null = null;
+  try {
+    const { data: rewardData, error: rewardError } = await supabase.rpc(
+      "award_post_creation",
+      { p_user_id: user.id, p_post_id: data.id }
+    );
+    if (!rewardError) {
+      reward = rewardData;
+    }
+  } catch (_) {
+    // swallow to avoid impacting post creation response
+  }
+
+  return NextResponse.json({ post: data, reward }, { status: 201 });
 }
 
 export async function GET(req: NextRequest) {

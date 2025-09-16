@@ -1,4 +1,5 @@
 import {
+  ActivityIcon,
   BanknoteIcon,
   Bell,
   Coins,
@@ -8,6 +9,7 @@ import {
   Link2,
   LucideIcon,
   MessageSquareText,
+  Settings,
   TrendingUpIcon,
   Users2,
 } from "lucide-react";
@@ -30,6 +32,11 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     items: [
       { label: "Overview", href: "/admin", icon: LayoutDashboard },
       { label: "Notifications", href: "/admin/notification", icon: Bell },
+      {
+        label: "Activity Log",
+        href: "/admin/activity-log",
+        icon: ActivityIcon,
+      },
     ],
   },
   {
@@ -67,6 +74,12 @@ export const ADMIN_SECTIONS: AdminSection[] = [
         label: "Rebate Management",
         href: "/admin/rebate-management",
         icon: TrendingUpIcon,
+      },
+      {
+        label: "Reward Rules",
+        href: "/admin/reward-rules",
+        icon: Settings,
+        roles: ["admin", "super_admin"], // Both admin and super_admin can view
       },
     ],
   },

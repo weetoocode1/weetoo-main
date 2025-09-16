@@ -28,6 +28,7 @@ import {
   Search,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface Notification {
   id: string;
@@ -81,6 +82,7 @@ export function NotificationTable({
   notifications,
   onViewDetails,
 }: NotificationTableProps) {
+  const t = useTranslations("admin.notifications.table");
   // Limit to only withdrawal and deposit notification types
   const ALLOWED_TYPES = new Set(
     Object.keys(NOTIFICATION_CONFIG) as Array<keyof typeof NOTIFICATION_CONFIG>
@@ -102,9 +104,10 @@ export function NotificationTable({
     const now = new Date();
     const diff = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
 
-    if (diff < 60) return `${diff}m ago`;
-    if (diff < 1440) return `${Math.floor(diff / 60)}h ago`;
-    return `${Math.floor(diff / 1440)}d ago`;
+    if (diff < 60) return t("relativeTime.minutes", { value: diff });
+    if (diff < 1440)
+      return t("relativeTime.hours", { value: Math.floor(diff / 60) });
+    return t("relativeTime.days", { value: Math.floor(diff / 1440) });
   };
 
   const handleMarkAsRead = async (notificationId: string) => {
@@ -140,16 +143,21 @@ export function NotificationTable({
       notification.metadata?.user_name &&
       notification.metadata?.kor_coins_amount
     ) {
-      return `${
-        notification.metadata.user_name
-      } requested ${notification.metadata.kor_coins_amount.toLocaleString()} KOR`;
+      return t("generated.requestKor", {
+        user: notification.metadata.user_name as string,
+        amount: (
+          notification.metadata.kor_coins_amount as number
+        ).toLocaleString(),
+      });
     }
 
     if (notification.metadata?.user_name) {
-      return `Action by ${notification.metadata.user_name}`;
+      return t("generated.actionBy", {
+        user: notification.metadata.user_name as string,
+      });
     }
 
-    return "No additional details available";
+    return t("generated.noDetails");
   };
 
   // Get unique categories for filter dropdown
@@ -226,7 +234,7 @@ export function NotificationTable({
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             ref={searchInputRef}
-            placeholder="Search notifications... (Ctrl+F)"
+            placeholder={t("searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 w-64 shadow-none rounded-none h-10"
@@ -235,10 +243,10 @@ export function NotificationTable({
         <div className="flex items-center gap-2">
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger className="w-40 shadow-none rounded-none h-10">
-              <SelectValue placeholder="All Categories" />
+              <SelectValue placeholder={t("filters.allCategories")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="all">{t("filters.allCategories")}</SelectItem>
               {getAvailableCategories().map((category) => (
                 <SelectItem key={category} value={category}>
                   {category.charAt(0).toUpperCase() + category.slice(1)}
@@ -248,12 +256,12 @@ export function NotificationTable({
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-32 shadow-none rounded-none h-10">
-              <SelectValue placeholder="All Status" />
+              <SelectValue placeholder={t("filters.allStatus")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="read">Read</SelectItem>
-              <SelectItem value="unread">Unread</SelectItem>
+              <SelectItem value="all">{t("filters.allStatus")}</SelectItem>
+              <SelectItem value="read">{t("filters.read")}</SelectItem>
+              <SelectItem value="unread">{t("filters.unread")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -272,22 +280,22 @@ export function NotificationTable({
                 <thead>
                   <tr className="border-b border-border/50 bg-muted/20">
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Notification
+                      {t("columns.notification")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Type
+                      {t("columns.type")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Category
+                      {t("columns.category")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Status
+                      {t("columns.status")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Time
+                      {t("columns.time")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Actions
+                      {t("columns.actions")}
                     </th>
                   </tr>
                 </thead>
@@ -318,9 +326,9 @@ export function NotificationTable({
                               </span>
                               {(notification.metadata?.user_name as string) && (
                                 <span className="text-xs text-muted-foreground">
-                                  by{" "}
+                                  {t("by")}{" "}
                                   {(notification.metadata
-                                    ?.user_name as string) || "Unknown"}
+                                    ?.user_name as string) || t("unknown")}
                                 </span>
                               )}
                             </div>
@@ -377,7 +385,9 @@ export function NotificationTable({
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="h-8 w-8 p-0">
-                                  <span className="sr-only">Open menu</span>
+                                  <span className="sr-only">
+                                    {t("menu.open")}
+                                  </span>
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -386,7 +396,7 @@ export function NotificationTable({
                                 className="w-48 rounded-none"
                               >
                                 <DropdownMenuLabel>
-                                  Notification Actions
+                                  {t("menu.title")}
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
@@ -395,7 +405,7 @@ export function NotificationTable({
                                   }}
                                 >
                                   <Eye className="mr-2 h-4 w-4" />
-                                  View Details
+                                  {t("menu.viewDetails")}
                                 </DropdownMenuItem>
                                 {!notification.read && (
                                   <DropdownMenuItem
@@ -404,7 +414,7 @@ export function NotificationTable({
                                     }
                                   >
                                     <Check className="mr-2 h-4 w-4" />
-                                    Mark as Read
+                                    {t("menu.markAsRead")}
                                   </DropdownMenuItem>
                                 )}
                               </DropdownMenuContent>

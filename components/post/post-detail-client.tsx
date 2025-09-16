@@ -23,6 +23,8 @@ import {
   Eye,
   MessageSquare,
   AlertTriangle,
+  HeartIcon,
+  Share2,
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -334,7 +336,24 @@ export default function PostDetailClient({
 
           {/* Post Actions: Likes, Comments, Share */}
           <div className="flex items-center gap-4 sm:gap-6 text-muted-foreground text-sm mt-6 mb-6 sm:mb-8">
-            {authUser?.identity_verified ? (
+            {!mounted ? (
+              // Hydration-safe placeholder (same on server and before client mount)
+              <button
+                disabled
+                aria-pressed={false}
+                aria-label="Like post"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border bg-background opacity-60 cursor-not-allowed text-sm font-medium select-none"
+              >
+                <HeartIcon
+                  className="h-5 w-5 transition-all text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <span>
+                  {post.likes} {post.likes === 1 ? "Like" : "Likes"}
+                </span>
+                <span className="sr-only">likes</span>
+              </button>
+            ) : authUser?.identity_verified ? (
               <LikeButton postId={post.id} initialLikes={post.likes} />
             ) : (
               <button
@@ -347,33 +366,53 @@ export default function PostDetailClient({
               </button>
             )}
 
-            <button
-              className={`flex items-center gap-1.5 transition ${
-                authUser?.identity_verified
-                  ? "hover:text-primary"
-                  : "opacity-50 cursor-not-allowed"
-              }`}
-              onClick={() => {
-                if (authUser?.identity_verified) {
-                  // Scroll to comments section
-                  document
-                    .getElementById("comments-section")
-                    ?.scrollIntoView({ behavior: "smooth" });
-                } else {
-                  handleVerificationRequired("comment on posts");
+            {!mounted ? (
+              <button
+                disabled
+                aria-label="View comments"
+                className="flex items-center gap-1.5 transition opacity-60 cursor-not-allowed"
+              >
+                <MessageSquare className="h-5 w-5" />
+                {commentCount} {commentCount === 1 ? "Comment" : "Comments"}
+              </button>
+            ) : (
+              <button
+                className={`flex items-center gap-1.5 transition ${
+                  authUser?.identity_verified
+                    ? "hover:text-primary"
+                    : "opacity-50 cursor-not-allowed"
+                }`}
+                onClick={() => {
+                  if (authUser?.identity_verified) {
+                    // Scroll to comments section
+                    document
+                      .getElementById("comments-section")
+                      ?.scrollIntoView({ behavior: "smooth" });
+                  } else {
+                    handleVerificationRequired("comment on posts");
+                  }
+                }}
+                title={
+                  authUser?.identity_verified
+                    ? "View comments"
+                    : "Identity verification required"
                 }
-              }}
-              title={
-                authUser?.identity_verified
-                  ? "View comments"
-                  : "Identity verification required"
-              }
-            >
-              <MessageSquare className="h-5 w-5" />
-              {commentCount} {commentCount === 1 ? "Comment" : "Comments"}
-            </button>
+              >
+                <MessageSquare className="h-5 w-5" />
+                {commentCount} {commentCount === 1 ? "Comment" : "Comments"}
+              </button>
+            )}
 
-            {authUser?.identity_verified ? (
+            {!mounted ? (
+              <button
+                disabled
+                aria-label="Share post"
+                className="flex items-center gap-1.5 opacity-60 cursor-not-allowed"
+              >
+                <Share2 className="h-4 w-4" />
+                <span>Share</span>
+              </button>
+            ) : authUser?.identity_verified ? (
               <SharePost
                 post={{
                   title: post.title,

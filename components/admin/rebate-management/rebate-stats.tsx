@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { DollarSign, Users, TrendingUp, CheckCircle } from "lucide-react";
 
 interface RebateStats {
@@ -15,6 +16,7 @@ interface RebateStats {
 }
 
 export function RebateStats() {
+  const t = useTranslations("admin.rebateManagement.stats");
   const { data: stats, isLoading } = useQuery({
     queryKey: ["admin", "rebate-stats"],
     queryFn: async (): Promise<RebateStats> => {
@@ -114,32 +116,32 @@ export function RebateStats() {
 
   const statCards = [
     {
-      title: "Total Earned",
+      title: t("totalEarned.title"),
       value: `$${stats?.totalEarned.toFixed(2) || "0.00"}`,
-      description: "From all brokers",
+      description: t("totalEarned.description"),
       icon: DollarSign,
       color: "text-green-600",
     },
     {
-      title: "Total Paid Out",
+      title: t("totalPaidOut.title"),
       value: `$${stats?.totalPaidOut.toFixed(2) || "0.00"}`,
-      description: "To users",
+      description: t("totalPaidOut.description"),
       icon: CheckCircle,
       color: "text-blue-600",
     },
     {
-      title: "Pending Withdrawals",
+      title: t("pendingWithdrawals.title"),
       value: `$${stats?.totalPending.toFixed(2) || "0.00"}`,
-      description: "Awaiting approval",
+      description: t("pendingWithdrawals.description"),
       icon: TrendingUp,
       color: "text-yellow-600",
     },
     {
-      title: "Active Users",
+      title: t("activeUsers.title"),
       value: stats?.activeUsers || 0,
-      description: `${
-        stats?.conversionRate.toFixed(1) || "0.0"
-      }% conversion rate`,
+      description: t("activeUsers.description", {
+        rate: stats?.conversionRate.toFixed(1) || "0.0",
+      }),
       icon: Users,
       color: "text-purple-600",
     },

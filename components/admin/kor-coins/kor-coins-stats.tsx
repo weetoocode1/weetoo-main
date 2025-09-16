@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { Coins, TrendingUp, Users, Activity } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface KorCoinsStats {
   totalCoins: number;
@@ -14,6 +15,7 @@ interface KorCoinsStats {
 }
 
 export function KorCoinsStats() {
+  const t = useTranslations("admin.korCoins.stats");
   const { data: stats, isLoading } = useQuery({
     queryKey: ["admin", "kor-coins-stats"],
     queryFn: async (): Promise<KorCoinsStats> => {
@@ -92,30 +94,30 @@ export function KorCoinsStats() {
 
   const statCards = [
     {
-      title: "Total KOR Coins",
+      title: t("totalCoins.title"),
       value: stats?.totalCoins.toLocaleString() || "0",
-      description: "All coins in circulation",
+      description: t("totalCoins.description"),
       icon: Coins,
       color: "text-yellow-600",
     },
     {
-      title: "Active Users",
+      title: t("activeUsers.title"),
       value: stats?.totalUsers || 0,
-      description: "Users with KOR coins",
+      description: t("activeUsers.description"),
       icon: Users,
       color: "text-blue-600",
     },
     {
-      title: "Total Transactions",
+      title: t("totalTransactions.title"),
       value: stats?.totalTransactions || 0,
-      description: "All coin transactions",
+      description: t("totalTransactions.description"),
       icon: Activity,
       color: "text-green-600",
     },
     {
-      title: "Average Balance",
+      title: t("averageBalance.title"),
       value: stats?.averageBalance.toLocaleString() || "0",
-      description: "Per user average",
+      description: t("averageBalance.description"),
       icon: TrendingUp,
       color: "text-purple-600",
     },

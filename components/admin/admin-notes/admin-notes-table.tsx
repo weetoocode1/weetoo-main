@@ -46,6 +46,7 @@ import { toast } from "sonner";
 import { CreateNoteDialog } from "./create-note-dialog";
 import { EditNoteDialog } from "./edit-note-dialog";
 import { ViewNoteDialog } from "./view-note-dialog";
+import { useTranslations } from "next-intl";
 
 interface AdminNote {
   id: string;
@@ -70,6 +71,7 @@ interface AdminNote {
 }
 
 export function AdminNotesTable() {
+  const t = useTranslations("admin.adminNotes.table");
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
@@ -315,7 +317,7 @@ export function AdminNotesTable() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               ref={searchInputRef}
-              placeholder="Search notes... (Ctrl+F)"
+              placeholder={t("searchPlaceholder")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 w-64 shadow-none rounded-none h-10"
@@ -330,13 +332,13 @@ export function AdminNotesTable() {
         <div className="flex items-center gap-3">
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
             <SelectTrigger className="w-32 shadow-none rounded-none h-10">
-              <SelectValue placeholder="All Priorities" />
+              <SelectValue placeholder={t("filters.allPriorities")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Priorities</SelectItem>
-              <SelectItem value="High">High</SelectItem>
-              <SelectItem value="Medium">Medium</SelectItem>
-              <SelectItem value="Low">Low</SelectItem>
+              <SelectItem value="all">{t("filters.allPriorities")}</SelectItem>
+              <SelectItem value="High">{t("priorities.high")}</SelectItem>
+              <SelectItem value="Medium">{t("priorities.medium")}</SelectItem>
+              <SelectItem value="Low">{t("priorities.low")}</SelectItem>
             </SelectContent>
           </Select>
           <Button
@@ -344,7 +346,7 @@ export function AdminNotesTable() {
             className="shadow-none rounded-none h-10"
           >
             <Plus className="mr-2 h-4 w-4" />
-            Create Note
+            {t("createNote")}
           </Button>
         </div>
       </div>
@@ -359,11 +361,11 @@ export function AdminNotesTable() {
             <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-primary pointer-events-none" />
             <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-primary pointer-events-none" />
             <div className="text-muted-foreground">
-              <div className="text-lg font-medium mb-2">No notes found</div>
+              <div className="text-lg font-medium mb-2">{t("empty.title")}</div>
               <div className="text-sm">
                 {searchTerm || priorityFilter !== "all"
-                  ? "Try adjusting your search criteria"
-                  : "Create your first admin note to get started"}
+                  ? t("empty.searchCriteria")
+                  : t("empty.getStarted")}
               </div>
             </div>
           </div>
@@ -374,10 +376,10 @@ export function AdminNotesTable() {
               const PriorityIcon = priorityConfig.icon;
               const userName = note.user
                 ? `${note.user.first_name} ${note.user.last_name}`
-                : "Unknown User";
+                : t("unknownUser");
               const creatorName = note.creator
                 ? `${note.creator.first_name} ${note.creator.last_name}`
-                : "Unknown Admin";
+                : t("unknownAdmin");
 
               return (
                 <div
@@ -423,7 +425,7 @@ export function AdminNotesTable() {
                               }}
                             >
                               <Eye className="mr-2 h-4 w-4" />
-                              View
+                              {t("actions.view")}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => {
@@ -432,14 +434,14 @@ export function AdminNotesTable() {
                               }}
                             >
                               <Edit className="mr-2 h-4 w-4" />
-                              Edit
+                              {t("actions.edit")}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => setDeleteNoteId(note.id)}
                               className="text-destructive"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
+                              {t("actions.delete")}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -450,7 +452,7 @@ export function AdminNotesTable() {
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <User className="h-3 w-3 flex-shrink-0" />
                             <span className="truncate">
-                              User:{" "}
+                              {t("userLabel")}:{" "}
                               <span className="font-medium text-foreground">
                                 {userName}
                               </span>
@@ -459,14 +461,14 @@ export function AdminNotesTable() {
                         ) : (
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <FileText className="h-3 w-3 flex-shrink-0" />
-                            <span>General Note</span>
+                            <span>{t("generalNote")}</span>
                           </div>
                         )}
 
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <User className="h-3 w-3 flex-shrink-0" />
                           <span className="truncate">
-                            Created by:{" "}
+                            {t("createdBy")}:{" "}
                             <span className="font-medium text-foreground">
                               {creatorName}
                             </span>
@@ -495,8 +497,11 @@ export function AdminNotesTable() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Showing {startIndex + 1}-{Math.min(endIndex, filteredNotes.length)}{" "}
-            of {filteredNotes.length} results
+            {t("pagination.showing", {
+              start: startIndex + 1,
+              end: Math.min(endIndex, filteredNotes.length),
+              total: filteredNotes.length,
+            })}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -506,7 +511,7 @@ export function AdminNotesTable() {
               disabled={currentPage === 1}
               className="rounded-none h-8"
             >
-              Previous
+              {t("pagination.previous")}
             </Button>
             <div className="flex items-center gap-1">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -550,7 +555,7 @@ export function AdminNotesTable() {
               disabled={currentPage === totalPages}
               className="rounded-none h-8"
             >
-              Next
+              {t("pagination.next")}
             </Button>
           </div>
         </div>
@@ -614,19 +619,18 @@ export function AdminNotesTable() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Note</AlertDialogTitle>
+            <AlertDialogTitle>{t("deleteDialog.title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this note? This action cannot be
-              undone.
+              {t("deleteDialog.description")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("deleteDialog.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteNoteId && handleDeleteNote(deleteNoteId)}
               className="bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60"
             >
-              Delete
+              {t("deleteDialog.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

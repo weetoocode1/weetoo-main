@@ -23,6 +23,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -62,6 +63,7 @@ export function EditNoteDialog({
   onOpenChange,
   onNoteUpdated,
 }: EditNoteDialogProps) {
+  const t = useTranslations("admin.adminNotes.editDialog");
   const [formData, setFormData] = useState({
     user_id: note.user_id || "general",
     note: note.note,
@@ -102,13 +104,13 @@ export function EditNoteDialog({
     e.preventDefault();
 
     if (!formData.note.trim()) {
-      toast.error("Please enter note content");
+      toast.error(t("validation.noteRequired"));
       return;
     }
 
     // Validate user_id is not empty
     if (!formData.user_id) {
-      toast.error("Please select a valid user option");
+      toast.error(t("validation.userRequired"));
       return;
     }
 
@@ -135,12 +137,12 @@ export function EditNoteDialog({
       queryClient.invalidateQueries({ queryKey: ["admin-notes"] });
       queryClient.invalidateQueries({ queryKey: ["admin-notes-stats"] });
 
-      toast.success("Note updated successfully!");
+      toast.success(t("success.updated"));
       onNoteUpdated();
       onOpenChange(false);
     } catch (error) {
       console.error("Error updating note:", error);
-      toast.error("Failed to update note. Please try again.");
+      toast.error(t("error.failed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -151,20 +153,20 @@ export function EditNoteDialog({
       <DialogContent className="w-full lg:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
-            Edit Admin Note
+            {t("title")}
           </DialogTitle>
-          <DialogDescription>Modify the existing admin note.</DialogDescription>
+          <DialogDescription>{t("description")}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* User Selection */}
           <div className="space-y-2">
             <Label htmlFor="user" className="text-sm font-medium">
-              User (Optional)
+              {t("userLabel")}
             </Label>
             {isLoadingUsers ? (
               <div className="h-10 rounded-none border border-input bg-muted flex items-center px-3 text-sm text-muted-foreground">
-                Loading users...
+                {t("loadingUsers")}
               </div>
             ) : (
               <Select
@@ -174,11 +176,11 @@ export function EditNoteDialog({
                 }
               >
                 <SelectTrigger className="h-10 rounded-none">
-                  <SelectValue placeholder="Select a user (optional)" />
+                  <SelectValue placeholder={t("userPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="general">
-                    No specific user (General note)
+                    {t("generalNoteOption")}
                   </SelectItem>
                   {users?.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
@@ -193,7 +195,7 @@ export function EditNoteDialog({
           {/* Note Content */}
           <div className="space-y-2">
             <Label htmlFor="note" className="text-sm font-medium">
-              Note Content <span className="text-red-500">*</span>
+              {t("noteContent")} <span className="text-red-500">*</span>
             </Label>
             <Textarea
               id="note"
@@ -202,7 +204,7 @@ export function EditNoteDialog({
                 setFormData((prev) => ({ ...prev, note: e.target.value }))
               }
               className="min-h-[120px] resize-none rounded-none"
-              placeholder="Enter the note content..."
+              placeholder={t("notePlaceholder")}
               required
             />
           </div>
@@ -210,7 +212,7 @@ export function EditNoteDialog({
           {/* Priority */}
           <div className="space-y-2">
             <Label htmlFor="priority" className="text-sm font-medium">
-              Priority
+              {t("priority")}
             </Label>
             <Select
               value={formData.priority}
@@ -222,16 +224,16 @@ export function EditNoteDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Low">Low</SelectItem>
-                <SelectItem value="Medium">Medium</SelectItem>
-                <SelectItem value="High">High</SelectItem>
+                <SelectItem value="Low">{t("priorities.low")}</SelectItem>
+                <SelectItem value="Medium">{t("priorities.medium")}</SelectItem>
+                <SelectItem value="High">{t("priorities.high")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Date */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Date</Label>
+            <Label className="text-sm font-medium">{t("date")}</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -245,7 +247,7 @@ export function EditNoteDialog({
                   {formData.date ? (
                     format(formData.date, "PPP")
                   ) : (
-                    <span>Pick a date</span>
+                    <span>{t("pickDate")}</span>
                   )}
                 </Button>
               </PopoverTrigger>
@@ -266,7 +268,7 @@ export function EditNoteDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-sm font-medium text-muted-foreground">
-                Created At
+                {t("createdAt")}
               </Label>
               <Input
                 value={
@@ -280,13 +282,13 @@ export function EditNoteDialog({
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium text-muted-foreground">
-                Last Updated
+                {t("lastUpdated")}
               </Label>
               <Input
                 value={
                   note.updated_at
                     ? new Date(note.updated_at).toLocaleDateString("en-GB")
-                    : "Never"
+                    : t("never")
                 }
                 disabled
                 className="h-10 bg-muted/30 rounded-none"
@@ -302,14 +304,14 @@ export function EditNoteDialog({
             disabled={isSubmitting}
             className="h-10"
           >
-            Cancel
+            {t("cancel")}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting}
             className="h-10"
           >
-            {isSubmitting ? "Updating..." : "Update Note"}
+            {isSubmitting ? t("updating") : t("updateNote")}
           </Button>
         </DialogFooter>
       </DialogContent>

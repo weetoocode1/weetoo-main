@@ -31,6 +31,7 @@ import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface CreateNoteDialogProps {
   open: boolean;
@@ -50,6 +51,7 @@ export function CreateNoteDialog({
   onOpenChange,
   onNoteCreated,
 }: CreateNoteDialogProps) {
+  const t = useTranslations("admin.adminNotes.createDialog");
   const [formData, setFormData] = useState({
     user_id: "general",
     note: "",
@@ -80,13 +82,13 @@ export function CreateNoteDialog({
     e.preventDefault();
 
     if (!formData.note.trim()) {
-      toast.error("Please enter note content");
+      toast.error(t("validation.noteRequired"));
       return;
     }
 
     // Validate user_id is not empty
     if (!formData.user_id) {
-      toast.error("Please select a valid user option");
+      toast.error(t("validation.userRequired"));
       return;
     }
 
@@ -119,7 +121,7 @@ export function CreateNoteDialog({
       queryClient.invalidateQueries({ queryKey: ["admin-notes"] });
       queryClient.invalidateQueries({ queryKey: ["admin-notes-stats"] });
 
-      toast.success("Note created successfully!");
+      toast.success(t("success.created"));
       onNoteCreated();
       onOpenChange(false);
 
@@ -132,7 +134,7 @@ export function CreateNoteDialog({
       });
     } catch (error) {
       console.error("Error creating note:", error);
-      toast.error("Failed to create note. Please try again.");
+      toast.error(t("error.failed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -143,22 +145,20 @@ export function CreateNoteDialog({
       <DialogContent className="w-full lg:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
-            Create Admin Note
+            {t("title")}
           </DialogTitle>
-          <DialogDescription>
-            Create a new internal note about a user or platform activity.
-          </DialogDescription>
+          <DialogDescription>{t("description")}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* User Selection */}
           <div className="space-y-2">
             <Label htmlFor="user" className="text-sm font-medium">
-              User (Optional)
+              {t("userLabel")}
             </Label>
             {isLoadingUsers ? (
               <div className="h-10 rounded-none border border-input bg-muted flex items-center px-3 text-sm text-muted-foreground">
-                Loading users...
+                {t("loadingUsers")}
               </div>
             ) : (
               <Select
@@ -168,11 +168,11 @@ export function CreateNoteDialog({
                 }
               >
                 <SelectTrigger className="h-10 rounded-none">
-                  <SelectValue placeholder="Select a user (optional)" />
+                  <SelectValue placeholder={t("userPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="general">
-                    No specific user (General note)
+                    {t("generalNoteOption")}
                   </SelectItem>
                   {users?.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
@@ -187,7 +187,7 @@ export function CreateNoteDialog({
           {/* Note Content */}
           <div className="space-y-2">
             <Label htmlFor="note" className="text-sm font-medium">
-              Note Content <span className="text-red-500">*</span>
+              {t("noteContent")} <span className="text-red-500">*</span>
             </Label>
             <Textarea
               id="note"
@@ -196,7 +196,7 @@ export function CreateNoteDialog({
                 setFormData((prev) => ({ ...prev, note: e.target.value }))
               }
               className="min-h-[120px] resize-none rounded-none"
-              placeholder="Enter the note content..."
+              placeholder={t("notePlaceholder")}
               required
             />
           </div>
@@ -204,7 +204,7 @@ export function CreateNoteDialog({
           {/* Priority */}
           <div className="space-y-2">
             <Label htmlFor="priority" className="text-sm font-medium">
-              Priority
+              {t("priority")}
             </Label>
             <Select
               value={formData.priority}
@@ -216,16 +216,16 @@ export function CreateNoteDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Low">Low</SelectItem>
-                <SelectItem value="Medium">Medium</SelectItem>
-                <SelectItem value="High">High</SelectItem>
+                <SelectItem value="Low">{t("priorities.low")}</SelectItem>
+                <SelectItem value="Medium">{t("priorities.medium")}</SelectItem>
+                <SelectItem value="High">{t("priorities.high")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Date */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Date</Label>
+            <Label className="text-sm font-medium">{t("date")}</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -239,7 +239,7 @@ export function CreateNoteDialog({
                   {formData.date ? (
                     format(formData.date, "PPP")
                   ) : (
-                    <span>Pick a date</span>
+                    <span>{t("pickDate")}</span>
                   )}
                 </Button>
               </PopoverTrigger>
@@ -264,14 +264,14 @@ export function CreateNoteDialog({
             disabled={isSubmitting}
             className="h-10"
           >
-            Cancel
+            {t("cancel")}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting}
             className="h-10"
           >
-            {isSubmitting ? "Creating..." : "Create Note"}
+            {isSubmitting ? t("creating") : t("createNote")}
           </Button>
         </DialogFooter>
       </DialogContent>

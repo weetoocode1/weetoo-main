@@ -16,6 +16,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Building2, Loader2, Star } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface BankAccount {
   id: string;
@@ -41,6 +42,7 @@ export function EditBankAccountDialog({
   onOpenChange,
   onBankAccountUpdated,
 }: EditBankAccountDialogProps) {
+  const t = useTranslations("admin.bankAccounts.editDialog");
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     bank_name: "",
@@ -78,11 +80,11 @@ export function EditBankAccountDialog({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "bank-accounts"] });
-      toast.success("Bank account updated successfully");
+      toast.success(t("messages.success"));
       onBankAccountUpdated();
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to update bank account");
+      toast.error(error.message || t("messages.failed"));
     },
   });
 
@@ -107,11 +109,11 @@ export function EditBankAccountDialog({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "bank-accounts"] });
-      toast.success("Bank account set as primary successfully");
+      toast.success(t("messages.primarySuccess"));
       onBankAccountUpdated();
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to set bank account as primary");
+      toast.error(error.message || t("messages.primaryFailed"));
     },
   });
 
@@ -123,7 +125,7 @@ export function EditBankAccountDialog({
       !formData.account_number.trim() ||
       !formData.account_holder.trim()
     ) {
-      toast.error("Please fill in all required fields");
+      toast.error(t("messages.fillRequired"));
       return;
     }
 
@@ -144,23 +146,23 @@ export function EditBankAccountDialog({
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold flex items-center gap-2">
             <Building2 className="h-5 w-5 text-primary" />
-            Edit Bank Account
+            {t("title")}
           </DialogTitle>
-          <DialogDescription>
-            Update the bank account information. Changes will be reflected
-            immediately.
-          </DialogDescription>
+          <DialogDescription>{t("description")}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="edit_bank_name" className="text-sm font-medium">
-              Bank Name <span className="text-red-500">*</span>
+              {t("form.bankName.label")}{" "}
+              <span className="text-red-500">
+                {t("form.bankName.required")}
+              </span>
             </Label>
             <Input
               id="edit_bank_name"
               type="text"
-              placeholder="e.g., Shinhan Bank, KB Bank"
+              placeholder={t("form.bankName.placeholder")}
               value={formData.bank_name}
               onChange={(e) => handleInputChange("bank_name", e.target.value)}
               required
@@ -173,12 +175,15 @@ export function EditBankAccountDialog({
               htmlFor="edit_account_number"
               className="text-sm font-medium"
             >
-              Account Number <span className="text-red-500">*</span>
+              {t("form.accountNumber.label")}{" "}
+              <span className="text-red-500">
+                {t("form.accountNumber.required")}
+              </span>
             </Label>
             <Input
               id="edit_account_number"
               type="text"
-              placeholder="e.g., 123-456789-01-234"
+              placeholder={t("form.accountNumber.placeholder")}
               value={formData.account_number}
               onChange={(e) =>
                 handleInputChange("account_number", e.target.value)
@@ -193,12 +198,15 @@ export function EditBankAccountDialog({
               htmlFor="edit_account_holder"
               className="text-sm font-medium"
             >
-              Account Holder Name <span className="text-red-500">*</span>
+              {t("form.accountHolder.label")}{" "}
+              <span className="text-red-500">
+                {t("form.accountHolder.required")}
+              </span>
             </Label>
             <Input
               id="edit_account_holder"
               type="text"
-              placeholder="e.g., Weetoo Company Ltd"
+              placeholder={t("form.accountHolder.placeholder")}
               value={formData.account_holder}
               onChange={(e) =>
                 handleInputChange("account_holder", e.target.value)
@@ -211,27 +219,27 @@ export function EditBankAccountDialog({
           {/* Show current status */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-muted-foreground">
-              Account Information
+              {t("accountInfo.title")}
             </Label>
             <div className="p-3 bg-muted/20 border border-border rounded-none">
               <div className="text-sm text-muted-foreground">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="font-medium text-foreground">
-                    Current Status:
+                    {t("accountInfo.currentStatus")}
                   </span>
                   {bankAccount.is_primary ? (
                     <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium border border-yellow-200">
                       <Star className="h-3 w-3" />
-                      Primary Account
+                      {t("accountInfo.primaryAccount")}
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-800 text-xs font-medium border border-gray-200">
-                      Secondary Account
+                      {t("accountInfo.secondaryAccount")}
                     </span>
                   )}
                 </div>
                 <div className="text-xs">
-                  Created:{" "}
+                  {t("accountInfo.created")}{" "}
                   {new Date(bankAccount.created_at).toLocaleDateString()}
                 </div>
               </div>
@@ -242,7 +250,7 @@ export function EditBankAccountDialog({
           {!bankAccount.is_primary && (
             <div className="space-y-2">
               <Label className="text-sm font-medium text-muted-foreground">
-                Quick Actions
+                {t("quickActions.title")}
               </Label>
               <Button
                 type="button"
@@ -254,12 +262,12 @@ export function EditBankAccountDialog({
                 {makePrimaryMutation.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Setting as Primary...
+                    {t("quickActions.settingAsPrimary")}
                   </>
                 ) : (
                   <>
                     <Star className="h-4 w-4 mr-2" />
-                    Make Primary Account
+                    {t("quickActions.makePrimary")}
                   </>
                 )}
               </Button>
@@ -274,7 +282,7 @@ export function EditBankAccountDialog({
               disabled={updateBankAccountMutation.isPending}
               className="rounded-none"
             >
-              Cancel
+              {t("actions.cancel")}
             </Button>
             <Button
               type="submit"
@@ -284,10 +292,10 @@ export function EditBankAccountDialog({
               {updateBankAccountMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Updating...
+                  {t("actions.updating")}
                 </>
               ) : (
-                "Update Account"
+                t("actions.updateAccount")
               )}
             </Button>
           </DialogFooter>

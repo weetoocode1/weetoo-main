@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface WithdrawRequest {
   id: string;
@@ -65,6 +66,7 @@ interface RawWithdrawalData {
 }
 
 export function WithdrawTable() {
+  const t = useTranslations("admin.withdrawManagement.table");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(6);
   const [searchTerm, setSearchTerm] = useState("");
@@ -264,7 +266,9 @@ export function WithdrawTable() {
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-amber-200 bg-amber-50 text-amber-700 text-xs font-medium">
             <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
             <Clock className="h-3 w-3" />
-            <span className="uppercase tracking-wide">Pending</span>
+            <span className="uppercase tracking-wide">
+              {t("status.pending")}
+            </span>
           </div>
         );
       case "sent":
@@ -272,7 +276,7 @@ export function WithdrawTable() {
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-blue-200 bg-blue-50 text-blue-700 text-xs font-medium">
             <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
             <CreditCard className="h-3 w-3" />
-            <span className="uppercase tracking-wide">Sent</span>
+            <span className="uppercase tracking-wide">{t("status.sent")}</span>
           </div>
         );
       case "verified":
@@ -280,7 +284,9 @@ export function WithdrawTable() {
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-medium">
             <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
             <CheckCircle className="h-3 w-3" />
-            <span className="uppercase tracking-wide">Verified</span>
+            <span className="uppercase tracking-wide">
+              {t("status.verified")}
+            </span>
           </div>
         );
       case "failed":
@@ -288,14 +294,18 @@ export function WithdrawTable() {
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-red-200 bg-red-50 text-red-700 text-xs font-medium">
             <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
             <AlertTriangle className="h-3 w-3" />
-            <span className="uppercase tracking-wide">Failed</span>
+            <span className="uppercase tracking-wide">
+              {t("status.failed")}
+            </span>
           </div>
         );
       default:
         return (
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-gray-200 bg-gray-50 text-gray-700 text-xs font-medium">
             <div className="w-1.5 h-1.5 bg-gray-500 rounded-full"></div>
-            <span className="uppercase tracking-wide">Unknown</span>
+            <span className="uppercase tracking-wide">
+              {t("status.unknown")}
+            </span>
           </div>
         );
     }
@@ -309,11 +319,13 @@ export function WithdrawTable() {
       { id, data: { status: mapUiStatusToDb(newStatus) } },
       {
         onSuccess: () => {
-          toast.success("Status updated");
+          toast.success(t("messages.statusUpdated"));
         },
         onError: (err: Error | unknown) => {
           const errorMessage =
-            err instanceof Error ? err.message : "Failed to update status";
+            err instanceof Error
+              ? err.message
+              : t("messages.statusUpdateFailed");
           toast.error(errorMessage);
         },
       }
@@ -376,9 +388,7 @@ export function WithdrawTable() {
       <div className="space-y-3 mt-10">
         <div className="border border-border rounded-none">
           <div className="p-8 text-center">
-            <div className="text-muted-foreground">
-              Loading withdrawal requests...
-            </div>
+            <div className="text-muted-foreground">{t("loading")}</div>
           </div>
         </div>
       </div>
@@ -393,7 +403,7 @@ export function WithdrawTable() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             ref={searchInputRef}
-            placeholder="Search by user name, email, or withdrawal ID... (Ctrl+F)"
+            placeholder={t("searchPlaceholder")}
             value={searchTerm}
             onChange={handleSearchChange}
             className="pl-10 w-64 shadow-none rounded-none h-10"
@@ -408,11 +418,14 @@ export function WithdrawTable() {
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-
-              <SelectItem value="verified">Verified</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
+              <SelectItem value="all">{t("statusFilter.all")}</SelectItem>
+              <SelectItem value="pending">
+                {t("statusFilter.pending")}
+              </SelectItem>
+              <SelectItem value="verified">
+                {t("statusFilter.verified")}
+              </SelectItem>
+              <SelectItem value="failed">{t("statusFilter.failed")}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -426,7 +439,7 @@ export function WithdrawTable() {
               className="shadow-none rounded-none h-10"
             >
               <XIcon className="h-4 w-4 mr-2" />
-              Clear ({activeFilterCount})
+              {t("clearFilters")} ({activeFilterCount})
             </Button>
           )}
           {/* Export CSV moved here */}
@@ -436,7 +449,7 @@ export function WithdrawTable() {
             className="shadow-none rounded-none h-10"
             onClick={exportCsv}
           >
-            Export CSV
+            {t("exportCsv")}
           </Button>
         </div>
       </div>
@@ -460,25 +473,25 @@ export function WithdrawTable() {
                 <thead>
                   <tr className="border-b border-border/50 bg-muted/20">
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      ID
+                      {t("columns.id")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      User
+                      {t("columns.user")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      KOR Coins
+                      {t("columns.korCoins")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Bank Details
+                      {t("columns.bankDetails")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Verification/Withdrawal
+                      {t("columns.verificationWithdrawal")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Status
+                      {t("columns.status")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Actions
+                      {t("columns.actions")}
                     </th>
                   </tr>
                 </thead>
@@ -553,13 +566,13 @@ export function WithdrawTable() {
                           {request.status === "verified" &&
                             (request as WithdrawRequest).payout_sent && (
                               <div className="mt-1 text-xs text-emerald-600 font-medium">
-                                Sent
+                                {t("actions.sent")}
                               </div>
                             )}
                           {request.status === "verified" &&
                             !(request as WithdrawRequest).payout_sent && (
                               <div className="mt-2 text-xs text-muted-foreground">
-                                After sending, click Mark as Sent to lock.
+                                {t("actions.afterSending")}
                               </div>
                             )}
                         </div>
@@ -580,10 +593,15 @@ export function WithdrawTable() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="pending">Pending</SelectItem>
-
-                              <SelectItem value="verified">Verified</SelectItem>
-                              <SelectItem value="failed">Failed</SelectItem>
+                              <SelectItem value="pending">
+                                {t("status.pending")}
+                              </SelectItem>
+                              <SelectItem value="verified">
+                                {t("status.verified")}
+                              </SelectItem>
+                              <SelectItem value="failed">
+                                {t("status.failed")}
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                           {request.status === "verified" && (
@@ -598,8 +616,8 @@ export function WithdrawTable() {
                               }
                             >
                               {(request as WithdrawRequest).payout_sent
-                                ? "Sent"
-                                : "Mark as Sent"}
+                                ? t("actions.sent")
+                                : t("actions.markAsSent")}
                             </Button>
                           )}
                         </div>
@@ -640,7 +658,8 @@ export function WithdrawTable() {
                           {request.accountHolderName}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          ID: {request.id} • Level {request.userLevel}
+                          ID: {request.id} • {t("mobile.level")}{" "}
+                          {request.userLevel}
                         </div>
                       </div>
                     </div>
@@ -655,7 +674,7 @@ export function WithdrawTable() {
                       <Shield className="h-4 w-4 text-green-600" />
                       <div>
                         <div className="text-xs text-muted-foreground">
-                          KOR Coins
+                          {t("mobile.korCoins")}
                         </div>
                         <div className="font-medium text-sm">
                           {request.withdrawalAmount.toLocaleString()} KOR
@@ -666,7 +685,7 @@ export function WithdrawTable() {
                       <Shield className="h-4 w-4 text-muted-foreground" />
                       <div>
                         <div className="text-xs text-muted-foreground">
-                          Account Number
+                          {t("mobile.accountNumber")}
                         </div>
                         <div className="font-mono text-sm">
                           {request.accountNumber}
@@ -677,7 +696,7 @@ export function WithdrawTable() {
                       <Shield className="h-4 w-4 text-yellow-600" />
                       <div>
                         <div className="text-xs text-muted-foreground">
-                          Verification Amount
+                          {t("mobile.verificationAmount")}
                         </div>
                         <div className="font-mono font-medium">
                           <span className="text-sm">₩</span>{" "}
@@ -695,7 +714,7 @@ export function WithdrawTable() {
                       // For verified: just show final amount
                       <div className="text-center">
                         <div className="text-lg font-bold text-green-600">
-                          Send: ₩
+                          {t("mobile.send")} ₩
                           {calculateWithdrawalFee(
                             request.userLevel,
                             request.withdrawalAmount
@@ -707,8 +726,10 @@ export function WithdrawTable() {
                       <div className="text-center">
                         <div className="text-lg font-bold text-blue-600">
                           {typeof request.verificationAmount === "number"
-                            ? `Send: ₩${request.verificationAmount.toFixed(4)}`
-                            : "Send: -"}
+                            ? `${t(
+                                "mobile.send"
+                              )} ₩${request.verificationAmount.toFixed(4)}`
+                            : `${t("mobile.send")} -`}
                         </div>
                       </div>
                     )}
@@ -718,7 +739,7 @@ export function WithdrawTable() {
                   <div className="pt-2 border-t border-border/30">
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">
-                        Change Status:
+                        {t("actions.changeStatus")}
                       </span>
                       <Select
                         value={request.status}
@@ -733,10 +754,15 @@ export function WithdrawTable() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="pending">Pending</SelectItem>
-
-                          <SelectItem value="verified">Verified</SelectItem>
-                          <SelectItem value="failed">Failed</SelectItem>
+                          <SelectItem value="pending">
+                            {t("status.pending")}
+                          </SelectItem>
+                          <SelectItem value="verified">
+                            {t("status.verified")}
+                          </SelectItem>
+                          <SelectItem value="failed">
+                            {t("status.failed")}
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -751,11 +777,9 @@ export function WithdrawTable() {
             <div className="p-8 text-center">
               <div className="text-muted-foreground">
                 <div className="text-lg font-medium mb-2">
-                  No withdrawal requests found
+                  {t("empty.title")}
                 </div>
-                <div className="text-sm">
-                  Try adjusting your search criteria
-                </div>
+                <div className="text-sm">{t("empty.subtitle")}</div>
               </div>
             </div>
           )}
@@ -766,9 +790,11 @@ export function WithdrawTable() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Showing {startIndex + 1}-
-            {Math.min(endIndex, filteredRequests.length)} of{" "}
-            {filteredRequests.length} results
+            {t("pagination.showing", {
+              start: startIndex + 1,
+              end: Math.min(endIndex, filteredRequests.length),
+              total: filteredRequests.length,
+            })}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -778,7 +804,7 @@ export function WithdrawTable() {
               disabled={currentPage === 1}
               className="shadow-none rounded-none h-10"
             >
-              Previous
+              {t("pagination.previous")}
             </Button>
             <div className="flex items-center gap-1">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -822,7 +848,7 @@ export function WithdrawTable() {
               disabled={currentPage === totalPages}
               className="shadow-none rounded-none h-10"
             >
-              Next
+              {t("pagination.next")}
             </Button>
           </div>
         </div>

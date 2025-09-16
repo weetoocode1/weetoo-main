@@ -7,8 +7,10 @@ import {
   useDepositStats,
   useAdminDepositRealtimeSubscriptions,
 } from "@/hooks/use-deposit";
+import { useTranslations } from "next-intl";
 
 export function DepositManagementPage() {
+  const t = useTranslations("admin.depositManagement.stats");
   useAdminDepositRealtimeSubscriptions();
   const { data: stats } = useDepositStats();
 
@@ -21,30 +23,30 @@ export function DepositManagementPage() {
 
   const statCards = [
     {
-      title: "Total Deposits",
+      title: t("totalDeposits.title"),
       value: total.toLocaleString(),
-      description: "All deposit requests",
+      description: t("totalDeposits.description"),
       icon: CreditCard,
       color: "text-blue-600",
     },
     {
-      title: "Pending Verification",
+      title: t("pendingVerification.title"),
       value: pendingVerification.toLocaleString(),
-      description: "Awaiting bank verification",
+      description: t("pendingVerification.description"),
       icon: AlertTriangle,
       color: "text-yellow-600",
     },
     {
-      title: "Verified Accounts",
+      title: t("verifiedAccounts.title"),
       value: verified.toLocaleString(),
-      description: "Successfully verified accounts",
+      description: t("verifiedAccounts.description"),
       icon: Shield,
       color: "text-green-600",
     },
     {
-      title: "Completed Deposits",
+      title: t("completedDeposits.title"),
       value: completed.toLocaleString(),
-      description: "Successfully processed",
+      description: t("completedDeposits.description"),
       icon: TrendingUp,
       color: "text-emerald-600",
     },

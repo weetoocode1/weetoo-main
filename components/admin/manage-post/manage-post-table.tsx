@@ -34,6 +34,7 @@ import {
   User,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { DeletePostDialog } from "./delete-post-dialog";
 import { EditPostDialog } from "./edit-post-dialog";
 import { ViewPostDialog } from "./view-post-dialog";
@@ -62,6 +63,7 @@ interface Post {
 }
 
 export function ManagePostTable() {
+  const t = useTranslations("admin.managePosts.table");
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
@@ -299,7 +301,7 @@ export function ManagePostTable() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               ref={searchInputRef}
-              placeholder="Search posts... (Ctrl+F)"
+              placeholder={t("searchPlaceholder")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 w-64 shadow-none rounded-none h-10 bg-background border-border focus:border-primary"
@@ -311,7 +313,10 @@ export function ManagePostTable() {
             )}
           </div>
           <div className="text-sm text-muted-foreground">
-            {filteredPosts.length} of {posts?.length || 0} posts
+            {t("count", {
+              filtered: filteredPosts.length,
+              total: posts?.length || 0,
+            })}
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -325,13 +330,13 @@ export function ManagePostTable() {
             }}
           >
             <SelectTrigger className="w-40 shadow-none rounded-none h-10 bg-background border-border focus:border-primary">
-              <SelectValue placeholder="All Boards" />
+              <SelectValue placeholder={t("filters.allBoards")} />
             </SelectTrigger>
             <SelectContent className="rounded-none">
-              <SelectItem value="all">All Boards</SelectItem>
-              <SelectItem value="free">Free Board</SelectItem>
-              <SelectItem value="education">Education Board</SelectItem>
-              <SelectItem value="profit">Profit Board</SelectItem>
+              <SelectItem value="all">{t("filters.allBoards")}</SelectItem>
+              <SelectItem value="free">{t("boards.free")}</SelectItem>
+              <SelectItem value="education">{t("boards.education")}</SelectItem>
+              <SelectItem value="profit">{t("boards.profit")}</SelectItem>
             </SelectContent>
           </Select>
           {isFiltering && (
@@ -372,15 +377,19 @@ export function ManagePostTable() {
             <div className="text-muted-foreground">
               <div className="text-lg font-semibold mb-3 text-card-foreground">
                 {searchTerm || boardFilter !== "all"
-                  ? "No posts found"
-                  : "No posts yet"}
+                  ? t("empty.noPostsFound")
+                  : t("empty.noPostsYet")}
               </div>
               <div className="text-sm">
                 {searchTerm || boardFilter !== "all"
-                  ? `No posts match "${searchTerm}" in ${
-                      boardFilter === "all" ? "all boards" : boardFilter
-                    }`
-                  : "No posts have been created yet"}
+                  ? t("empty.noMatch", {
+                      term: searchTerm,
+                      board:
+                        boardFilter === "all"
+                          ? t("filters.allBoards")
+                          : t(`boards.${boardFilter}`),
+                    })
+                  : t("empty.noPostsCreated")}
               </div>
             </div>
           </div>
@@ -440,7 +449,7 @@ export function ManagePostTable() {
                           }}
                         >
                           <Eye className="mr-2 h-4 w-4" />
-                          View
+                          {t("menu.view")}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => {
@@ -449,7 +458,7 @@ export function ManagePostTable() {
                           }}
                         >
                           <Edit className="mr-2 h-4 w-4" />
-                          Edit
+                          {t("menu.edit")}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => {
@@ -462,12 +471,12 @@ export function ManagePostTable() {
                           {deletingPostId === post.id ? (
                             <>
                               <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-destructive border-t-transparent" />
-                              Deleting...
+                              {t("menu.deleting")}
                             </>
                           ) : (
                             <>
                               <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
+                              {t("menu.delete")}
                             </>
                           )}
                         </DropdownMenuItem>
@@ -485,7 +494,7 @@ export function ManagePostTable() {
                   ) : (
                     <div className="mb-3 flex-1">
                       <p className="text-xs text-muted-foreground line-clamp-1 leading-relaxed italic">
-                        No excerpt available
+                        {t("excerpt.none")}
                       </p>
                     </div>
                   )}
@@ -538,8 +547,11 @@ export function ManagePostTable() {
           <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-primary pointer-events-none" />
 
           <div className="text-sm text-muted-foreground font-medium">
-            Showing {startIndex + 1}-{Math.min(endIndex, filteredPosts.length)}{" "}
-            of {filteredPosts.length} results
+            {t("pagination.showing", {
+              start: startIndex + 1,
+              end: Math.min(endIndex, filteredPosts.length),
+              total: filteredPosts.length,
+            })}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -549,7 +561,7 @@ export function ManagePostTable() {
               disabled={currentPage === 1}
               className="rounded-none h-8 border-border hover:bg-muted/80"
             >
-              Previous
+              {t("pagination.previous")}
             </Button>
             <div className="flex items-center gap-1">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -593,7 +605,7 @@ export function ManagePostTable() {
               disabled={currentPage === totalPages}
               className="rounded-none h-8 border-border hover:bg-muted/80"
             >
-              Next
+              {t("pagination.next")}
             </Button>
           </div>
         </div>

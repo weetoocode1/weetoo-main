@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface BankAccount {
   id: string;
@@ -39,6 +40,7 @@ export function DeleteBankAccountDialog({
   onOpenChange,
   onDeleted,
 }: DeleteBankAccountDialogProps) {
+  const t = useTranslations("admin.bankAccounts.deleteDialog");
   const queryClient = useQueryClient();
 
   const deleteBankAccountMutation = useMutation({
@@ -54,12 +56,12 @@ export function DeleteBankAccountDialog({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "bank-accounts"] });
-      toast.success("Bank account deleted successfully");
+      toast.success(t("messages.success"));
       onDeleted();
       onOpenChange(false);
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to delete bank account");
+      toast.error(error.message || t("messages.failed"));
     },
   });
 
@@ -76,36 +78,35 @@ export function DeleteBankAccountDialog({
         <AlertDialogHeader>
           <AlertDialogTitle className="text-xl font-semibold flex items-center gap-2">
             <Trash2 className="h-5 w-5 text-red-500" />
-            Delete Bank Account
+            {t("title")}
           </AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete this bank account? This action
-            cannot be undone.
+            {t("description")}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         <div className="p-4 bg-muted/20 border border-border rounded-none">
           <div className="space-y-2">
             <div className="font-medium text-sm">
-              <span className="text-muted-foreground">Bank Name:</span>{" "}
+              <span className="text-muted-foreground">{t("accountDetails.bankName")}</span>{" "}
               {bankAccount.bank_name}
             </div>
             <div className="font-mono text-sm">
-              <span className="text-muted-foreground">Account Number:</span>{" "}
+              <span className="text-muted-foreground">{t("accountDetails.accountNumber")}</span>{" "}
               {bankAccount.account_number}
             </div>
             <div className="text-sm">
-              <span className="text-muted-foreground">Account Holder:</span>{" "}
+              <span className="text-muted-foreground">{t("accountDetails.accountHolder")}</span>{" "}
               {bankAccount.account_holder}
             </div>
             <div className="text-xs text-muted-foreground">
-              Created: {new Date(bankAccount.created_at).toLocaleDateString()}
+              {t("accountDetails.created")} {new Date(bankAccount.created_at).toLocaleDateString()}
             </div>
           </div>
         </div>
 
         <AlertDialogFooter>
-          <AlertDialogCancel className="rounded-none">Cancel</AlertDialogCancel>
+          <AlertDialogCancel className="rounded-none">{t("actions.cancel")}</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
             disabled={deleteBankAccountMutation.isPending}
@@ -114,12 +115,12 @@ export function DeleteBankAccountDialog({
             {deleteBankAccountMutation.isPending ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Deleting...
+                {t("actions.deleting")}
               </>
             ) : (
               <>
                 <Trash2 className="h-4 w-4 mr-2" />
-                Delete Account
+                {t("actions.deleteAccount")}
               </>
             )}
           </AlertDialogAction>

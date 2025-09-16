@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { AlertTriangle, Calendar, FileText, TrendingUp } from "lucide-react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 
 interface Post {
   id: string;
@@ -40,6 +41,7 @@ export function ViewPostDialog({
   open,
   onOpenChange,
 }: ViewPostDialogProps) {
+  const t = useTranslations("admin.managePosts.viewDialog");
   const getBoardConfig = (board: string) => {
     const configs = {
       "free-board": {
@@ -72,13 +74,13 @@ export function ViewPostDialog({
   const authorName =
     post.author && post.author.first_name && post.author.last_name
       ? `${post.author.first_name} ${post.author.last_name}`
-      : "Unknown Author";
+      : t("unknownAuthor");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full lg:max-w-[45rem] h-[90vh] bg-background p-0 flex flex-col gap-0">
         <DialogTitle asChild>
-          <VisuallyHidden>Post Details</VisuallyHidden>
+          <VisuallyHidden>{t("aria.title")}</VisuallyHidden>
         </DialogTitle>
         {/* Fixed Header */}
         <div className="flex-shrink-0 px-6 py-4 border-b border-border/30">
@@ -172,12 +174,16 @@ export function ViewPostDialog({
             <div className="grid grid-cols-3 gap-6">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Board:</span>
+                <span className="text-muted-foreground">
+                  {t("footer.board")}:
+                </span>
                 <span className="font-medium">{boardConfig.label}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Created:</span>
+                <span className="text-muted-foreground">
+                  {t("footer.created")}:
+                </span>
                 <span className="font-medium">
                   {new Date(post.created_at).toLocaleDateString("en-GB", {
                     year: "numeric",
@@ -187,7 +193,7 @@ export function ViewPostDialog({
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">ID:</span>
+                <span className="text-muted-foreground">{t("footer.id")}:</span>
                 <span className="font-medium font-mono text-xs">{post.id}</span>
               </div>
             </div>
@@ -195,15 +201,21 @@ export function ViewPostDialog({
             {/* Row 2: Views | Likes | Comments */}
             <div className="grid grid-cols-3 gap-6">
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Views:</span>
+                <span className="text-muted-foreground">
+                  {t("footer.views")}:
+                </span>
                 <span className="font-medium">{post.views}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Likes:</span>
+                <span className="text-muted-foreground">
+                  {t("footer.likes")}:
+                </span>
                 <span className="font-medium">{post.likes}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Comments:</span>
+                <span className="text-muted-foreground">
+                  {t("footer.comments")}:
+                </span>
                 <span className="font-medium">{post.comments}</span>
               </div>
             </div>

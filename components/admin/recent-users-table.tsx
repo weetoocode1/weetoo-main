@@ -32,6 +32,7 @@ import {
 } from "@tanstack/react-table";
 import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface RecentUser {
   id: string;
@@ -44,10 +45,13 @@ interface RecentUser {
   avatar_url?: string;
 }
 
-const columns: ColumnDef<RecentUser>[] = [
+const createColumns = (
+  t: (key: string) => string,
+  tRoles: (key: string) => string
+): ColumnDef<RecentUser>[] => [
   {
     accessorKey: "first_name",
-    header: "User",
+    header: () => t("user"),
     cell: ({ row }) => {
       const user = row.original;
       const fullName =
@@ -76,7 +80,7 @@ const columns: ColumnDef<RecentUser>[] = [
   },
   {
     accessorKey: "role",
-    header: "Role",
+    header: () => t("role"),
     cell: ({ row }) => {
       const role = row.getValue("role") as string;
       const roleConfig = {
@@ -108,14 +112,18 @@ const columns: ColumnDef<RecentUser>[] = [
           variant="outline"
           className={`${config.bg} ${config.text} ${config.border} font-medium text-xs px-2 py-1 border-border`}
         >
-          {role === "super_admin" ? "Super Admin" : role}
+          {role === "super_admin"
+            ? tRoles("super_admin")
+            : role === "admin"
+            ? tRoles("admin")
+            : tRoles("user")}
         </Badge>
       );
     },
   },
   {
     accessorKey: "kor_coins",
-    header: "KOR Coins",
+    header: () => t("korCoins"),
     cell: ({ row }) => {
       const coins = row.getValue("kor_coins") as number;
       return (
@@ -123,14 +131,16 @@ const columns: ColumnDef<RecentUser>[] = [
           <span className="font-mono font-medium text-sm">
             {coins?.toLocaleString() || "0"}
           </span>
-          <span className="text-xs text-muted-foreground">coins</span>
+          <span className="text-xs text-muted-foreground">
+            {t("coinsLower")}
+          </span>
         </div>
       );
     },
   },
   {
     accessorKey: "created_at",
-    header: "Joined",
+    header: () => t("joined"),
     cell: ({ row }) => {
       const date = new Date(row.getValue("created_at") as string);
       return (
@@ -147,6 +157,9 @@ const columns: ColumnDef<RecentUser>[] = [
 ];
 
 export function RecentUsersTable() {
+  const t = useTranslations("admin.overview.tables.recentUsers");
+  const tColumns = useTranslations("admin.overview.tables.recentUsers.columns");
+  const tRoles = useTranslations("admin.leftSidebar.roles");
   const [sorting, setSorting] = useState<SortingState>([]);
   const [, setIsRealtimeActive] = useState(false);
   const [, setLastUpdateTime] = useState<Date | null>(null);
@@ -219,6 +232,8 @@ export function RecentUsersTable() {
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 
+  const columns = createColumns(tColumns, tRoles);
+
   const table = useReactTable({
     data: users || [],
     columns,
@@ -244,18 +259,18 @@ export function RecentUsersTable() {
           <CardHeader className="flex flex-col items-stretch border-b !p-0 sm:flex-row">
             <div className="flex flex-1 flex-col justify-center gap-1 px-6 pt-4 pb-3 sm:!py-0">
               <div className="flex items-center gap-2">
-                <CardTitle>Recent Users</CardTitle>
+                <CardTitle>{t("title")}</CardTitle>
                 <Skeleton className="w-16 h-6 rounded-full" />
               </div>
               <CardDescription>
-                Latest user registrations and their activity
+                {t("description")}
                 <Skeleton className="inline-block w-32 h-3 mt-1" />
               </CardDescription>
             </div>
             <div className="flex">
               <div className="relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left sm:border-t-0 sm:border-l sm:px-8 sm:py-6">
                 <span className="text-muted-foreground text-xs">
-                  Total Users
+                  {t("totalUsers")}
                 </span>
                 <Skeleton className="h-8 w-16" />
               </div>
@@ -293,11 +308,9 @@ export function RecentUsersTable() {
         <CardHeader className="flex flex-col items-stretch border-b !p-0 sm:flex-row">
           <div className="flex flex-1 flex-col justify-center gap-1 px-6 pt-4 pb-3 sm:!py-0">
             <div className="flex items-center gap-2">
-              <CardTitle>Recent Users</CardTitle>
+              <CardTitle>{t("title")}</CardTitle>
             </div>
-            <CardDescription>
-              Latest user registrations and their activity
-            </CardDescription>
+            <CardDescription>{t("description")}</CardDescription>
           </div>
           <div className="flex">
             <div className="relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left sm:border-t-0 sm:border-l sm:px-8 sm:py-6">

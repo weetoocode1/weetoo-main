@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Calendar, Coins, Hash, Mail } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface UserKorCoins {
   id: string;
@@ -32,30 +33,34 @@ export function ViewProfileDialog({
   onOpenChange,
   user,
 }: ViewProfileDialogProps) {
+  const t = useTranslations("admin.korCoins.viewProfileDialog");
   if (!user) return null;
 
   const getBalanceStatus = (coins: number) => {
     if (coins >= 1000000)
       return {
-        label: "High",
+        label: t("status.high"),
         color: "bg-green-100 text-green-800 border-green-300",
       };
     if (coins >= 500000)
       return {
-        label: "Medium",
+        label: t("status.medium"),
         color: "bg-yellow-100 text-yellow-800 border-yellow-300",
       };
-    return { label: "Low", color: "bg-red-100 text-red-800 border-red-300" };
+    return {
+      label: t("status.low"),
+      color: "bg-red-100 text-red-800 border-red-300",
+    };
   };
 
   const balanceStatus = getBalanceStatus(user.kor_coins);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full lg:max-w-xl border-2 border-border">
+      <DialogContent className="w-full lg:max-w-xl border-border shadow-none rounded-none">
         <DialogHeader className="border-b border-border pb-4">
           <DialogTitle className="text-lg font-semibold">
-            User Profile
+            {t("title")}
           </DialogTitle>
         </DialogHeader>
 
@@ -76,7 +81,7 @@ export function ViewProfileDialog({
               <div className="flex-1">
                 <h3 className="text-xl font-bold text-foreground mb-1">
                   {`${user.first_name || ""} ${user.last_name || ""}`.trim() ||
-                    "Unknown User"}
+                    t("empty.noUsers")}
                 </h3>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                   <Hash className="h-3 w-3" />
@@ -87,7 +92,7 @@ export function ViewProfileDialog({
                     variant="outline"
                     className={`${balanceStatus.color} border`}
                   >
-                    {balanceStatus.label} Balance
+                    {balanceStatus.label} {t("labels.balanceStatus")}
                   </Badge>
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <Coins className="h-3 w-3" />
@@ -109,7 +114,7 @@ export function ViewProfileDialog({
                   <Mail className="h-4 w-4 text-blue-700" />
                 </div>
                 <span className="text-xs font-medium text-blue-800 uppercase tracking-wider">
-                  Email Address
+                  {t("labels.emailAddress")}
                 </span>
               </div>
               <div
@@ -127,7 +132,7 @@ export function ViewProfileDialog({
                   <Coins className="h-4 w-4 text-yellow-700" />
                 </div>
                 <span className="text-xs font-medium text-yellow-800 uppercase tracking-wider">
-                  KOR Coins
+                  {t("labels.korCoins")}
                 </span>
               </div>
               <div className="text-xl font-bold font-mono text-yellow-900">
@@ -142,7 +147,7 @@ export function ViewProfileDialog({
                   <Calendar className="h-4 w-4 text-purple-700" />
                 </div>
                 <span className="text-xs font-medium text-purple-800 uppercase tracking-wider">
-                  Member Since
+                  {t("labels.memberSince")}
                 </span>
               </div>
               <div className="text-sm text-purple-900">
@@ -164,11 +169,11 @@ export function ViewProfileDialog({
                   </span>
                 </div>
                 <span className="text-xs font-medium text-green-800 uppercase tracking-wider">
-                  Balance Status
+                  {t("labels.balanceStatus")}
                 </span>
               </div>
               <div className="text-sm text-green-900">
-                {balanceStatus.label} Balance
+                {balanceStatus.label} {t("labels.balanceStatus")}
               </div>
             </div>
           </div>
@@ -178,9 +183,9 @@ export function ViewProfileDialog({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="h-9 px-4"
+            className="h-10 px-4 shadow-none rounded-none"
           >
-            Close
+            {t("actions.close")}
           </Button>
         </DialogFooter>
       </DialogContent>

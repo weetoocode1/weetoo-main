@@ -16,16 +16,18 @@ import {
 } from "@/components/ui/chart";
 import { useChartData } from "@/hooks/use-chart-data";
 import { Skeleton } from "@/components/ui/skeleton";
-
-const chartConfig = {
-  coins: {
-    label: "KOR Coins",
-    color: "var(--chart-2)",
-  },
-} satisfies ChartConfig;
+import { useTranslations } from "next-intl";
 
 export function KorCoinsChart() {
+  const t = useTranslations("admin.korCoins.chart");
   const { data: chartData, isLoading } = useChartData();
+
+  const chartConfig = {
+    coins: {
+      label: t("series.coins"),
+      color: "var(--chart-2)",
+    },
+  } satisfies ChartConfig;
 
   if (isLoading) {
     return (
@@ -39,11 +41,8 @@ export function KorCoinsChart() {
 
           <CardHeader className="flex flex-col items-stretch border-b !p-0 sm:flex-row">
             <div className="flex flex-1 flex-col justify-center gap-1 px-6 pt-4 pb-3 sm:!py-0">
-              <CardTitle>Monthly KOR Coins Activity</CardTitle>
-              <CardDescription>
-                Showing monthly KOR Coins activity (cumulative
-                additions/subtractions) for the last 30 days
-              </CardDescription>
+              <CardTitle>{t("title")}</CardTitle>
+              <CardDescription>{t("description")}</CardDescription>
             </div>
             <div className="flex">
               <div className="relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left sm:border-t-0 sm:border-l sm:px-8 sm:py-6">
@@ -77,15 +76,13 @@ export function KorCoinsChart() {
 
         <CardHeader className="flex flex-col items-stretch border-b !p-0 sm:flex-row">
           <div className="flex flex-1 flex-col justify-center gap-1 px-6 pt-4 pb-3 sm:!py-0">
-            <CardTitle>KOR Coins Activity</CardTitle>
-            <CardDescription>
-              Showing daily KOR Coins usage for the last 30 days
-            </CardDescription>
+            <CardTitle>{t("title")}</CardTitle>
+            <CardDescription>{t("description")}</CardDescription>
           </div>
           <div className="flex">
             <div className="relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left sm:border-t-0 sm:border-l sm:px-8 sm:py-6">
               <span className="text-muted-foreground text-xs">
-                Monthly Activity
+                {t("monthlyActivity")}
               </span>
               <span className="text-lg leading-none font-bold sm:text-3xl">
                 {totalDailyActivity.toLocaleString()}

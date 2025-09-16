@@ -3,6 +3,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 
 interface BrokerRebate {
   id: string;
@@ -15,6 +16,7 @@ interface BrokerRebate {
 }
 
 export function BrokerRebatesTable() {
+  const t = useTranslations("admin.rebateManagement.brokerRebates");
   const { data: brokerRebates, isLoading } = useQuery({
     queryKey: ["admin", "broker-rebates"],
     queryFn: async (): Promise<BrokerRebate[]> => {
@@ -78,19 +80,19 @@ export function BrokerRebatesTable() {
               <thead>
                 <tr className="border-b border-border/50 bg-muted/20">
                   <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                    Broker UID
+                    {t("columns.brokerUid")}
                   </th>
                   <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                    Exchange
+                    {t("columns.exchange")}
                   </th>
                   <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                    Date
+                    {t("columns.date")}
                   </th>
                   <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                    Amount
+                    {t("columns.amount")}
                   </th>
                   <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                    Created
+                    {t("columns.created")}
                   </th>
                 </tr>
               </thead>
@@ -161,13 +163,17 @@ export function BrokerRebatesTable() {
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Date:</span>
+                    <span className="text-muted-foreground">
+                      {t("mobile.date")}
+                    </span>
                     <div className="text-sm">
                       {new Date(rebate.date).toLocaleDateString()}
                     </div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Created:</span>
+                    <span className="text-muted-foreground">
+                      {t("mobile.created")}
+                    </span>
                     <div className="text-sm">
                       {new Date(rebate.created_at).toLocaleDateString()}
                     </div>
@@ -182,12 +188,8 @@ export function BrokerRebatesTable() {
         {(!brokerRebates || brokerRebates.length === 0) && (
           <div className="p-8 text-center">
             <div className="text-muted-foreground">
-              <div className="text-lg font-medium mb-2">
-                No broker rebates found
-              </div>
-              <div className="text-sm">
-                Broker rebates will appear here after the cron job runs
-              </div>
+              <div className="text-lg font-medium mb-2">{t("empty.title")}</div>
+              <div className="text-sm">{t("empty.subtitle")}</div>
             </div>
           </div>
         )}

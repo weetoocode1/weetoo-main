@@ -45,6 +45,36 @@ export function LanguageProvider({
     }
   }, []);
 
+  // Sync locale changes triggered elsewhere in the app (same tab) and across tabs
+  useEffect(() => {
+    const handleLanguageChanged = (e: Event) => {
+      const custom = e as CustomEvent<{ locale: string }>;
+      const newLocale = custom.detail?.locale;
+      if (newLocale && newLocale !== locale) {
+        handleSetLocale(newLocale);
+      }
+    };
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "locale" && e.newValue && e.newValue !== locale) {
+        handleSetLocale(e.newValue);
+      }
+    };
+
+    window.addEventListener(
+      "languageChanged",
+      handleLanguageChanged as EventListener
+    );
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener(
+        "languageChanged",
+        handleLanguageChanged as EventListener
+      );
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [locale]);
+
   const handleSetLocale = async (newLocale: string) => {
     setLocale(newLocale);
     localStorage.setItem("locale", newLocale);

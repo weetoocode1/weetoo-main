@@ -19,6 +19,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, Clock, Search, Shield, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface BankAccount {
   id: string;
@@ -52,6 +53,7 @@ interface DepositRequest {
 }
 
 export function DepositTable() {
+  const t = useTranslations("admin.depositManagement.table");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(6);
   const [searchTerm, setSearchTerm] = useState("");
@@ -94,10 +96,10 @@ export function DepositTable() {
     onSuccess: () => {
       // Invalidate deposit query keys (provided by use-deposit.ts)
       queryClient.invalidateQueries({ queryKey: ["deposit", "list"] });
-      toast.success("KOR coins sent successfully!");
+      toast.success(t("messages.korCoinsSent"));
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to send KOR coins");
+      toast.error(error.message || t("messages.korCoinsFailed"));
     },
   });
 
@@ -114,10 +116,10 @@ export function DepositTable() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["deposit", "list"] });
-      toast.success("Status updated successfully!");
+      toast.success(t("messages.statusUpdated"));
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to update status");
+      toast.error(error.message || t("messages.statusUpdateFailed"));
     },
   });
 
@@ -224,7 +226,9 @@ export function DepositTable() {
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-amber-200 bg-amber-50 text-amber-700 text-xs font-medium">
             <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
             <Clock className="h-3 w-3" />
-            <span className="uppercase tracking-wide">Pending</span>
+            <span className="uppercase tracking-wide">
+              {t("status.pending")}
+            </span>
           </div>
         );
       case "completed":
@@ -232,7 +236,9 @@ export function DepositTable() {
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-medium">
             <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
             <CheckCircle className="h-3 w-3" />
-            <span className="uppercase tracking-wide">Completed</span>
+            <span className="uppercase tracking-wide">
+              {t("status.completed")}
+            </span>
           </div>
         );
       case "failed":
@@ -240,7 +246,9 @@ export function DepositTable() {
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-red-200 bg-red-50 text-red-700 text-xs font-medium">
             <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
             <XIcon className="h-3 w-3" />
-            <span className="uppercase tracking-wide">Failed</span>
+            <span className="uppercase tracking-wide">
+              {t("status.failed")}
+            </span>
           </div>
         );
       default:
@@ -275,10 +283,10 @@ export function DepositTable() {
             );
         });
         queryClient.invalidateQueries({ queryKey: ["deposit", "list"] });
-        toast.success("Marked as failed");
+        toast.success(t("messages.markedAsFailed"));
       } catch (e: unknown) {
         toast.error(
-          e instanceof Error ? e.message : "Failed to mark as failed"
+          e instanceof Error ? e.message : t("messages.markFailedError")
         );
       }
       return;
@@ -338,7 +346,7 @@ export function DepositTable() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (_error) {
-      toast.error("Failed to export CSV");
+      toast.error(t("messages.exportFailed"));
     }
   };
 
@@ -347,9 +355,7 @@ export function DepositTable() {
       <div className="space-y-3 mt-10">
         <div className="border border-border rounded-none">
           <div className="p-8 text-center">
-            <div className="text-muted-foreground">
-              Loading deposit requests...
-            </div>
+            <div className="text-muted-foreground">{t("loading")}</div>
           </div>
         </div>
       </div>
@@ -364,7 +370,7 @@ export function DepositTable() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             ref={searchInputRef}
-            placeholder="Search by user name, email, or deposit ID... (Ctrl+F)"
+            placeholder={t("searchPlaceholder")}
             value={searchTerm}
             onChange={handleSearchChange}
             className="pl-10 w-64 shadow-none rounded-none h-10"
@@ -379,10 +385,14 @@ export function DepositTable() {
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
+              <SelectItem value="all">{t("statusFilter.all")}</SelectItem>
+              <SelectItem value="pending">
+                {t("statusFilter.pending")}
+              </SelectItem>
+              <SelectItem value="completed">
+                {t("statusFilter.completed")}
+              </SelectItem>
+              <SelectItem value="failed">{t("statusFilter.failed")}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -394,7 +404,7 @@ export function DepositTable() {
               className="shadow-none rounded-none h-10"
             >
               <XIcon className="h-4 w-4 mr-2" />
-              Clear ({activeFilterCount})
+              {t("clearFilters")} ({activeFilterCount})
             </Button>
           )}
 
@@ -404,7 +414,7 @@ export function DepositTable() {
             className="shadow-none rounded-none h-10"
             onClick={exportCsv}
           >
-            Export CSV
+            {t("exportCsv")}
           </Button>
         </div>
       </div>
@@ -425,25 +435,25 @@ export function DepositTable() {
                 <thead>
                   <tr className="border-b border-border/50 bg-muted/20">
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      User
+                      {t("columns.user")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      KOR Coins
+                      {t("columns.korCoins")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Won Amount
+                      {t("columns.wonAmount")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Bank Details
+                      {t("columns.bankDetails")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Payment Reference
+                      {t("columns.paymentReference")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Status
+                      {t("columns.status")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Status & Actions
+                      {t("columns.statusActions")}
                     </th>
                   </tr>
                 </thead>
@@ -532,11 +542,15 @@ export function DepositTable() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="pending">Pending</SelectItem>
-                              <SelectItem value="completed">
-                                Completed
+                              <SelectItem value="pending">
+                                {t("status.pending")}
                               </SelectItem>
-                              <SelectItem value="failed">Failed</SelectItem>
+                              <SelectItem value="completed">
+                                {t("status.completed")}
+                              </SelectItem>
+                              <SelectItem value="failed">
+                                {t("status.failed")}
+                              </SelectItem>
                             </SelectContent>
                           </Select>
 
@@ -545,11 +559,11 @@ export function DepositTable() {
                             <div className="flex items-center gap-2">
                               {request.payment_status === "completed" ? (
                                 <div className="text-sm text-green-600 font-medium">
-                                  ✓ KOR Coins Sent
+                                  {t("statusActions.korCoinsSent")}
                                 </div>
                               ) : (
                                 <div className="text-sm text-blue-600 font-medium">
-                                  ⏳ Processing...
+                                  {t("statusActions.processing")}
                                 </div>
                               )}
                             </div>
@@ -599,7 +613,8 @@ export function DepositTable() {
                           }`.trim() || "Unknown User"}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          Payment Ref: {request.payment_reference} • Level{" "}
+                          {t("mobile.paymentReference")}:{" "}
+                          {request.payment_reference} • {t("mobile.level")}{" "}
                           {request.user?.level || 0}
                         </div>
                       </div>
@@ -615,7 +630,7 @@ export function DepositTable() {
                       <Shield className="h-4 w-4 text-green-600" />
                       <div>
                         <div className="text-xs text-muted-foreground">
-                          KOR Coins
+                          {t("mobile.korCoins")}
                         </div>
                         <div className="font-medium text-sm">
                           {request.kor_coins_amount.toLocaleString()} KOR
@@ -626,7 +641,7 @@ export function DepositTable() {
                       <Shield className="h-4 w-4 text-blue-600" />
                       <div>
                         <div className="text-xs text-muted-foreground">
-                          Won Amount
+                          {t("mobile.wonAmount")}
                         </div>
                         <div className="font-medium text-sm">
                           ₩{request.total_amount.toLocaleString()}
@@ -637,7 +652,7 @@ export function DepositTable() {
                       <Shield className="h-4 w-4 text-yellow-600" />
                       <div>
                         <div className="text-xs text-muted-foreground">
-                          Bank
+                          {t("mobile.bank")}
                         </div>
                         <div className="font-medium text-sm">
                           {request.bank_account?.bank_name || "Unknown Bank"}
@@ -648,7 +663,7 @@ export function DepositTable() {
                       <Shield className="h-4 w-4 text-orange-600" />
                       <div>
                         <div className="text-xs text-muted-foreground">
-                          Account Number
+                          {t("mobile.accountNumber")}
                         </div>
                         <div className="font-mono text-sm">
                           {request.bank_account?.account_number ||
@@ -662,7 +677,7 @@ export function DepositTable() {
                   <div className="p-3 bg-muted/30 rounded-lg border">
                     <div className="text-center">
                       <div className="text-xs text-muted-foreground mb-1">
-                        Payment Reference
+                        {t("mobile.paymentReference")}
                       </div>
                       <div className="font-mono text-sm font-medium">
                         {request.payment_reference || "-"}
@@ -674,7 +689,7 @@ export function DepositTable() {
                   <div className="pt-2 border-t border-border/30">
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">
-                        Change Status:
+                        {t("statusActions.changeStatus")}
                       </span>
                       <Select
                         value={request.status}
@@ -686,9 +701,15 @@ export function DepositTable() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
-                          <SelectItem value="failed">Failed</SelectItem>
+                          <SelectItem value="pending">
+                            {t("status.pending")}
+                          </SelectItem>
+                          <SelectItem value="completed">
+                            {t("status.completed")}
+                          </SelectItem>
+                          <SelectItem value="failed">
+                            {t("status.failed")}
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -703,11 +724,9 @@ export function DepositTable() {
             <div className="p-8 text-center">
               <div className="text-muted-foreground">
                 <div className="text-lg font-medium mb-2">
-                  No deposit requests found
+                  {t("empty.title")}
                 </div>
-                <div className="text-sm">
-                  Try adjusting your search criteria
-                </div>
+                <div className="text-sm">{t("empty.subtitle")}</div>
               </div>
             </div>
           )}
@@ -718,9 +737,11 @@ export function DepositTable() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Showing {startIndex + 1}-
-            {Math.min(endIndex, filteredRequests.length)} of{" "}
-            {filteredRequests.length} results
+            {t("pagination.showing", {
+              start: startIndex + 1,
+              end: Math.min(endIndex, filteredRequests.length),
+              total: filteredRequests.length,
+            })}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -730,7 +751,7 @@ export function DepositTable() {
               disabled={currentPage === 1}
               className="shadow-none rounded-none h-10"
             >
-              Previous
+              {t("pagination.previous")}
             </Button>
             <div className="flex items-center gap-1">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -774,7 +795,7 @@ export function DepositTable() {
               disabled={currentPage === totalPages}
               className="shadow-none rounded-none h-10"
             >
-              Next
+              {t("pagination.next")}
             </Button>
           </div>
         </div>
