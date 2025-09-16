@@ -17,10 +17,10 @@ export function MostFollowedClient() {
             <div className="container mx-auto max-w-3xl space-y-4 sm:space-y-6 md:space-y-8">
               <div className="text-center">
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
-                  {t("mostFollowed")}
+                  {t("mostFollowedPage")}
                 </h1>
-                <p className="text-sm sm:text-base text-neutral-600 dark:text-neutral-400 mt-1 sm:mt-2">
-                  {t("mostFollowedDesc")}
+                <p className="text-sm sm:text-base text-neutral-600 dark:text-neutral-400 mt-1 sm:mt-2 text-balance max-w-4xl mx-auto">
+                  {t("mostFollowedDescPage")}
                 </p>
               </div>
             </div>

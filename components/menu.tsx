@@ -293,7 +293,12 @@ export function Menu({ onNavigate }: { onNavigate?: () => void }) {
           <NavigationMenuContent className="left-1/2 -translate-x-1/2">
             <ul className="grid gap-2 p-2 w-[300px]">
               {community.map((item) => (
-                <ListItem key={item.title} title={item.title} href={item.href}>
+                <ListItem
+                  key={item.title}
+                  title={item.title}
+                  href={item.href}
+                  className="text-balance"
+                >
                   {item.description}
                 </ListItem>
               ))}
@@ -317,7 +322,12 @@ export function Menu({ onNavigate }: { onNavigate?: () => void }) {
           <NavigationMenuContent className="left-1/2 -translate-x-1/2">
             <ul className="w-[300px] p-2">
               {information.map((item) => (
-                <ListItem key={item.title} title={item.title} href={item.href}>
+                <ListItem
+                  key={item.title}
+                  title={item.title}
+                  href={item.href}
+                  className="text-balance"
+                >
                   {item.description}
                 </ListItem>
               ))}

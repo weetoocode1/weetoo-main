@@ -44,6 +44,26 @@ export function SharePost({ post, className }: SharePostProps) {
       await navigator.clipboard.writeText(postUrl);
       setCopied(true);
       toast.success("Link copied to clipboard!");
+      // Try to award share reward and show toast
+      try {
+        const res = await fetch(`/api/posts/${post.id}/share`, {
+          method: "POST",
+        });
+        const data = await res.json();
+        if (data?.reward) {
+          const exp = data.reward.exp_delta ?? 0;
+          const kor = data.reward.kor_delta ?? 0;
+          if (exp > 0 || kor > 0) {
+            toast.success(`Reward earned: +${exp} EXP, +${kor} KOR`);
+          }
+        } else if (data?.error) {
+          toast.error(data.error);
+        }
+      } catch (err: Error | unknown) {
+        toast.error(
+          err instanceof Error ? err.message : "Failed to award share"
+        );
+      }
       setTimeout(() => setCopied(false), 2000);
       setIsOpen(false);
     } catch (err: unknown) {
@@ -157,7 +177,32 @@ export function SharePost({ post, className }: SharePostProps) {
                     href={option.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() => setIsOpen(false)}
+                    onClick={async () => {
+                      setIsOpen(false);
+                      try {
+                        const res = await fetch(`/api/posts/${post.id}/share`, {
+                          method: "POST",
+                        });
+                        const data = await res.json();
+                        if (data?.reward) {
+                          const exp = data.reward.exp_delta ?? 0;
+                          const kor = data.reward.kor_delta ?? 0;
+                          if (exp > 0 || kor > 0) {
+                            toast.success(
+                              `Reward earned: +${exp} EXP, +${kor} KOR`
+                            );
+                          }
+                        } else if (data?.error) {
+                          toast.error(data.error);
+                        }
+                      } catch (err: Error | unknown) {
+                        toast.error(
+                          err instanceof Error
+                            ? err.message
+                            : "Failed to award share"
+                        );
+                      }
+                    }}
                     className={cn(
                       "flex items-center gap-3 px-4 py-2.5 rounded-lg border transition-all hover:shadow-md hover:-translate-y-0.5",
                       "bg-background hover:bg-muted/50"

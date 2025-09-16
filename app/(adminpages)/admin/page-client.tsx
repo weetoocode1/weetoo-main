@@ -7,6 +7,7 @@ import { RecentUsersTable } from "@/components/admin/recent-users-table";
 import { RecentPostsTable } from "@/components/admin/recent-posts-table";
 import { stats } from "@/components/admin/stats-data";
 import { useAdminStats } from "@/hooks/use-admin-stats";
+import { useTranslations } from "next-intl";
 
 // Import the type from the hook file
 type AdminStatsResponse = {
@@ -25,6 +26,7 @@ type AdminStatsResponse = {
 };
 
 export function AdminClient() {
+  const t = useTranslations("admin.overview");
   const { data: adminStats, isLoading: isStatsLoading } = useAdminStats();
 
   // Mapping object for real data stats
@@ -37,11 +39,70 @@ export function AdminClient() {
     "Active Rooms": "activeRooms",
   } as const;
 
+  // Translate stat labels/descriptions by matching known titles
+  const translateStat = (title: string) => {
+    switch (title) {
+      case "Total Users":
+        return {
+          title: t("stats.totalUsers.title"),
+          description: t("stats.totalUsers.description"),
+          subDescription: t("stats.totalUsers.subDescription"),
+        };
+      case "New Users":
+        return {
+          title: t("stats.newUsers.title"),
+          description: t("stats.newUsers.description"),
+          subDescription: t("stats.newUsers.subDescription"),
+        };
+      case "New Signups":
+        return {
+          title: t("stats.newSignups.title"),
+          description: t("stats.newSignups.description"),
+          subDescription: t("stats.newSignups.subDescription"),
+        };
+      case "Total KOR Coins":
+        return {
+          title: t("stats.totalKorCoins.title"),
+          description: t("stats.totalKorCoins.description"),
+          subDescription: t("stats.totalKorCoins.subDescription"),
+        };
+      case "Posts Today":
+        return {
+          title: t("stats.postsToday.title"),
+          description: t("stats.postsToday.description"),
+          subDescription: t("stats.postsToday.subDescription"),
+        };
+      case "Active Rooms":
+        return {
+          title: t("stats.activeRooms.title"),
+          description: t("stats.activeRooms.description"),
+          subDescription: t("stats.activeRooms.subDescription"),
+        };
+      case "Deposits Pending":
+        return {
+          title: t("stats.depositsPending.title"),
+          description: t("stats.depositsPending.description"),
+          subDescription: t("stats.depositsPending.subDescription"),
+        };
+      case "Pending Reports":
+        return {
+          title: t("stats.pendingReports.title"),
+          description: t("stats.pendingReports.description"),
+          subDescription: t("stats.pendingReports.subDescription"),
+        };
+      default:
+        return { title, description: "", subDescription: "" };
+    }
+  };
+
   return (
     <div className="space-y-3">
       {/* Stat Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {stats.map((stat, index) => {
+          const { title, description, subDescription } = translateStat(
+            stat.title
+          );
           // Check if this stat needs real data
           if (stat.isRealData && realDataMapping[stat.title]) {
             const dataKey = realDataMapping[
@@ -55,6 +116,9 @@ export function AdminClient() {
               <StatCard
                 key={index}
                 {...stat}
+                title={title}
+                description={description || stat.description}
+                subDescription={subDescription || stat.subDescription}
                 value={
                   isStatsLoading ? 0 : (adminStats?.[dataKey] as number) || 0
                 }
@@ -71,7 +135,15 @@ export function AdminClient() {
             );
           }
 
-          return <StatCard key={index} {...stat} />;
+          return (
+            <StatCard
+              key={index}
+              {...stat}
+              title={title}
+              description={description || stat.description}
+              subDescription={subDescription || stat.subDescription}
+            />
+          );
         })}
       </div>
 

@@ -19,6 +19,7 @@ import {
 import { CheckCircle, XCircle, Clock, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface WithdrawalRequest {
   id: string;
@@ -41,6 +42,7 @@ interface WithdrawalRequest {
 }
 
 export function WithdrawalRequestsTable() {
+  const t = useTranslations("admin.rebateManagement.withdrawalRequests");
   const queryClient = useQueryClient();
   const [isUiBusy, setIsUiBusy] = useState(false);
 
@@ -129,7 +131,11 @@ export function WithdrawalRequestsTable() {
       });
 
       if (response.ok) {
-        toast.success(`Withdrawal ${status} successfully`);
+        toast.success(
+          status === "completed"
+            ? t("messages.withdrawalApproved")
+            : t("messages.withdrawalRejected")
+        );
         queryClient.invalidateQueries({
           queryKey: ["admin", "withdrawal-requests"],
         });
@@ -138,11 +144,20 @@ export function WithdrawalRequestsTable() {
         });
       } else {
         const error = await response.json();
-        toast.error(error.message || `Failed to ${status} withdrawal`);
+        toast.error(
+          error.message ||
+            (status === "completed"
+              ? t("messages.approveFailed")
+              : t("messages.rejectFailed"))
+        );
       }
     } catch (error) {
       console.error(`Error ${status} withdrawal:`, error);
-      toast.error(`Error ${status} withdrawal`);
+      toast.error(
+        status === "completed"
+          ? t("messages.approveError")
+          : t("messages.rejectError")
+      );
     } finally {
       setIsUiBusy(false);
     }
@@ -154,28 +169,28 @@ export function WithdrawalRequestsTable() {
         return (
           <Badge className="bg-green-100 text-green-800 border border-green-300">
             <CheckCircle className="w-3 h-3 mr-1" />
-            Completed
+            {t("status.completed")}
           </Badge>
         );
       case "pending":
         return (
           <Badge className="bg-yellow-100 text-yellow-800 border border-yellow-300">
             <Clock className="w-3 h-3 mr-1" />
-            Pending
+            {t("status.pending")}
           </Badge>
         );
       case "processing":
         return (
           <Badge className="bg-blue-100 text-blue-800 border border-blue-300">
             <RefreshCw className="w-3 h-3 mr-1" />
-            Processing
+            {t("status.processing")}
           </Badge>
         );
       case "rejected":
         return (
           <Badge className="bg-red-100 text-red-800 border border-red-300">
             <XCircle className="w-3 h-3 mr-1" />
-            Rejected
+            {t("status.rejected")}
           </Badge>
         );
       default:
@@ -230,22 +245,22 @@ export function WithdrawalRequestsTable() {
                 <thead>
                   <tr className="border-b border-border/50 bg-muted/20">
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      User ID
+                      {t("columns.userId")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Broker UID
+                      {t("columns.brokerUid")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Amount
+                      {t("columns.amount")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Status
+                      {t("columns.status")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Requested
+                      {t("columns.requested")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Actions
+                      {t("columns.actions")}
                     </th>
                   </tr>
                 </thead>
@@ -289,23 +304,25 @@ export function WithdrawalRequestsTable() {
                                     variant="outline"
                                     className="rounded-none"
                                   >
-                                    Approve
+                                    {t("actions.approve")}
                                   </Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent className="rounded-none">
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>
-                                      Approve Withdrawal
+                                      {t("dialogs.approve.title")}
                                     </AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Are you sure you want to approve this
-                                      withdrawal of $
-                                      {withdrawal.amount_usd.toFixed(2)}?
+                                      {t("dialogs.approve.description", {
+                                        amount: `$${withdrawal.amount_usd.toFixed(
+                                          2
+                                        )}`,
+                                      })}
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
                                     <AlertDialogCancel className="rounded-none">
-                                      Cancel
+                                      {t("dialogs.approve.cancel")}
                                     </AlertDialogCancel>
                                     <AlertDialogAction
                                       className="rounded-none"
@@ -316,7 +333,7 @@ export function WithdrawalRequestsTable() {
                                         )
                                       }
                                     >
-                                      Approve
+                                      {t("dialogs.approve.confirm")}
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
@@ -328,23 +345,25 @@ export function WithdrawalRequestsTable() {
                                     variant="destructive"
                                     className="rounded-none"
                                   >
-                                    Reject
+                                    {t("actions.reject")}
                                   </Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent className="rounded-none">
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>
-                                      Reject Withdrawal
+                                      {t("dialogs.reject.title")}
                                     </AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Are you sure you want to reject this
-                                      withdrawal of $
-                                      {withdrawal.amount_usd.toFixed(2)}?
+                                      {t("dialogs.reject.description", {
+                                        amount: `$${withdrawal.amount_usd.toFixed(
+                                          2
+                                        )}`,
+                                      })}
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
                                     <AlertDialogCancel className="rounded-none">
-                                      Cancel
+                                      {t("dialogs.reject.cancel")}
                                     </AlertDialogCancel>
                                     <AlertDialogAction
                                       className="rounded-none bg-red-600 hover:bg-red-700"
@@ -355,7 +374,7 @@ export function WithdrawalRequestsTable() {
                                         )
                                       }
                                     >
-                                      Reject
+                                      {t("dialogs.reject.confirm")}
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
@@ -364,12 +383,12 @@ export function WithdrawalRequestsTable() {
                           )}
                           {withdrawal.status === "completed" && (
                             <span className="text-sm text-green-600 font-medium">
-                              Processed
+                              {t("actions.processed")}
                             </span>
                           )}
                           {withdrawal.status === "rejected" && (
                             <span className="text-sm text-red-600 font-medium">
-                              Rejected
+                              {t("actions.rejected")}
                             </span>
                           )}
                         </div>
@@ -403,13 +422,17 @@ export function WithdrawalRequestsTable() {
 
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-muted-foreground">Amount:</span>
+                      <span className="text-muted-foreground">
+                        {t("mobile.amount")}
+                      </span>
                       <div className="font-mono font-medium">
                         ${withdrawal.amount_usd.toFixed(2)}
                       </div>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Requested:</span>
+                      <span className="text-muted-foreground">
+                        {t("mobile.requested")}
+                      </span>
                       <div className="text-sm">
                         {new Date(withdrawal.created_at).toLocaleDateString()}
                       </div>
@@ -425,22 +448,23 @@ export function WithdrawalRequestsTable() {
                             variant="outline"
                             className="rounded-none flex-1"
                           >
-                            Approve
+                            {t("actions.approve")}
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent className="rounded-none">
                           <AlertDialogHeader>
                             <AlertDialogTitle>
-                              Approve Withdrawal
+                              {t("dialogs.approve.title")}
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                              Are you sure you want to approve this withdrawal
-                              of ${withdrawal.amount_usd.toFixed(2)}?
+                              {t("dialogs.approve.description", {
+                                amount: `$${withdrawal.amount_usd.toFixed(2)}`,
+                              })}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel className="rounded-none">
-                              Cancel
+                              {t("dialogs.approve.cancel")}
                             </AlertDialogCancel>
                             <AlertDialogAction
                               className="rounded-none"
@@ -448,7 +472,7 @@ export function WithdrawalRequestsTable() {
                                 handleUpdateStatus(withdrawal.id, "completed")
                               }
                             >
-                              Approve
+                              {t("dialogs.approve.confirm")}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -460,22 +484,23 @@ export function WithdrawalRequestsTable() {
                             variant="destructive"
                             className="rounded-none flex-1"
                           >
-                            Reject
+                            {t("actions.reject")}
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent className="rounded-none">
                           <AlertDialogHeader>
                             <AlertDialogTitle>
-                              Reject Withdrawal
+                              {t("dialogs.reject.title")}
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                              Are you sure you want to reject this withdrawal of
-                              ${withdrawal.amount_usd.toFixed(2)}?
+                              {t("dialogs.reject.description", {
+                                amount: `$${withdrawal.amount_usd.toFixed(2)}`,
+                              })}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel className="rounded-none">
-                              Cancel
+                              {t("dialogs.reject.cancel")}
                             </AlertDialogCancel>
                             <AlertDialogAction
                               className="rounded-none bg-red-600 hover:bg-red-700"
@@ -483,7 +508,7 @@ export function WithdrawalRequestsTable() {
                                 handleUpdateStatus(withdrawal.id, "rejected")
                               }
                             >
-                              Reject
+                              {t("dialogs.reject.confirm")}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -500,11 +525,9 @@ export function WithdrawalRequestsTable() {
             <div className="p-8 text-center">
               <div className="text-muted-foreground">
                 <div className="text-lg font-medium mb-2">
-                  No withdrawal requests found
+                  {t("empty.title")}
                 </div>
-                <div className="text-sm">
-                  Withdrawal requests will appear here when users make them
-                </div>
+                <div className="text-sm">{t("empty.subtitle")}</div>
               </div>
             </div>
           )}

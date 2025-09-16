@@ -127,7 +127,7 @@ export async function POST(
       });
     }
 
-    // Try the RPC function first
+    // Try the RPC function first (also award like reward server-side)
     const { error: rpcError } = await supabase.rpc("like_post", {
       post_id_input: postId,
       user_id_input: user.id,
@@ -219,9 +219,25 @@ export async function POST(
       );
     }
 
+    // Attempt to award like reward (do not block on error). Return reward info for client toast.
+    let reward: { id: string } | null = null;
+    try {
+      const { data: rewardData, error: rewardError } = await supabase.rpc(
+        "award_post_like",
+        {
+          p_user_id: user.id,
+          p_post_id: postId,
+        }
+      );
+      if (!rewardError) {
+        reward = rewardData;
+      }
+    } catch (_) {}
+
     return NextResponse.json({
       liked: !!likeData,
       likes: post?.likes ?? 0,
+      reward,
     });
   } catch (error) {
     console.error("Unexpected error in POST like:", error);

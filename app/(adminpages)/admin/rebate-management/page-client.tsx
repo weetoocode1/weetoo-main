@@ -6,12 +6,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { RebateStats } from "@/components/admin/rebate-management/rebate-stats";
 import { WithdrawalRequestsTable } from "@/components/admin/rebate-management/withdrawal-requests-table";
 import { BrokerRebatesTable } from "@/components/admin/rebate-management/broker-rebates-table";
 import { UserRebatesTable } from "@/components/admin/rebate-management/user-rebates-table";
 
 export default function RebateManagementClient() {
+  const t = useTranslations("admin.rebateManagement.page");
   const [isLoading, setIsLoading] = useState(false);
   const queryClient = useQueryClient();
 
@@ -29,7 +31,7 @@ export default function RebateManagementClient() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        toast.success("Rebates synced successfully");
+        toast.success(t("messages.rebatesSynced"));
         // Invalidate and refetch all rebate-related queries
         await queryClient.invalidateQueries({
           queryKey: ["admin", "rebate-stats"],
@@ -48,11 +50,11 @@ export default function RebateManagementClient() {
           queryKey: ["broker-rebate-withdrawals"],
         });
       } else {
-        toast.error(data.message || "Failed to sync rebates");
+        toast.error(data.message || t("messages.rebatesSyncFailed"));
       }
     } catch (error) {
       console.error("Error syncing rebates:", error);
-      toast.error("Error syncing rebates");
+      toast.error(t("messages.syncError"));
     } finally {
       setIsLoading(false);
     }
@@ -73,13 +75,13 @@ export default function RebateManagementClient() {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        toast.success("Withdrawals exported successfully");
+        toast.success(t("messages.withdrawalsExported"));
       } else {
-        toast.error("Failed to export withdrawals");
+        toast.error(t("messages.withdrawalsExportFailed"));
       }
     } catch (error) {
       console.error("Error exporting withdrawals:", error);
-      toast.error("Error exporting withdrawals");
+      toast.error(t("messages.exportError"));
     }
   };
 
@@ -96,19 +98,19 @@ export default function RebateManagementClient() {
               value="withdrawals"
               className="rounded-none data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium transition-all duration-200 hover:bg-muted/50 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground h-10 px-4"
             >
-              Withdrawal Requests
+              {t("tabs.withdrawalRequests")}
             </TabsTrigger>
             <TabsTrigger
               value="broker-rebates"
               className="rounded-none data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium transition-all duration-200 hover:bg-muted/50 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground h-10 px-4"
             >
-              Broker Rebates
+              {t("tabs.brokerRebates")}
             </TabsTrigger>
             <TabsTrigger
               value="user-rebates"
               className="rounded-none data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium transition-all duration-200 hover:bg-muted/50 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground h-10 px-4"
             >
-              User Rebates
+              {t("tabs.userRebates")}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -123,14 +125,14 @@ export default function RebateManagementClient() {
             <RefreshCw
               className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
             />
-            Sync Rebates
+            {t("actions.syncRebates")}
           </Button>
           <Button
             onClick={handleExportWithdrawals}
             className="rounded-none h-9"
           >
             <Download className="w-4 h-4 mr-2" />
-            Export Withdrawals
+            {t("actions.exportWithdrawals")}
           </Button>
         </div>
       </div>
@@ -138,9 +140,15 @@ export default function RebateManagementClient() {
       {/* Tabs Content */}
       <Tabs defaultValue="withdrawals" className="space-y-4">
         <TabsList className="hidden">
-          <TabsTrigger value="withdrawals">Withdrawal Requests</TabsTrigger>
-          <TabsTrigger value="broker-rebates">Broker Rebates</TabsTrigger>
-          <TabsTrigger value="user-rebates">User Rebates</TabsTrigger>
+          <TabsTrigger value="withdrawals">
+            {t("tabs.withdrawalRequests")}
+          </TabsTrigger>
+          <TabsTrigger value="broker-rebates">
+            {t("tabs.brokerRebates")}
+          </TabsTrigger>
+          <TabsTrigger value="user-rebates">
+            {t("tabs.userRebates")}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="withdrawals" className="space-y-4">

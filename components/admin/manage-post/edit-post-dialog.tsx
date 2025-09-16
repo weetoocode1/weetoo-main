@@ -17,6 +17,7 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Book, Calendar, FileText, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface Post {
   id: string;
@@ -53,6 +54,7 @@ export function EditPostDialog({
   onOpenChange,
   onPostUpdated,
 }: EditPostDialogProps) {
+  const t = useTranslations("admin.managePosts.editDialog");
   const [editFormData, setEditFormData] = useState({
     title: post.title || "",
     excerpt: post.excerpt || "",
@@ -105,7 +107,7 @@ export function EditPostDialog({
 
   const handleSave = async () => {
     if (!editFormData.title.trim() || !editFormData.content.trim()) {
-      toast.error("Title and content are required");
+      toast.error(t("validation.required"));
       return;
     }
 
@@ -136,12 +138,12 @@ export function EditPostDialog({
         throw error;
       }
 
-      toast.success("Post updated successfully!");
+      toast.success(t("toast.saved"));
       onPostUpdated();
       onOpenChange(false);
     } catch (error) {
       console.error("Error updating post:", error);
-      toast.error("Failed to update post. Please try again.");
+      toast.error(t("toast.failed"));
     } finally {
       setIsSaving(false);
     }
@@ -151,7 +153,7 @@ export function EditPostDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full lg:max-w-[45rem] h-[90vh] bg-background p-0 flex flex-col gap-0">
         <DialogTitle asChild>
-          <VisuallyHidden>Edit Post</VisuallyHidden>
+          <VisuallyHidden>{t("aria.title")}</VisuallyHidden>
         </DialogTitle>
 
         {/* Fixed Header */}
@@ -177,7 +179,7 @@ export function EditPostDialog({
               htmlFor="title"
               className="text-sm font-medium text-foreground"
             >
-              Title <span className="text-red-500">*</span>
+              {t("fields.title")} <span className="text-red-500">*</span>
             </Label>
             <Input
               id="title"
@@ -190,7 +192,7 @@ export function EditPostDialog({
                 }))
               }
               className="h-10 rounded-none bg-muted/20 border-border"
-              placeholder="Enter post title"
+              placeholder={t("placeholders.title")}
               required
             />
           </div>
@@ -205,7 +207,7 @@ export function EditPostDialog({
                 htmlFor="board"
                 className="text-sm font-medium text-foreground"
               >
-                Board <span className="text-red-500">*</span>
+                {t("fields.board")} <span className="text-red-500">*</span>
               </Label>
               <Select
                 value={editFormData.board || ""}
@@ -214,12 +216,14 @@ export function EditPostDialog({
                 }
               >
                 <SelectTrigger className="h-10 rounded-none bg-muted/20 border-border">
-                  <SelectValue placeholder="Select board" />
+                  <SelectValue placeholder={t("placeholders.board")} />
                 </SelectTrigger>
                 <SelectContent className="rounded-none">
-                  <SelectItem value="free">Free Board</SelectItem>
-                  <SelectItem value="education">Education Board</SelectItem>
-                  <SelectItem value="profit">Profit Board</SelectItem>
+                  <SelectItem value="free">{t("boards.free")}</SelectItem>
+                  <SelectItem value="education">
+                    {t("boards.education")}
+                  </SelectItem>
+                  <SelectItem value="profit">{t("boards.profit")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -230,7 +234,7 @@ export function EditPostDialog({
                 htmlFor="tags"
                 className="text-sm font-medium text-foreground"
               >
-                Tags
+                {t("fields.tags")}
               </Label>
               <Input
                 id="tags"
@@ -243,7 +247,7 @@ export function EditPostDialog({
                   }))
                 }
                 className="h-10 rounded-none bg-muted/20 border-border"
-                placeholder="Enter tags separated by commas"
+                placeholder={t("placeholders.tags")}
               />
             </div>
 
@@ -253,7 +257,7 @@ export function EditPostDialog({
                 htmlFor="content"
                 className="text-sm font-medium text-foreground"
               >
-                Content <span className="text-red-500">*</span>
+                {t("fields.content")} <span className="text-red-500">*</span>
               </Label>
               <Textarea
                 id="content"
@@ -265,7 +269,7 @@ export function EditPostDialog({
                   }))
                 }
                 className="min-h-[300px] rounded-none resize-none bg-muted/20 border-border text-sm leading-relaxed"
-                placeholder="Enter post content"
+                placeholder={t("placeholders.content")}
                 required
               />
             </div>
@@ -279,12 +283,16 @@ export function EditPostDialog({
             <div className="grid grid-cols-3 gap-6 text-sm">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Board:</span>
+                <span className="text-muted-foreground">
+                  {t("footer.board")}:
+                </span>
                 <span className="font-medium">{boardConfig.label}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Created:</span>
+                <span className="text-muted-foreground">
+                  {t("footer.created")}:
+                </span>
                 <span className="font-medium">
                   {new Date(post.created_at).toLocaleDateString("en-GB", {
                     year: "numeric",
@@ -294,7 +302,7 @@ export function EditPostDialog({
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">ID:</span>
+                <span className="text-muted-foreground">{t("footer.id")}:</span>
                 <span className="font-medium font-mono text-xs">{post.id}</span>
               </div>
             </div>
@@ -302,15 +310,21 @@ export function EditPostDialog({
             {/* Row 2: Views | Likes | Comments */}
             <div className="grid grid-cols-3 gap-6 text-sm">
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Views:</span>
+                <span className="text-muted-foreground">
+                  {t("footer.views")}:
+                </span>
                 <span className="font-medium">{post.views}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Likes:</span>
+                <span className="text-muted-foreground">
+                  {t("footer.likes")}:
+                </span>
                 <span className="font-medium">{post.likes}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Comments:</span>
+                <span className="text-muted-foreground">
+                  {t("footer.comments")}:
+                </span>
                 <span className="font-medium">{post.comments}</span>
               </div>
             </div>
@@ -323,14 +337,14 @@ export function EditPostDialog({
                 disabled={isSaving}
                 className="rounded-none h-10"
               >
-                Cancel
+                {t("actions.cancel")}
               </Button>
               <Button
                 onClick={handleSave}
                 disabled={isSaving}
                 className="rounded-none h-10"
               >
-                {isSaving ? "Saving..." : "Save Changes"}
+                {isSaving ? t("actions.saving") : t("actions.saveChanges")}
               </Button>
             </div>
           </div>

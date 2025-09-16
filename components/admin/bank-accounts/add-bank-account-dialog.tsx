@@ -16,6 +16,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Building2, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface AddBankAccountDialogProps {
   open: boolean;
@@ -26,6 +27,7 @@ export function AddBankAccountDialog({
   open,
   onOpenChange,
 }: AddBankAccountDialogProps) {
+  const t = useTranslations("admin.bankAccounts.addDialog");
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     bank_name: "",
@@ -60,12 +62,12 @@ export function AddBankAccountDialog({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "bank-accounts"] });
-      toast.success("Bank account added successfully");
+      toast.success(t("messages.success"));
       resetForm();
       onOpenChange(false);
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to add bank account");
+      toast.error(error.message || t("messages.failed"));
     },
   });
 
@@ -85,7 +87,7 @@ export function AddBankAccountDialog({
       !formData.account_number.trim() ||
       !formData.account_holder.trim()
     ) {
-      toast.error("Please fill in all required fields");
+      toast.error(t("messages.fillRequired"));
       return;
     }
 
@@ -102,23 +104,23 @@ export function AddBankAccountDialog({
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold flex items-center gap-2">
             <Building2 className="h-5 w-5 text-primary" />
-            Add Bank Account
+            {t("title")}
           </DialogTitle>
-          <DialogDescription>
-            Add a new bank account for receiving deposits. The first account
-            will automatically be set as primary.
-          </DialogDescription>
+          <DialogDescription>{t("description")}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="bank_name" className="text-sm font-medium">
-              Bank Name <span className="text-red-500">*</span>
+              {t("form.bankName.label")}{" "}
+              <span className="text-red-500">
+                {t("form.bankName.required")}
+              </span>
             </Label>
             <Input
               id="bank_name"
               type="text"
-              placeholder="e.g., Shinhan Bank, KB Bank"
+              placeholder={t("form.bankName.placeholder")}
               value={formData.bank_name}
               onChange={(e) => handleInputChange("bank_name", e.target.value)}
               required
@@ -128,12 +130,15 @@ export function AddBankAccountDialog({
 
           <div className="space-y-2">
             <Label htmlFor="account_number" className="text-sm font-medium">
-              Account Number <span className="text-red-500">*</span>
+              {t("form.accountNumber.label")}{" "}
+              <span className="text-red-500">
+                {t("form.accountNumber.required")}
+              </span>
             </Label>
             <Input
               id="account_number"
               type="text"
-              placeholder="e.g., 123-456789-01-234"
+              placeholder={t("form.accountNumber.placeholder")}
               value={formData.account_number}
               onChange={(e) =>
                 handleInputChange("account_number", e.target.value)
@@ -145,12 +150,15 @@ export function AddBankAccountDialog({
 
           <div className="space-y-2">
             <Label htmlFor="account_holder" className="text-sm font-medium">
-              Account Holder Name <span className="text-red-500">*</span>
+              {t("form.accountHolder.label")}{" "}
+              <span className="text-red-500">
+                {t("form.accountHolder.required")}
+              </span>
             </Label>
             <Input
               id="account_holder"
               type="text"
-              placeholder="e.g., Weetoo Company Ltd"
+              placeholder={t("form.accountHolder.placeholder")}
               value={formData.account_holder}
               onChange={(e) =>
                 handleInputChange("account_holder", e.target.value)
@@ -168,7 +176,7 @@ export function AddBankAccountDialog({
               disabled={addBankAccountMutation.isPending}
               className="rounded-none"
             >
-              Cancel
+              {t("actions.cancel")}
             </Button>
             <Button
               type="submit"
@@ -178,10 +186,10 @@ export function AddBankAccountDialog({
               {addBankAccountMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Adding...
+                  {t("actions.adding")}
                 </>
               ) : (
-                "Add Bank Account"
+                t("actions.addAccount")
               )}
             </Button>
           </DialogFooter>

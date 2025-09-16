@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Database, Hash, Shield, TrendingUp } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface UidStats {
   totalUids: number;
@@ -14,6 +15,8 @@ interface UidStats {
 }
 
 export function AdminUidStats() {
+  const t = useTranslations("admin.uidManagement.stats");
+
   const { data: stats, isLoading } = useQuery({
     queryKey: ["admin", "uid-stats"],
     queryFn: async (): Promise<UidStats> => {
@@ -89,30 +92,30 @@ export function AdminUidStats() {
 
   const statCards = [
     {
-      title: "Total UIDs",
+      title: t("totalUids.title"),
       value: stats?.totalUids || 0,
-      description: "All registered UIDs",
+      description: t("totalUids.description"),
       icon: Hash,
       color: "text-blue-600",
     },
     {
-      title: "Active UIDs",
+      title: t("activeUids.title"),
       value: stats?.activeUids || 0,
-      description: "Currently active UIDs",
+      description: t("activeUids.description"),
       icon: Shield,
       color: "text-green-600",
     },
     {
-      title: "Total Exchanges",
+      title: t("totalExchanges.title"),
       value: stats?.totalExchanges || 0,
-      description: "Supported exchanges",
+      description: t("totalExchanges.description"),
       icon: Database,
       color: "text-purple-600",
     },
     {
-      title: "New This Month",
+      title: t("newUidsThisMonth.title"),
       value: stats?.newUidsThisMonth || 0,
-      description: "UIDs added this month",
+      description: t("newUidsThisMonth.description"),
       icon: TrendingUp,
       color: "text-emerald-600",
     },

@@ -12,7 +12,7 @@ import { useNotificationStats } from "@/hooks/use-notifications";
 import { useSidebarStore } from "@/lib/store/sidebar-store";
 import { useUserCache } from "@/lib/store/user-cache";
 import { cn } from "@/lib/utils";
-import { ShieldCheck, TrendingUpIcon, Users2 } from "lucide-react";
+import { ShieldCheck, TrendingUpIcon, Users2, Globe } from "lucide-react";
 import { motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -21,6 +21,8 @@ import { useEffect, useState } from "react";
 
 import { ADMIN_SECTIONS } from "@/lib/admin-navigation";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { useTranslations } from "next-intl";
+import { useLanguage } from "@/providers/language-provider";
 
 interface LeftSidebarProps {
   isMobile?: boolean;
@@ -33,6 +35,12 @@ export function LeftSidebar({
   mobileSheetOpen: controlledOpen,
   setMobileSheetOpen: setControlledOpen,
 }: LeftSidebarProps) {
+  const t = useTranslations("admin.leftSidebar");
+  const { locale, setLocale } = useLanguage();
+  const toggleLanguage = () => {
+    const newLocale = locale === "en" ? "ko" : "en";
+    setLocale(newLocale);
+  };
   const { computed } = useAuth();
   const pathname = usePathname();
   const isCollapsed = useSidebarStore((state) => state.isCollapsed);
@@ -72,10 +80,10 @@ export function LeftSidebar({
   const displayRoleLabel =
     cachedUser?.roleLabel ??
     (displayRole === "super_admin"
-      ? "Super Admin"
+      ? t("roles.super_admin")
       : displayRole === "admin"
-      ? "Admin"
-      : "User");
+      ? t("roles.admin")
+      : t("roles.user"));
   const RoleIcon =
     displayRole === "super_admin" || displayRole === "admin"
       ? ShieldCheck
@@ -108,7 +116,7 @@ export function LeftSidebar({
             isCollapsed && !isMobile ? "opacity-0" : "opacity-100"
           )}
         >
-          Admin
+          {t("header")}
         </span>
       </div>
       <ScrollArea className="flex-1">
@@ -122,7 +130,7 @@ export function LeftSidebar({
                     isCollapsed && !isMobile ? "opacity-0" : "opacity-100"
                   )}
                 >
-                  {section.title}
+                  {t(`sections.${section.title}`)}
                 </div>
                 <div className="space-y-1">
                   {section.items.map((item) => {
@@ -140,10 +148,7 @@ export function LeftSidebar({
                         aria-current={isActive ? "page" : undefined}
                         aria-label={item.label}
                         className={cn(
-                          "flex items-center gap-3 px-3 py-2 text-sm transition-all duration-200",
-                          "text-muted-foreground hover:text-foreground hover:bg-muted/30",
-                          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                          "relative border border-transparent",
+                          "flex items-center gap-3 px-3 py-2 text-sm transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring relative border border-transparent",
                           isActive && "text-foreground border-border"
                         )}
                         onClick={() => isMobile && setMobileSheetOpen(false)}
@@ -175,7 +180,7 @@ export function LeftSidebar({
                               : "opacity-100"
                           )}
                         >
-                          {item.label}
+                          {t(`items.${item.label}`)}
                         </span>
                         {/* Notification count badge */}
                         {isNotifications &&
@@ -206,9 +211,21 @@ export function LeftSidebar({
           >
             <TrendingUpIcon className="h-4 w-4 shrink-0" />
             <span className="truncate transition-opacity duration-200 flex-1">
-              Go Back to Trading
+              {t("goBackToTrading")}
             </span>
           </Link>
+        </div>
+        <div className="flex items-center">
+          <button
+            type="button"
+            onClick={toggleLanguage}
+            className="flex items-center gap-3 text-sm transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted/80 w-full p-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer rounded-none"
+          >
+            <Globe className="h-4 w-4" />
+            <span className="truncate transition-opacity duration-200">
+              {locale === "en" ? "한국어" : "English"}
+            </span>
+          </button>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative h-8 w-8 bg-muted overflow-hidden">
@@ -249,7 +266,7 @@ export function LeftSidebar({
         <SheetContent side="left" className="w-64 p-0">
           <VisuallyHidden>
             <SheetHeader>
-              <SheetTitle>Admin Menu</SheetTitle>
+              <SheetTitle>{t("adminMenu")}</SheetTitle>
             </SheetHeader>
           </VisuallyHidden>
           <div className="h-full bg-background flex flex-col">

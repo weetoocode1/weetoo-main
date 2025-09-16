@@ -70,7 +70,7 @@ export function StatCard({
         <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-primary pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-primary pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-primary pointer-events-none" />
-        
+
         <CardHeader>
           <CardDescription>{title}</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
@@ -84,9 +84,7 @@ export function StatCard({
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">
-            {description} <Icon className="size-4" />
-          </div>
+          <div className="flex gap-2 font-medium">{description}</div>
           <div className="text-muted-foreground">{subDescription}</div>
         </CardFooter>
       </Card>

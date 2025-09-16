@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import { useRealtimeUpdates } from "@/hooks/use-realtime-updates";
 import { useHydration } from "@/hooks/use-hydration";
 
@@ -57,6 +58,13 @@ export function useLikePost(postId: string, initialLikes: number) {
         const data = await res.json();
         setLiked(!!data.liked);
         setLikes(data.likes ?? 0);
+        if (data?.reward) {
+          const exp = data.reward.exp_delta ?? 0;
+          const kor = data.reward.kor_delta ?? 0;
+          if (exp > 0 || kor > 0) {
+            toast.success(`Reward earned: +${exp} EXP, +${kor} KOR`);
+          }
+        }
       } else {
         setLiked(false);
         setLikes((l) => Math.max(l - 1, 0));

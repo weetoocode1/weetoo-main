@@ -23,7 +23,7 @@ export function InvestmentCompetitionClient() {
                   <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">
                     {t("title")}
                   </h1>
-                  <p className="max-w-xl mx-auto text-sm sm:text-base text-neutral-600 dark:text-neutral-400 mt-2 sm:mt-3">
+                  <p className="max-w-xl mx-auto text-sm sm:text-base text-neutral-600 dark:text-neutral-400 mt-2 sm:mt-3 text-balance">
                     {t("description")}
                   </p>
                 </div>

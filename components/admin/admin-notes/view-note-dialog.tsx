@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
   Calendar,
@@ -50,6 +51,7 @@ export function ViewNoteDialog({
   open,
   onOpenChange,
 }: ViewNoteDialogProps) {
+  const t = useTranslations("admin.adminNotes.viewDialog");
   const getPriorityConfig = (priority: string) => {
     const configs = {
       High: {
@@ -57,21 +59,21 @@ export function ViewNoteDialog({
         text: "text-red-800",
         border: "border-red-300",
         icon: AlertTriangle,
-        label: "High Priority",
+        label: t("priorities.high"),
       },
       Medium: {
         bg: "bg-yellow-100",
         text: "text-yellow-800",
         border: "border-yellow-300",
         icon: Clock,
-        label: "Medium Priority",
+        label: t("priorities.medium"),
       },
       Low: {
         bg: "bg-green-100",
         text: "text-green-800",
         border: "border-green-300",
         icon: FileText,
-        label: "Low Priority",
+        label: t("priorities.low"),
       },
     };
     return configs[priority as keyof typeof configs] || configs.Low;
@@ -81,21 +83,19 @@ export function ViewNoteDialog({
   const PriorityIcon = priorityConfig.icon;
   const userName = note.user
     ? `${note.user.first_name} ${note.user.last_name}`
-    : "Unknown User";
+    : t("unknownUser");
   const creatorName = note.creator
     ? `${note.creator.first_name} ${note.creator.last_name}`
-    : "Unknown Admin";
+    : t("unknownAdmin");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full lg:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
-            Admin Note Details
+            {t("title")}
           </DialogTitle>
-          <DialogDescription>
-            View comprehensive information about this admin note.
-          </DialogDescription>
+          <DialogDescription>{t("description")}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -107,14 +107,14 @@ export function ViewNoteDialog({
             <div className="flex-1">
               <h3 className="text-lg font-semibold">{priorityConfig.label}</h3>
               <p className="text-sm text-muted-foreground">
-                Note ID: {note.id}
+                {t("noteId")}: {note.id}
               </p>
             </div>
           </div>
 
           {/* Note Content */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Note Content</Label>
+            <Label className="text-sm font-medium">{t("noteContent")}</Label>
             <div className="p-4 bg-muted/30 border border-border rounded-lg min-h-[100px]">
               <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
                 {note.note}
@@ -124,14 +124,18 @@ export function ViewNoteDialog({
 
           {/* User Information */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">User Information</Label>
+            <Label className="text-sm font-medium">
+              {t("userInformation")}
+            </Label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center gap-3 p-3 bg-muted/30 border border-border rounded-lg">
                 <div className="w-8 h-8 bg-blue-100 flex items-center justify-center rounded-lg">
                   <User className="h-4 w-4 text-blue-600" />
                 </div>
                 <div>
-                  <div className="text-xs text-muted-foreground">User</div>
+                  <div className="text-xs text-muted-foreground">
+                    {t("user")}
+                  </div>
                   <div className="text-base font-semibold text-foreground">
                     {userName}
                   </div>
@@ -148,7 +152,7 @@ export function ViewNoteDialog({
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">
-                    Created By
+                    {t("createdBy")}
                   </div>
                   <div className="text-base font-semibold text-foreground">
                     {creatorName}
@@ -165,14 +169,18 @@ export function ViewNoteDialog({
 
           {/* Dates and Metadata */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Dates and Metadata</Label>
+            <Label className="text-sm font-medium">
+              {t("datesAndMetadata")}
+            </Label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center gap-3 p-3 bg-muted/30 border border-border rounded-lg">
                 <div className="w-8 h-8 bg-green-100 flex items-center justify-center rounded-lg">
                   <Calendar className="h-4 w-4 text-green-600" />
                 </div>
                 <div>
-                  <div className="text-xs text-muted-foreground">Note Date</div>
+                  <div className="text-xs text-muted-foreground">
+                    {t("noteDate")}
+                  </div>
                   <div className="text-sm font-medium">
                     {new Date(note.date).toLocaleDateString("en-GB", {
                       weekday: "long",
@@ -189,7 +197,7 @@ export function ViewNoteDialog({
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">
-                    Created At
+                    {t("createdAt")}
                   </div>
                   <div className="text-sm font-medium">
                     {new Date(note.created_at).toLocaleDateString("en-GB")}
@@ -205,7 +213,7 @@ export function ViewNoteDialog({
           {/* Last Updated (if exists) */}
           {note.updated_at && (
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Last Updated</Label>
+              <Label className="text-sm font-medium">{t("lastUpdated")}</Label>
               <div className="flex items-center gap-3 p-3 bg-muted/30 border border-border rounded-lg">
                 <div className="w-8 h-8 bg-yellow-100 flex items-center justify-center rounded-lg">
                   <Clock className="h-4 w-4 text-yellow-600" />
@@ -229,7 +237,7 @@ export function ViewNoteDialog({
             onClick={() => onOpenChange(false)}
             className="h-10"
           >
-            Close
+            {t("close")}
           </Button>
         </DialogFooter>
       </DialogContent>

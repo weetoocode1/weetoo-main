@@ -20,7 +20,7 @@ export function LanguageToggle() {
       className="items-center gap-2 hidden sm:flex"
     >
       <Globe className="h-4 w-4" />
-      <span className="">{locale === "en" ? "한국어" : "English"}</span>
+      <span className="">{locale === "en" ? "한국어" : "EN"}</span>
     </Button>
   );
 }

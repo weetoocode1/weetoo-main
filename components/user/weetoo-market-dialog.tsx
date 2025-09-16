@@ -95,9 +95,9 @@ export function WeetooMarketDialog() {
             <Icons.market className="w-6 h-6 text-yellow-400" />
             {t("weetooMarket")}
           </DialogTitle>
-          <div className="text-sm text-muted-foreground mt-1 font-normal">
+          {/* <div className="text-sm text-muted-foreground mt-1 font-normal">
             {t("shopDescription")}
-          </div>
+          </div> */}
         </DialogHeader>
         <div className="flex flex-col gap-3 px-6 pb-2">
           {Products.map((product) => (

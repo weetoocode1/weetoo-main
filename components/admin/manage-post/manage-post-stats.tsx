@@ -5,8 +5,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Calendar, Eye, FileText, Heart } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export function ManagePostStats() {
+  const t = useTranslations("admin.managePosts.stats");
   const { data: stats, isLoading } = useQuery({
     queryKey: ["admin", "post-stats"],
     queryFn: async () => {
@@ -87,31 +89,31 @@ export function ManagePostStats() {
 
   const statCards = [
     {
-      title: "Total Posts",
+      title: t("totalPosts.title"),
       value: stats?.totalPosts || 0,
       icon: FileText,
-      description: "All posts across boards",
+      description: t("totalPosts.description"),
       color: "text-blue-600",
     },
     {
-      title: "Total Views",
+      title: t("totalViews.title"),
       value: stats?.totalViews || 0,
       icon: Eye,
-      description: "Combined post views",
+      description: t("totalViews.description"),
       color: "text-green-600",
     },
     {
-      title: "Total Likes",
+      title: t("totalLikes.title"),
       value: stats?.totalLikes || 0,
       icon: Heart,
-      description: "Combined post likes",
+      description: t("totalLikes.description"),
       color: "text-red-600",
     },
     {
-      title: "Posts Today",
+      title: t("postsToday.title"),
       value: stats?.postsToday || 0,
       icon: Calendar,
-      description: "New posts today",
+      description: t("postsToday.description"),
       color: "text-purple-600",
     },
   ];

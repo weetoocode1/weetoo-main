@@ -37,6 +37,7 @@ import {
   User,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { BanDialog } from "./ban-dialog";
 import { EditUserDialog } from "./edit-user-dialog";
@@ -67,6 +68,7 @@ interface User {
 }
 
 export function UserManagementTable() {
+  const t = useTranslations("admin.userManagement.table");
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -645,7 +647,7 @@ export function UserManagementTable() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             ref={searchInputRef}
-            placeholder="Search users... (Ctrl+F)"
+            placeholder={t("searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 w-64 shadow-none rounded-none h-10"
@@ -654,13 +656,15 @@ export function UserManagementTable() {
         <div className="flex items-center gap-2">
           <Select value={roleFilter} onValueChange={setRoleFilter}>
             <SelectTrigger className="w-32 shadow-none rounded-none h-10">
-              <SelectValue placeholder="All Roles" />
+              <SelectValue placeholder={t("filters.allRoles")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Roles</SelectItem>
-              <SelectItem value="user">User</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="super_admin">Super Admin</SelectItem>
+              <SelectItem value="all">{t("filters.allRoles")}</SelectItem>
+              <SelectItem value="user">{t("roles.user")}</SelectItem>
+              <SelectItem value="admin">{t("roles.admin")}</SelectItem>
+              <SelectItem value="super_admin">
+                {t("roles.super_admin")}
+              </SelectItem>
             </SelectContent>
           </Select>
           <Button
@@ -694,7 +698,7 @@ export function UserManagementTable() {
             ) : (
               <>
                 <Download className="mr-2 h-4 w-4" />
-                Export
+                {t("export")}
               </>
             )}
           </Button>
@@ -724,7 +728,7 @@ export function UserManagementTable() {
                         onClick={() => handleSort("created_at")}
                         className="flex items-center gap-2 font-medium text-xs uppercase tracking-wider hover:text-primary transition-colors"
                       >
-                        User
+                        {t("columns.user")}
                         <span className="text-muted-foreground">
                           {sortBy === "created_at"
                             ? sortOrder === "asc"
@@ -739,7 +743,7 @@ export function UserManagementTable() {
                         onClick={() => handleSort("role")}
                         className="flex items-center gap-2 font-medium text-xs uppercase tracking-wider hover:text-primary transition-colors"
                       >
-                        Role
+                        {t("columns.role")}
                         <span className="text-muted-foreground">
                           {sortBy === "role"
                             ? sortOrder === "asc"
@@ -751,16 +755,16 @@ export function UserManagementTable() {
                     </th>
 
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      KOR Coins
+                      {t("columns.korCoins")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Warnings
+                      {t("columns.warnings")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Identity
+                      {t("columns.identity")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Actions
+                      {t("columns.actions")}
                     </th>
                   </tr>
                 </thead>
@@ -837,8 +841,8 @@ export function UserManagementTable() {
                               }`}
                             >
                               {user.identity_verified
-                                ? "Verified"
-                                : "Unverified"}
+                                ? t("badges.verified")
+                                : t("badges.unverified")}
                             </div>
                           </div>
                         </td>
@@ -848,7 +852,9 @@ export function UserManagementTable() {
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="h-8 w-8 p-0">
-                                  <span className="sr-only">Open menu</span>
+                                  <span className="sr-only">
+                                    {t("menu.open")}
+                                  </span>
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -857,7 +863,7 @@ export function UserManagementTable() {
                                 className="w-48 rounded-none"
                               >
                                 <DropdownMenuLabel>
-                                  User Actions
+                                  {t("menu.title")}
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
@@ -867,7 +873,7 @@ export function UserManagementTable() {
                                   }}
                                 >
                                   <Eye className="mr-2 h-4 w-4" />
-                                  View Details
+                                  {t("menu.viewDetails")}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => {
@@ -877,7 +883,7 @@ export function UserManagementTable() {
                                   }}
                                 >
                                   <Edit className="mr-2 h-4 w-4" />
-                                  Edit User
+                                  {t("menu.editUser")}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
@@ -888,7 +894,7 @@ export function UserManagementTable() {
                                   className="text-orange-600 focus:text-orange-600"
                                 >
                                   <AlertTriangle className="mr-2 h-4 w-4" />
-                                  Issue Warning
+                                  {t("menu.issueWarning")}
                                 </DropdownMenuItem>
                                 {currentUserRole === "super_admin" && (
                                   <DropdownMenuItem
@@ -899,7 +905,9 @@ export function UserManagementTable() {
                                     className="text-red-600 focus:text-red-600"
                                   >
                                     <Ban className="mr-2 h-4 w-4" />
-                                    {user.banned ? "Unban User" : "Ban User"}
+                                    {user.banned
+                                      ? t("menu.unbanUser")
+                                      : t("menu.banUser")}
                                   </DropdownMenuItem>
                                 )}
                                 <DropdownMenuItem
@@ -908,8 +916,8 @@ export function UserManagementTable() {
                                 >
                                   <Shield className="mr-2 h-4 w-4" />
                                   {user.identity_verified
-                                    ? "Unverify Identity"
-                                    : "Verify Identity"}
+                                    ? t("menu.unverifyIdentity")
+                                    : t("menu.verifyIdentity")}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -1103,10 +1111,10 @@ export function UserManagementTable() {
           {currentUsers.length === 0 && (
             <div className="p-8 text-center">
               <div className="text-muted-foreground">
-                <div className="text-lg font-medium mb-2">No users found</div>
-                <div className="text-sm">
-                  Try adjusting your search criteria
+                <div className="text-lg font-medium mb-2">
+                  {t("empty.title")}
                 </div>
+                <div className="text-sm">{t("empty.subtitle")}</div>
               </div>
             </div>
           )}
@@ -1117,8 +1125,11 @@ export function UserManagementTable() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Showing {startIndex + 1}-{Math.min(endIndex, sortedUsers.length)} of{" "}
-            {sortedUsers.length} results
+            {t("pagination.showing", {
+              start: startIndex + 1,
+              end: Math.min(endIndex, sortedUsers.length),
+              total: sortedUsers.length,
+            })}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -1128,7 +1139,7 @@ export function UserManagementTable() {
               disabled={currentPage === 1}
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
-              Previous
+              {t("pagination.previous")}
             </Button>
             <div className="flex items-center gap-1">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -1171,7 +1182,7 @@ export function UserManagementTable() {
               }
               disabled={currentPage === totalPages}
             >
-              Next
+              {t("pagination.next")}
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </div>

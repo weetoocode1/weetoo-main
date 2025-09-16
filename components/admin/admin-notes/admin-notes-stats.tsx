@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { AlertTriangle, FileText, Clock, TrendingUp } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface AdminNotesStats {
   totalNotes: number;
@@ -14,6 +15,7 @@ interface AdminNotesStats {
 }
 
 export function AdminNotesStats() {
+  const t = useTranslations("admin.adminNotes.stats");
   const { data: stats, isLoading } = useQuery({
     queryKey: ["admin-notes-stats"],
     queryFn: async (): Promise<AdminNotesStats> => {
@@ -88,31 +90,31 @@ export function AdminNotesStats() {
 
   const statCards = [
     {
-      title: "Total Notes",
+      title: t("totalNotes.title"),
       value: stats?.totalNotes || 0,
       icon: FileText,
-      description: "All admin notes",
+      description: t("totalNotes.description"),
       color: "text-blue-600",
     },
     {
-      title: "High Priority",
+      title: t("highPriority.title"),
       value: stats?.highPriorityNotes || 0,
       icon: AlertTriangle,
-      description: "High priority notes",
+      description: t("highPriority.description"),
       color: "text-red-600",
     },
     {
-      title: "This Week",
+      title: t("thisWeek.title"),
       value: stats?.notesThisWeek || 0,
       icon: Clock,
-      description: "Notes created this week",
+      description: t("thisWeek.description"),
       color: "text-green-600",
     },
     {
-      title: "This Month",
+      title: t("thisMonth.title"),
       value: stats?.notesThisMonth || 0,
       icon: TrendingUp,
-      description: "Notes created this month",
+      description: t("thisMonth.description"),
       color: "text-purple-600",
     },
   ];

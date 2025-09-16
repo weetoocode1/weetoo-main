@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { CheckCircle, Clock } from "lucide-react";
 
 interface UserRebate {
@@ -17,6 +18,7 @@ interface UserRebate {
 }
 
 export function UserRebatesTable() {
+  const t = useTranslations("admin.rebateManagement.userRebates");
   const { data: userRebates, isLoading } = useQuery({
     queryKey: ["admin", "user-rebates"],
     queryFn: async (): Promise<UserRebate[]> => {
@@ -44,21 +46,21 @@ export function UserRebatesTable() {
         return (
           <Badge className="bg-green-100 text-green-800 border border-green-300">
             <CheckCircle className="w-3 h-3 mr-1" />
-            Withdrawn
+            {t("status.withdrawn")}
           </Badge>
         );
       case "withdrawable":
         return (
           <Badge className="bg-blue-100 text-blue-800 border border-blue-300">
             <Clock className="w-3 h-3 mr-1" />
-            Withdrawable
+            {t("status.withdrawable")}
           </Badge>
         );
       case "pending":
         return (
           <Badge className="bg-yellow-100 text-yellow-800 border border-yellow-300">
             <Clock className="w-3 h-3 mr-1" />
-            Pending
+            {t("status.pending")}
           </Badge>
         );
       default:
@@ -108,19 +110,19 @@ export function UserRebatesTable() {
               <thead>
                 <tr className="border-b border-border/50 bg-muted/20">
                   <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                    User ID
+                    {t("columns.userId")}
                   </th>
                   <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                    Broker UID
+                    {t("columns.brokerUid")}
                   </th>
                   <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                    Amount
+                    {t("columns.amount")}
                   </th>
                   <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                    Status
+                    {t("columns.status")}
                   </th>
                   <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                    Created
+                    {t("columns.created")}
                   </th>
                 </tr>
               </thead>
@@ -182,13 +184,17 @@ export function UserRebatesTable() {
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Amount:</span>
+                    <span className="text-muted-foreground">
+                      {t("mobile.amount")}
+                    </span>
                     <div className="font-mono font-medium">
                       ${rebate.rebate_amount.toFixed(2)}
                     </div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Created:</span>
+                    <span className="text-muted-foreground">
+                      {t("mobile.created")}
+                    </span>
                     <div className="text-sm">
                       {new Date(rebate.created_at).toLocaleDateString()}
                     </div>
@@ -203,12 +209,8 @@ export function UserRebatesTable() {
         {(!userRebates || userRebates.length === 0) && (
           <div className="p-8 text-center">
             <div className="text-muted-foreground">
-              <div className="text-lg font-medium mb-2">
-                No user rebates found
-              </div>
-              <div className="text-sm">
-                User rebates will appear here after the cron job runs
-              </div>
+              <div className="text-lg font-medium mb-2">{t("empty.title")}</div>
+              <div className="text-sm">{t("empty.subtitle")}</div>
             </div>
           </div>
         )}

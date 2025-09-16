@@ -18,10 +18,10 @@ export function MostActivityPageClient() {
             <div className="container mx-auto max-w-3xl space-y-4 sm:space-y-6 md:space-y-8">
               <div className="text-center">
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
-                  {t("mostActivity")}
+                  {t("mostActivityPage")}
                 </h1>
-                <p className="text-sm sm:text-base text-neutral-600 dark:text-neutral-400">
-                  {t("mostActivityDesc")}
+                <p className="text-sm sm:text-base text-neutral-600 dark:text-neutral-400 text-balance max-w-4xl mt-1 mx-auto">
+                  {t("mostActivityDescPage")}
                 </p>
               </div>
             </div>

@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface UidRecord {
   id: string;
@@ -70,6 +71,10 @@ interface UidRecord {
 }
 
 export function AdminUidTable() {
+  const t = useTranslations("admin.uidManagement.table");
+  const tUidDetails = useTranslations("admin.uidManagement.uidDetailsDialog");
+  const tUserDetails = useTranslations("admin.uidManagement.userDetailsDialog");
+
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -447,7 +452,7 @@ export function AdminUidTable() {
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    toast.success(`${label} copied to clipboard`);
+    toast.success(tUidDetails("copyToClipboard", { label }));
   };
 
   // Format date as text for CSV to avoid Excel showing ####
@@ -520,12 +525,10 @@ export function AdminUidTable() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      toast.success(
-        `Successfully exported ${exportData.length} UID records to CSV!`
-      );
+      toast.success(t("exportSuccess", { count: exportData.length }));
     } catch (_error) {
       console.error("Export failed:", _error);
-      toast.error("Failed to export UID records. Please try again.");
+      toast.error(t("exportError"));
     } finally {
       setIsExporting(false);
     }
@@ -629,7 +632,7 @@ export function AdminUidTable() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             ref={searchInputRef}
-            placeholder="Search UIDs... (Ctrl+F)"
+            placeholder={t("searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 w-64 shadow-none rounded-none h-10"
@@ -638,10 +641,10 @@ export function AdminUidTable() {
         <div className="flex items-center gap-2">
           <Select value={exchangeFilter} onValueChange={setExchangeFilter}>
             <SelectTrigger className="w-40 shadow-none rounded-none h-10">
-              <SelectValue placeholder="All Exchanges" />
+              <SelectValue placeholder={t("filters.allExchanges")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Exchanges</SelectItem>
+              <SelectItem value="all">{t("filters.allExchanges")}</SelectItem>
               {Array.from(
                 new Set(uidRecords?.map((r) => r.exchange_id) || [])
               ).map((exchangeId) => (
@@ -654,12 +657,12 @@ export function AdminUidTable() {
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-32 shadow-none rounded-none h-10">
-              <SelectValue placeholder="All Status" />
+              <SelectValue placeholder={t("filters.allStatus")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
+              <SelectItem value="all">{t("filters.allStatus")}</SelectItem>
+              <SelectItem value="active">{t("filters.active")}</SelectItem>
+              <SelectItem value="inactive">{t("filters.inactive")}</SelectItem>
             </SelectContent>
           </Select>
           <Button
@@ -693,7 +696,7 @@ export function AdminUidTable() {
             ) : (
               <>
                 <Download className="mr-2 h-4 w-4" />
-                Export
+                {t("export")}
               </>
             )}
           </Button>
@@ -723,7 +726,7 @@ export function AdminUidTable() {
                         onClick={() => handleSort("created_at")}
                         className="flex items-center gap-2 font-medium text-xs uppercase tracking-wider hover:text-primary transition-colors"
                       >
-                        User
+                        {t("columns.user")}
                         <span className="text-muted-foreground">
                           {sortBy === "created_at"
                             ? sortOrder === "asc"
@@ -734,14 +737,14 @@ export function AdminUidTable() {
                       </button>
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      UID
+                      {t("columns.uid")}
                     </th>
                     <th className="px-6 py-4 text-left">
                       <button
                         onClick={() => handleSort("exchange_id")}
                         className="flex items-center gap-2 font-medium text-xs uppercase tracking-wider hover:text-primary transition-colors"
                       >
-                        Exchange
+                        {t("columns.exchange")}
                         <span className="text-muted-foreground">
                           {sortBy === "exchange_id"
                             ? sortOrder === "asc"
@@ -756,7 +759,7 @@ export function AdminUidTable() {
                         onClick={() => handleSort("is_active")}
                         className="flex items-center gap-2 font-medium text-xs uppercase tracking-wider hover:text-primary transition-colors"
                       >
-                        Status
+                        {t("columns.status")}
                         <span className="text-muted-foreground">
                           {sortBy === "is_active"
                             ? sortOrder === "asc"
@@ -767,10 +770,10 @@ export function AdminUidTable() {
                       </button>
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Created
+                      {t("columns.created")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Actions
+                      {t("columns.actions")}
                     </th>
                   </tr>
                 </thead>
@@ -844,7 +847,9 @@ export function AdminUidTable() {
                                   : "bg-gray-100 text-gray-800 border border-gray-300"
                               }`}
                             >
-                              {record.is_active ? "Active" : "Inactive"}
+                              {record.is_active
+                                ? t("status.active")
+                                : t("status.inactive")}
                             </div>
                           </div>
                         </td>
@@ -865,7 +870,9 @@ export function AdminUidTable() {
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="h-8 w-8 p-0">
-                                  <span className="sr-only">Open menu</span>
+                                  <span className="sr-only">
+                                    {t("menu.open")}
+                                  </span>
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -874,20 +881,20 @@ export function AdminUidTable() {
                                 className="w-48 rounded-none"
                               >
                                 <DropdownMenuLabel>
-                                  UID Actions
+                                  {t("menu.title")}
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   onClick={() => handleViewDetails(record)}
                                 >
                                   <Eye className="mr-2 h-4 w-4" />
-                                  View Details
+                                  {t("menu.viewDetails")}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => handleViewUser(record)}
                                 >
                                   <User className="mr-2 h-4 w-4" />
-                                  View User
+                                  {t("menu.viewUser")}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -933,7 +940,7 @@ export function AdminUidTable() {
                             {record.user?.email}
                           </div>
                           <div className="text-xs font-mono text-primary mt-1">
-                            UID: {record.uid}
+                            {t("columns.uid")}: {record.uid}
                           </div>
                         </div>
                       </div>
@@ -946,19 +953,21 @@ export function AdminUidTable() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuLabel>UID Actions</DropdownMenuLabel>
+                            <DropdownMenuLabel>
+                              {t("menu.title")}
+                            </DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => handleViewDetails(record)}
                             >
                               <Eye className="mr-2 h-4 w-4" />
-                              View Details
+                              {t("menu.viewDetails")}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => handleViewUser(record)}
                             >
                               <User className="mr-2 h-4 w-4" />
-                              View User
+                              {t("menu.viewUser")}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -998,7 +1007,9 @@ export function AdminUidTable() {
                               : "text-gray-600"
                           }`}
                         >
-                          {record.is_active ? "Active" : "Inactive"}
+                          {record.is_active
+                            ? t("status.active")
+                            : t("status.inactive")}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -1026,11 +1037,9 @@ export function AdminUidTable() {
             <div className="p-8 text-center">
               <div className="text-muted-foreground">
                 <div className="text-lg font-medium mb-2">
-                  No UID records found
+                  {t("empty.title")}
                 </div>
-                <div className="text-sm">
-                  Try adjusting your search criteria
-                </div>
+                <div className="text-sm">{t("empty.subtitle")}</div>
               </div>
             </div>
           )}
@@ -1041,9 +1050,11 @@ export function AdminUidTable() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Showing {startIndex + 1}-
-            {Math.min(endIndex, sortedUidRecords.length)} of{" "}
-            {sortedUidRecords.length} results
+            {t("pagination.showing", {
+              start: startIndex + 1,
+              end: Math.min(endIndex, sortedUidRecords.length),
+              total: sortedUidRecords.length,
+            })}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -1053,7 +1064,7 @@ export function AdminUidTable() {
               disabled={currentPage === 1}
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
-              Previous
+              {t("pagination.previous")}
             </Button>
             <div className="flex items-center gap-1">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -1096,7 +1107,7 @@ export function AdminUidTable() {
               }
               disabled={currentPage === totalPages}
             >
-              Next
+              {t("pagination.next")}
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </div>
@@ -1109,11 +1120,9 @@ export function AdminUidTable() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Hash className="h-5 w-5" />
-              UID Details
+              {tUidDetails("title")}
             </DialogTitle>
-            <DialogDescription>
-              Detailed information about this UID record
-            </DialogDescription>
+            <DialogDescription>{tUidDetails("description")}</DialogDescription>
           </DialogHeader>
 
           {selectedUid && (
@@ -1123,12 +1132,12 @@ export function AdminUidTable() {
                 <div className="border border-border rounded-none p-4">
                   <h3 className="font-medium mb-3 flex items-center gap-2">
                     <Hash className="h-4 w-4" />
-                    UID Information
+                    {tUidDetails("sections.uidInformation")}
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm text-muted-foreground">
-                        UID
+                        {tUidDetails("labels.uid")}
                       </label>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="font-mono text-sm bg-muted px-2 py-1 rounded-none">
@@ -1139,7 +1148,10 @@ export function AdminUidTable() {
                           size="sm"
                           className="h-6 w-6 p-0"
                           onClick={() =>
-                            copyToClipboard(selectedUid.uid, "UID")
+                            copyToClipboard(
+                              selectedUid.uid,
+                              tUidDetails("labels.uid")
+                            )
                           }
                         >
                           <Copy className="h-3 w-3" />
@@ -1148,7 +1160,7 @@ export function AdminUidTable() {
                     </div>
                     <div>
                       <label className="text-sm text-muted-foreground">
-                        Exchange
+                        {tUidDetails("labels.exchange")}
                       </label>
                       <div className="flex items-center gap-2 mt-1">
                         <div
@@ -1171,7 +1183,7 @@ export function AdminUidTable() {
                     </div>
                     <div>
                       <label className="text-sm text-muted-foreground">
-                        Status
+                        {tUidDetails("labels.status")}
                       </label>
                       <div className="mt-1">
                         <div
@@ -1184,12 +1196,12 @@ export function AdminUidTable() {
                           {selectedUid.is_active ? (
                             <>
                               <CheckCircle className="w-3 h-3 mr-1" />
-                              Active
+                              {tUidDetails("status.active")}
                             </>
                           ) : (
                             <>
                               <XCircle className="w-3 h-3 mr-1" />
-                              Inactive
+                              {tUidDetails("status.inactive")}
                             </>
                           )}
                         </div>
@@ -1197,7 +1209,7 @@ export function AdminUidTable() {
                     </div>
                     <div>
                       <label className="text-sm text-muted-foreground">
-                        UID ID
+                        {tUidDetails("labels.uidId")}
                       </label>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="font-mono text-xs text-muted-foreground">
@@ -1208,7 +1220,10 @@ export function AdminUidTable() {
                           size="sm"
                           className="h-6 w-6 p-0"
                           onClick={() =>
-                            copyToClipboard(selectedUid.id, "UID ID")
+                            copyToClipboard(
+                              selectedUid.id,
+                              tUidDetails("labels.uidId")
+                            )
                           }
                         >
                           <Copy className="h-3 w-3" />
@@ -1222,12 +1237,12 @@ export function AdminUidTable() {
                 <div className="border border-border rounded-none p-4">
                   <h3 className="font-medium mb-3 flex items-center gap-2">
                     <Clock className="h-4 w-4" />
-                    Timestamps
+                    {tUidDetails("sections.timestamps")}
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm text-muted-foreground">
-                        Created
+                        {tUidDetails("labels.created")}
                       </label>
                       <div className="flex items-center gap-2 mt-1">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -1238,7 +1253,7 @@ export function AdminUidTable() {
                     </div>
                     <div>
                       <label className="text-sm text-muted-foreground">
-                        Last Updated
+                        {tUidDetails("labels.lastUpdated")}
                       </label>
                       <div className="flex items-center gap-2 mt-1">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -1261,11 +1276,9 @@ export function AdminUidTable() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
-              User Details
+              {tUserDetails("title")}
             </DialogTitle>
-            <DialogDescription>
-              User information and profile details
-            </DialogDescription>
+            <DialogDescription>{tUserDetails("description")}</DialogDescription>
           </DialogHeader>
 
           {selectedUser && (
@@ -1287,7 +1300,7 @@ export function AdminUidTable() {
                     {selectedUser.user?.first_name &&
                     selectedUser.user?.last_name
                       ? `${selectedUser.user.first_name} ${selectedUser.user.last_name}`
-                      : "Anonymous User"}
+                      : tUserDetails("labels.notProvided")}
                   </h3>
                   <p className="text-muted-foreground">
                     {selectedUser.user?.email}
@@ -1300,32 +1313,35 @@ export function AdminUidTable() {
                 <div className="border border-border rounded-none p-4">
                   <h3 className="font-medium mb-3 flex items-center gap-2">
                     <User className="h-4 w-4" />
-                    User Information
+                    {tUserDetails("sections.userInformation")}
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm text-muted-foreground">
-                        First Name
+                        {tUserDetails("labels.firstName")}
                       </label>
                       <p className="text-sm font-medium mt-1">
-                        {selectedUser.user?.first_name || "Not provided"}
+                        {selectedUser.user?.first_name ||
+                          tUserDetails("labels.notProvided")}
                       </p>
                     </div>
                     <div>
                       <label className="text-sm text-muted-foreground">
-                        Last Name
+                        {tUserDetails("labels.lastName")}
                       </label>
                       <p className="text-sm font-medium mt-1">
-                        {selectedUser.user?.last_name || "Not provided"}
+                        {selectedUser.user?.last_name ||
+                          tUserDetails("labels.notProvided")}
                       </p>
                     </div>
                     <div className="md:col-span-2">
                       <label className="text-sm text-muted-foreground">
-                        Email
+                        {tUserDetails("labels.email")}
                       </label>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-sm font-medium">
-                          {selectedUser.user?.email || "Not provided"}
+                          {selectedUser.user?.email ||
+                            tUserDetails("labels.notProvided")}
                         </span>
                         {selectedUser.user?.email && (
                           <Button
@@ -1335,7 +1351,7 @@ export function AdminUidTable() {
                             onClick={() =>
                               copyToClipboard(
                                 selectedUser.user?.email || "",
-                                "Email"
+                                tUserDetails("labels.email")
                               )
                             }
                           >
@@ -1346,7 +1362,7 @@ export function AdminUidTable() {
                     </div>
                     <div className="md:col-span-2">
                       <label className="text-sm text-muted-foreground">
-                        User ID
+                        {tUserDetails("labels.userId")}
                       </label>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="font-mono text-xs text-muted-foreground">
@@ -1357,7 +1373,10 @@ export function AdminUidTable() {
                           size="sm"
                           className="h-6 w-6 p-0"
                           onClick={() =>
-                            copyToClipboard(selectedUser.user_id, "User ID")
+                            copyToClipboard(
+                              selectedUser.user_id,
+                              tUserDetails("labels.userId")
+                            )
                           }
                         >
                           <Copy className="h-3 w-3" />
@@ -1371,7 +1390,7 @@ export function AdminUidTable() {
                 <div className="border border-border rounded-none p-4">
                   <h3 className="font-medium mb-3 flex items-center gap-2">
                     <Hash className="h-4 w-4" />
-                    Associated UID
+                    {tUserDetails("sections.associatedUid")}
                   </h3>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between p-3 bg-muted/20 rounded-none">
@@ -1406,7 +1425,9 @@ export function AdminUidTable() {
                               : "bg-gray-100 text-gray-800 border border-gray-300"
                           }`}
                         >
-                          {selectedUser.is_active ? "Active" : "Inactive"}
+                          {selectedUser.is_active
+                            ? tUserDetails("status.active")
+                            : tUserDetails("status.inactive")}
                         </div>
                       </div>
                     </div>

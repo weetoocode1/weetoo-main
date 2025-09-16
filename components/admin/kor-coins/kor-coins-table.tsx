@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { BalanceAdjustmentDialog } from "./balance-adjustment-dialog";
 import { ViewProfileDialog } from "./view-profile-dialog";
+import { useTranslations } from "next-intl";
 
 interface UserKorCoins {
   id: string;
@@ -48,6 +49,7 @@ interface UserKorCoins {
 }
 
 export function KorCoinsTable() {
+  const t = useTranslations("admin.korCoins.table");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"kor_coins" | "created_at" | "name">(
     "kor_coins"
@@ -211,22 +213,25 @@ export function KorCoinsTable() {
     // Handle null/undefined coins
     if (coins == null || isNaN(coins)) {
       return {
-        label: "Unknown",
+        label: t("status.unknown"),
         color: "bg-gray-100 text-gray-800 border-gray-300",
       };
     }
 
     if (coins >= 1000000)
       return {
-        label: "High",
+        label: t("status.high"),
         color: "bg-green-100 text-green-800 border-green-300",
       };
     if (coins >= 500000)
       return {
-        label: "Medium",
+        label: t("status.medium"),
         color: "bg-yellow-100 text-yellow-800 border-yellow-300",
       };
-    return { label: "Low", color: "bg-red-100 text-red-800 border-red-300" };
+    return {
+      label: t("status.low"),
+      color: "bg-red-100 text-red-800 border-red-300",
+    };
   };
 
   // Open adjustment dialog
@@ -289,22 +294,22 @@ export function KorCoinsTable() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             ref={searchInputRef}
-            placeholder="Search users... (Ctrl+F)"
+            placeholder={t("searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 w-64 shadow-none h-10"
+            className="pl-10 w-64 shadow-none h-10 rounded-none"
           />
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Show:</span>
+          <span className="text-sm text-muted-foreground">{t("show")}</span>
           <Select
             value={itemsPerPage.toString()}
             onValueChange={(value) => setItemsPerPage(parseInt(value))}
           >
-            <SelectTrigger className="w-20 h-8">
+            <SelectTrigger className="w-20 h-10 shadow-none rounded-none">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="shadow-none rounded-none">
               <SelectItem value="5">5</SelectItem>
               <SelectItem value="10">10</SelectItem>
               <SelectItem value="20">20</SelectItem>
@@ -334,7 +339,7 @@ export function KorCoinsTable() {
                         onClick={() => handleSort("name")}
                         className="flex items-center gap-2 font-medium text-xs uppercase tracking-wider hover:text-primary transition-colors"
                       >
-                        User
+                        {t("columns.user")}
                         <span className="text-muted-foreground">
                           {sortBy === "name"
                             ? sortOrder === "asc"
@@ -349,7 +354,7 @@ export function KorCoinsTable() {
                         onClick={() => handleSort("kor_coins")}
                         className="flex items-center gap-2 font-medium text-xs uppercase tracking-wider hover:text-primary transition-colors"
                       >
-                        Balance
+                        {t("columns.balance")}
                         <span className="text-muted-foreground">
                           {sortBy === "kor_coins"
                             ? sortOrder === "asc"
@@ -360,14 +365,14 @@ export function KorCoinsTable() {
                       </button>
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Status
+                      {t("columns.status")}
                     </th>
                     <th className="px-6 py-4 text-left">
                       <button
                         onClick={() => handleSort("created_at")}
                         className="flex items-center gap-2 font-medium text-xs uppercase tracking-wider hover:text-primary transition-colors"
                       >
-                        Joined
+                        {t("columns.joined")}
                         <span className="text-muted-foreground">
                           {sortBy === "created_at"
                             ? sortOrder === "asc"
@@ -378,7 +383,7 @@ export function KorCoinsTable() {
                       </button>
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Actions
+                      {t("columns.actions")}
                     </th>
                   </tr>
                 </thead>
@@ -387,7 +392,7 @@ export function KorCoinsTable() {
                     const fullName =
                       `${user.first_name || ""} ${
                         user.last_name || ""
-                      }`.trim() || "Unknown User";
+                      }`.trim() || t("empty.noUsers");
                     const balanceStatus = getBalanceStatus(user.kor_coins);
                     const isHighBalance = user.kor_coins >= 1000000;
 
@@ -461,20 +466,25 @@ export function KorCoinsTable() {
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="h-8 w-8 p-0">
-                                  <span className="sr-only">Open menu</span>
+                                  <span className="sr-only">
+                                    {t("menu.open")}
+                                  </span>
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuContent
+                                align="end"
+                                className="w-48 shadow-none rounded-none"
+                              >
                                 <DropdownMenuLabel>
-                                  User Actions
+                                  {t("menu.title")}
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   onClick={() => openViewProfileDialog(user)}
                                 >
                                   <User className="mr-2 h-4 w-4" />
-                                  View Profile
+                                  {t("menu.viewProfile")}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
@@ -484,7 +494,7 @@ export function KorCoinsTable() {
                                   className="text-green-600 focus:text-green-600"
                                 >
                                   <TrendingUp className="mr-2 h-4 w-4" />
-                                  Add Coins
+                                  {t("menu.addCoins")}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() =>
@@ -493,7 +503,7 @@ export function KorCoinsTable() {
                                   className="text-orange-600 focus:text-orange-600"
                                 >
                                   <TrendingDown className="mr-2 h-4 w-4" />
-                                  Subtract Coins
+                                  {t("menu.subtractCoins")}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -513,7 +523,7 @@ export function KorCoinsTable() {
               {currentUsers.map((user) => {
                 const fullName =
                   `${user.first_name || ""} ${user.last_name || ""}`.trim() ||
-                  "Unknown User";
+                  t("empty.noUsers");
                 const balanceStatus = getBalanceStatus(user.kor_coins);
                 const isHighBalance = user.kor_coins >= 1000000;
 
@@ -544,18 +554,23 @@ export function KorCoinsTable() {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
+                              <span className="sr-only">{t("menu.open")}</span>
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuLabel>User Actions</DropdownMenuLabel>
+                          <DropdownMenuContent
+                            align="end"
+                            className="w-48 shadow-none rounded-none hover:rounded-none"
+                          >
+                            <DropdownMenuLabel>
+                              {t("menu.title")}
+                            </DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => openViewProfileDialog(user)}
                             >
                               <User className="mr-2 h-4 w-4" />
-                              View Profile
+                              {t("menu.viewProfile")}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
@@ -563,7 +578,7 @@ export function KorCoinsTable() {
                               className="text-green-600 focus:text-green-600"
                             >
                               <TrendingUp className="mr-2 h-4 w-4" />
-                              Add Coins
+                              {t("menu.addCoins")}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() =>
@@ -572,7 +587,7 @@ export function KorCoinsTable() {
                               className="text-orange-600 focus:text-orange-600"
                             >
                               <TrendingDown className="mr-2 h-4 w-4" />
-                              Subtract Coins
+                              {t("menu.subtractCoins")}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -625,11 +640,11 @@ export function KorCoinsTable() {
           {currentUsers.length === 0 && (
             <div className="p-8 text-center">
               <div className="text-muted-foreground">
-                <div className="text-lg font-medium mb-2">No users found</div>
+                <div className="text-lg font-medium mb-2">
+                  {t("empty.title")}
+                </div>
                 <div className="text-sm">
-                  {searchTerm
-                    ? "Try adjusting your search criteria"
-                    : "No users found"}
+                  {searchTerm ? t("empty.subtitle") : t("empty.noUsers")}
                 </div>
               </div>
             </div>
@@ -641,8 +656,11 @@ export function KorCoinsTable() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Showing {startIndex + 1}-{Math.min(endIndex, sortedUsers.length)} of{" "}
-            {sortedUsers.length} results
+            {t("pagination.showing", {
+              start: startIndex + 1,
+              end: Math.min(endIndex, sortedUsers.length),
+              total: sortedUsers.length,
+            })}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -652,7 +670,7 @@ export function KorCoinsTable() {
               disabled={currentPage === 1}
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
-              Previous
+              {t("pagination.previous")}
             </Button>
 
             {/* Page Numbers */}
@@ -737,7 +755,7 @@ export function KorCoinsTable() {
               }
               disabled={currentPage === totalPages}
             >
-              Next
+              {t("pagination.next")}
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </div>

@@ -7,8 +7,10 @@ import {
 } from "@/hooks/use-withdrawal";
 import { AlertTriangle, CreditCard, Shield } from "lucide-react";
 import { WithdrawTable } from "./withdraw-table";
+import { useTranslations } from "next-intl";
 
 export function WithdrawManagementPage() {
+  const t = useTranslations("admin.withdrawManagement.stats");
   useAdminWithdrawalRealtimeSubscriptions();
   const { data: stats } = useWithdrawalStats();
   const total = stats?.totalRequests || 0;
@@ -22,30 +24,30 @@ export function WithdrawManagementPage() {
 
   const statCards = [
     {
-      title: "Total Withdrawals",
+      title: t("totalWithdrawals.title"),
       value: total.toLocaleString(),
-      description: "All withdrawal requests",
+      description: t("totalWithdrawals.description"),
       icon: CreditCard,
       color: "text-blue-600",
     },
     {
-      title: "Pending Verification",
+      title: t("pendingVerification.title"),
       value: pendingVerification.toLocaleString(),
-      description: "Awaiting account verification",
+      description: t("pendingVerification.description"),
       icon: AlertTriangle,
       color: "text-yellow-600",
     },
     {
-      title: "Verified Accounts",
+      title: t("verifiedAccounts.title"),
       value: verified.toLocaleString(),
-      description: "Successfully verified accounts",
+      description: t("verifiedAccounts.description"),
       icon: Shield,
       color: "text-green-600",
     },
     {
-      title: "Rejected Withdrawals",
+      title: t("rejectedWithdrawals.title"),
       value: rejected.toLocaleString(),
-      description: "Failed or rejected",
+      description: t("rejectedWithdrawals.description"),
       icon: AlertTriangle,
       color: "text-red-600",
     },

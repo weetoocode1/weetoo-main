@@ -44,10 +44,16 @@
     "korCoinsRankingsDesc": "Top Kor Coins Holders",
     "mostActivity": "Most Activity (XP)",
     "mostActivityDesc": "Top XP earners and most active community members",
+    "mostActivityPage": "Most Activity (XP)",
+    "mostActivityDescPage": "Check out the top traders based on recent activity",
     "sponsored": "Sponsored",
     "sponsoredDesc": "Users with highest donation contributions",
+    "sponsoredPage": "Sponsored",
+    "sponsoredDescPage": "Check out the top traders based on sponsored activity",
     "mostFollowed": "Most Followed",
     "mostFollowedDesc": "Most popular and followed traders",
+    "mostFollowedPage": "Most Followed",
+    "mostFollowedDescPage": "Check out the top traders based on followers",
     "community": "Community",
     "freeBulletinBoard": "Free Bulletin Board",
     "freeBulletinBoardDesc": "Open discussions about market trends, strategies, and general trading topics",
@@ -445,6 +451,1343 @@
     "cancel": "Cancel",
     "saveChanges": "Save Changes",
     "saving": "Saving..."
+  },
+  "admin": {
+    "leftSidebar": {
+      "header": "Admin",
+      "adminMenu": "Admin Menu",
+      "goBackToTrading": "Go Back to Trading",
+      "roles": {
+        "super_admin": "Super Admin",
+        "admin": "Admin",
+        "user": "User"
+      },
+      "sections": {
+        "General": "General",
+        "Management": "Management",
+        "Operations": "Operations",
+        "Finance": "Finance"
+      },
+      "items": {
+        "Overview": "Overview",
+        "Notifications": "Notifications",
+        "Activity Log": "Activity Log",
+        "Manage Posts": "Manage Posts",
+        "User Management": "User Management",
+        "Admin Notes": "Admin Notes",
+        "UID Management": "UID Management",
+        "KOR Coins": "KOR Coins",
+        "Rebate Management": "Rebate Management",
+        "Reward Rules": "Reward Rules",
+        "Bank Accounts": "Bank Accounts",
+        "Deposits": "Deposits",
+        "Withdrawals": "Withdrawals"
+      }
+    },
+    "overview": {
+      "title": "Overview",
+      "stats": {
+        "totalUsers": {
+          "title": "Total Users",
+          "description": "Platform size",
+          "subDescription": "All registered users"
+        },
+        "newUsers": {
+          "title": "New Users",
+          "description": "Today's signups",
+          "subDescription": "Daily new registrations"
+        },
+        "newSignups": {
+          "title": "New Signups",
+          "description": "Weekly growth",
+          "subDescription": "This week's new users"
+        },
+        "totalKorCoins": {
+          "title": "Total KOR Coins",
+          "description": "Economic activity",
+          "subDescription": "Platform-wide coins"
+        },
+        "postsToday": {
+          "title": "Posts Today",
+          "description": "Content activity",
+          "subDescription": "Daily content creation"
+        },
+        "activeRooms": {
+          "title": "Active Rooms",
+          "description": "Core feature usage",
+          "subDescription": "Live trading rooms"
+        },
+        "depositsPending": {
+          "title": "Deposits Pending",
+          "description": "Revenue pipeline",
+          "subDescription": "Awaiting approval"
+        },
+        "pendingReports": {
+          "title": "Pending Reports",
+          "description": "Admin workload",
+          "subDescription": "Issues to review"
+        }
+      },
+      "charts": {
+        "userGrowth": {
+          "title": "User Growth",
+          "description": "Showing total users for the last 30 days",
+          "series": {
+            "users": "Total Users"
+          }
+        },
+        "korCoins": {
+          "title": "KOR Coins Activity",
+          "description": "Showing daily KOR Coins usage for the last 30 days",
+          "series": {
+            "coins": "KOR Coins"
+          }
+        }
+      },
+      "tables": {
+        "recentPosts": {
+          "title": "Recent Posts",
+          "description": "Latest posts from all boards",
+          "totalPosts": "Total Posts",
+          "by": "by",
+          "columns": {
+            "post": "Post",
+            "board": "Board",
+            "likes": "Likes",
+            "likesLower": "likes",
+            "views": "Views",
+            "viewsLower": "views",
+            "created": "Created",
+            "by": "by"
+          },
+          "board": {
+            "free": "Free Board",
+            "profit": "Profit Board",
+            "education": "Education Board"
+          }
+        },
+        "recentUsers": {
+          "title": "Recent Users",
+          "description": "Latest user registrations and their activity",
+          "totalUsers": "Total Users",
+          "columns": {
+            "user": "User",
+            "role": "Role",
+            "korCoins": "KOR Coins",
+            "coinsLower": "coins",
+            "joined": "Joined"
+          }
+        }
+      }
+    },
+    "notifications": {
+      "page": {
+        "error": {
+          "title": "Error loading notifications",
+          "detailsHint": "Check browser console for more details"
+        },
+        "details": {
+          "title": "Notification Details",
+          "id": "ID",
+          "type": "Type",
+          "audience": "Audience",
+          "status": "Status",
+          "created": "Created",
+          "titleLabel": "Title",
+          "body": "Body",
+          "metadata": "Metadata"
+        },
+        "status": { "read": "Read", "unread": "Unread" }
+      },
+      "stats": {
+        "total": {
+          "title": "Total Notifications",
+          "description": "All notifications"
+        },
+        "unread": { "title": "Unread", "description": "Require attention" },
+        "read": { "title": "Read", "description": "Already reviewed" },
+        "other": { "title": "Other", "description": "Additional notifications" }
+      },
+      "table": {
+        "searchPlaceholder": "Search notifications... (Ctrl+F)",
+        "filters": {
+          "allCategories": "All Categories",
+          "allStatus": "All Status",
+          "read": "Read",
+          "unread": "Unread"
+        },
+        "columns": {
+          "notification": "Notification",
+          "type": "Type",
+          "category": "Category",
+          "status": "Status",
+          "time": "Time",
+          "actions": "Actions"
+        },
+        "by": "by",
+        "unknown": "Unknown",
+        "status": { "read": "Read", "unread": "Unread" },
+        "menu": {
+          "open": "Open menu",
+          "title": "Notification Actions",
+          "viewDetails": "View Details",
+          "markAsRead": "Mark as Read",
+          "markReadShort": "Mark Read"
+        },
+        "empty": {
+          "title": "No notifications found",
+          "subtitle": "Try adjusting your search criteria"
+        },
+        "pagination": {
+          "showing": "Showing {start}-{end} of {total} results",
+          "previous": "Previous",
+          "next": "Next"
+        },
+        "relativeTime": {
+          "minutes": "{value}m ago",
+          "hours": "{value}h ago",
+          "days": "{value}d ago"
+        },
+        "generated": {
+          "requestKor": "{user} requested {amount} KOR",
+          "actionBy": "Action by {user}",
+          "noDetails": "No additional details available"
+        }
+      }
+    },
+    "activityLog": {
+      "stats": {
+        "rewardsToday": "Rewards Today",
+        "expAwardedToday": "EXP Awarded Today",
+        "korAwardedToday": "KOR Awarded Today",
+        "activeRules": "Active Rules"
+      },
+      "statsDescriptions": {
+        "rewardsToday": "All reward events today",
+        "activeRules": "Currently active reward rules",
+        "sumAcross": "Sum across all rewards"
+      },
+      "table": {
+        "searchPlaceholder": "Search rewards...",
+        "columns": {
+          "user": "User",
+          "rewardType": "Reward Type",
+          "exp": "EXP",
+          "kor": "KOR",
+          "date": "Date",
+          "actions": "Actions"
+        }
+      },
+      "filters": {
+        "allTypes": "All Types",
+        "typeNames": {
+          "post_created": "Post Created",
+          "post_commented": "Comment Posted",
+          "post_liked": "Post Liked",
+          "post_shared": "Post Shared",
+          "daily_login": "Daily Login",
+          "room_created": "Room Created"
+        }
+      },
+      "mobile": {
+        "type": "Type",
+        "exp": "EXP",
+        "kor": "KOR"
+      },
+      "pagination": {
+        "showing": "Showing {start}-{end} of {total} results",
+        "previous": "Previous",
+        "next": "Next"
+      }
+    },
+    "rewardRules": {
+      "sections": {
+        "basicInfo": "Basic Information",
+        "rewardValues": "Reward Values",
+        "dailyLimits": "Daily Limits"
+      },
+      "stats": {
+        "totalRewards": {
+          "title": "Total Rewards",
+          "description": "All time rewards given"
+        },
+        "totalExpAwarded": {
+          "title": "Total EXP Awarded",
+          "description": "Experience points distributed"
+        },
+        "totalKorAwarded": {
+          "title": "Total KOR Awarded",
+          "description": "KOR coins distributed"
+        },
+        "activeRules": {
+          "title": "Active Rules",
+          "description": "Currently active reward rules"
+        }
+      },
+      "table": {
+        "columns": {
+          "type": "Type",
+          "title": "Title",
+          "expPerAction": "EXP per Action",
+          "korPerAction": "KOR per Action",
+          "dailyCountLimit": "Daily Limit",
+          "status": "Status",
+          "actions": "Actions"
+        },
+        "menu": {
+          "open": "Open menu",
+          "title": "Rule Actions",
+          "viewDetails": "View Details",
+          "editRule": "Edit Rule"
+        },
+        "searchPlaceholder": "Search reward rules...",
+        "filters": {
+          "allTypes": "All types",
+          "allStatuses": "All statuses"
+        },
+        "empty": {
+          "title": "No reward rules found",
+          "subtitle": "No reward rules match your current filters"
+        }
+      },
+      "detailsDialog": {
+        "description": "View detailed information about the {type} reward rule",
+        "status": {
+          "active": "Active",
+          "inactive": "Inactive"
+        },
+        "sections": {
+          "basicInfo": "Basic Information",
+          "rewardValues": "Reward Values",
+          "dailyLimits": "Daily Limits",
+          "timestamps": "Timestamps"
+        },
+        "fields": {
+          "type": "Rule Type",
+          "status": "Status",
+          "description": "Description",
+          "expPerAction": "EXP per Action",
+          "korPerAction": "KOR per Action",
+          "dailyCountLimit": "Daily Count Limit",
+          "dailyExpLimit": "Daily EXP Limit",
+          "dailyKorLimit": "Daily KOR Limit",
+          "createdAt": "Created At",
+          "updatedAt": "Updated At"
+        }
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "editDialog": {
+        "title": "Edit Reward Rule",
+        "description": "Modify the reward configuration for {type}",
+        "fields": {
+          "title": "Title",
+          "description": "Description",
+          "expPerAction": "EXP per Action",
+          "korPerAction": "KOR per Action",
+          "dailyCountLimit": "Daily Count Limit",
+          "dailyExpLimit": "Daily EXP Limit",
+          "dailyKorLimit": "Daily KOR Limit",
+          "active": "Active"
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "save": "Save Changes",
+          "saving": "Saving..."
+        }
+      }
+    },
+    "managePosts": {
+      "stats": {
+        "totalPosts": {
+          "title": "Total Posts",
+          "description": "All posts across boards"
+        },
+        "totalViews": {
+          "title": "Total Views",
+          "description": "Combined post views"
+        },
+        "totalLikes": {
+          "title": "Total Likes",
+          "description": "Combined post likes"
+        },
+        "postsToday": {
+          "title": "Posts Today",
+          "description": "New posts today"
+        }
+      },
+      "table": {
+        "searchPlaceholder": "Search posts... (Ctrl+F)",
+        "count": "{filtered} of {total} posts",
+        "filters": { "allBoards": "All Boards" },
+        "boards": {
+          "free": "Free Board",
+          "education": "Education Board",
+          "profit": "Profit Board"
+        },
+        "empty": {
+          "noPostsFound": "No posts found",
+          "noPostsYet": "No posts yet",
+          "noMatch": "No posts match \"{term}\" in {board}",
+          "noPostsCreated": "No posts have been created yet"
+        },
+        "excerpt": { "none": "No excerpt available" },
+        "menu": {
+          "view": "View",
+          "edit": "Edit",
+          "delete": "Delete",
+          "deleting": "Deleting..."
+        },
+        "pagination": {
+          "showing": "Showing {start}-{end} of {total} results",
+          "previous": "Previous",
+          "next": "Next"
+        }
+      },
+      "deleteDialog": {
+        "aria": { "title": "Delete Post" },
+        "warning": {
+          "header": "This post will be permanently deleted",
+          "title": "Warning:",
+          "body": "Deleting this post will permanently remove all content, metadata, likes, comments, images, tags, and analytics. This action cannot be undone."
+        },
+        "preview": {
+          "title": "Post Preview",
+          "author": "Author",
+          "board": "Board",
+          "created": "Created",
+          "views": "Views",
+          "id": "ID",
+          "likes": "Likes",
+          "comments": "Comments",
+          "content": "Content Preview:"
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "deleting": "Deleting...",
+          "deletePost": "Delete Post"
+        },
+        "toast": {
+          "deleted": "Post deleted successfully!",
+          "failed": "Failed to delete post. Please try again."
+        }
+      },
+      "editDialog": {
+        "aria": { "title": "Edit Post" },
+        "fields": {
+          "title": "Title",
+          "board": "Board",
+          "tags": "Tags",
+          "content": "Content"
+        },
+        "placeholders": {
+          "title": "Enter post title",
+          "board": "Select board",
+          "tags": "Enter tags separated by commas",
+          "content": "Enter post content"
+        },
+        "boards": {
+          "free": "Free Board",
+          "education": "Education Board",
+          "profit": "Profit Board"
+        },
+        "footer": {
+          "board": "Board",
+          "created": "Created",
+          "id": "ID",
+          "views": "Views",
+          "likes": "Likes",
+          "comments": "Comments"
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "saving": "Saving...",
+          "saveChanges": "Save Changes"
+        },
+        "validation": { "required": "Title and content are required" },
+        "toast": {
+          "saved": "Post updated successfully!",
+          "failed": "Failed to update post. Please try again."
+        }
+      },
+      "viewDialog": {
+        "aria": { "title": "Post Details" },
+        "unknownAuthor": "Unknown Author",
+        "footer": {
+          "board": "Board",
+          "created": "Created",
+          "id": "ID",
+          "views": "Views",
+          "likes": "Likes",
+          "comments": "Comments"
+        }
+      }
+    },
+    "userManagement": {
+      "stats": {
+        "totalUsers": {
+          "title": "Total Users",
+          "description": "All registered users"
+        },
+        "adminUsers": {
+          "title": "Admin Users",
+          "description": "Administrators and moderators"
+        },
+        "totalCoins": {
+          "title": "Total KOR Coins",
+          "description": "All coins in circulation"
+        },
+        "newUsersThisMonth": {
+          "title": "New This Month",
+          "description": "Users joined this month"
+        }
+      },
+      "table": {
+        "searchPlaceholder": "Search users... (Ctrl+F)",
+        "export": "Export",
+        "filters": { "allRoles": "All Roles" },
+        "roles": {
+          "user": "User",
+          "admin": "Admin",
+          "super_admin": "Super Admin"
+        },
+        "columns": {
+          "user": "User",
+          "role": "Role",
+          "korCoins": "KOR Coins",
+          "warnings": "Warnings",
+          "identity": "Identity",
+          "actions": "Actions"
+        },
+        "badges": { "verified": "Verified", "unverified": "Unverified" },
+        "menu": {
+          "open": "Open menu",
+          "title": "User Actions",
+          "viewDetails": "View Details",
+          "editUser": "Edit User",
+          "issueWarning": "Issue Warning",
+          "banUser": "Ban User",
+          "unbanUser": "Unban User",
+          "verifyIdentity": "Verify Identity",
+          "unverifyIdentity": "Unverify Identity"
+        },
+        "empty": {
+          "title": "No users found",
+          "subtitle": "Try adjusting your search criteria"
+        },
+        "pagination": {
+          "showing": "Showing {start}-{end} of {total} results",
+          "previous": "Previous",
+          "next": "Next"
+        }
+      },
+      "detailsDialog": {
+        "title": "User Details",
+        "description": "Comprehensive user account information",
+        "labels": {
+          "role": "Role",
+          "status": "Status",
+          "korCoins": "KOR Coins",
+          "joined": "Joined",
+          "verifiedBy": "Verified by",
+          "email": "Email",
+          "phone": "Phone",
+          "nickname": "Nickname",
+          "gender": "Gender",
+          "birthDate": "Birth Date",
+          "identityName": "Identity Name",
+          "warnings": "Warnings",
+          "lastUpdated": "Last Updated",
+          "identityId": "Identity ID",
+          "verifiedOn": "Verified On"
+        },
+        "sections": {
+          "personal": "Personal Information",
+          "account": "Account Information"
+        },
+        "badges": { "verified": "Verified", "unverified": "Unverified" },
+        "roles": {
+          "user": "User",
+          "admin": "Admin",
+          "super_admin": "Super Admin"
+        },
+        "actions": { "close": "Close" }
+      }
+    },
+    "adminNotes": {
+      "stats": {
+        "totalNotes": {
+          "title": "Total Notes",
+          "description": "All admin notes"
+        },
+        "highPriority": {
+          "title": "High Priority",
+          "description": "High priority notes"
+        },
+        "thisWeek": {
+          "title": "This Week",
+          "description": "Notes created this week"
+        },
+        "thisMonth": {
+          "title": "This Month",
+          "description": "Notes created this month"
+        }
+      },
+      "table": {
+        "searchPlaceholder": "Search notes... (Ctrl+F)",
+        "filters": { "allPriorities": "All Priorities" },
+        "priorities": { "high": "High", "medium": "Medium", "low": "Low" },
+        "createNote": "Create Note",
+        "empty": {
+          "title": "No notes found",
+          "searchCriteria": "Try adjusting your search criteria",
+          "getStarted": "Create your first admin note to get started"
+        },
+        "unknownUser": "Unknown User",
+        "unknownAdmin": "Unknown Admin",
+        "userLabel": "User",
+        "generalNote": "General Note",
+        "createdBy": "Created by",
+        "actions": { "view": "View", "edit": "Edit", "delete": "Delete" },
+        "pagination": {
+          "showing": "Showing {start}-{end} of {total} results",
+          "previous": "Previous",
+          "next": "Next"
+        },
+        "deleteDialog": {
+          "title": "Delete Note",
+          "description": "Are you sure you want to delete this note? This action cannot be undone.",
+          "cancel": "Cancel",
+          "delete": "Delete"
+        }
+      },
+      "createDialog": {
+        "title": "Create Admin Note",
+        "description": "Create a new internal note about a user or platform activity.",
+        "userLabel": "User (Optional)",
+        "loadingUsers": "Loading users...",
+        "userPlaceholder": "Select a user (optional)",
+        "generalNoteOption": "No specific user (General note)",
+        "noteContent": "Note Content",
+        "notePlaceholder": "Enter the note content...",
+        "priority": "Priority",
+        "priorities": { "low": "Low", "medium": "Medium", "high": "High" },
+        "date": "Date",
+        "pickDate": "Pick a date",
+        "cancel": "Cancel",
+        "createNote": "Create Note",
+        "creating": "Creating...",
+        "validation": {
+          "noteRequired": "Please enter note content",
+          "userRequired": "Please select a valid user option"
+        },
+        "success": { "created": "Note created successfully!" },
+        "error": { "failed": "Failed to create note. Please try again." }
+      },
+      "editDialog": {
+        "title": "Edit Admin Note",
+        "description": "Modify the existing admin note.",
+        "userLabel": "User (Optional)",
+        "loadingUsers": "Loading users...",
+        "userPlaceholder": "Select a user (optional)",
+        "generalNoteOption": "No specific user (General note)",
+        "noteContent": "Note Content",
+        "notePlaceholder": "Enter the note content...",
+        "priority": "Priority",
+        "priorities": { "low": "Low", "medium": "Medium", "high": "High" },
+        "date": "Date",
+        "pickDate": "Pick a date",
+        "createdAt": "Created At",
+        "lastUpdated": "Last Updated",
+        "never": "Never",
+        "cancel": "Cancel",
+        "updateNote": "Update Note",
+        "updating": "Updating...",
+        "validation": {
+          "noteRequired": "Please enter note content",
+          "userRequired": "Please select a valid user option"
+        },
+        "success": { "updated": "Note updated successfully!" },
+        "error": { "failed": "Failed to update note. Please try again." }
+      },
+      "viewDialog": {
+        "title": "Admin Note Details",
+        "description": "View comprehensive information about this admin note.",
+        "noteId": "Note ID",
+        "noteContent": "Note Content",
+        "userInformation": "User Information",
+        "user": "User",
+        "createdBy": "Created By",
+        "datesAndMetadata": "Dates and Metadata",
+        "noteDate": "Note Date",
+        "createdAt": "Created At",
+        "lastUpdated": "Last Updated",
+        "unknownUser": "Unknown User",
+        "unknownAdmin": "Unknown Admin",
+        "priorities": {
+          "high": "High Priority",
+          "medium": "Medium Priority",
+          "low": "Low Priority"
+        },
+        "close": "Close"
+      }
+    },
+    "uidManagement": {
+      "stats": {
+        "totalUids": {
+          "title": "Total UIDs",
+          "description": "All registered UIDs"
+        },
+        "activeUids": {
+          "title": "Active UIDs",
+          "description": "Currently active UIDs"
+        },
+        "totalExchanges": {
+          "title": "Total Exchanges",
+          "description": "Supported exchanges"
+        },
+        "newUidsThisMonth": {
+          "title": "New This Month",
+          "description": "UIDs added this month"
+        }
+      },
+      "table": {
+        "searchPlaceholder": "Search UIDs... (Ctrl+F)",
+        "filters": {
+          "allExchanges": "All Exchanges",
+          "allStatus": "All Status",
+          "active": "Active",
+          "inactive": "Inactive"
+        },
+        "columns": {
+          "user": "User",
+          "uid": "UID",
+          "exchange": "Exchange",
+          "status": "Status",
+          "created": "Created",
+          "actions": "Actions"
+        },
+        "status": {
+          "active": "Active",
+          "inactive": "Inactive"
+        },
+        "menu": {
+          "open": "Open menu",
+          "title": "UID Actions",
+          "viewDetails": "View Details",
+          "viewUser": "View User"
+        },
+        "empty": {
+          "title": "No UID records found",
+          "subtitle": "Try adjusting your search criteria"
+        },
+        "pagination": {
+          "showing": "Showing {start}-{end} of {total} results",
+          "previous": "Previous",
+          "next": "Next"
+        },
+        "export": "Export",
+        "exporting": "Exporting...",
+        "exportSuccess": "Successfully exported {count} UID records to CSV!",
+        "exportError": "Failed to export UID records. Please try again."
+      },
+      "uidDetailsDialog": {
+        "title": "UID Details",
+        "description": "Detailed information about this UID record",
+        "sections": {
+          "uidInformation": "UID Information",
+          "timestamps": "Timestamps"
+        },
+        "labels": {
+          "uid": "UID",
+          "exchange": "Exchange",
+          "status": "Status",
+          "uidId": "UID ID",
+          "created": "Created",
+          "lastUpdated": "Last Updated"
+        },
+        "status": {
+          "active": "Active",
+          "inactive": "Inactive"
+        },
+        "copyToClipboard": "{label} copied to clipboard"
+      },
+      "userDetailsDialog": {
+        "title": "User Details",
+        "description": "User information and profile details",
+        "sections": {
+          "userInformation": "User Information",
+          "associatedUid": "Associated UID"
+        },
+        "labels": {
+          "firstName": "First Name",
+          "lastName": "Last Name",
+          "email": "Email",
+          "userId": "User ID",
+          "notProvided": "Not provided"
+        },
+        "status": {
+          "active": "Active",
+          "inactive": "Inactive"
+        },
+        "copyToClipboard": "{label} copied to clipboard"
+      }
+    },
+    "korCoins": {
+      "stats": {
+        "totalCoins": {
+          "title": "Total KOR Coins",
+          "description": "All coins in circulation"
+        },
+        "activeUsers": {
+          "title": "Active Users",
+          "description": "Users with KOR coins"
+        },
+        "totalTransactions": {
+          "title": "Total Transactions",
+          "description": "All coin transactions"
+        },
+        "averageBalance": {
+          "title": "Average Balance",
+          "description": "Per user average"
+        }
+      },
+      "table": {
+        "searchPlaceholder": "Search users... (Ctrl+F)",
+        "show": "Show:",
+        "columns": {
+          "user": "User",
+          "balance": "Balance",
+          "status": "Status",
+          "joined": "Joined",
+          "actions": "Actions"
+        },
+        "status": {
+          "high": "High",
+          "medium": "Medium",
+          "low": "Low",
+          "unknown": "Unknown"
+        },
+        "menu": {
+          "open": "Open menu",
+          "title": "User Actions",
+          "viewProfile": "View Profile",
+          "addCoins": "Add Coins",
+          "subtractCoins": "Subtract Coins"
+        },
+        "empty": {
+          "title": "No users found",
+          "subtitle": "Try adjusting your search criteria",
+          "noUsers": "No users found"
+        },
+        "pagination": {
+          "showing": "Showing {start}-{end} of {total} results",
+          "previous": "Previous",
+          "next": "Next"
+        }
+      },
+      "chart": {
+        "title": "KOR Coins Activity",
+        "description": "Showing daily KOR Coins usage for the last 30 days",
+        "monthlyActivity": "Monthly Activity",
+        "series": {
+          "coins": "KOR Coins"
+        }
+      },
+      "balanceAdjustmentDialog": {
+        "title": {
+          "add": "Add KOR Coins",
+          "subtract": "Subtract KOR Coins"
+        },
+        "description": {
+          "add": "Add coins to {name}'s balance",
+          "subtract": "Subtract coins from {name}'s balance"
+        },
+        "currentBalance": "Current Balance",
+        "amountLabel": "Amount to {action}",
+        "amountPlaceholder": "Enter amount to {action}",
+        "reasonLabel": "Reason for Adjustment",
+        "reasonOptional": "(Optional)",
+        "reasonPlaceholder": "Provide a reason for this adjustment (optional)...",
+        "warning": {
+          "title": "Important Notice",
+          "message": "This action will be logged in the audit trail and cannot be undone. Please ensure all information is accurate before proceeding."
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "processing": "Processing...",
+          "addCoins": "Add Coins",
+          "subtractCoins": "Subtract Coins"
+        },
+        "validation": {
+          "amountRequired": "Please enter an amount",
+          "amountInvalid": "Please enter a valid amount",
+          "insufficientBalance": "Cannot subtract more than {balance} coins. Maximum subtraction allowed: {balance}"
+        },
+        "success": {
+          "added": "Successfully added {amount} KOR coins from {name}",
+          "subtracted": "Successfully subtracted {amount} KOR coins from {name}"
+        },
+        "error": {
+          "failed": "Failed to adjust balance. Please try again."
+        }
+      },
+      "viewProfileDialog": {
+        "title": "User Profile",
+        "sections": {
+          "userInformation": "User Information",
+          "balanceInformation": "Balance Information"
+        },
+        "labels": {
+          "emailAddress": "Email Address",
+          "korCoins": "KOR Coins",
+          "memberSince": "Member Since",
+          "balanceStatus": "Balance Status"
+        },
+        "status": {
+          "high": "High",
+          "medium": "Medium",
+          "low": "Low"
+        },
+        "actions": {
+          "close": "Close"
+        }
+      }
+    },
+    "rebateManagement": {
+      "page": {
+        "tabs": {
+          "withdrawalRequests": "Withdrawal Requests",
+          "brokerRebates": "Broker Rebates",
+          "userRebates": "User Rebates"
+        },
+        "actions": {
+          "syncRebates": "Sync Rebates",
+          "exportWithdrawals": "Export Withdrawals"
+        },
+        "messages": {
+          "rebatesSynced": "Rebates synced successfully",
+          "rebatesSyncFailed": "Failed to sync rebates",
+          "withdrawalsExported": "Withdrawals exported successfully",
+          "withdrawalsExportFailed": "Failed to export withdrawals",
+          "syncError": "Error syncing rebates",
+          "exportError": "Error exporting withdrawals"
+        }
+      },
+      "stats": {
+        "totalEarned": {
+          "title": "Total Earned",
+          "description": "From all brokers"
+        },
+        "totalPaidOut": {
+          "title": "Total Paid Out",
+          "description": "To users"
+        },
+        "pendingWithdrawals": {
+          "title": "Pending Withdrawals",
+          "description": "Awaiting approval"
+        },
+        "activeUsers": {
+          "title": "Active Users",
+          "description": "{rate}% conversion rate"
+        }
+      },
+      "withdrawalRequests": {
+        "columns": {
+          "userId": "User ID",
+          "brokerUid": "Broker UID",
+          "amount": "Amount",
+          "status": "Status",
+          "requested": "Requested",
+          "actions": "Actions"
+        },
+        "status": {
+          "completed": "Completed",
+          "pending": "Pending",
+          "processing": "Processing",
+          "rejected": "Rejected"
+        },
+        "actions": {
+          "approve": "Approve",
+          "reject": "Reject",
+          "processed": "Processed",
+          "rejected": "Rejected"
+        },
+        "dialogs": {
+          "approve": {
+            "title": "Approve Withdrawal",
+            "description": "Are you sure you want to approve this withdrawal of ${amount}?",
+            "cancel": "Cancel",
+            "confirm": "Approve"
+          },
+          "reject": {
+            "title": "Reject Withdrawal",
+            "description": "Are you sure you want to reject this withdrawal of ${amount}?",
+            "cancel": "Cancel",
+            "confirm": "Reject"
+          }
+        },
+        "mobile": {
+          "amount": "Amount:",
+          "requested": "Requested:"
+        },
+        "empty": {
+          "title": "No withdrawal requests found",
+          "subtitle": "Withdrawal requests will appear here when users make them"
+        },
+        "messages": {
+          "withdrawalApproved": "Withdrawal approved successfully",
+          "withdrawalRejected": "Withdrawal rejected successfully",
+          "approveFailed": "Failed to approve withdrawal",
+          "rejectFailed": "Failed to reject withdrawal",
+          "approveError": "Error approving withdrawal",
+          "rejectError": "Error rejecting withdrawal"
+        }
+      },
+      "brokerRebates": {
+        "columns": {
+          "brokerUid": "Broker UID",
+          "exchange": "Exchange",
+          "date": "Date",
+          "amount": "Amount",
+          "created": "Created"
+        },
+        "mobile": {
+          "date": "Date:",
+          "created": "Created:"
+        },
+        "empty": {
+          "title": "No broker rebates found",
+          "subtitle": "Broker rebates will appear here after the cron job runs"
+        }
+      },
+      "userRebates": {
+        "columns": {
+          "userId": "User ID",
+          "brokerUid": "Broker UID",
+          "amount": "Amount",
+          "status": "Status",
+          "created": "Created"
+        },
+        "status": {
+          "withdrawn": "Withdrawn",
+          "withdrawable": "Withdrawable",
+          "pending": "Pending"
+        },
+        "mobile": {
+          "amount": "Amount:",
+          "created": "Created:"
+        },
+        "empty": {
+          "title": "No user rebates found",
+          "subtitle": "User rebates will appear here after the cron job runs"
+        }
+      }
+    },
+    "bankAccounts": {
+      "page": {
+        "title": "Bank Accounts Management"
+      },
+      "table": {
+        "searchPlaceholder": "Search bank accounts... (Ctrl+F)",
+        "addButton": "Add Bank Account",
+        "columns": {
+          "bankAccount": "Bank Account",
+          "accountDetails": "Account Details",
+          "status": "Status",
+          "created": "Created",
+          "actions": "Actions"
+        },
+        "status": {
+          "primary": "Primary",
+          "secondary": "Secondary",
+          "inactive": "Inactive"
+        },
+        "labels": {
+          "accountNumber": "Account Number"
+        },
+        "menu": {
+          "open": "Open menu",
+          "title": "Bank Account Actions",
+          "editAccount": "Edit Account",
+          "setAsPrimary": "Set as Primary",
+          "deleteAccount": "Delete Account"
+        },
+        "mobile": {
+          "accountNumber": "Account Number",
+          "created": "Created"
+        },
+        "empty": {
+          "title": "No bank accounts found",
+          "subtitle": "Add your first bank account to start receiving deposits",
+          "searchSubtitle": "Try adjusting your search criteria"
+        },
+        "pagination": {
+          "showing": "Showing {start}-{end} of {total} results",
+          "previous": "Previous",
+          "next": "Next"
+        },
+        "messages": {
+          "primaryUpdated": "Primary bank account updated successfully",
+          "primaryUpdateFailed": "Failed to update primary bank account",
+          "cannotDeletePrimary": "Cannot delete the primary bank account. Set another account as primary first."
+        }
+      },
+      "addDialog": {
+        "title": "Add Bank Account",
+        "description": "Add a new bank account for receiving deposits. The first account will automatically be set as primary.",
+        "form": {
+          "bankName": {
+            "label": "Bank Name",
+            "placeholder": "e.g., Shinhan Bank, KB Bank",
+            "required": "*"
+          },
+          "accountNumber": {
+            "label": "Account Number",
+            "placeholder": "e.g., 123-456789-01-234",
+            "required": "*"
+          },
+          "accountHolder": {
+            "label": "Account Holder Name",
+            "placeholder": "e.g., Weetoo Company Ltd",
+            "required": "*"
+          }
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "adding": "Adding...",
+          "addAccount": "Add Bank Account"
+        },
+        "messages": {
+          "success": "Bank account added successfully",
+          "failed": "Failed to add bank account",
+          "fillRequired": "Please fill in all required fields"
+        }
+      },
+      "editDialog": {
+        "title": "Edit Bank Account",
+        "description": "Update the bank account information. Changes will be reflected immediately.",
+        "form": {
+          "bankName": {
+            "label": "Bank Name",
+            "placeholder": "e.g., Shinhan Bank, KB Bank",
+            "required": "*"
+          },
+          "accountNumber": {
+            "label": "Account Number",
+            "placeholder": "e.g., 123-456789-01-234",
+            "required": "*"
+          },
+          "accountHolder": {
+            "label": "Account Holder Name",
+            "placeholder": "e.g., Weetoo Company Ltd",
+            "required": "*"
+          }
+        },
+        "accountInfo": {
+          "title": "Account Information",
+          "currentStatus": "Current Status:",
+          "primaryAccount": "Primary Account",
+          "secondaryAccount": "Secondary Account",
+          "created": "Created:"
+        },
+        "quickActions": {
+          "title": "Quick Actions",
+          "makePrimary": "Make Primary Account",
+          "settingAsPrimary": "Setting as Primary..."
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "updating": "Updating...",
+          "updateAccount": "Update Account"
+        },
+        "messages": {
+          "success": "Bank account updated successfully",
+          "failed": "Failed to update bank account",
+          "primarySuccess": "Bank account set as primary successfully",
+          "primaryFailed": "Failed to set bank account as primary",
+          "fillRequired": "Please fill in all required fields"
+        }
+      },
+      "deleteDialog": {
+        "title": "Delete Bank Account",
+        "description": "Are you sure you want to delete this bank account? This action cannot be undone.",
+        "accountDetails": {
+          "bankName": "Bank Name:",
+          "accountNumber": "Account Number:",
+          "accountHolder": "Account Holder:",
+          "created": "Created:"
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "deleting": "Deleting...",
+          "deleteAccount": "Delete Account"
+        },
+        "messages": {
+          "success": "Bank account deleted successfully",
+          "failed": "Failed to delete bank account"
+        }
+      }
+    },
+    "depositManagement": {
+      "page": {
+        "title": "Deposit Management"
+      },
+      "stats": {
+        "totalDeposits": {
+          "title": "Total Deposits",
+          "description": "All deposit requests"
+        },
+        "pendingVerification": {
+          "title": "Pending Verification",
+          "description": "Awaiting bank verification"
+        },
+        "verifiedAccounts": {
+          "title": "Verified Accounts",
+          "description": "Successfully verified accounts"
+        },
+        "completedDeposits": {
+          "title": "Completed Deposits",
+          "description": "Successfully processed"
+        }
+      },
+      "table": {
+        "searchPlaceholder": "Search by user name, email, or deposit ID... (Ctrl+F)",
+        "statusFilter": {
+          "all": "All Status",
+          "pending": "Pending",
+          "completed": "Completed",
+          "failed": "Failed"
+        },
+        "clearFilters": "Clear",
+        "exportCsv": "Export CSV",
+        "columns": {
+          "user": "User",
+          "korCoins": "KOR Coins",
+          "wonAmount": "Won Amount",
+          "bankDetails": "Bank Details",
+          "paymentReference": "Payment Reference",
+          "status": "Status",
+          "statusActions": "Status & Actions"
+        },
+        "status": {
+          "pending": "Pending",
+          "completed": "Completed",
+          "failed": "Failed"
+        },
+        "statusActions": {
+          "changeStatus": "Change Status:",
+          "korCoinsSent": "✓ KOR Coins Sent",
+          "processing": "⏳ Processing..."
+        },
+        "mobile": {
+          "korCoins": "KOR Coins",
+          "wonAmount": "Won Amount",
+          "bank": "Bank",
+          "accountNumber": "Account Number",
+          "paymentReference": "Payment Reference",
+          "level": "Level"
+        },
+        "empty": {
+          "title": "No deposit requests found",
+          "subtitle": "Try adjusting your search criteria"
+        },
+        "pagination": {
+          "showing": "Showing {start}-{end} of {total} results",
+          "previous": "Previous",
+          "next": "Next"
+        },
+        "loading": "Loading deposit requests...",
+        "messages": {
+          "korCoinsSent": "KOR coins sent successfully!",
+          "korCoinsFailed": "Failed to send KOR coins",
+          "statusUpdated": "Status updated successfully!",
+          "statusUpdateFailed": "Failed to update status",
+          "markedAsFailed": "Marked as failed",
+          "markFailedError": "Failed to mark as failed",
+          "exportFailed": "Failed to export CSV"
+        }
+      }
+    },
+    "withdrawManagement": {
+      "page": {
+        "title": "Withdrawal Management"
+      },
+      "stats": {
+        "totalWithdrawals": {
+          "title": "Total Withdrawals",
+          "description": "All withdrawal requests"
+        },
+        "pendingVerification": {
+          "title": "Pending Verification",
+          "description": "Awaiting account verification"
+        },
+        "verifiedAccounts": {
+          "title": "Verified Accounts",
+          "description": "Successfully verified accounts"
+        },
+        "rejectedWithdrawals": {
+          "title": "Rejected Withdrawals",
+          "description": "Failed or rejected"
+        }
+      },
+      "table": {
+        "searchPlaceholder": "Search by user name, email, or withdrawal ID... (Ctrl+F)",
+        "statusFilter": {
+          "all": "All Status",
+          "pending": "Pending",
+          "verified": "Verified",
+          "failed": "Failed"
+        },
+        "clearFilters": "Clear",
+        "exportCsv": "Export CSV",
+        "columns": {
+          "id": "ID",
+          "user": "User",
+          "korCoins": "KOR Coins",
+          "bankDetails": "Bank Details",
+          "verificationWithdrawal": "Verification/Withdrawal",
+          "status": "Status",
+          "actions": "Actions"
+        },
+        "status": {
+          "pending": "Pending",
+          "sent": "Sent",
+          "verified": "Verified",
+          "failed": "Failed",
+          "unknown": "Unknown"
+        },
+        "actions": {
+          "markAsSent": "Mark as Sent",
+          "sent": "Sent",
+          "changeStatus": "Change Status:",
+          "afterSending": "After sending, click Mark as Sent to lock."
+        },
+        "mobile": {
+          "korCoins": "KOR Coins",
+          "accountNumber": "Account Number",
+          "verificationAmount": "Verification Amount",
+          "level": "Level",
+          "send": "Send:"
+        },
+        "empty": {
+          "title": "No withdrawal requests found",
+          "subtitle": "Try adjusting your search criteria"
+        },
+        "pagination": {
+          "showing": "Showing {start}-{end} of {total} results",
+          "previous": "Previous",
+          "next": "Next"
+        },
+        "loading": "Loading withdrawal requests...",
+        "messages": {
+          "statusUpdated": "Status updated",
+          "statusUpdateFailed": "Failed to update status"
+        }
+      }
+    }
   },
   "common": {
     "loading": "Loading...",

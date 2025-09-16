@@ -202,12 +202,51 @@ export async function PATCH(request: Request) {
     });
   }
   if (!data) {
+    // Retry once with the latest updated_at to avoid false conflicts from background updates
+    const { data: latest, error: latestErr } = await supabase
+      .from("trading_rooms")
+      .select("updated_at")
+      .eq("id", id)
+      .maybeSingle();
+    if (latestErr || !latest?.updated_at) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "Room was updated recently. Please refresh the page and try again.",
+        }),
+        { status: 409 }
+      );
+    }
+
+    const { data: retry, error: retryErr } = await supabase
+      .from("trading_rooms")
+      .update({
+        name: name.trim(),
+        symbol,
+        privacy,
+        password: privacy === "private" ? password : null,
+      })
+      .eq("id", id)
+      .eq("updated_at", latest.updated_at)
+      .select("updated_at")
+      .maybeSingle();
+    if (retryErr) {
+      return new Response(JSON.stringify({ error: retryErr.message }), {
+        status: 500,
+      });
+    }
+    if (!retry) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "Room was updated recently. Please refresh the page and try again.",
+        }),
+        { status: 409 }
+      );
+    }
     return new Response(
-      JSON.stringify({
-        error:
-          "Room was updated recently. Please refresh the page and try again.",
-      }),
-      { status: 409 }
+      JSON.stringify({ success: true, updatedAt: retry.updated_at }),
+      { status: 200 }
     );
   }
   return new Response(

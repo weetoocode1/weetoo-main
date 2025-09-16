@@ -318,10 +318,10 @@ export function HeroSection() {
                   ease: [0.25, 0.46, 0.45, 0.94],
                 }}
               >
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground leading-tight">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground leading-tight text-balance">
                   {t("experienceNextGen")}
                 </h1>
-                <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
+                <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed text-balance">
                   {t("joinCommunity")}
                 </p>
               </motion.div>

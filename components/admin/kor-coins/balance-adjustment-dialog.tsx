@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Coins, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface UserKorCoins {
   id: string;
@@ -52,6 +53,7 @@ export function BalanceAdjustmentDialog({
   action,
   onSuccess,
 }: BalanceAdjustmentDialogProps) {
+  const t = useTranslations("admin.korCoins.balanceAdjustmentDialog");
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
@@ -59,20 +61,22 @@ export function BalanceAdjustmentDialog({
 
   const handleBalanceAdjustment = async () => {
     if (!user || !amount) {
-      toast.error("Please enter an amount");
+      toast.error(t("validation.amountRequired"));
       return;
     }
 
     const amountValue = parseInt(amount);
     if (isNaN(amountValue) || amountValue <= 0) {
-      toast.error("Please enter a valid amount");
+      toast.error(t("validation.amountInvalid"));
       return;
     }
 
     // Check if subtraction would result in negative balance
     if (action === "subtract" && user.kor_coins < amountValue) {
       toast.error(
-        `Cannot subtract more than ${user.kor_coins.toLocaleString()} coins. Maximum subtraction allowed: ${user.kor_coins.toLocaleString()}`
+        t("validation.insufficientBalance", {
+          balance: user.kor_coins.toLocaleString(),
+        })
       );
       return;
     }
@@ -133,11 +137,10 @@ export function BalanceAdjustmentDialog({
       });
 
       toast.success(
-        `Successfully ${
-          action === "add" ? "added" : "subtracted"
-        } ${amountValue.toLocaleString()} KOR coins from ${user.first_name} ${
-          user.last_name
-        }`
+        t(action === "add" ? "success.added" : "success.subtracted", {
+          amount: amountValue.toLocaleString(),
+          name: `${user.first_name} ${user.last_name}`,
+        })
       );
 
       // Reset form and close dialog
@@ -146,7 +149,7 @@ export function BalanceAdjustmentDialog({
       onSuccess();
     } catch (error) {
       console.error("Failed to adjust balance:", error);
-      toast.error("Failed to adjust balance. Please try again.");
+      toast.error(t("error.failed"));
     } finally {
       setIsAdjusting(false);
     }
@@ -162,7 +165,7 @@ export function BalanceAdjustmentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-lg border-2 border-border">
+      <DialogContent className="w-full max-w-lg border-2 border-border shadow-none rounded-none">
         <DialogHeader className="border-b border-border pb-4">
           <DialogTitle className="flex items-center gap-3 text-xl font-bold">
             <div
@@ -179,18 +182,16 @@ export function BalanceAdjustmentDialog({
               )}
             </div>
             <div>
-              <div className="text-lg">
-                {action === "add" ? "Add" : "Subtract"} KOR Coins
-              </div>
+              <div className="text-lg">{t(`title.${action}`)}</div>
               <div className="text-sm font-normal text-muted-foreground">
                 {user.first_name} {user.last_name}
               </div>
             </div>
           </DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground">
-            {action === "add"
-              ? `Add coins to ${user.first_name} ${user.last_name}'s balance`
-              : `Subtract coins from ${user.first_name} ${user.last_name}'s balance`}
+            {t(`description.${action}`, {
+              name: `${user.first_name} ${user.last_name}`,
+            })}
           </DialogDescription>
         </DialogHeader>
 
@@ -198,7 +199,7 @@ export function BalanceAdjustmentDialog({
           {/* Current Balance Display */}
           <div className="p-4 bg-gradient-to-r from-muted/50 to-muted/30 border border-border">
             <div className="text-sm text-muted-foreground mb-2">
-              Current Balance
+              {t("currentBalance")}
             </div>
             <div className="text-2xl font-bold flex items-center gap-3">
               <div className="p-2 bg-yellow-100 text-yellow-700">
@@ -213,16 +214,18 @@ export function BalanceAdjustmentDialog({
           {/* Amount Input */}
           <div className="space-y-3">
             <Label htmlFor="amount" className="text-sm font-medium">
-              Amount to {action === "add" ? "Add" : "Subtract"}
+              {t("amountLabel", {
+                action: action === "add" ? "Add" : "Subtract",
+              })}
             </Label>
             <div className="relative">
               <Coins className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 id="amount"
                 type="number"
-                placeholder={`Enter amount to ${
-                  action === "add" ? "add" : "subtract"
-                }`}
+                placeholder={t("amountPlaceholder", {
+                  action: action === "add" ? "add" : "subtract",
+                })}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className="pl-10 h-12 text-lg font-mono rounded-none"
@@ -233,12 +236,14 @@ export function BalanceAdjustmentDialog({
           {/* Reason Input */}
           <div className="space-y-3">
             <Label htmlFor="reason" className="text-sm font-medium">
-              Reason for Adjustment{" "}
-              <span className="text-muted-foreground">(Optional)</span>
+              {t("reasonLabel")}{" "}
+              <span className="text-muted-foreground">
+                {t("reasonOptional")}
+              </span>
             </Label>
             <Textarea
               id="reason"
-              placeholder="Provide a reason for this adjustment (optional)..."
+              placeholder={t("reasonPlaceholder")}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               className="min-h-[80px] resize-none rounded-none"
@@ -251,34 +256,36 @@ export function BalanceAdjustmentDialog({
             <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
             <div className="text-sm">
               <div className="font-medium text-yellow-800 mb-1">
-                Important Notice
+                {t("warning.title")}
               </div>
-              <div className="text-yellow-700">
-                This action will be logged in the audit trail and cannot be
-                undone. Please ensure all information is accurate before
-                proceeding.
-              </div>
+              <div className="text-yellow-700">{t("warning.message")}</div>
             </div>
           </div>
         </div>
 
         <DialogFooter className="border-t border-border pt-4">
-          <Button variant="outline" onClick={handleClose} className="h-10 px-6">
-            Cancel
+          <Button
+            variant="outline"
+            onClick={handleClose}
+            className="h-10 px-6 shadow-none rounded-none"
+          >
+            {t("actions.cancel")}
           </Button>
           <Button
             onClick={handleBalanceAdjustment}
             disabled={isAdjusting || !amount}
-            className={`h-10 px-6 ${
+            className={`h-10 px-6 shadow-none rounded-none ${
               action === "add"
                 ? "bg-green-600 hover:bg-green-700 focus:bg-green-700 text-white"
                 : "bg-red-600 hover:bg-red-700 focus:bg-red-700 text-white"
             }`}
           >
             {isAdjusting ? (
-              <div className="flex items-center gap-2">Processing...</div>
+              <div className="flex items-center gap-2">
+                {t("actions.processing")}
+              </div>
             ) : (
-              `${action === "add" ? "Add" : "Subtract"} Coins`
+              t(`actions.${action === "add" ? "addCoins" : "subtractCoins"}`)
             )}
           </Button>
         </DialogFooter>

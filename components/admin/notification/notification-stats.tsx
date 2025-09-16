@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bell, AlertTriangle, CheckCircle2, Eye } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface NotificationStats {
   totalCount: number;
@@ -15,32 +16,33 @@ interface NotificationStatsProps {
 }
 
 export function NotificationStats({ stats }: NotificationStatsProps) {
+  const t = useTranslations("admin.notifications.stats");
   const statCards = [
     {
-      title: "Total Notifications",
+      title: t("total.title"),
       value: stats.totalCount,
-      description: "All notifications",
+      description: t("total.description"),
       icon: Bell,
       color: "text-blue-600",
     },
     {
-      title: "Unread",
+      title: t("unread.title"),
       value: stats.unreadCount,
-      description: "Require attention",
+      description: t("unread.description"),
       icon: AlertTriangle,
       color: "text-yellow-600",
     },
     {
-      title: "Read",
+      title: t("read.title"),
       value: stats.readCount,
-      description: "Already reviewed",
+      description: t("read.description"),
       icon: CheckCircle2,
       color: "text-green-600",
     },
     {
-      title: "Other",
+      title: t("other.title"),
       value: stats.otherCount,
-      description: "Additional notifications",
+      description: t("other.description"),
       icon: Eye,
       color: "text-purple-600",
     },

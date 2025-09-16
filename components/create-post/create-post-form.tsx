@@ -109,8 +109,16 @@ export function CreatePostForm({ board }: { board?: string }) {
 
       console.log("API call completed, processing response");
       if (res.ok) {
+        const body = await res.json();
         setSuccess(true);
         toast.success("Post published successfully!");
+        if (body?.reward) {
+          const exp = body.reward.exp_delta ?? 0;
+          const kor = body.reward.kor_delta ?? 0;
+          if (exp > 0 || kor > 0) {
+            toast.success(`Reward earned: +${exp} EXP, +${kor} KOR`);
+          }
+        }
         // Optionally reset form or redirect
         setTitle("");
         setTags([]);
