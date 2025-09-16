@@ -58,8 +58,8 @@ export const PartnerExchangeComparison = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { exchanges, loading } = useExchangeStore();
   const SIGNUP_LINKS: Record<string, string> = {
-    deepcoin: "https://s.deepcoin.com/jdcibde",
-    orangex: "https://affiliates.orangex.com/affiliates/b/t4atgsg2",
+    deepcoin: "https://s.deepcoin.com/jedgica",
+    orangex: "https://affiliates.orangex.com/affiliates/b/4dratgs2",
   };
   const descriptionOverrides: Record<string, string> = {
     bybit:

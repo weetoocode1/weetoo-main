@@ -73,7 +73,7 @@ export function WeetooMarketDialog() {
   };
 
   return (
-    <Dialog>
+    <Dialog modal={false}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="rounded-lg">
           <TooltipProvider>
@@ -113,7 +113,8 @@ export function WeetooMarketDialog() {
                   {product.description}
                 </div>
                 <div className="text-sm font-bold text-yellow-500 mt-1">
-                  {product.price.toLocaleString()} {t("cash")}
+                  {product.price.toLocaleString()}{" "}
+                  {product.key === "memberReset" ? t("korCoins") : t("cash")}
                 </div>
               </div>
               <div className="flex items-center gap-2 mt-3 sm:mt-0 sm:ml-4 shrink-0 self-start sm:self-center">
