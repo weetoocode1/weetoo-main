@@ -203,6 +203,9 @@ export function KorCoinsRechargeDialog() {
   const t = useTranslations("korCoinsRecharge");
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [mounted, setMounted] = useState(false);
+  const formatNumber = (n: number) =>
+    mounted ? n.toLocaleString() : String(n);
 
   const [open, setOpen] = useState(false);
   const [korCoinsAmount, setKorCoinsAmount] = useState("");
@@ -225,6 +228,7 @@ export function KorCoinsRechargeDialog() {
 
   // Listen for identity verification completion and KOR coins updates
   useEffect(() => {
+    setMounted(true);
     const handleIdentityVerified = (event: Event) => {
       // Force a re-render to update verification status
       // This is handled by the event dispatch in handleVerificationSuccess
@@ -660,6 +664,7 @@ export function KorCoinsRechargeDialog() {
             setShowPaymentInstructions(true);
           }
         }}
+        modal={false}
       >
         <DialogContent className="max-w-md p-0 h-[75vh] overflow-y-auto scrollbar-hide">
           <div className="flex flex-col">
@@ -667,10 +672,10 @@ export function KorCoinsRechargeDialog() {
             <DialogHeader className="flex gap-0 sticky top-0 bg-background z-10 p-4 border-b">
               <DialogTitle className="text-lg font-bold flex items-center gap-1.5">
                 <CheckCircle className="w-5 h-5 text-green-500" />
-                Payment Instructions
+                {t("paymentInstructionsTitle")}
               </DialogTitle>
               <DialogDescription>
-                Please transfer the amount to the following bank account
+                {t("paymentInstructionsSubtitle")}
               </DialogDescription>
             </DialogHeader>
 
@@ -681,19 +686,20 @@ export function KorCoinsRechargeDialog() {
                 <div className="text-center p-4 bg-green-50 border border-green-200 rounded-lg">
                   <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
                   <h3 className="text-lg font-semibold text-green-800 mb-1">
-                    Deposit Request Submitted!
+                    {t("depositRequestSubmitted")}
                   </h3>
                   <p className="text-sm text-green-700">
-                    Your request for{" "}
-                    {currentDepositRequest.kor_coins_amount?.toLocaleString()}{" "}
-                    KOR coins has been submitted.
+                    {t("depositRequestSubmittedDesc", {
+                      amount:
+                        currentDepositRequest.kor_coins_amount?.toLocaleString(),
+                    })}
                   </p>
                 </div>
 
                 {/* Payment Reference */}
                 <div className="space-y-3">
                   <Label className="font-semibold text-sm text-muted-foreground">
-                    Payment Reference
+                    {t("paymentReference")}
                   </Label>
                   <div className="flex items-center gap-2 p-3 bg-muted/60 border border-border rounded-lg">
                     <span className="font-mono text-sm flex-1">
@@ -713,7 +719,7 @@ export function KorCoinsRechargeDialog() {
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Include this reference when making the transfer
+                    {t("includeReferenceNote")}
                   </p>
                 </div>
 
@@ -721,12 +727,12 @@ export function KorCoinsRechargeDialog() {
                 {primaryAdminBank && (
                   <div className="space-y-3">
                     <Label className="font-semibold text-sm text-muted-foreground">
-                      Transfer to Bank Account
+                      {t("transferToBankAccount")}
                     </Label>
                     <div className="p-4 bg-muted/20 border border-border rounded-lg space-y-3">
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-muted-foreground">
-                          Bank:
+                          {t("bankLabel")}
                         </span>
                         <span className="font-medium">
                           {primaryAdminBank.bank_name}
@@ -734,7 +740,7 @@ export function KorCoinsRechargeDialog() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-muted-foreground">
-                          Account Number:
+                          {t("accountNumberLabel")}
                         </span>
                         <span className="font-mono">
                           {primaryAdminBank.account_number}
@@ -742,7 +748,7 @@ export function KorCoinsRechargeDialog() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-muted-foreground">
-                          Account Holder:
+                          {t("accountHolderLabel")}
                         </span>
                         <span className="font-medium">
                           {primaryAdminBank.account_holder}
@@ -755,15 +761,17 @@ export function KorCoinsRechargeDialog() {
                 {/* Amount to Transfer */}
                 <div className="space-y-3">
                   <Label className="font-semibold text-sm text-muted-foreground">
-                    Amount to Transfer
+                    {t("amountToTransfer")}
                   </Label>
                   <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-yellow-800">
-                        {totalAmount.toLocaleString()} won
+                        {formatNumber(totalAmount)} {t("won")}
                       </div>
                       <div className="text-sm text-yellow-700 mt-1">
-                        For {baseKor.toLocaleString()} KOR coins (VAT included)
+                        {t("forKorCoinsVatIncluded", {
+                          amount: formatNumber(baseKor),
+                        })}
                       </div>
                     </div>
                   </div>
@@ -772,24 +780,20 @@ export function KorCoinsRechargeDialog() {
                 {/* Important Notes */}
                 <div className="space-y-3">
                   <Label className="font-semibold text-sm text-muted-foreground">
-                    Important Notes
+                    {t("importantNotes")}
                   </Label>
                   <div className="space-y-2 text-sm text-muted-foreground">
                     <div className="flex items-start gap-2">
                       <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
-                      <span>Transfer the exact amount shown above</span>
+                      <span>{t("importantNoteExactAmount")}</span>
                     </div>
                     <div className="flex items-start gap-2">
                       <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
-                      <span>
-                        Include the payment reference in the transfer memo
-                      </span>
+                      <span>{t("importantNoteIncludeReference")}</span>
                     </div>
                     <div className="flex items-start gap-2">
                       <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
-                      <span>
-                        KOR coins will be credited after payment confirmation
-                      </span>
+                      <span>{t("importantNoteCreditedAfterConfirmation")}</span>
                     </div>
                   </div>
                 </div>
@@ -804,10 +808,10 @@ export function KorCoinsRechargeDialog() {
                   onClick={handleNewDeposit}
                   className="flex-1 h-10"
                 >
-                  New Deposit
+                  {t("newDeposit")}
                 </Button>
                 <Button onClick={resetAll} className="flex-1 h-10 bg-primary">
-                  Close
+                  {t("close")}
                 </Button>
               </div>
             </div>
@@ -818,7 +822,7 @@ export function KorCoinsRechargeDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={setOpen} modal={false}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="rounded-lg">
           <TooltipProvider>
@@ -848,17 +852,16 @@ export function KorCoinsRechargeDialog() {
                 {!user?.identity_verified ? (
                   <div className="text-sm">
                     <p className="font-medium mb-1 text-amber-600">
-                      🔒 Identity verification required
+                      🔒 {t("identityVerificationRequired")}
                     </p>
                     <p className="text-muted-foreground">
-                      You need to verify your identity before recharging KOR
-                      coins.
+                      {t("identityVerificationRequiredTooltip")}
                     </p>
                   </div>
                 ) : loading ? (
                   t("loading")
                 ) : (
-                  `${t("korCoins")}: ${(userKorCoins ?? 0).toLocaleString()}`
+                  `${t("korCoins")}: ${formatNumber(userKorCoins ?? 0)}`
                 )}
               </TooltipContent>
             </Tooltip>
@@ -878,10 +881,10 @@ export function KorCoinsRechargeDialog() {
             <DialogHeader className="flex gap-0 p-4 border-b">
               <DialogTitle className="text-lg font-bold flex items-center gap-1.5">
                 <AlertTriangle className="w-5 h-5 text-amber-500" />
-                Identity Verification Required
+                {t("identityVerificationRequired")}
               </DialogTitle>
               <DialogDescription>
-                You need to verify your identity to recharge KOR coins
+                {t("identityVerificationRequiredDesc")}
               </DialogDescription>
             </DialogHeader>
 
@@ -892,17 +895,15 @@ export function KorCoinsRechargeDialog() {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-foreground mb-2">
-                    Identity Verification Required
+                    {t("identityVerificationRequired")}
                   </h3>
                   <p className="text-muted-foreground mb-6">
-                    You need to verify your identity to recharge KOR coins. This
-                    helps ensure security and compliance for financial
-                    transactions.
+                    {t("identityVerificationRequiredLong")}
                   </p>
                   <IdentityVerificationButton
                     isFormValid={true}
                     mobileNumber={user?.mobile_number || ""}
-                    text="Verify Identity"
+                    text={t("verifyIdentity")}
                     onVerificationSuccess={handleVerificationSuccess}
                     onVerificationFailure={handleVerificationFailure}
                   />
@@ -932,7 +933,7 @@ export function KorCoinsRechargeDialog() {
                 )}
                 {t("korCoinsRecharge")}
               </DialogTitle>
-              <DialogDescription>{t("rechargeDescription")}</DialogDescription>
+              {/* <DialogDescription>{t("rechargeDescription")}</DialogDescription> */}
             </DialogHeader>
 
             {/* Scrollable Content */}
@@ -976,7 +977,7 @@ export function KorCoinsRechargeDialog() {
                         )}
                         style={{ minWidth: 0 }}
                       >
-                        {value.toLocaleString()}
+                        {formatNumber(value)}
                       </button>
                     );
                   })}
@@ -988,11 +989,14 @@ export function KorCoinsRechargeDialog() {
                     {/* Amount of KOR coins user requests */}
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground font-medium">
-                        Amount of KOR Coins
+                        {t("amountOfKorCoins")}
                       </span>
                       <span className="flex items-center text-right min-w-[100px]">
-                        <span className="text-lg font-bold text-primary tabular-nums">
-                          {baseKor > 0 ? baseKor.toLocaleString() : "-"}
+                        <span
+                          className="text-lg font-bold text-primary tabular-nums"
+                          suppressHydrationWarning
+                        >
+                          {baseKor > 0 ? formatNumber(baseKor) : "-"}
                         </span>
                         <span className="text-xs font-medium text-muted-foreground ml-1">
                           KOR
@@ -1003,14 +1007,17 @@ export function KorCoinsRechargeDialog() {
                     {/* Total to pay (VAT included) */}
                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
                       <span className="text-sm font-semibold text-foreground">
-                        Total to Pay{" "}
+                        {t("totalToPay")}{" "}
                         <span className="text-xs text-muted-foreground">
-                          (10% VAT included)
+                          ({t("vatIncluded")})
                         </span>
                       </span>
                       <span className="flex items-center text-right min-w-[100px]">
-                        <span className="text-lg font-bold text-primary tabular-nums">
-                          {baseKor > 0 ? totalAmount.toLocaleString() : "-"}
+                        <span
+                          className="text-lg font-bold text-primary tabular-nums"
+                          suppressHydrationWarning
+                        >
+                          {baseKor > 0 ? formatNumber(totalAmount) : "-"}
                         </span>
                         <span className="text-xs font-medium text-muted-foreground ml-1">
                           won
@@ -1023,14 +1030,14 @@ export function KorCoinsRechargeDialog() {
                 {/* Bank Account Selection */}
                 <div className="space-y-3">
                   <Label className="font-semibold text-sm">
-                    Bank Account for Deposit
+                    {t("bankAccountForDeposit")}
                   </Label>
 
                   {/* Dropdown for existing bank accounts */}
                   <Popover
                     open={bankAccountComboboxOpen}
                     onOpenChange={setBankAccountComboboxOpen}
-                    modal={true}
+                    modal={false}
                   >
                     <PopoverTrigger asChild>
                       <Button
@@ -1040,7 +1047,7 @@ export function KorCoinsRechargeDialog() {
                         className="w-full h-10 justify-between"
                       >
                         {selectedBankAccount === "new"
-                          ? "+ Add New Bank Account"
+                          ? t("addNewBankAccount")
                           : selectedBankAccount
                           ? bankAccounts?.find(
                               (acc) => acc.id === selectedBankAccount
@@ -1049,7 +1056,7 @@ export function KorCoinsRechargeDialog() {
                             bankAccounts?.find(
                               (acc) => acc.id === selectedBankAccount
                             )?.account_number
-                          : "Select bank account or add new"}
+                          : t("selectOrAddBankAccount")}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -1061,13 +1068,13 @@ export function KorCoinsRechargeDialog() {
                     >
                       <Command shouldFilter={false}>
                         <CommandInput
-                          placeholder="Search bank accounts..."
+                          placeholder={t("searchBankAccountsPlaceholder")}
                           className="h-9"
                           value={bankSearchValue}
                           onValueChange={setBankSearchValue}
                         />
                         <CommandList className="max-h-[40vh] overflow-auto">
-                          <CommandEmpty>No bank account found.</CommandEmpty>
+                          <CommandEmpty>{t("noBankAccountFound")}</CommandEmpty>
                           <CommandGroup>
                             <CommandItem
                               value="new"
@@ -1085,7 +1092,7 @@ export function KorCoinsRechargeDialog() {
                                     : "opacity-0"
                                 )}
                               />
-                              + Add New Bank Account
+                              {t("addNewBankAccount")}
                             </CommandItem>
                             {bankAccounts
                               ?.filter((account) => {
@@ -1157,12 +1164,13 @@ export function KorCoinsRechargeDialog() {
                       {/* Bank Name Input */}
                       <div className="space-y-1">
                         <Label htmlFor="bank-name" className="text-sm">
-                          Bank Name <span className="text-red-500">*</span>
+                          {t("bankName")}{" "}
+                          <span className="text-red-500">*</span>
                         </Label>
                         <Input
                           id="bank-name"
                           type="text"
-                          placeholder="Enter bank name"
+                          placeholder={t("enterBankName")}
                           value={bankName}
                           onChange={(e) => setBankName(e.target.value)}
                           required
@@ -1176,13 +1184,13 @@ export function KorCoinsRechargeDialog() {
                           htmlFor="bank-account-number"
                           className="text-sm"
                         >
-                          Bank Account Number{" "}
+                          {t("bankAccountNumber")}{" "}
                           <span className="text-red-500">*</span>
                         </Label>
                         <Input
                           id="bank-account-number"
                           type="text"
-                          placeholder="Enter bank account number"
+                          placeholder={t("enterBankAccountNumber")}
                           value={bankAccountNumber}
                           onChange={(e) => setBankAccountNumber(e.target.value)}
                           required
@@ -1254,10 +1262,8 @@ export function KorCoinsRechargeDialog() {
                 )}
               >
                 {submitting || createDepositMutation.isPending
-                  ? "Processing..."
-                  : selectedBankAccount === "new"
-                  ? "Submit Deposit Request"
-                  : "Submit Deposit Request"}
+                  ? t("processing")
+                  : t("submitDepositRequest")}
               </Button>
             </div>
           </div>

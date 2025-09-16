@@ -55,8 +55,8 @@ const BROKERS = [
 
 // Referral signup links per broker (extendable)
 const REFERRAL_LINKS: Record<string, string> = {
-  deepcoin: "https://s.deepcoin.com/jdcibde",
-  orangex: "https://affiliates.orangex.com/affiliates/b/t4atgsg2",
+  deepcoin: "https://s.deepcoin.com/jedgica",
+  orangex: "https://affiliates.orangex.com/affiliates/b/4dratgs2",
 };
 
 interface UidRecord {
@@ -373,24 +373,24 @@ function UIDCard({
     >
       {/* Header */}
       <div className="p-5 pb-2 border-b border-border">
-        {/* Header Layout: stacks on small screens, row on md+ */}
-        <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 mb-3">
+        {/* Header Layout: Image on left, Name/UID on right */}
+        <div className="flex items-center gap-4 mb-3">
           {/* Image on the left */}
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-muted rounded flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 bg-muted flex items-center justify-center">
             <Image
               src={BROKERS.find((b) => b.id === record.brokerId)?.logo || ""}
               alt={`${record.brokerName} logo`}
-              width={48}
-              height={48}
-              className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 object-contain"
+              width={32}
+              height={32}
+              className="object-contain"
             />
           </div>
 
           {/* Name and UID on the right */}
-          <div className="flex-1 flex flex-col justify-center w-full">
+          <div className="flex-1 flex flex-col justify-center">
             {/* Broker name */}
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-base md:text-lg font-medium text-foreground">
+              <h3 className="text-base font-medium text-foreground">
                 {record.brokerName}
               </h3>
               {(uidVerification.isSuccess && uidVerification.data?.verified) ||
@@ -401,7 +401,7 @@ function UIDCard({
 
             {/* UID below the name */}
             <div className="flex items-center gap-2">
-              <span className="text-[11px] sm:text-xs text-muted-foreground font-mono bg-muted px-2 py-1">
+              <span className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1">
                 {record.uid}
               </span>
               <Button
@@ -418,11 +418,11 @@ function UIDCard({
             </div>
           </div>
 
-          {/* Status Indicators and Active/Inactive (moves below on small screens) */}
-          <div className="flex flex-col md:items-end items-start gap-2 w-full md:w-auto md:ml-auto md:min-w-[200px]">
+          {/* Status Indicators and Active/Inactive on the far right */}
+          <div className="flex flex-col items-end gap-2 min-w-[200px]">
             {/* Active/Inactive Status - Top line */}
             <div
-              className={`text-[11px] sm:text-xs font-medium px-2 py-1 ${
+              className={`text-xs font-medium px-2 py-1 ${
                 isUidActuallyActive
                   ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
                   : "bg-muted text-muted-foreground"
@@ -438,7 +438,7 @@ function UIDCard({
             </div>
 
             {/* Status Indicators - Bottom line */}
-            <div className="flex items-center justify-between gap-3 text-[11px] sm:text-xs text-muted-foreground w-full flex-wrap">
+            <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground w-full">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1.5">
                   {uidVerification.isLoading && !uidVerification.isError ? (
@@ -488,11 +488,11 @@ function UIDCard({
       </div>
 
       {/* Stats Grid */}
-      <div className="p-4 sm:p-5 pb-2">
+      <div className="p-5 pb-2">
         <div className="grid grid-cols-1 gap-3">
           {/* Total accumulated payback */}
           <div className="p-4 border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 text-center">
-            <div className="text-xl md:text-2xl font-semibold text-emerald-700 dark:text-emerald-300 font-mono mb-2">
+            <div className="text-2xl font-semibold text-emerald-700 dark:text-emerald-300 font-mono mb-2">
               ${record.rebateLifetimeUsd?.toFixed(2) || "0.00"}
             </div>
             <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
@@ -501,9 +501,9 @@ function UIDCard({
           </div>
 
           {/* Withdrawn and Withdrawable */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div className="p-3 border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 text-center">
-              <div className="text-lg md:text-xl font-semibold text-blue-700 dark:text-blue-300 font-mono mb-1">
+              <div className="text-lg font-semibold text-blue-700 dark:text-blue-300 font-mono mb-1">
                 ${withdrawnSum.toFixed(2)}
               </div>
               <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
@@ -512,7 +512,7 @@ function UIDCard({
             </div>
 
             <div className="p-3 border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 text-center">
-              <div className="text-lg md:text-xl font-semibold text-amber-700 dark:text-amber-300 font-mono mb-1">
+              <div className="text-lg font-semibold text-amber-700 dark:text-amber-300 font-mono mb-1">
                 ${withdrawableComputed.toFixed(2)}
               </div>
               <div className="text-xs text-amber-600 dark:text-amber-400 font-medium">
@@ -523,8 +523,8 @@ function UIDCard({
         </div>
       </div>
       {/* Additional Info Footer */}
-      <div className="p-4 sm:p-5 border-t border-border">
-        <div className="space-y-2 text-[11px] sm:text-xs text-muted-foreground">
+      <div className="p-5 border-t border-border">
+        <div className="space-y-2 text-xs text-muted-foreground">
           <div className="flex justify-between">
             <span>Total Lifetime Rebate:</span>
             <span className="text-foreground font-medium font-mono">

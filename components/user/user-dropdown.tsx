@@ -2,12 +2,10 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
@@ -31,7 +29,7 @@ import {
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export function UserDropdown() {
@@ -204,8 +202,8 @@ export function UserDropdown() {
 
   return (
     <div className="flex justify-end">
-      <DropdownMenu modal={false}>
-        <DropdownMenuTrigger asChild>
+      <HoverCard openDelay={0} closeDelay={120}>
+        <HoverCardTrigger asChild>
           <div className="relative">
             <button
               type="button"
@@ -241,11 +239,12 @@ export function UserDropdown() {
               </TooltipProvider>
             )}
           </div>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
+        </HoverCardTrigger>
+        <HoverCardContent
           className="w-72 p-0 bg-card/95 backdrop-blur-sm border shadow-lg rounded-xl overflow-hidden"
           align="end"
-          sideOffset={8}
+          side="bottom"
+          sideOffset={4}
         >
           {/* Header */}
           <div className="px-4 py-3 border-b bg-muted/30">
@@ -376,42 +375,42 @@ export function UserDropdown() {
           {/* Menu Items */}
           <div className="p-2">
             <Link href="/profile">
-              <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2.5 hover:bg-accent transition-colors">
+              <div className="cursor-pointer rounded-lg px-3 py-2.5 hover:bg-accent transition-colors flex items-center text-sm">
                 <UserIcon className="w-4 h-4 mr-3 text-muted-foreground" />
                 {t("profile")}
-              </DropdownMenuItem>
+              </div>
             </Link>
             {/* <Link href="/inbox">
-              <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2.5 hover:bg-accent transition-colors">
+              <div className="cursor-pointer rounded-lg px-3 py-2.5 hover:bg-accent transition-colors">
                 <InboxIcon className="w-4 h-4 mr-3 text-muted-foreground" />
                 Inbox
-              </DropdownMenuItem>
+              </div>
             </Link>
             <Link href="/uid-registration">
-              <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2.5 hover:bg-accent transition-colors">
+              <div className="cursor-pointer rounded-lg px-3 py-2.5 hover:bg-accent transition-colors">
                 <KeyRoundIcon className="w-4 h-4 mr-3 text-muted-foreground" />
                 UID Registration
-              </DropdownMenuItem>
+              </div>
             </Link> */}
             {/* Admin Dashboard: Only for admin or super_admin */}
             {isAdmin && (
               <>
                 <Link href="/admin-verification" target="_blank">
-                  <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2.5 hover:bg-accent transition-colors">
+                  <div className="cursor-pointer rounded-lg px-3 py-2.5 hover:bg-accent transition-colors flex items-center text-sm">
                     <ShieldIcon className="w-4 h-4 mr-3 text-muted-foreground" />
                     {t("goToAdminDashboard")}
-                  </DropdownMenuItem>
+                  </div>
                 </Link>
 
                 {/* <Link href="/guidebook">
-                  <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2.5 hover:bg-accent transition-colors">
+                  <div className="cursor-pointer rounded-lg px-3 py-2.5 hover:bg-accent transition-colors">
                     <BookIcon className="w-4 h-4 mr-3 text-muted-foreground" />
                     {t("guidebook")}
-                  </DropdownMenuItem>
+                  </div>
                 </Link> */}
               </>
             )}
-            <DropdownMenuSeparator className="my-2" />
+            <div className="my-2 h-px bg-border" />
             {/* Weetoo Market */}
             {/* <WeetooMarketDialog /> */}
             {/* KOR Coins Recharge*/}
@@ -419,17 +418,18 @@ export function UserDropdown() {
             {/* Customer Support */}
             {/* <CustomerSupportDialog /> */}
             {/* <DropdownMenuSeparator className="my-2" /> */}
-            <DropdownMenuItem
+            <button
+              type="button"
               onClick={handleLogout}
               disabled={loggingOut}
-              className="cursor-pointer rounded-lg px-3 py-2.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+              className="w-full text-left cursor-pointer rounded-lg px-3 py-2.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors flex items-center text-sm"
             >
               <LogOutIcon className="w-4 h-4 mr-3 text-red-500" />
               {loggingOut ? t("loggingOut") : t("logOut")}
-            </DropdownMenuItem>
+            </button>
           </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </HoverCardContent>
+      </HoverCard>
     </div>
   );
 }
