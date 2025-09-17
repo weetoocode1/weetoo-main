@@ -25,6 +25,7 @@ import {
   Share2Icon,
   UsersIcon,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -37,6 +38,8 @@ function logErrorToService(error: ErrorWithMessage, context?: string) {
 }
 
 export function Referral() {
+  const t = useTranslations("profile.referral");
+
   // State for UI interactions
   const [copied, setCopied] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
@@ -88,7 +91,7 @@ export function Referral() {
     try {
       await generateCodeMutation.mutateAsync();
     } catch (err) {
-      toast.error("Failed to get referral code. Please try again.");
+      toast.error(t("getCodeError"));
       logErrorToService(err, "handleGetCode");
     }
   };
@@ -97,7 +100,7 @@ export function Referral() {
     if (code) {
       navigator.clipboard.writeText(code);
       setCopied(true);
-      toast.success("Referral code copied!");
+      toast.success(t("copySuccess"));
       setTimeout(() => setCopied(false), 1500);
     }
   };
@@ -119,25 +122,25 @@ export function Referral() {
       return null; // Empty input is valid (no error shown)
     }
     if (!/^[A-Z0-9]{4,12}$/.test(input)) {
-      return "Code must be 4-12 characters, A-Z and 0-9 only.";
+      return t("customize.validation.invalidFormat");
     }
     const reservedWordMatch = reservedReferralCodes.some((reserved) =>
       input.toLowerCase().includes(reserved.toLowerCase())
     );
     if (reservedWordMatch) {
-      return "This code is reserved. Please choose another.";
+      return t("customize.validation.reserved");
     }
     const reservedPatternMatch = reservedReferralPatterns.some((pattern) =>
       pattern.test(input)
     );
     if (reservedPatternMatch) {
-      return "This code is reserved. Please choose another.";
+      return t("customize.validation.reserved");
     }
     if (leoProfanity.check(input) || customBadWordRegex.test(input)) {
-      return "This code is not allowed.";
+      return t("customize.validation.notAllowed");
     }
     if (input === code) {
-      return "Don't use the same code as your current code.";
+      return t("customize.validation.sameCode");
     }
     return null;
   };
@@ -172,16 +175,16 @@ export function Referral() {
         if (validateInput(customInput)) return;
 
         if (error) {
-          setCustomError("Error checking code. Try again.");
+          setCustomError(t("customize.validation.checkError"));
           return;
         }
         if (data && data.length > 0 && data[0].user_id !== userId) {
-          setCustomError("This code is already taken.");
+          setCustomError(t("customize.validation.alreadyTaken"));
         } else {
           setCustomError(null);
         }
       } catch (err) {
-        setCustomError("Error checking code. Try again.");
+        setCustomError(t("customize.validation.checkError"));
         logErrorToService(err, "validateInput");
       }
     }, 400);
@@ -217,12 +220,12 @@ export function Referral() {
         .eq("code", customInput);
 
       if (error) {
-        setCustomError("Error checking code availability. Try again.");
+        setCustomError(t("customize.validation.availabilityError"));
         setCustomizing(false);
         return;
       }
       if (data && data.length > 0 && data[0].user_id !== userId) {
-        setCustomError("This code is already taken.");
+        setCustomError(t("customize.validation.alreadyTaken"));
         setCustomizing(false);
         return;
       }
@@ -233,10 +236,10 @@ export function Referral() {
       } else {
         setPendingCode(customInput);
         setCustomizeOpen(false);
-        toast.success("Referral code updated!");
+        toast.success(t("updateSuccess"));
       }
     } catch (err) {
-      setCustomError("Failed to set custom code. Please try again.");
+      setCustomError(t("customize.validation.saveError"));
       logErrorToService(err, "handleCustomSave");
     }
     setCustomizing(false);
@@ -275,9 +278,9 @@ export function Referral() {
   const handleNext = () => setPage((p) => Math.min(totalPages, p + 1));
 
   return (
-    <div className="p-2 sm:p-4 select-none">
+    <div className="p-2 sm:p-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-4">
-        <h2 className="text-lg sm:text-xl font-semibold">Referral Code</h2>
+        <h2 className="text-lg sm:text-xl font-semibold">{t("title")}</h2>
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-1 items-stretch sm:items-center">
           {codeLoading && <Skeleton className="w-full sm:w-32 h-10" />}
           {code && !codeLoading && (
@@ -294,9 +297,7 @@ export function Referral() {
               onClick={handleGetCode}
               disabled={generateCodeMutation.isPending}
             >
-              {generateCodeMutation.isPending
-                ? "Generating..."
-                : "Get your referral code"}
+              {generateCodeMutation.isPending ? t("generating") : t("getCode")}
             </Button>
           )}
           {code && !codeLoading && (
@@ -312,14 +313,14 @@ export function Referral() {
                 ) : (
                   <CopyIcon className="w-4 h-4" />
                 )}
-                <span className="sr-only">Copy</span>
+                <span className="sr-only">{t("copy")}</span>
               </Button>
               <Button
                 variant="outline"
                 size="icon"
                 className="rounded-none h-10 px-3 sm:px-5 flex-1 sm:flex-none"
                 onClick={handleCustomize}
-                aria-label="Customize Referral Code"
+                aria-label={t("customize.title")}
               >
                 <PencilIcon className="w-4 h-4" />
               </Button>
@@ -328,7 +329,7 @@ export function Referral() {
                 size="icon"
                 className="rounded-none h-10 px-3 sm:px-5 flex-1 sm:flex-none"
                 onClick={handleShare}
-                aria-label="Share Referral Code"
+                aria-label={t("share.title")}
               >
                 <Share2Icon className="w-4 h-4" />
               </Button>
@@ -336,11 +337,7 @@ export function Referral() {
           )}
         </div>
       </div>
-      {codeError && (
-        <div className="text-red-500 mt-2">
-          Failed to fetch referral code. Please try again.
-        </div>
-      )}
+      {codeError && <div className="text-red-500 mt-2">{t("fetchError")}</div>}
 
       {/* Referral Dashboard */}
       <div className="mt-8 w-full">
@@ -356,8 +353,10 @@ export function Referral() {
               )}
             </span>
             <span className="text-xs text-muted-foreground text-center leading-tight">
-              <span className="sm:hidden">Referred</span>
-              <span className="hidden sm:inline">Total Referred</span>
+              <span className="sm:hidden">{t("stats.referred")}</span>
+              <span className="hidden sm:inline">
+                {t("stats.totalReferred")}
+              </span>
             </span>
           </div>
           <div className="flex flex-col items-center justify-center py-3 sm:py-7 bg-muted border rounded-none">
@@ -369,14 +368,14 @@ export function Referral() {
                 <span className="truncate text-xs sm:text-base">
                   <span className="sm:hidden">{totalEarned}</span>
                   <span className="hidden sm:inline">
-                    {totalEarned} KORCOINS
+                    {totalEarned} {t("stats.korCoins")}
                   </span>
                 </span>
               )}
             </span>
             <span className="text-xs text-muted-foreground text-center leading-tight">
-              <span className="sm:hidden">Earned</span>
-              <span className="hidden sm:inline">Total Earned</span>
+              <span className="sm:hidden">{t("stats.earned")}</span>
+              <span className="hidden sm:inline">{t("stats.totalEarned")}</span>
             </span>
           </div>
           <div className="flex flex-col items-center justify-center py-3 sm:py-7 bg-muted border rounded-none">
@@ -388,14 +387,16 @@ export function Referral() {
                 <span className="truncate text-xs sm:text-base">
                   <span className="sm:hidden">{pendingPayout}</span>
                   <span className="hidden sm:inline">
-                    {pendingPayout} KORCOINS
+                    {pendingPayout} {t("stats.korCoins")}
                   </span>
                 </span>
               )}
             </span>
             <span className="text-xs text-muted-foreground text-center leading-tight">
-              <span className="sm:hidden">Pending</span>
-              <span className="hidden sm:inline">Pending Payout</span>
+              <span className="sm:hidden">{t("stats.pending")}</span>
+              <span className="hidden sm:inline">
+                {t("stats.pendingPayout")}
+              </span>
             </span>
           </div>
         </div>
@@ -404,12 +405,12 @@ export function Referral() {
         <div className="w-full border rounded-none">
           <div className="flex items-center justify-between px-3 sm:px-6 py-3 border-b">
             <h3 className="font-semibold text-sm sm:text-base">
-              Referral History
+              {t("history.title")}
             </h3>
             {dashboardLoading && (
               <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
                 <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-primary"></div>
-                <span className="hidden sm:inline">Loading...</span>
+                <span className="hidden sm:inline">{t("history.loading")}</span>
               </div>
             )}
           </div>
@@ -418,16 +419,16 @@ export function Referral() {
               <thead>
                 <tr className="border-b">
                   <th className="px-3 sm:px-6 py-3 text-left font-semibold">
-                    Joiner
+                    {t("history.joiner")}
                   </th>
                   <th className="px-3 sm:px-6 py-3 text-left font-semibold">
-                    Join Date
+                    {t("history.joinDate")}
                   </th>
                   <th className="px-3 sm:px-6 py-3 text-left font-semibold">
-                    Status
+                    {t("history.status")}
                   </th>
                   <th className="px-3 sm:px-6 py-3 text-left font-semibold">
-                    Earnings
+                    {t("history.earnings")}
                   </th>
                 </tr>
               </thead>
@@ -454,7 +455,7 @@ export function Referral() {
                     <td colSpan={4} className="text-center py-6 sm:py-8">
                       <div className="flex flex-col items-center gap-2 px-4">
                         <div className="text-red-500 text-xs sm:text-sm">
-                          Failed to load referral dashboard.
+                          {t("history.loadError")}
                         </div>
                         <Button
                           variant="outline"
@@ -462,7 +463,7 @@ export function Referral() {
                           onClick={() => window.location.reload()}
                           className="rounded-none text-xs"
                         >
-                          Retry
+                          {t("history.retry")}
                         </Button>
                       </div>
                     </td>
@@ -476,10 +477,10 @@ export function Referral() {
                       <div className="flex flex-col items-center gap-2 px-4">
                         <UsersIcon className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground/50" />
                         <div className="text-sm sm:text-base">
-                          No referrals yet.
+                          {t("history.noReferrals")}
                         </div>
                         <div className="text-xs text-muted-foreground text-center">
-                          Share your referral code to get started!
+                          {t("history.noReferralsDesc")}
                         </div>
                       </div>
                     </td>
@@ -518,17 +519,17 @@ export function Referral() {
                   onClick={handlePrev}
                   disabled={page === 1 || dashboardLoading}
                 >
-                  Prev
+                  {t("history.prev")}
                 </button>
                 <span className="text-xs">
-                  Page {page} of {totalPages || 1}
+                  {t("history.page", { page, totalPages: totalPages || 1 })}
                 </span>
                 <button
                   className="px-2 sm:px-3 py-1 border bg-muted rounded-none text-xs disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={handleNext}
                   disabled={page === totalPages || dashboardLoading}
                 >
-                  Next
+                  {t("history.next")}
                 </button>
               </div>
             )}
@@ -540,11 +541,11 @@ export function Referral() {
       <Dialog open={customizeOpen} onOpenChange={handleDialogClose}>
         <DialogContent className="max-w-md mx-4 sm:mx-auto rounded-none">
           <DialogTitle className="mb-4 text-base sm:text-lg">
-            Customize Referral Code
+            {t("customize.title")}
           </DialogTitle>
           <div className="mb-4">
             <div className="text-xs text-muted-foreground mb-2">
-              Current Code
+              {t("customize.currentCode")}
             </div>
             <div className="border-2 border-dotted px-4 sm:px-10 py-3 text-lg sm:text-2xl font-mono font-bold text-center select-none rounded-none bg-background">
               {customizing ? (
@@ -555,23 +556,19 @@ export function Referral() {
             </div>
           </div>
           <div className="mb-2 text-xs sm:text-sm text-muted-foreground">
-            Enter a new code (4-12 characters, A-Z and 0-9 only).
+            {t("customize.instructions")}
             <br />
-            <span className="block">
-              Your old code will be replaced and cannot be used again.
-            </span>
+            <span className="block">{t("customize.warning")}</span>
             <span className="block mt-2 font-semibold text-destructive-foreground text-xs sm:text-sm">
-              Note:
+              {t("customize.note")}
             </span>
             <span className="block text-xs text-destructive-foreground mb-1">
-              Do not use vulgar, offensive, or reserved words in your referral
-              code. If you do, your code may be removed and your account may be{" "}
-              <span className="font-bold">permanently banned</span>.
+              {t("customize.noteText")}
             </span>
           </div>
           <Input
             className="w-full border h-10 mb-2 rounded-none !bg-transparent font-mono text-sm sm:text-base"
-            placeholder="Enter custom code"
+            placeholder={t("customize.placeholder")}
             value={customInput}
             onChange={(e) => setCustomInput(e.target.value.toUpperCase())}
             maxLength={12}
@@ -590,7 +587,7 @@ export function Referral() {
               onClick={handleDialogClose}
               disabled={customizing}
             >
-              Cancel
+              {t("customize.cancel")}
             </Button>
             <Button
               variant="default"
@@ -598,7 +595,7 @@ export function Referral() {
               onClick={handleCustomSave}
               disabled={customizing || !customInput || !!customError}
             >
-              Save
+              {t("customize.save")}
             </Button>
           </div>
         </DialogContent>
@@ -608,18 +605,18 @@ export function Referral() {
       <Dialog open={shareOpen} onOpenChange={handleShareDialogClose}>
         <DialogContent className="max-w-md mx-4 sm:mx-auto rounded-none">
           <DialogTitle className="mb-4 text-base sm:text-lg">
-            Share Your Referral Code
+            {t("share.title")}
           </DialogTitle>
           <div className="mb-4">
             <div className="text-xs text-muted-foreground mb-2">
-              Your Referral Code
+              {t("share.yourCode")}
             </div>
             <div className="flex items-center justify-center gap-2 border-2 border-dotted px-4 sm:px-6 py-3 text-lg sm:text-2xl font-mono font-bold text-center select-none rounded-none bg-background">
               <span className="truncate">{code}</span>
             </div>
           </div>
           <div className="mb-2 text-xs sm:text-sm text-muted-foreground text-center">
-            Share your code and invite friends to join!
+            {t("share.description")}
           </div>
           <div className="grid grid-cols-2 gap-2 w-full">
             <Button
@@ -629,7 +626,7 @@ export function Referral() {
                 if (!shareUrl) return;
                 navigator.clipboard.writeText(shareUrl);
                 setShareCopied(true);
-                toast.success("Referral link copied!");
+                toast.success(t("share.linkCopied"));
                 setTimeout(() => setShareCopied(false), 1500);
               }}
             >
@@ -638,7 +635,9 @@ export function Referral() {
               ) : (
                 <CopyIcon className="w-4 h-4 sm:w-5 sm:h-5 grayscale" />
               )}
-              <span className="text-xs truncate ml-1">Copy Link</span>
+              <span className="text-xs truncate ml-1">
+                {t("share.copyLink")}
+              </span>
             </Button>
             <Button
               variant="outline"
@@ -646,14 +645,16 @@ export function Referral() {
               onClick={() =>
                 window.open(
                   `https://www.threads.net/intent/post?text=${encodeURIComponent(
-                    `Join Weetoo with my referral code: ${code}\n${shareUrl}`
+                    t("share.shareText", { code, url: shareUrl })
                   )}`,
                   "_blank"
                 )
               }
             >
               <Icons.threads className="w-4 h-4 sm:w-5 sm:h-5 grayscale" />
-              <span className="text-xs truncate ml-1">Threads</span>
+              <span className="text-xs truncate ml-1">
+                {t("share.threads")}
+              </span>
             </Button>
             <Button
               variant="outline"
@@ -668,7 +669,9 @@ export function Referral() {
               }
             >
               <Icons.facebook className="w-4 h-4 sm:w-5 sm:h-5 grayscale" />
-              <span className="text-xs truncate ml-1">Facebook</span>
+              <span className="text-xs truncate ml-1">
+                {t("share.facebook")}
+              </span>
             </Button>
             <Button
               variant="outline"
@@ -676,14 +679,16 @@ export function Referral() {
               onClick={() =>
                 window.open(
                   `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-                    `Join Weetoo with my referral code: ${code}\n${shareUrl}`
+                    t("share.shareText", { code, url: shareUrl })
                   )}`,
                   "_blank"
                 )
               }
             >
               <Icons.twitter className="w-4 h-4 sm:w-5 sm:h-5 grayscale" />
-              <span className="text-xs truncate ml-1">X</span>
+              <span className="text-xs truncate ml-1">
+                {t("share.twitter")}
+              </span>
             </Button>
           </div>
         </DialogContent>

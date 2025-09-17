@@ -22,6 +22,7 @@ import { useUserUids } from "@/hooks/use-user-uids";
 import { createClient } from "@/lib/supabase/client";
 import { DollarSign, Loader2 } from "lucide-react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -50,6 +51,7 @@ const BROKERS = [
 ];
 
 export function PaybackWithdrawal() {
+  const t = useTranslations("profile.paybackWithdrawal");
   const [selectedUidId, setSelectedUidId] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,12 +76,12 @@ export function PaybackWithdrawal() {
 
     const amountNum = parseFloat(amount);
     if (amountNum < 50) {
-      toast.error("Minimum withdrawal amount is $50");
+      toast.error(t("validation.minimumAmount"));
       return;
     }
 
     if (amountNum > availableBalance) {
-      toast.error("Insufficient balance");
+      toast.error(t("validation.insufficientBalance"));
       return;
     }
 
@@ -132,33 +134,30 @@ export function PaybackWithdrawal() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="h-5 w-5" />
-              Request Rebate Withdrawal
+              {t("title")}
             </CardTitle>
-            <CardDescription>
-              Withdraw your broker rebates to your registered UID. Minimum
-              withdrawal amount is $50.
-            </CardDescription>
+            <CardDescription>{t("description")}</CardDescription>
           </CardHeader>
           <CardContent>
             {eligibleUids.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-muted-foreground">
-                  No UIDs with sufficient balance (≥$50) found.
-                </p>
+                <p className="text-muted-foreground">{t("emptyState.title")}</p>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Link a UID and earn rebates to make withdrawals.
+                  {t("emptyState.description")}
                 </p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="uid">Select UID</Label>
+                  <Label htmlFor="uid">{t("form.selectUid")}</Label>
                   <Select
                     value={selectedUidId}
                     onValueChange={setSelectedUidId}
                   >
                     <SelectTrigger id="uid" className="h-10 rounded-none">
-                      <SelectValue placeholder="Choose a UID..." />
+                      <SelectValue
+                        placeholder={t("form.selectUidPlaceholder")}
+                      />
                     </SelectTrigger>
                     <SelectContent className="rounded-none">
                       {eligibleUids.map((uid) => {
@@ -208,7 +207,7 @@ export function PaybackWithdrawal() {
                 {selectedUid && (
                   <div className="p-3 bg-muted/50 rounded-none">
                     <p className="text-sm text-muted-foreground">
-                      Available Balance:{" "}
+                      {t("form.availableBalance")}{" "}
                       <span className="font-semibold text-green-600">
                         ${availableBalance.toFixed(2)}
                       </span>
@@ -217,7 +216,7 @@ export function PaybackWithdrawal() {
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="amount">Withdrawal Amount (USD)</Label>
+                  <Label htmlFor="amount">{t("form.withdrawalAmount")}</Label>
                   <Input
                     id="amount"
                     type="number"
@@ -226,12 +225,12 @@ export function PaybackWithdrawal() {
                     max={availableBalance}
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    placeholder="50.00"
+                    placeholder={t("form.withdrawalAmountPlaceholder")}
                     required
                     className="h-10 rounded-none"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Minimum: $50.00
+                    {t("form.minimumAmount")}
                   </p>
                 </div>
 
@@ -243,10 +242,10 @@ export function PaybackWithdrawal() {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      Submitting...
+                      {t("form.submitting")}
                     </>
                   ) : (
-                    "Submit Withdrawal Request"
+                    t("form.submitButton")
                   )}
                 </Button>
               </form>

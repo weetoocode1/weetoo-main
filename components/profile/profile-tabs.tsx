@@ -16,57 +16,58 @@ import {
   TicketIcon,
   UserIcon,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AllAccounts } from "./all-accounts";
+import { KORCoinsWithdrawal } from "./kor-coins-withdrawal";
+import { PaybackWithdrawal } from "./payback-withdrawal";
 import { Profile } from "./profile";
 import { Referral } from "./referral";
 import { Transactions } from "./transactions";
 import { UidRegistration } from "./uid-registration";
-import { KORCoinsWithdrawal } from "./kor-coins-withdrawal";
-import { PaybackWithdrawal } from "./payback-withdrawal";
 
 const TABS = [
   {
     key: "profile",
-    label: "Profile",
+    translationKey: "profile",
     icon: <UserIcon className="w-4 h-4" />,
     requiresVerification: false,
   },
   {
     key: "referral",
-    label: "Referral",
+    translationKey: "referral",
     icon: <TicketIcon className="w-4 h-4" />,
     requiresVerification: false,
   },
   {
     key: "all-accounts",
-    label: "All Accounts",
+    translationKey: "allAccounts",
     icon: <BanknoteIcon className="w-4 h-4" />,
     requiresVerification: true,
   },
   {
     key: "all-transactions",
-    label: "All Transactions",
+    translationKey: "allTransactions",
     icon: <HistoryIcon className="w-4 h-4" />,
     requiresVerification: true,
   },
   {
     key: "kor-coins-withdrawal",
-    label: "KOR Coins Withdrawal",
+    translationKey: "korCoinsWithdrawal",
     icon: <CreditCardIcon className="w-4 h-4" />,
     requiresVerification: true,
   },
   {
     key: "uid-registration",
-    label: "UID Registration",
+    translationKey: "uidRegistration",
     icon: <KeyRoundIcon className="w-4 h-4" />,
     requiresVerification: true,
   },
   {
     key: "payback-withdrawal",
-    label: "Payback Withdrawal",
+    translationKey: "paybackWithdrawal",
     icon: <CreditCardIcon className="w-4 h-4" />,
     requiresVerification: true,
   },
@@ -90,6 +91,7 @@ export function ProfileTabs() {
   const tabParam = searchParams.get("tab") as TabKey | null;
   const [selectedTab, setSelectedTab] = useState<TabKey>(tabParam || "profile");
   const { user } = useAuth();
+  const t = useTranslations("profile");
   const [isClient, setIsClient] = useState(false);
 
   // Ensure client-side rendering to prevent hydration mismatch
@@ -180,19 +182,21 @@ export function ProfileTabs() {
               onClick={() => handleTabClick(tab.key as TabKey)}
             >
               {tab.icon}
-              <span className="hidden sm:inline">{tab.label}</span>
+              <span className="hidden sm:inline">
+                {t(`tabs.${tab.translationKey}`)}
+              </span>
               <span className="sm:hidden text-xs">
                 {tab.key === "all-accounts"
-                  ? "Accounts"
+                  ? t("mobileLabels.accounts")
                   : tab.key === "all-transactions"
-                  ? "Transactions"
+                  ? t("mobileLabels.transactions")
                   : tab.key === "kor-coins-withdrawal"
-                  ? "KOR Coins"
+                  ? t("mobileLabels.korCoins")
                   : tab.key === "uid-registration"
-                  ? "UID"
+                  ? t("mobileLabels.uid")
                   : tab.key === "payback-withdrawal"
-                  ? "Payback"
-                  : tab.label.split(" ")[0]}
+                  ? t("mobileLabels.payback")
+                  : t(`tabs.${tab.translationKey}`).split(" ")[0]}
               </span>
             </button>
           ))}
@@ -229,19 +233,21 @@ export function ProfileTabs() {
                     onClick={() => handleTabClick(tab.key as TabKey)}
                   >
                     {tab.icon}
-                    <span className="hidden sm:inline">{tab.label}</span>
+                    <span className="hidden sm:inline">
+                      {t(`tabs.${tab.translationKey}`)}
+                    </span>
                     <span className="sm:hidden text-xs">
                       {tab.key === "all-accounts"
-                        ? "Accounts"
+                        ? t("mobileLabels.accounts")
                         : tab.key === "all-transactions"
-                        ? "Transactions"
+                        ? t("mobileLabels.transactions")
                         : tab.key === "kor-coins-withdrawal"
-                        ? "KOR Coins"
+                        ? t("mobileLabels.korCoins")
                         : tab.key === "uid-registration"
-                        ? "UID"
+                        ? t("mobileLabels.uid")
                         : tab.key === "payback-withdrawal"
-                        ? "Payback"
-                        : tab.label.split(" ")[0]}
+                        ? t("mobileLabels.payback")
+                        : t(`tabs.${tab.translationKey}`).split(" ")[0]}
                     </span>
                     {isDisabled && (
                       <AlertTriangle className="w-3 h-3 ml-auto text-amber-500" />
@@ -250,7 +256,7 @@ export function ProfileTabs() {
                 </TooltipTrigger>
                 {isDisabled && (
                   <TooltipContent>
-                    <p>Identity verification required</p>
+                    <p>{t("verification.tooltip")}</p>
                   </TooltipContent>
                 )}
               </Tooltip>
@@ -271,33 +277,28 @@ export function ProfileTabs() {
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Verification required to access this tab</p>
+                    <p>{t("verification.tooltip")}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
               <div className="px-4 sm:px-0">
                 <h3 className="text-base sm:text-lg font-semibold text-foreground mb-2">
-                  Identity Verification Required
+                  {t("verification.title")}
                 </h3>
                 <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">
-                  You need to verify your identity to access this feature. This
-                  helps ensure security and compliance.
+                  {t("verification.description")}
                 </p>
                 <IdentityVerificationButton
                   isFormValid={true}
                   mobileNumber={user?.mobile_number || ""}
-                  text="Verify Identity"
+                  text={t("verification.verifyButton")}
                   onVerificationSuccess={(verificationData, userData) => {
-                    toast.success(
-                      "Identity verification completed successfully!"
-                    );
+                    toast.success(t("verification.successMessage"));
                     // Refresh the page to update verification status
                     window.location.reload();
                   }}
                   onVerificationFailure={() => {
-                    toast.error(
-                      "Identity verification failed. Please try again."
-                    );
+                    toast.error(t("verification.errorMessage"));
                   }}
                 />
               </div>

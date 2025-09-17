@@ -7,12 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { BadgeCheckIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 
 export function Profile() {
   const { user, loading } = useAuth();
   const [, setForceUpdate] = useState(false);
+  const t = useTranslations("profile");
 
   // Listen for identity verification completion
   useEffect(() => {
@@ -50,7 +52,7 @@ export function Profile() {
               <Avatar className="h-[150px] w-[150px] sm:h-[200px] sm:w-[200px] lg:h-[250px] lg:w-[250px] border rounded-none">
                 <AvatarImage
                   src={user?.avatar_url || ""}
-                  alt="Profile Picture"
+                  alt={t("form.profilePictureAlt")}
                   className="rounded-none"
                 />
                 <AvatarFallback className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-400 rounded-none">
@@ -67,7 +69,7 @@ export function Profile() {
                   <div className="flex items-center justify-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-none w-full">
                     <BadgeCheckIcon className="w-4 h-4 text-green-600 dark:text-green-400" />
                     <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                      Identity Verified
+                      {t("form.identityVerified")}
                     </span>
                   </div>
                 )}
@@ -78,18 +80,14 @@ export function Profile() {
                     <IdentityVerificationButton
                       isFormValid={true} // Always true in profile context
                       mobileNumber={user?.mobile_number || ""}
-                      text="Verification Needed"
+                      text={t("form.verificationNeeded")}
                       className="flex items-center justify-center gap-2 h-10 rounded-none text-primary border border-destructive bg-destructive hover:bg-destructive/90 w-full lg:w-auto"
                       onVerificationSuccess={(verificationData, userData) => {
-                        toast.success(
-                          "Identity verification completed successfully!"
-                        );
+                        toast.success(t("verification.successMessage"));
                         window.location.reload();
                       }}
                       onVerificationFailure={() => {
-                        toast.error(
-                          "Identity verification failed. Please try again."
-                        );
+                        toast.error(t("verification.errorMessage"));
                       }}
                     />
                   </div>
@@ -103,13 +101,13 @@ export function Profile() {
             <div className="grid grid-cols-1 sm:grid-cols-2 w-full gap-2">
               <div className="space-y-2">
                 <Label htmlFor="first-name" className="text-sm font-semibold">
-                  First Name
+                  {t("form.firstName")}
                 </Label>
                 {loading ? (
                   <Skeleton className="rounded-none h-10 w-full" />
                 ) : (
                   <Input
-                    placeholder="First Name"
+                    placeholder={t("form.firstNamePlaceholder")}
                     className="rounded-none h-10"
                     value={user?.first_name || ""}
                     readOnly
@@ -119,13 +117,13 @@ export function Profile() {
 
               <div className="space-y-2">
                 <Label htmlFor="last-name" className="text-sm font-semibold">
-                  Last Name
+                  {t("form.lastName")}
                 </Label>
                 {loading ? (
                   <Skeleton className="rounded-none h-10 w-full" />
                 ) : (
                   <Input
-                    placeholder="Last Name"
+                    placeholder={t("form.lastNamePlaceholder")}
                     className="rounded-none h-10"
                     value={user?.last_name || ""}
                     readOnly
@@ -135,13 +133,13 @@ export function Profile() {
 
               <div className="space-y-2">
                 <Label htmlFor="nickname" className="text-sm font-semibold">
-                  Nickname
+                  {t("form.nickname")}
                 </Label>
                 {loading ? (
                   <Skeleton className="rounded-none h-10 w-full" />
                 ) : (
                   <Input
-                    placeholder="Nickname"
+                    placeholder={t("form.nicknamePlaceholder")}
                     className="rounded-none h-10"
                     value={user?.nickname || ""}
                     readOnly
@@ -151,13 +149,13 @@ export function Profile() {
 
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-semibold">
-                  Email
+                  {t("form.email")}
                 </Label>
                 {loading ? (
                   <Skeleton className="rounded-none h-10 w-full" />
                 ) : (
                   <Input
-                    placeholder="Email"
+                    placeholder={t("form.emailPlaceholder")}
                     className="rounded-none h-10"
                     value={user?.email || ""}
                     readOnly
@@ -167,14 +165,14 @@ export function Profile() {
 
               <div className="space-y-2 sm:col-span-2 lg:col-span-1">
                 <Label htmlFor="phone" className="text-sm font-semibold">
-                  Phone
+                  {t("form.phone")}
                 </Label>
                 {loading ? (
                   <Skeleton className="rounded-none h-10 w-full" />
                 ) : (
                   <Input
                     type="tel"
-                    placeholder="Phone Number"
+                    placeholder={t("form.phonePlaceholder")}
                     className="rounded-none h-10"
                     value={user?.mobile_number || ""}
                     readOnly

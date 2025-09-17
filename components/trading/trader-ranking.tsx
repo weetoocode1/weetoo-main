@@ -93,7 +93,7 @@ type TimeFrame = "daily" | "weekly" | "monthly";
 
 interface TraderData {
   id: string;
-  nickname: string;
+  nickname: string | null;
   avatar_url: string | null;
   level: number;
   total_pnl: number;
@@ -856,8 +856,10 @@ export const TraderRanking = memo(() => {
     return filledTraders.map((trader, index) => ({
       id: trader.id,
       rank: index + 1,
-      name: trader.nickname,
-      username: `@${trader.nickname.toLowerCase().replace(/\s+/g, "")}`,
+      name: trader.nickname || "Unknown Trader",
+      username: `@${(trader.nickname || "unknown")
+        .toLowerCase()
+        .replace(/\s+/g, "")}`,
       avatar_url: trader.avatar_url,
       level: trader.level,
       totalReturn: trader.total_return,

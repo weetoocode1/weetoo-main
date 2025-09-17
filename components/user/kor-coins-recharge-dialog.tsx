@@ -895,7 +895,7 @@ export function KorCoinsRechargeDialog() {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-foreground mb-2">
-                    {t("identityVerificationRequired")}
+                    {t("identityVerificationRequiredTitle")}
                   </h3>
                   <p className="text-muted-foreground mb-6">
                     {t("identityVerificationRequiredLong")}

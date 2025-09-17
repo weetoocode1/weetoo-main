@@ -11,12 +11,13 @@ import { ShowcaseGrid } from "@/components/board/showcase-grid";
 
 export function FreeBoardPageClient() {
   const t = useTranslations("communityBoards");
+  const tCommon = useTranslations("common");
   const { user } = useAuth();
 
   const handleCreatePostClick = (e: React.MouseEvent) => {
     if (!user?.identity_verified) {
       e.preventDefault();
-      toast.error("Identity verification required to create posts.");
+      toast.error(`${tCommon("identityVerificationRequired")} to create posts.`);
       return;
     }
   };

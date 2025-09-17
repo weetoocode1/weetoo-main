@@ -9,7 +9,7 @@ type TimeFrame = "daily" | "weekly" | "monthly";
 
 interface TraderData {
   id: string;
-  nickname: string;
+  nickname: string | null;
   avatar_url: string | null;
   level: number;
   total_pnl: number;
@@ -399,7 +399,7 @@ export const TraderRankingTable = memo(
                     >
                       <AvatarImage
                         src={trader.avatar_url || undefined}
-                        alt={trader.nickname}
+                        alt={trader.nickname || "Unknown Trader"}
                       />
                       <AvatarFallback
                         className={cn(
@@ -420,7 +420,7 @@ export const TraderRankingTable = memo(
                           isTop3 ? "text-base" : "text-sm"
                         )}
                       >
-                        {trader.nickname}
+                        {trader.nickname || "Unknown Trader"}
                       </div>
                       {isTop3 && (
                         <div className="text-xs text-muted-foreground mt-1">
@@ -552,7 +552,7 @@ export const TraderRankingTable = memo(
                         >
                           <AvatarImage
                             src={trader.avatar_url || undefined}
-                            alt={trader.nickname}
+                            alt={trader.nickname || "Unknown Trader"}
                           />
                           <AvatarFallback
                             className={cn(
@@ -573,7 +573,7 @@ export const TraderRankingTable = memo(
                               isTop3 ? "text-sm" : "text-xs"
                             )}
                           >
-                            {trader.nickname}
+                            {trader.nickname || "Unknown Trader"}
                           </div>
                           {isTop3 && (
                             <div className="text-xs text-muted-foreground">

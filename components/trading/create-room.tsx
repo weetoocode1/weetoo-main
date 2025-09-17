@@ -55,6 +55,7 @@ interface ExistingRoom {
 
 export function CreateRoom() {
   const t = useTranslations("createRoom");
+  const tCommon = useTranslations("common");
   const { user: authUser } = useAuth();
   const [open, setOpen] = useState(false);
   const [privacy, setPrivacy] = useState("public");
@@ -452,7 +453,9 @@ export function CreateRoom() {
                   // Check identity verification first
                   if (!authUser?.identity_verified) {
                     toast.error(
-                      "Identity verification required to create trading rooms."
+                      `${tCommon(
+                        "identityVerificationRequired"
+                      )} to create trading rooms.`
                     );
                     return;
                   }
@@ -500,7 +503,7 @@ export function CreateRoom() {
               <TooltipContent side="bottom" className="max-w-xs">
                 <div className="text-sm">
                   <p className="font-medium mb-1 text-amber-600">
-                    🔒 Identity verification required
+                    🔒 {tCommon("identityVerificationRequired")}
                   </p>
                   <p className="text-muted-foreground">
                     You need to verify your identity before creating trading
