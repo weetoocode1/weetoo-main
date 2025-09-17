@@ -21,6 +21,7 @@ import {
   Download,
   Search,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type TxnType = "withdrawal" | "deposit" | "uid-payback";
 
@@ -189,6 +190,7 @@ async function fetchTransactions(userId: string): Promise<TransactionRow[]> {
 }
 
 export function Transactions() {
+  const t = useTranslations("profile.transactions");
   const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [rows, setRows] = useState<TransactionRow[] | null>(null);
@@ -252,14 +254,14 @@ export function Transactions() {
     const data = filtered;
     if (!data.length) return;
     const headers = [
-      "id",
-      "type",
-      "amount_kor",
-      "received_kor_or_won",
-      "status",
-      "created_at",
-      "bank_name",
-      "account_number",
+      t("csv.headers.id"),
+      t("csv.headers.type"),
+      t("csv.headers.amountKor"),
+      t("csv.headers.receivedKorOrWon"),
+      t("csv.headers.status"),
+      t("csv.headers.createdAt"),
+      t("csv.headers.bankName"),
+      t("csv.headers.accountNumber"),
     ];
     const csv = [
       headers.join(","),
@@ -286,7 +288,9 @@ export function Transactions() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = t("csv.filename", {
+      date: new Date().toISOString().slice(0, 10),
+    });
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -298,7 +302,7 @@ export function Transactions() {
       <div className="space-y-6">
         <Card className="border border-border rounded-none shadow-none">
           <CardHeader>
-            <CardTitle className="text-lg">All Transactions</CardTitle>
+            <CardTitle className="text-lg">{t("title")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="border border-border rounded-none">
@@ -318,14 +322,14 @@ export function Transactions() {
     <div className="space-y-6">
       <Card className="border border-border rounded-none shadow-none">
         <CardHeader>
-          <CardTitle className="text-lg">All Transactions</CardTitle>
+          <CardTitle className="text-lg">{t("title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div className="relative w-full sm:w-auto">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by id, type, status, or bank..."
+                placeholder={t("searchPlaceholder")}
                 className="pl-10 h-10 rounded-none w-full"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -334,24 +338,32 @@ export function Transactions() {
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger className="w-full sm:w-[140px] h-10 rounded-none">
-                  <SelectValue placeholder="Filter by type" />
+                  <SelectValue placeholder={t("filterByType")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="deposit">Deposits</SelectItem>
-                  <SelectItem value="withdrawal">Withdrawals</SelectItem>
-                  <SelectItem value="uid-payback">UID Payback</SelectItem>
+                  <SelectItem value="all">{t("filters.allTypes")}</SelectItem>
+                  <SelectItem value="deposit">
+                    {t("filters.deposits")}
+                  </SelectItem>
+                  <SelectItem value="withdrawal">
+                    {t("filters.withdrawals")}
+                  </SelectItem>
+                  <SelectItem value="uid-payback">
+                    {t("filters.uidPayback")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full sm:w-[140px] h-10 rounded-none">
-                  <SelectValue placeholder="Filter by status" />
+                  <SelectValue placeholder={t("filterByStatus")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="sent">Sent</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
+                  <SelectItem value="all">{t("filters.allStatus")}</SelectItem>
+                  <SelectItem value="sent">{t("filters.sent")}</SelectItem>
+                  <SelectItem value="pending">
+                    {t("filters.pending")}
+                  </SelectItem>
+                  <SelectItem value="failed">{t("filters.failed")}</SelectItem>
                 </SelectContent>
               </Select>
               <Button
@@ -359,7 +371,7 @@ export function Transactions() {
                 className="rounded-none h-10 w-full sm:w-auto"
                 onClick={exportCsv}
               >
-                <Download className="h-4 w-4 mr-2" /> Export CSV
+                <Download className="h-4 w-4 mr-2" /> {t("exportCsv")}
               </Button>
             </div>
           </div>
@@ -367,25 +379,23 @@ export function Transactions() {
           {/* Table */}
           <div className="border border-border rounded-none">
             <div className="hidden md:grid grid-cols-12 px-4 py-2 bg-muted/20 border-b border-border/50 text-xs uppercase tracking-wider">
-              <div className="col-span-3">ID</div>
-              <div className="col-span-2">Type</div>
-              <div className="col-span-2">Amount</div>
-              <div className="col-span-2">Received</div>
-              <div className="col-span-1">Status</div>
-              <div className="col-span-2">Date</div>
+              <div className="col-span-3">{t("table.id")}</div>
+              <div className="col-span-2">{t("table.type")}</div>
+              <div className="col-span-2">{t("table.amount")}</div>
+              <div className="col-span-2">{t("table.received")}</div>
+              <div className="col-span-1">{t("table.status")}</div>
+              <div className="col-span-2">{t("table.date")}</div>
             </div>
 
             {filtered.length === 0 ? (
               <div className="px-4 py-8 text-center">
                 <div className="text-muted-foreground text-sm">
-                  {loading
-                    ? "Loading transactions..."
-                    : "No transactions found"}
+                  {loading ? t("empty.loading") : t("empty.noTransactions")}
                 </div>
                 {!loading &&
                   (query || typeFilter !== "all" || statusFilter !== "all") && (
                     <div className="text-xs text-muted-foreground mt-2">
-                      Try adjusting your filters or search terms
+                      {t("empty.adjustFilters")}
                     </div>
                   )}
               </div>
@@ -397,7 +407,7 @@ export function Transactions() {
                     <div className="divide-y divide-border/30">
                       <div className="flex items-center justify-between gap-2 py-2 border-b-2 border-border">
                         <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                          ID
+                          {t("table.id")}
                         </div>
                         <div className="font-mono text-xs truncate max-w-[65%]">
                           {(r as LoadingOrTransaction)?.id || ""}
@@ -405,7 +415,7 @@ export function Transactions() {
                       </div>
                       <div className="flex items-center justify-between gap-2 py-2">
                         <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                          Type
+                          {t("table.type")}
                         </div>
                         <div className="text-sm">
                           {loading ? (
@@ -413,24 +423,24 @@ export function Transactions() {
                           ) : (r as TransactionRow)?.type === "withdrawal" ? (
                             <div className="inline-flex items-center gap-1.5">
                               <ArrowUpRight className="h-4 w-4 text-red-500" />{" "}
-                              Withdrawal
+                              {t("types.withdrawal")}
                             </div>
                           ) : (r as TransactionRow)?.type === "deposit" ? (
                             <div className="inline-flex items-center gap-1.5">
                               <ArrowDownRight className="h-4 w-4 text-emerald-500" />{" "}
-                              Deposit
+                              {t("types.deposit")}
                             </div>
                           ) : (
                             <div className="inline-flex items-center gap-1.5">
                               <DollarSign className="h-4 w-4 text-emerald-500" />{" "}
-                              UID Payback
+                              {t("types.uidPayback")}
                             </div>
                           )}
                         </div>
                       </div>
                       <div className="flex items-center justify-between gap-2 py-2">
                         <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                          Amount
+                          {t("table.amount")}
                         </div>
                         <div className="text-sm font-semibold">
                           {loading ? (
@@ -457,7 +467,7 @@ export function Transactions() {
                       </div>
                       <div className="flex items-center justify-between gap-2 py-2">
                         <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                          Received
+                          {t("table.received")}
                         </div>
                         <div className="text-sm font-semibold">
                           {loading ? (
@@ -499,7 +509,7 @@ export function Transactions() {
                       </div>
                       <div className="flex items-center justify-between gap-2 py-2">
                         <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                          Status
+                          {t("table.status")}
                         </div>
                         <div>
                           {loading ? (
@@ -524,17 +534,17 @@ export function Transactions() {
                                 }`}
                               />
                               {(r as TransactionRow)?.status === "sent"
-                                ? "Sent"
+                                ? t("statuses.sent")
                                 : (r as TransactionRow)?.status === "failed"
-                                ? "Failed"
-                                : "Pending"}
+                                ? t("statuses.failed")
+                                : t("statuses.pending")}
                             </div>
                           )}
                         </div>
                       </div>
                       <div className="flex items-center justify-between gap-2 py-2 border-b-2 border-border">
                         <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                          Date
+                          {t("table.date")}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {loading ? (
@@ -560,17 +570,21 @@ export function Transactions() {
                       ) : (r as TransactionRow)?.type === "withdrawal" ? (
                         <div className="inline-flex items-center gap-2">
                           <ArrowUpRight className="h-4 w-4 text-red-500" />
-                          <span className="text-sm">Withdrawal</span>
+                          <span className="text-sm">
+                            {t("types.withdrawal")}
+                          </span>
                         </div>
                       ) : (r as TransactionRow)?.type === "deposit" ? (
                         <div className="inline-flex items-center gap-2">
                           <ArrowDownRight className="h-4 w-4 text-emerald-500" />
-                          <span className="text-sm">Deposit</span>
+                          <span className="text-sm">{t("types.deposit")}</span>
                         </div>
                       ) : (
                         <div className="inline-flex items-center gap-2">
                           <DollarSign className="h-4 w-4 text-emerald-500" />
-                          <span className="text-sm">UID Payback</span>
+                          <span className="text-sm">
+                            {t("types.uidPayback")}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -656,10 +670,10 @@ export function Transactions() {
                             }`}
                           />
                           {(r as TransactionRow)?.status === "sent"
-                            ? "Sent"
+                            ? t("statuses.sent")
                             : (r as TransactionRow)?.status === "failed"
-                            ? "Failed"
-                            : "Pending"}
+                            ? t("statuses.failed")
+                            : t("statuses.pending")}
                         </div>
                       )}
                     </div>

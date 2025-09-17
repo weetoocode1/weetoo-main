@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Clock, Coins, Shield, User, Wallet } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -132,6 +133,7 @@ const secureWithdrawalApi = {
 };
 
 export function KORCoinsWithdrawal() {
+  const t = useTranslations("profile.korCoinsWithdrawal");
   const { user, loading: authLoading, computed } = useAuth();
   const queryClient = useQueryClient();
 
@@ -328,28 +330,28 @@ export function KORCoinsWithdrawal() {
     e.preventDefault();
 
     if (!user) {
-      toast.error("User not found");
+      toast.error(t("errors.userNotFound"));
       return;
     }
 
     // Basic client-side validation for UX (server will do the real validation)
     if (!formData.accountHolderName.trim()) {
-      toast.error("Please enter account holder name");
+      toast.error(t("withdrawalRequest.validation.enterAccountHolder"));
       return;
     }
 
     if (!formData.bankAccountNumber.trim()) {
-      toast.error("Please enter bank account number");
+      toast.error(t("withdrawalRequest.validation.enterAccountNumber"));
       return;
     }
 
     if (!formData.bankName.trim()) {
-      toast.error("Please enter bank name");
+      toast.error(t("withdrawalRequest.validation.enterBankName"));
       return;
     }
 
     if (formData.amount <= 0) {
-      toast.error("Please enter a valid amount");
+      toast.error(t("withdrawalRequest.validation.enterAmount"));
       return;
     }
 
@@ -383,9 +385,7 @@ export function KORCoinsWithdrawal() {
         bankAccountId: bankAccountId,
       });
 
-      toast.success(
-        "Withdrawal request submitted. We'll notify you after manual review."
-      );
+      toast.success(t("errors.withdrawalSubmitted"));
 
       setFormData({
         amount: 0,
@@ -395,9 +395,7 @@ export function KORCoinsWithdrawal() {
       });
     } catch (err: Error | unknown) {
       toast.error(
-        err instanceof Error
-          ? err.message
-          : "Failed to submit withdrawal request"
+        err instanceof Error ? err.message : t("errors.withdrawalFailed")
       );
     } finally {
       setSubmitting(false);
@@ -416,30 +414,32 @@ export function KORCoinsWithdrawal() {
         : null;
 
     if (!verifyAmount) {
-      toast.error("Please enter the amount you received.");
+      toast.error(t("withdrawalRequest.verification.enterReceivedAmount"));
       return;
     }
 
     const entered = Number(parseFloat(verifyAmount).toFixed(4));
     if (expected === null || entered !== expected) {
-      toast.error("Verification amount does not match.");
+      toast.error(t("withdrawalRequest.verification.amountMismatch"));
       return;
     }
 
     try {
       if (!ba?.id) {
-        toast.error("Bank account not found.");
+        toast.error(t("withdrawalRequest.verification.bankAccountNotFound"));
         return;
       }
       await verifyBankAccountMutation.mutateAsync({
         bankAccountId: ba.id,
         verificationAmount: entered,
       });
-      toast.success("Bank account verified.");
+      toast.success(t("withdrawalRequest.verification.verificationSuccess"));
       setVerifyAmount("");
     } catch (e: Error | unknown) {
       const errorMessage =
-        e instanceof Error ? e.message : "Verification failed.";
+        e instanceof Error
+          ? e.message
+          : t("withdrawalRequest.verification.verificationFailed");
       toast.error(errorMessage);
     }
   };
@@ -475,10 +475,10 @@ export function KORCoinsWithdrawal() {
             <User className="h-8 w-8 text-muted-foreground" />
           </div>
           <h2 className="text-xl font-semibold text-foreground">
-            User Not Found
+            {t("errors.userNotFoundTitle")}
           </h2>
           <p className="text-muted-foreground">
-            Please log in to access withdrawal features.
+            {t("errors.userNotFoundMessage")}
           </p>
         </div>
       </div>
@@ -502,9 +502,7 @@ export function KORCoinsWithdrawal() {
     <div className="flex flex-col h-full p-4 space-y-6">
       <div className="flex items-center gap-3">
         <Wallet className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-semibold text-foreground">
-          Withdraw KOR Coins
-        </h1>
+        <h1 className="text-2xl font-semibold text-foreground">{t("title")}</h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -512,28 +510,28 @@ export function KORCoinsWithdrawal() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <User className="h-5 w-5 text-primary" />
-              Account Information
+              {t("accountInfo.title")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
               <div className="flex justify-between items-center py-2 border-b border-border/50">
                 <span className="text-sm text-muted-foreground">
-                  Account Holder
+                  {t("accountInfo.accountHolder")}
                 </span>
                 <span className="font-medium text-foreground">{fullName}</span>
               </div>
 
               <div className="flex justify-between items-center py-2 border-b border-border/50">
                 <span className="text-sm text-muted-foreground">
-                  Current Level
+                  {t("accountInfo.currentLevel")}
                 </span>
                 <Badge variant="outline">Level {userLevel}</Badge>
               </div>
 
               <div className="flex justify-between items-center py-2">
                 <span className="text-sm text-muted-foreground">
-                  Available Balance
+                  {t("accountInfo.availableBalance")}
                 </span>
                 <div className="flex items-center gap-2">
                   <Coins className="h-4 w-4 text-amber-500" />
@@ -547,32 +545,34 @@ export function KORCoinsWithdrawal() {
             <div className="mt-6 p-5 bg-primary/5 border border-primary/20 rounded-xl">
               <div className="text-center">
                 <p className="text-sm text-muted-foreground mb-2">
-                  Your Current Withdrawal Fee
+                  {t("accountInfo.withdrawalFee")}
                 </p>
                 <p className="text-3xl font-bold text-primary mb-2">
                   {feePercentage}%
                 </p>
                 <Badge variant="outline" className="text-xs">
                   {userLevel <= 25
-                    ? "Bronze Tier"
+                    ? t("accountInfo.tiers.bronze")
                     : userLevel <= 50
-                    ? "Silver Tier"
+                    ? t("accountInfo.tiers.silver")
                     : userLevel <= 75
-                    ? "Gold Tier"
-                    : "Platinum Tier"}
+                    ? t("accountInfo.tiers.gold")
+                    : t("accountInfo.tiers.platinum")}
                 </Badge>
               </div>
             </div>
 
             <div className="mt-6">
               <h4 className="text-sm font-semibold text-foreground mb-3 text-center">
-                Fee Structure by Level
+                {t("accountInfo.feeStructure")}
               </h4>
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                    <span className="text-sm">Bronze (1-25)</span>
+                    <span className="text-sm">
+                      {t("accountInfo.tiers.bronze")}
+                    </span>
                   </div>
                   <Badge variant="destructive" className="font-semibold">
                     40%
@@ -582,7 +582,9 @@ export function KORCoinsWithdrawal() {
                 <div className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
-                    <span className="text-sm">Silver (26-50)</span>
+                    <span className="text-sm">
+                      {t("accountInfo.tiers.silver")}
+                    </span>
                   </div>
                   <Badge variant="secondary" className="font-semibold">
                     30%
@@ -592,7 +594,9 @@ export function KORCoinsWithdrawal() {
                 <div className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                    <span className="text-sm">Gold (51-75)</span>
+                    <span className="text-sm">
+                      {t("accountInfo.tiers.gold")}
+                    </span>
                   </div>
                   <Badge variant="default" className="font-semibold">
                     20%
@@ -602,7 +606,9 @@ export function KORCoinsWithdrawal() {
                 <div className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                    <span className="text-sm">Platinum (76-99)</span>
+                    <span className="text-sm">
+                      {t("accountInfo.tiers.platinum")}
+                    </span>
                   </div>
                   <Badge variant="outline" className="font-semibold">
                     10%
@@ -616,14 +622,16 @@ export function KORCoinsWithdrawal() {
         <Card className="bg-card border border-border">
           <CardHeader>
             <CardTitle className="text-2xl font-bold text-foreground">
-              Withdrawal Request
+              {t("withdrawalRequest.title")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleUnifiedSubmit} className="space-y-6">
               {!latestPending && (
                 <div className="space-y-3">
-                  <Label htmlFor="amount">Amount</Label>
+                  <Label htmlFor="amount">
+                    {t("withdrawalRequest.amount")}
+                  </Label>
                   <Input
                     id="amount"
                     type="number"
@@ -632,7 +640,7 @@ export function KORCoinsWithdrawal() {
                     step="100"
                     value={formData.amount || ""}
                     onChange={(e) => handleAmountChange(e.target.value)}
-                    placeholder="Enter amount"
+                    placeholder={t("withdrawalRequest.amountPlaceholder")}
                     className={`h-10 ${
                       formData.amount > 0 && formData.amount > userKorCoins
                         ? "border-red-500 focus:border-red-500"
@@ -641,18 +649,19 @@ export function KORCoinsWithdrawal() {
                   />
                   {formData.amount > 0 && formData.amount < 100 && (
                     <div className="text-xs text-red-600">
-                      Minimum withdrawal is 100 KOR.
+                      {t("withdrawalRequest.validation.minWithdrawal")}
                     </div>
                   )}
                   {formData.amount > 15000 && (
                     <div className="text-xs text-red-600">
-                      Maximum withdrawal is 15,000 KOR.
+                      {t("withdrawalRequest.validation.maxWithdrawal")}
                     </div>
                   )}
                   {formData.amount > 0 && formData.amount > userKorCoins && (
                     <div className="text-xs text-red-600">
-                      Insufficient balance. You have{" "}
-                      {userKorCoins.toLocaleString()} KOR.
+                      {t("withdrawalRequest.validation.insufficientBalance", {
+                        balance: userKorCoins.toLocaleString(),
+                      })}
                     </div>
                   )}
                 </div>
@@ -661,22 +670,23 @@ export function KORCoinsWithdrawal() {
               {!latestPending && formData.amount > 0 && (
                 <div className="p-4 bg-muted/30 rounded-lg">
                   <div className="flex justify-between text-sm mb-2">
-                    <span>Amount:</span>
+                    <span>{t("withdrawalRequest.feeBreakdown.amount")}</span>
                     <span className="font-medium">
                       {formData.amount.toLocaleString()} KOR
                     </span>
                   </div>
                   <div className="flex justify-between text-sm text-red-500 dark:text-red-400 mb-2">
                     <span>
-                      Estimated Fee (
-                      {userLevel <= 25
-                        ? 40
-                        : userLevel <= 50
-                        ? 30
-                        : userLevel <= 75
-                        ? 20
-                        : 10}
-                      %):
+                      {t("withdrawalRequest.feeBreakdown.estimatedFee", {
+                        percentage:
+                          userLevel <= 25
+                            ? 40
+                            : userLevel <= 50
+                            ? 30
+                            : userLevel <= 75
+                            ? 20
+                            : 10,
+                      })}
                     </span>
                     <span className="font-medium">
                       ~
@@ -695,7 +705,9 @@ export function KORCoinsWithdrawal() {
                     </span>
                   </div>
                   <div className="border-t border-border pt-2 flex justify-between font-semibold">
-                    <span>Estimated You will Receive:</span>
+                    <span>
+                      {t("withdrawalRequest.feeBreakdown.estimatedReceive")}
+                    </span>
                     <span className="text-success text-lg">
                       ₩ ~
                       {Math.floor(
@@ -713,8 +725,7 @@ export function KORCoinsWithdrawal() {
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground mt-2 text-center">
-                    * Final amounts will be calculated and validated on the
-                    server
+                    {t("withdrawalRequest.feeBreakdown.serverNote")}
                   </div>
                 </div>
               )}
@@ -725,17 +736,21 @@ export function KORCoinsWithdrawal() {
                 pendingBankAccount?.is_verified !== true && (
                   <div className="mt-4 p-4 border border-border rounded-lg bg-muted/20 space-y-3">
                     <div className="text-sm font-medium">
-                      Verify your bank account
+                      {t("withdrawalRequest.verification.title")}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                       <div className="space-y-1">
-                        <div className="text-muted-foreground">Request ID</div>
+                        <div className="text-muted-foreground">
+                          {t("withdrawalRequest.verification.requestId")}
+                        </div>
                         <div className="font-mono break-all">
                           {latestPending.id}
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <div className="text-muted-foreground">KOR Coins</div>
+                        <div className="text-muted-foreground">
+                          {t("withdrawalRequest.verification.korCoins")}
+                        </div>
                         <div className="font-medium">
                           {latestPending.kor_coins_amount?.toLocaleString?.() ||
                             latestPending.kor_coins_amount}{" "}
@@ -743,14 +758,16 @@ export function KORCoinsWithdrawal() {
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <div className="text-muted-foreground">Bank</div>
+                        <div className="text-muted-foreground">
+                          {t("withdrawalRequest.verification.bank")}
+                        </div>
                         <div className="font-medium">
                           {pendingBankAccount?.bank_name || "-"}
                         </div>
                       </div>
                       <div className="space-y-1">
                         <div className="text-muted-foreground">
-                          Account Number
+                          {t("withdrawalRequest.verification.accountNumber")}
                         </div>
                         <div className="font-mono">
                           {pendingBankAccount?.account_number || "-"}
@@ -759,20 +776,21 @@ export function KORCoinsWithdrawal() {
                     </div>
                     {expectedVerificationAmount !== null && (
                       <div className="text-xs text-muted-foreground">
-                        We sent a small amount. Please enter the exact amount
-                        you received.
+                        {t("withdrawalRequest.verification.verificationNote")}
                       </div>
                     )}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
                       <div className="md:col-span-2">
                         <Label htmlFor="verifyNow" className="mb-2">
-                          Enter Verification Amount (₩)
+                          {t("withdrawalRequest.verification.enterAmount")}
                         </Label>
                         <Input
                           id="verifyNow"
                           type="number"
                           step="0.0001"
-                          placeholder="e.g., 0.0042"
+                          placeholder={t(
+                            "withdrawalRequest.verification.amountPlaceholder"
+                          )}
                           className="h-10"
                           value={verifyAmount}
                           onChange={(e) =>
@@ -791,33 +809,35 @@ export function KORCoinsWithdrawal() {
                         className="h-10"
                         onClick={handleVerifyNow}
                       >
-                        Verify now
+                        {t("withdrawalRequest.verification.verifyNow")}
                       </Button>
                     </div>
                   </div>
                 )}
 
-              <div className="grid grid-cols-3 gap-3">
-                <div className="p-3 bg-muted/20 rounded-lg text-center">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-muted/20 rounded-lg text-center border border-border">
                   <p className="text-xs text-muted-foreground mb-1">
-                    Min Withdrawal
-                  </p>
-                  <p className="text-sm font-medium text-foreground">100 KOR</p>
-                </div>
-                <div className="p-3 bg-muted/20 rounded-lg text-center">
-                  <p className="text-xs text-muted-foreground mb-1">
-                    Max Withdrawal
+                    {t("withdrawalRequest.limits.minWithdrawal")}
                   </p>
                   <p className="text-sm font-medium text-foreground">
-                    15,000 KOR
+                    {t("withdrawalRequest.limits.minAmount")}
                   </p>
                 </div>
-                <div className="p-3 bg-muted/20 rounded-lg text-center">
+                {/* <div className="p-3 bg-muted/20 rounded-lg text-center">
                   <p className="text-xs text-muted-foreground mb-1">
-                    Processing
+                    {t("withdrawalRequest.limits.maxWithdrawal")}
                   </p>
                   <p className="text-sm font-medium text-foreground">
-                    1-3 Days
+                    {t("withdrawalRequest.limits.maxAmount")}
+                  </p>
+                </div> */}
+                <div className="p-3 bg-muted/20 rounded-lg text-center border border-border">
+                  <p className="text-xs text-muted-foreground mb-1">
+                    {t("withdrawalRequest.limits.processing")}
+                  </p>
+                  <p className="text-sm font-medium text-foreground">
+                    {t("withdrawalRequest.limits.processingTime")}
                   </p>
                 </div>
               </div>
@@ -827,7 +847,7 @@ export function KORCoinsWithdrawal() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-2">
                       <Label htmlFor="accountHolderName">
-                        Account Holder Name
+                        {t("withdrawalRequest.form.accountHolderName")}
                       </Label>
                       <Input
                         id="accountHolderName"
@@ -838,13 +858,17 @@ export function KORCoinsWithdrawal() {
                             accountHolderName: e.target.value,
                           }))
                         }
-                        placeholder="Enter account holder name"
+                        placeholder={t(
+                          "withdrawalRequest.form.accountHolderPlaceholder"
+                        )}
                         className="h-10"
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="bankName">Bank Name</Label>
+                      <Label htmlFor="bankName">
+                        {t("withdrawalRequest.form.bankName")}
+                      </Label>
                       <Input
                         id="bankName"
                         value={formData.bankName}
@@ -854,14 +878,18 @@ export function KORCoinsWithdrawal() {
                             bankName: e.target.value,
                           }))
                         }
-                        placeholder="Enter bank name"
+                        placeholder={t(
+                          "withdrawalRequest.form.bankNamePlaceholder"
+                        )}
                         className="h-10"
                         required
                       />
                     </div>
                   </div>
 
-                  <Label htmlFor="bankAccountNumber">Bank Account Number</Label>
+                  <Label htmlFor="bankAccountNumber">
+                    {t("withdrawalRequest.form.bankAccountNumber")}
+                  </Label>
                   <Input
                     id="bankAccountNumber"
                     value={formData.bankAccountNumber}
@@ -871,7 +899,9 @@ export function KORCoinsWithdrawal() {
                         bankAccountNumber: e.target.value,
                       }))
                     }
-                    placeholder="Enter bank account number"
+                    placeholder={t(
+                      "withdrawalRequest.form.bankAccountPlaceholder"
+                    )}
                     className="h-10"
                     required
                   />
@@ -884,9 +914,10 @@ export function KORCoinsWithdrawal() {
                 <div className="flex items-start gap-2">
                   <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full mt-2 flex-shrink-0"></div>
                   <div className="text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">Tip:</span>{" "}
-                    Ensure your bank account details are accurate. Incorrect
-                    information may delay your withdrawal.
+                    <span className="font-medium text-foreground">
+                      {t("withdrawalRequest.tips.title")}
+                    </span>{" "}
+                    {t("withdrawalRequest.tips.message")}
                   </div>
                 </div>
               </div>
@@ -896,10 +927,9 @@ export function KORCoinsWithdrawal() {
                   <Shield className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                   <p className="text-xs text-muted-foreground">
                     <span className="font-medium text-foreground">
-                      Security Notice:
+                      {t("withdrawalRequest.security.title")}
                     </span>{" "}
-                    All requests are manually reviewed. Processing time: 1-3
-                    business days.
+                    {t("withdrawalRequest.security.message")}
                   </p>
                 </div>
               </div>

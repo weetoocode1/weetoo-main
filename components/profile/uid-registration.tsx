@@ -16,6 +16,7 @@ import {
   PlusIcon,
 } from "lucide-react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
@@ -82,6 +83,7 @@ type ServerUidRow = {
 };
 
 export function UidRegistration() {
+  const t = useTranslations("profile.uidRegistration");
   const { data: serverUids, isLoading } = useUserUids();
   const addMutation = useAddUserUid();
 
@@ -128,16 +130,16 @@ export function UidRegistration() {
         <div className="flex items-center gap-1">
           <KeyRoundIcon className="h-5 w-5 text-primary" />
           <h1 className="text-xl font-semibold text-foreground">
-            UID Registration
+            {t("title")}
           </h1>
         </div>
 
         <UidRegistrationDialog
-          title="Add UID"
+          title={t("addUid")}
           trigger={
             <Button variant="outline" className="rounded-none h-10">
               <PlusIcon className="h-4 w-4" />
-              Add UID
+              {t("addUid")}
             </Button>
           }
           onUIDAdded={handleUIDAdded}
@@ -186,7 +188,7 @@ export function UidRegistration() {
       {/* UID Cards Grid */}
       {!isLoading && uidRecords.length > 0 && (
         <div className="mt-8 space-y-4">
-          <h2 className="text-lg font-medium">Your UIDs</h2>
+          <h2 className="text-lg font-medium">{t("yourUids")}</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
             {uidRecords.map((record) => (
@@ -206,9 +208,9 @@ export function UidRegistration() {
           <div className="w-16 h-16 mx-auto mb-4 bg-muted/30 rounded-full flex items-center justify-center">
             <PlusIcon className="w-8 h-8 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-medium mb-2">No UIDs registered yet</h3>
+          <h3 className="text-lg font-medium mb-2">{t("emptyState.title")}</h3>
           <p className="text-muted-foreground max-w-md mx-auto">
-            Start by adding your first broker UID
+            {t("emptyState.description")}
           </p>
         </div>
       )}
@@ -223,6 +225,7 @@ function UIDCard({
   record: UidRecord;
   isActiveUid: boolean;
 }) {
+  const t = useTranslations("profile.uidRegistration");
   const isBrokerActive = useBrokerAPIActive(record.brokerId);
 
   const uidVerification = useBrokerUIDVerification(
@@ -409,7 +412,7 @@ function UIDCard({
                 size="sm"
                 onClick={() => {
                   navigator.clipboard.writeText(record.uid);
-                  toast.success("UID copied to clipboard");
+                  toast.success(t("toast.uidCopied"));
                 }}
                 className="h-5 w-5 p-0 hover:bg-muted"
               >
@@ -431,9 +434,9 @@ function UIDCard({
               {uidVerification.isLoading ? (
                 <div className="w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
               ) : isUidActuallyActive ? (
-                "Active"
+                t("status.active")
               ) : (
-                "Inactive"
+                t("status.inactive")
               )}
             </div>
 
@@ -452,15 +455,15 @@ function UIDCard({
                   )}
                   <span>
                     {uidVerification.isLoading && !uidVerification.isError
-                      ? "Verifying..."
+                      ? t("status.verifying")
                       : (uidVerification.isSuccess &&
                           uidVerification.data?.verified) ||
                         isDeepCoinVerified
-                      ? "Verified"
+                      ? t("status.verified")
                       : uidVerification.isSuccess &&
                         uidVerification.data?.reason
                       ? uidVerification.data.reason
-                      : "UID not verified"}
+                      : t("status.notVerified")}
                   </span>
                 </div>
 
@@ -474,7 +477,7 @@ function UIDCard({
                     >
                       <div className="w-1.5 h-1.5 bg-amber-500"></div>
                       <span className="text-muted-foreground">
-                        Not referral
+                        {t("status.notReferral")}
                       </span>
                       <ChevronRight className="w-3 h-3 text-muted-foreground" />
                     </a>
@@ -496,7 +499,7 @@ function UIDCard({
               ${record.rebateLifetimeUsd?.toFixed(2) || "0.00"}
             </div>
             <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-              Total Accumulated Payback
+              {t("stats.totalAccumulatedPayback")}
             </div>
           </div>
 
@@ -507,7 +510,7 @@ function UIDCard({
                 ${withdrawnSum.toFixed(2)}
               </div>
               <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                Withdrawn Amount
+                {t("stats.withdrawnAmount")}
               </div>
             </div>
 
@@ -516,7 +519,7 @@ function UIDCard({
                 ${withdrawableComputed.toFixed(2)}
               </div>
               <div className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                Withdrawable Balance
+                {t("stats.withdrawableBalance")}
               </div>
             </div>
           </div>
@@ -526,13 +529,13 @@ function UIDCard({
       <div className="p-5 border-t border-border">
         <div className="space-y-2 text-xs text-muted-foreground">
           <div className="flex justify-between">
-            <span>Total Lifetime Rebate:</span>
+            <span>{t("stats.totalLifetimeRebate")}</span>
             <span className="text-foreground font-medium font-mono">
               ${record.rebateLifetimeUsd?.toFixed(2) || "0.00"}
             </span>
           </div>
           <div className="flex justify-between">
-            <span>Last 24 Hours:</span>
+            <span>{t("stats.last24Hours")}</span>
             <span className="text-foreground font-medium font-mono">
               ${record.rebateLastDayUsd?.toFixed(2) || "0.00"}
             </span>

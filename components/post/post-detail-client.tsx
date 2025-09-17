@@ -16,6 +16,7 @@ import { useTrackPostView } from "@/hooks/use-track-post-view";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Post, User } from "@/types/post";
+import { useTranslations } from "next-intl";
 import {
   Calendar,
   ChevronLeftIcon,
@@ -61,6 +62,7 @@ export default function PostDetailClient({
 }: PostDetailClientProps) {
   const router = useRouter();
   const { user: authUser } = useAuth();
+  const t = useTranslations("common");
   const [api, setApi] = React.useState<CarouselApi>();
   const [current, setCurrent] = React.useState(0);
   const [currentUser, setCurrentUser] = React.useState<User | null>(null);
@@ -71,7 +73,7 @@ export default function PostDetailClient({
   // Verification restriction handlers
   const handleVerificationRequired = (action: string) => {
     if (!authUser?.identity_verified) {
-      toast.error(`Identity verification required to ${action}.`);
+      toast.error(`${t("identityVerificationRequired")} to ${action}.`);
       return false;
     }
     return true;
@@ -359,7 +361,7 @@ export default function PostDetailClient({
               <button
                 className="flex items-center gap-1.5 opacity-50 cursor-not-allowed"
                 onClick={() => handleVerificationRequired("like posts")}
-                title="Identity verification required"
+                title={t("identityVerificationRequired")}
               >
                 <AlertTriangle className="h-4 w-4 text-amber-500" />
                 <span>Like</span>
@@ -395,7 +397,7 @@ export default function PostDetailClient({
                 title={
                   authUser?.identity_verified
                     ? "View comments"
-                    : "Identity verification required"
+                    : t("identityVerificationRequired")
                 }
               >
                 <MessageSquare className="h-5 w-5" />
@@ -425,7 +427,7 @@ export default function PostDetailClient({
               <button
                 className="flex items-center gap-1.5 opacity-50 cursor-not-allowed"
                 onClick={() => handleVerificationRequired("share posts")}
-                title="Identity verification required"
+                title={t("identityVerificationRequired")}
               >
                 <AlertTriangle className="h-4 w-4 text-amber-500" />
                 <span>Share</span>
@@ -455,7 +457,7 @@ export default function PostDetailClient({
                     posts.
                   </p>
                   <div className="text-sm text-amber-600 dark:text-amber-400 font-medium">
-                    🔒 Identity verification required
+                    🔒 {t("identityVerificationRequired")}
                   </div>
                 </div>
               </div>

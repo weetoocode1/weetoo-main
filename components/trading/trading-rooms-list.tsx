@@ -116,6 +116,7 @@ function CreatedAtCell({ value }: { value: string }) {
 
 export function TradingRoomsList() {
   const t = useTranslations("tradingRooms");
+  const tCommon = useTranslations("common");
   const { user: authUser } = useAuth();
   const id = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -538,7 +539,9 @@ export function TradingRoomsList() {
 
     // Check identity verification
     if (!authUser.identity_verified) {
-      toast.error("Identity verification required to join trading rooms.");
+      toast.error(
+        `${tCommon("identityVerificationRequired")} to join trading rooms.`
+      );
       return;
     }
 

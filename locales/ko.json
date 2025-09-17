@@ -96,7 +96,7 @@
     "rechargeDescription": "트레이딩 및 대회 참여를 위해 KOR 코인을 충전하세요.",
     "loading": "로딩 중...",
     "korCoins": "KOR 코인",
-    "amountOfKorCoins": "KOR 코인 수량",
+    "amountOfKorCoins": "충전할 KOR 코인 수량",
     "enterAmount": "금액을 입력하세요...",
     "depositAmountInclVat": "입금 금액 (부가세 포함)",
     "vatIncluded": "10% 부가세 포함",
@@ -131,10 +131,11 @@
     "importantNoteCreditedAfterConfirmation": "입금 확인 후 KOR 코인이 지급됩니다",
     "newDeposit": "새 입금",
     "close": "닫기",
-    "identityVerificationRequired": "신원 인증이 필요합니다",
-    "identityVerificationRequiredTooltip": "KOR 코인 충전 전 신원 인증이 필요합니다.",
-    "identityVerificationRequiredDesc": "KOR 코인 충전을 위해 신원 인증이 필요합니다",
-    "identityVerificationRequiredLong": "KOR 코인 충전을 위해 신원 인증이 필요합니다. 이는 금융 거래 보안 및 준수를 위한 절차입니다.",
+    "identityVerificationRequired": "🔒 본인 인증 필요",
+    "identityVerificationRequiredTitle": "본인 인증 필요",
+    "identityVerificationRequiredTooltip": "코코인을 충전하기 전에 본인 인증을 완료해야 합니다.",
+    "identityVerificationRequiredDesc": "코코인을 충전하기 전에 본인 인증을 완료해야 합니다.",
+    "identityVerificationRequiredLong": "코코인을 충전하려면 본인 인증이 필요합니다. 이는 금융 거래의 보안 및 규정 준수를 보장하기 위함입니다.",
     "verifyIdentity": "신원 인증",
     "bankAccountForDeposit": "입금 은행 계좌",
     "addNewBankAccount": "+ 새 은행 계좌 추가",
@@ -1819,6 +1820,325 @@
   "common": {
     "loading": "로딩 중...",
     "error": "오류",
-    "success": "성공"
+    "success": "성공",
+    "identityVerificationRequired": "본인 인증 필요"
+  },
+  "profile": {
+    "tabs": {
+      "profile": "프로필",
+      "referral": "추천인",
+      "allAccounts": "전체 계좌",
+      "allTransactions": "거래 내역",
+      "korCoinsWithdrawal": "코코인 출금",
+      "uidRegistration": "UID 등록",
+      "paybackWithdrawal": "페이백 출금"
+    },
+    "mobileLabels": {
+      "accounts": "계정",
+      "transactions": "거래",
+      "korCoins": "KOR 코인",
+      "uid": "UID",
+      "payback": "페이백"
+    },
+    "verification": {
+      "title": "본인 인증 필요",
+      "description": "이 기능에 액세스하려면 본인 인증이 필요합니다. 이는 보안과 규정 준수를 보장하는 데 도움이 됩니다.",
+      "verifyButton": "본인 인증하기",
+      "successMessage": "본인 인증이 성공적으로 완료되었습니다!",
+      "errorMessage": "본인 인증에 실패했습니다. 다시 시도해 주세요.",
+      "tooltip": "이 탭에 액세스하려면 인증이 필요합니다"
+    },
+    "form": {
+      "identityVerified": "본인인증 완료",
+      "verificationNeeded": "인증 필요",
+      "firstName": "이름",
+      "lastName": "성",
+      "nickname": "닉네임",
+      "email": "이메일",
+      "phone": "전화번호",
+      "firstNamePlaceholder": "이름",
+      "lastNamePlaceholder": "성",
+      "nicknamePlaceholder": "닉네임",
+      "emailPlaceholder": "이메일",
+      "phonePlaceholder": "전화번호",
+      "profilePictureAlt": "프로필 사진"
+    },
+    "referral": {
+      "title": "추천 코드",
+      "getCode": "내 추천 코드 받기",
+      "generating": "생성 중...",
+      "copy": "복사",
+      "copySuccess": "추천 코드가 복사되었습니다!",
+      "updateSuccess": "추천 코드가 업데이트되었습니다!",
+      "fetchError": "추천 코드를 가져오는데 실패했습니다. 다시 시도해 주세요.",
+      "getCodeError": "추천 코드를 받는데 실패했습니다. 다시 시도해 주세요.",
+      "stats": {
+        "totalReferred": "총 초대한 인원",
+        "referred": "추천",
+        "totalEarned": "총 정립된 코코인",
+        "earned": "수익",
+        "pendingPayout": "지급 대기중인 코코인",
+        "pending": "대기",
+        "korCoins": "코코인"
+      },
+      "history": {
+        "title": "추천인 내역",
+        "loading": "로딩 중...",
+        "loadError": "추천 대시보드를 불러오는데 실패했습니다.",
+        "retry": "다시 시도",
+        "noReferrals": "아직 추천한 사용자가 없습니다.",
+        "noReferralsDesc": "추천 코드를 공유하여 시작해보세요 !",
+        "joiner": "가입자",
+        "joinDate": "가입일",
+        "status": "상태",
+        "earnings": "수익",
+        "prev": "이전",
+        "next": "다음",
+        "page": "{page}페이지 / {totalPages}페이지"
+      },
+      "customize": {
+        "title": "추천 코드 커스터마이징",
+        "currentCode": "현재 코드",
+        "instructions": "새 코드를 입력하세요 (4-12자, A-Z 및 0-9만 가능).",
+        "warning": "기존 코드는 교체되며 다시 사용할 수 없습니다.",
+        "note": "주의:",
+        "noteText": "추천 코드에 비속어, 공격적이거나 예약된 단어를 사용하지 마세요. 그럴 경우 코드가 제거되고 계정이 영구적으로 차단될 수 있습니다.",
+        "placeholder": "커스텀 코드 입력",
+        "cancel": "취소",
+        "save": "저장",
+        "validation": {
+          "invalidFormat": "코드는 4-12자, A-Z 및 0-9만 가능합니다.",
+          "reserved": "이 코드는 예약되어 있습니다. 다른 코드를 선택하세요.",
+          "notAllowed": "이 코드는 허용되지 않습니다.",
+          "sameCode": "현재 코드와 같은 코드를 사용하지 마세요.",
+          "alreadyTaken": "이미 사용 중인 코드입니다.",
+          "checkError": "코드 확인 중 오류가 발생했습니다. 다시 시도하세요.",
+          "availabilityError": "코드 사용 가능성 확인 중 오류가 발생했습니다. 다시 시도하세요.",
+          "saveError": "커스텀 코드 설정에 실패했습니다. 다시 시도하세요."
+        }
+      },
+      "share": {
+        "title": "추천 코드 공유",
+        "yourCode": "귀하의 추천 코드",
+        "description": "코드를 공유하고 친구들을 초대하세요!",
+        "copyLink": "링크 복사",
+        "linkCopied": "추천 링크가 복사되었습니다!",
+        "threads": "스레드",
+        "facebook": "페이스북",
+        "twitter": "X",
+        "shareText": "내 추천 코드로 위투에 가입하세요: {code}\n{url}"
+      }
+    },
+    "allAccounts": {
+      "title": "전체 계좌",
+      "noAccounts": "아직 인증된 은행 계좌가 없습니다.",
+      "bank": "은행",
+      "verified": "인증됨",
+      "accountHolder": "계좌 소유자",
+      "accountNumber": "계좌번호",
+      "showDetails": "상세 정보 보기",
+      "hideDetails": "상세 정보 숨기기",
+      "withdrawAmount": "출금 금액 (KOR)",
+      "withdrawAmountPlaceholder": "예: 1000",
+      "withdraw": "출금",
+      "amountLimits": "최소 100 KOR • 최대 15,000 KOR",
+      "securityNotice": "인증된 계좌에서는 출금 시 추가 인증 단계를 건너뛸 수 있습니다.",
+      "validation": {
+        "amountRange": "출금 금액은 100~15,000 KOR 코인 사이여야 합니다",
+        "insufficientBalance": "KOR 코인 잔액이 부족합니다",
+        "withdrawalCreated": "출금 요청이 생성되었습니다",
+        "withdrawalFailed": "출금 요청 생성에 실패했습니다"
+      }
+    },
+    "transactions": {
+      "title": "전체 거래 내역",
+      "searchPlaceholder": "ID, 유형, 상태 등으로 검색",
+      "filterByType": "유형별 필터",
+      "filterByStatus": "상태별 필터",
+      "exportCsv": "내보내기",
+      "filters": {
+        "allTypes": "전체 유형",
+        "allStatus": "전체 상태",
+        "deposits": "입금",
+        "withdrawals": "출금",
+        "uidPayback": "UID 페이백",
+        "sent": "완료",
+        "pending": "대기",
+        "failed": "실패"
+      },
+      "table": {
+        "id": "ID",
+        "type": "유형",
+        "amount": "금액",
+        "received": "수령액",
+        "status": "상태",
+        "date": "날짜"
+      },
+      "types": {
+        "withdrawal": "출금",
+        "deposit": "입금",
+        "uidPayback": "UID 페이백"
+      },
+      "statuses": {
+        "sent": "완료",
+        "pending": "대기",
+        "failed": "실패"
+      },
+      "empty": {
+        "loading": "거래 내역을 불러오는 중...",
+        "noTransactions": "거래내역이 없습니다.",
+        "adjustFilters": "필터나 검색어를 조정해 보세요"
+      },
+      "csv": {
+        "filename": "거래내역-{date}.csv",
+        "headers": {
+          "id": "id",
+          "type": "type",
+          "amountKor": "amount_kor",
+          "receivedKorOrWon": "received_kor_or_won",
+          "status": "status",
+          "createdAt": "created_at",
+          "bankName": "bank_name",
+          "accountNumber": "account_number"
+        }
+      }
+    },
+    "korCoinsWithdrawal": {
+      "title": "KOR 코인 출금",
+      "accountInfo": {
+        "title": "계정 정보",
+        "accountHolder": "계정 소유자",
+        "currentLevel": "현재 등급",
+        "availableBalance": "출금 가능 잔액",
+        "withdrawalFee": "현재 출금 수수료",
+        "feeStructure": "레벨별 수수료 구조",
+        "tiers": {
+          "bronze": "브론즈 (1-25)",
+          "silver": "실버 (26-50)",
+          "gold": "골드 (51-75)",
+          "platinum": "플래티넘 (76-99)"
+        }
+      },
+      "withdrawalRequest": {
+        "title": "출금 신청",
+        "amount": "금액",
+        "amountPlaceholder": "금액을 입력하세요.",
+        "validation": {
+          "minWithdrawal": "최소 출금 금액은 100 KOR입니다.",
+          "maxWithdrawal": "최대 출금 금액은 15,000 KOR입니다.",
+          "insufficientBalance": "잔액이 부족합니다. 보유 금액: {balance} KOR",
+          "enterAmount": "유효한 금액을 입력해주세요",
+          "enterAccountHolder": "계좌 소유자 이름을 입력해주세요",
+          "enterAccountNumber": "은행 계좌번호를 입력해주세요",
+          "enterBankName": "은행명을 입력해주세요"
+        },
+        "feeBreakdown": {
+          "amount": "금액:",
+          "estimatedFee": "예상 수수료 ({percentage}%):",
+          "estimatedReceive": "예상 수령 금액:",
+          "serverNote": "* 최종 금액은 서버에서 계산 및 검증됩니다"
+        },
+        "verification": {
+          "title": "은행 계좌 인증",
+          "requestId": "요청 ID",
+          "korCoins": "KOR 코인",
+          "bank": "은행",
+          "accountNumber": "계좌번호",
+          "verificationNote": "소액을 전송했습니다. 정확히 받은 금액을 입력해주세요.",
+          "enterAmount": "인증 금액 입력 (₩)",
+          "amountPlaceholder": "예: 0.0042",
+          "verifyNow": "지금 인증",
+          "enterReceivedAmount": "받은 금액을 입력해주세요.",
+          "amountMismatch": "인증 금액이 일치하지 않습니다.",
+          "bankAccountNotFound": "은행 계좌를 찾을 수 없습니다.",
+          "verificationSuccess": "은행 계좌가 인증되었습니다.",
+          "verificationFailed": "인증에 실패했습니다."
+        },
+        "limits": {
+          "minWithdrawal": "최소 출금 금액",
+          "maxWithdrawal": "최대 출금",
+          "processing": "출금 최대 소요시간",
+          "minAmount": "100 KOR",
+          "maxAmount": "15,000 KOR",
+          "processingTime": "8시간"
+        },
+        "form": {
+          "accountHolderName": "예금주 명",
+          "accountHolderPlaceholder": "예금주명을 입력하세요",
+          "bankName": "은행명",
+          "bankNamePlaceholder": "은행명을 입력하세요",
+          "bankAccountNumber": "계좌번호",
+          "bankAccountPlaceholder": "계좌번호를 입력하세요"
+        },
+        "tips": {
+          "title": "💡 Tip:",
+          "message": "은행 계좌 정보가 정확한지 반드시 확인하세요. 잘못된 정보는 출금 지연을 초래할 수 있습니다."
+        },
+        "security": {
+          "title": "🔐 Security Notice:",
+          "message": "모든 요청은 수동으로 검토되며, 처리 시간은 영업일 기준 1~8시간 소요됩니다"
+        },
+        "buttons": {
+          "processing": "처리 중...",
+          "submitRequest": "출금 요청"
+        }
+      },
+      "errors": {
+        "userNotFound": "사용자를 찾을 수 없습니다",
+        "userNotFoundTitle": "사용자를 찾을 수 없음",
+        "userNotFoundMessage": "출금 기능에 액세스하려면 로그인해주세요.",
+        "withdrawalSubmitted": "출금 요청이 제출되었습니다. 수동 검토 후 알려드리겠습니다.",
+        "withdrawalFailed": "출금 요청 제출에 실패했습니다"
+      }
+    },
+    "uidRegistration": {
+      "title": "UID 등록",
+      "addUid": "UID 추가",
+      "yourUids": "나의 UID",
+      "emptyState": {
+        "title": "등록된 UID가 없습니다",
+        "description": "첫 번째 브로커 UID를 추가해보세요"
+      },
+      "status": {
+        "active": "활성화됨",
+        "inactive": "비활성",
+        "verifying": "인증 중...",
+        "verified": "인증완료",
+        "notVerified": "UID 미인증",
+        "notReferral": "추천인 아님"
+      },
+      "stats": {
+        "totalAccumulatedPayback": "총 누적 페이백",
+        "withdrawnAmount": "출금 금액",
+        "withdrawableBalance": "출금 가능 금액",
+        "totalLifetimeRebate": "전체 누적 리베이트:",
+        "last24Hours": "최근 24시간 리베이트:"
+      },
+      "toast": {
+        "uidCopied": "UID가 클립보드에 복사되었습니다"
+      }
+    },
+    "paybackWithdrawal": {
+      "title": "페이백 출금요청",
+      "description": "페이백 최소 출금 금액은 50 USDT 입니다.",
+      "form": {
+        "selectUid": "UID 선택",
+        "selectUidPlaceholder": "UID를 선택하세요...",
+        "withdrawalAmount": "출금 금액 (USD)",
+        "withdrawalAmountPlaceholder": "50.00",
+        "minimumAmount": "최소: $50.00",
+        "availableBalance": "사용 가능한 잔액:",
+        "submitButton": "출금 요청 제출",
+        "submitting": "제출 중..."
+      },
+      "emptyState": {
+        "title": "잔액이 50USDT 이상인 UID가 없습니다.",
+        "description": "UID를 연결하고 페이백을 적립하여 출금하세요."
+      },
+      "validation": {
+        "minimumAmount": "최소 출금 금액은 $50입니다",
+        "insufficientBalance": "잔액이 부족합니다"
+      }
+    }
   }
 }

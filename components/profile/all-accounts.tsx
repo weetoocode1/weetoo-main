@@ -12,10 +12,12 @@ import {
   useWithdrawalRealtimeSubscriptions,
 } from "@/hooks/use-withdrawal";
 import { CheckCircle2, CreditCard, Eye, EyeOff, Shield } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 export function AllAccounts() {
+  const t = useTranslations("profile.allAccounts");
   const { computed } = useAuth();
   const { data: bankAccounts, isLoading } = useUserBankAccounts();
   const createWithdrawal = useCreateWithdrawalRequest();
@@ -39,11 +41,11 @@ export function AllAccounts() {
     const raw = amountByAccountId[accountId] ?? "";
     const amount = Math.floor(parseFloat(raw) || 0);
     if (amount < 100 || amount > 15000) {
-      toast.error("Withdrawal amount must be between 100 and 15,000 KOR coins");
+      toast.error(t("validation.amountRange"));
       return;
     }
     if ((computed?.kor_coins || 0) < amount) {
-      toast.error("Insufficient KOR coins balance");
+      toast.error(t("validation.insufficientBalance"));
       return;
     }
     try {
@@ -51,11 +53,11 @@ export function AllAccounts() {
         bank_account_id: accountId,
         kor_coins_amount: amount,
       });
-      toast.success("Withdrawal request created");
+      toast.success(t("validation.withdrawalCreated"));
       setAmountByAccountId((prev) => ({ ...prev, [accountId]: "" }));
     } catch (e: Error | unknown) {
       toast.error(
-        e instanceof Error ? e.message : "Failed to create withdrawal request"
+        e instanceof Error ? e.message : t("validation.withdrawalFailed")
       );
     }
   };
@@ -77,7 +79,7 @@ export function AllAccounts() {
     <div className="space-y-6">
       <Card className="rounded-none border-none shadow-none">
         <CardHeader>
-          <CardTitle className="text-lg">All Accounts</CardTitle>
+          <CardTitle className="text-lg">{t("title")}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -90,7 +92,7 @@ export function AllAccounts() {
             </div>
           ) : verifiedAccounts.length === 0 ? (
             <div className="text-sm text-muted-foreground">
-              No verified bank accounts yet.
+              {t("noAccounts")}
             </div>
           ) : (
             <div className="space-y-4">
@@ -115,12 +117,13 @@ export function AllAccounts() {
                           </div>
                           <div>
                             <div className="text-xs text-muted-foreground">
-                              Bank
+                              {t("bank")}
                             </div>
                             <div className="font-medium">
                               {acc.bank_name || "-"}
                               <Badge className="inline-flex items-center gap-1 bg-emerald-600/10 text-emerald-600 border-emerald-600/30 rounded-none ml-2">
-                                <CheckCircle2 className="h-3 w-3" /> Verified
+                                <CheckCircle2 className="h-3 w-3" />{" "}
+                                {t("verified")}
                               </Badge>
                             </div>
                           </div>
@@ -130,7 +133,7 @@ export function AllAccounts() {
                       <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <div className="text-xs text-muted-foreground">
-                            Account Holder
+                            {t("accountHolder")}
                           </div>
                           <div className="font-medium">
                             {showDetails[acc.id]
@@ -140,7 +143,7 @@ export function AllAccounts() {
                         </div>
                         <div>
                           <div className="text-xs text-muted-foreground">
-                            Account Number
+                            {t("accountNumber")}
                           </div>
                           <div className="font-mono">
                             {showDetails[acc.id]
@@ -165,11 +168,13 @@ export function AllAccounts() {
                         >
                           {showDetails[acc.id] ? (
                             <>
-                              <EyeOff className="h-4 w-4 mr-2" /> Hide details
+                              <EyeOff className="h-4 w-4 mr-2" />{" "}
+                              {t("hideDetails")}
                             </>
                           ) : (
                             <>
-                              <Eye className="h-4 w-4 mr-2" /> Show details
+                              <Eye className="h-4 w-4 mr-2" />{" "}
+                              {t("showDetails")}
                             </>
                           )}
                         </Button>
@@ -179,7 +184,7 @@ export function AllAccounts() {
                     {/* Right action */}
                     <div className="md:col-span-5 p-4">
                       <Label htmlFor={`amount-${acc.id}`}>
-                        Withdraw Amount (KOR)
+                        {t("withdrawAmount")}
                       </Label>
                       <div className="mt-1.5 flex gap-2">
                         <Input
@@ -193,18 +198,18 @@ export function AllAccounts() {
                           onChange={(e) =>
                             handleAmountChange(acc.id, e.target.value)
                           }
-                          placeholder="e.g., 1000"
+                          placeholder={t("withdrawAmountPlaceholder")}
                         />
                         <Button
                           className="h-10"
                           onClick={() => handleWithdraw(acc.id)}
                           disabled={createWithdrawal.isPending}
                         >
-                          Withdraw
+                          {t("withdraw")}
                         </Button>
                       </div>
                       <div className="mt-2 text-xs text-muted-foreground">
-                        Min 100 KOR • Max 15,000 KOR
+                        {t("amountLimits")}
                       </div>
                     </div>
                   </div>
@@ -216,8 +221,7 @@ export function AllAccounts() {
             <div className="flex items-start gap-2">
               <Shield className="h-4 w-4 text-primary mt-0.5" />
               <p className="text-xs text-muted-foreground">
-                Withdrawals from a verified account skip the verification step.
-                Requests are still reviewed manually by our team.
+                {t("securityNotice")}
               </p>
             </div>
           </div>
