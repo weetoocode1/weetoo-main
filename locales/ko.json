@@ -1863,6 +1863,21 @@
       "phonePlaceholder": "전화번호",
       "profilePictureAlt": "프로필 사진"
     },
+    "edit": {
+      "editProfile": "프로필 편집",
+      "save": "저장",
+      "cancel": "취소",
+      "saving": "저장 중...",
+      "changePhoto": "사진 변경",
+      "uploading": "업로드 중...",
+      "profileUpdated": "프로필이 성공적으로 업데이트되었습니다",
+      "avatarUpdated": "아바타가 성공적으로 업데이트되었습니다",
+      "updateFailed": "프로필 업데이트에 실패했습니다",
+      "avatarUpdateFailed": "아바타 업로드에 실패했습니다",
+      "firstNameRequired": "이름과 성은 필수입니다",
+      "invalidImageType": "유효한 이미지 파일을 업로드해주세요 (JPEG, PNG, WebP, 또는 GIF)",
+      "fileTooLarge": "파일 크기는 5MB 미만이어야 합니다"
+    },
     "referral": {
       "title": "추천 코드",
       "getCode": "내 추천 코드 받기",
