@@ -1873,6 +1873,21 @@
       "phonePlaceholder": "Phone Number",
       "profilePictureAlt": "Profile Picture"
     },
+    "edit": {
+      "editProfile": "Edit Profile",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "changePhoto": "Change Photo",
+      "uploading": "Uploading...",
+      "profileUpdated": "Profile updated successfully",
+      "avatarUpdated": "Avatar updated successfully",
+      "updateFailed": "Failed to update profile",
+      "avatarUpdateFailed": "Failed to upload avatar",
+      "firstNameRequired": "First name and last name are required",
+      "invalidImageType": "Please upload a valid image file (JPEG, PNG, WebP, or GIF)",
+      "fileTooLarge": "File size must be less than 5MB"
+    },
     "referral": {
       "title": "Referral Code",
       "getCode": "Get your referral code",
