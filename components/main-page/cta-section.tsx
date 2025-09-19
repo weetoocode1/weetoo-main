@@ -236,7 +236,7 @@ export function CTASection() {
           {/* Copy */}
           <div className="p-6 sm:p-8 md:p-12 md:col-span-7">
             <span className="inline-flex items-center gap-2 rounded-full border border-border bg-background/70 px-2.5 py-1 text-[10px] sm:text-[11px] font-medium text-muted-foreground">
-              <Sparkles className="h-3.5 w-3.5" /> Process first. Noise free.
+              <Sparkles className="h-3.5 w-3.5" /> {t("badge")}
             </span>
             <h2 className="mt-3 text-2xl sm:text-3xl md:text-5xl font-extrabold tracking-tight text-foreground leading-tight">
               {t("readyToJoin")}
@@ -263,7 +263,7 @@ export function CTASection() {
               className="mt-4 sm:mt-6 text-[11px] sm:text-xs text-muted-foreground"
               aria-hidden
             >
-              Consistency over hype • Peer review culture • Process over guesses
+              {t("mantra")}
             </div>
           </div>
 
@@ -308,18 +308,18 @@ export function CTASection() {
               </div>
               <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent" />
               <div className="pointer-events-none absolute right-3 top-3 rounded-full bg-background/70 px-2 py-1 text-[10px] font-medium text-muted-foreground ring-1 ring-border">
-                Focus Mode
+                {t("focusMode")}
               </div>
             </div>
             <div className="mt-4 grid grid-cols-3 gap-3 text-center text-xs text-muted-foreground">
               <div className="rounded-lg border border-border bg-background/60 p-3">
-                Focused sessions
+                {t("focusedSessions")}
               </div>
               <div className="rounded-lg border border-border bg-background/60 p-3">
-                Peer reviews
+                {t("peerReviews")}
               </div>
               <div className="rounded-lg border border-border bg-background/60 p-3">
-                Always‑on community
+                {t("alwaysOnCommunity")}
               </div>
             </div>
           </div>

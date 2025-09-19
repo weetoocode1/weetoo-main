@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface BanDialogProps {
   user: {
@@ -41,6 +42,7 @@ export function BanDialog({
   onUserBanned,
   currentUserRole,
 }: BanDialogProps) {
+  const t = useTranslations("adminBanDialog");
   const [banData, setBanData] = useState({
     reason: "",
     permanent: false,
@@ -120,7 +122,7 @@ export function BanDialog({
 
   const handleBanUser = async () => {
     if (!banData.reason.trim()) {
-      toast.error("Please provide a reason for the ban");
+      toast.error(t("toast.reasonRequired"));
       return;
     }
 
@@ -129,6 +131,12 @@ export function BanDialog({
     try {
       const supabase = createClient();
 
+      // Get current admin user id once to reuse
+      const {
+        data: { user: adminUser },
+      } = await supabase.auth.getUser();
+      const adminUserId = adminUser?.id || null;
+
       // Insert ban record
       const { error } = await supabase.from("user_bans").insert({
         user_id: user.id,
@@ -136,29 +144,46 @@ export function BanDialog({
         permanent: banData.permanent,
         active: true,
         banned_at: new Date().toISOString(),
-        banned_by: (await supabase.auth.getUser()).data.user?.id,
+        banned_by: adminUserId,
       });
 
       if (error) throw error;
 
       // Update user status to banned
+      const nowIso = new Date().toISOString();
       const { error: updateError } = await supabase
         .from("users")
         .update({
           banned: true,
           ban_reason: banData.reason.trim(),
+          banned_at: nowIso,
+          banned_by: adminUserId,
           updated_at: new Date().toISOString(),
         })
         .eq("id", user.id);
 
       if (updateError) throw updateError;
 
-      toast.success("User has been banned successfully");
+      // Push a realtime notification so the user's client reacts instantly
+      try {
+        await supabase.from("notifications").insert({
+          user_id: user.id,
+          audience: "user",
+          type: "user_banned",
+          title: "Account Banned",
+          body: null,
+          metadata: { reason: banData.reason.trim(), banned_at: nowIso },
+        });
+      } catch (_e) {
+        // Non-blocking: ban already applied
+      }
+
+      toast.success(t("toast.banSuccess"));
       onUserBanned();
       onOpenChange(false);
     } catch (error) {
       console.error("Error banning user:", error);
-      toast.error("Failed to ban user. Please try again.");
+      toast.error(t("toast.banFailed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -169,6 +194,12 @@ export function BanDialog({
 
     try {
       const supabase = createClient();
+
+      // Get current admin user id once to reuse
+      const {
+        // data: { user: adminUser },
+      } = await supabase.auth.getUser();
+      // const adminUserId = adminUser?.id || null;
 
       // Deactivate ban record
       const { error } = await supabase
@@ -189,18 +220,20 @@ export function BanDialog({
         .update({
           banned: false,
           ban_reason: null,
+          banned_at: null,
+          banned_by: null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", user.id);
 
       if (updateError) throw updateError;
 
-      toast.success("User has been unbanned successfully");
+      toast.success(t("toast.unbanSuccess"));
       onUserBanned();
       onOpenChange(false);
     } catch (error) {
       console.error("Error unbanning user:", error);
-      toast.error("Failed to unban user. Please try again.");
+      toast.error(t("toast.unbanFailed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -227,15 +260,13 @@ export function BanDialog({
         <DialogContent className="w-full lg:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">
-              Loading User Information
+              {t("loadingTitle")}
             </DialogTitle>
           </DialogHeader>
           <div className="flex items-center justify-center p-8">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">
-                Loading user information...
-              </p>
+              <p className="text-muted-foreground">{t("loadingMessage")}</p>
             </div>
           </div>
         </DialogContent>
@@ -248,12 +279,18 @@ export function BanDialog({
       <DialogContent className="w-full lg:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
-            {isUserBanned ? "Unban User" : "Ban User"}
+            {isUserBanned ? t("unbanTitle") : t("title")}
           </DialogTitle>
           <DialogDescription>
             {isUserBanned
-              ? `Unban ${user.first_name} ${user.last_name} to restore their access`
-              : `Ban ${user.first_name} ${user.last_name} from the platform`}
+              ? t("unbanDescription", {
+                  firstName: user.first_name,
+                  lastName: user.last_name,
+                })
+              : t("description", {
+                  firstName: user.first_name,
+                  lastName: user.last_name,
+                })}
           </DialogDescription>
         </DialogHeader>
 
@@ -284,11 +321,11 @@ export function BanDialog({
             </p>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-muted-foreground">
-                Warnings: {user.warningCount}
+                {t("userInfo.warnings")} {user.warningCount}
               </span>
               {isUserBanned && user.ban_reason && (
                 <span className="text-sm text-red-600">
-                  Ban Reason: {user.ban_reason}
+                  {t("userInfo.banReason")} {user.ban_reason}
                 </span>
               )}
             </div>
@@ -301,7 +338,8 @@ export function BanDialog({
             {/* Ban Reason */}
             <div className="space-y-2">
               <Label htmlFor="reason" className="text-sm font-medium">
-                Ban Reason <span className="text-red-500">*</span>
+                {t("form.banReasonLabel")}{" "}
+                <span className="text-red-500">*</span>
               </Label>
               <Textarea
                 ref={textareaRef}
@@ -319,7 +357,7 @@ export function BanDialog({
                   whiteSpace: "pre-wrap",
                   overflowWrap: "break-word",
                 }}
-                placeholder="Enter the reason for banning this user..."
+                placeholder={t("form.banReasonPlaceholder")}
                 required
               />
             </div>
@@ -338,7 +376,7 @@ export function BanDialog({
                   }
                 />
                 <Label htmlFor="permanent" className="text-sm">
-                  Permanent ban (user cannot be unbanned automatically)
+                  {t("form.permanentBan")}
                 </Label>
               </div>
 
@@ -354,7 +392,7 @@ export function BanDialog({
                   }
                 />
                 <Label htmlFor="notifyUser" className="text-sm">
-                  Notify user about this ban
+                  {t("form.notifyUser")}
                 </Label>
               </div>
             </div>
@@ -363,11 +401,10 @@ export function BanDialog({
           // Unban Information
           <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-none">
             <h4 className="font-medium text-yellow-800 mb-2">
-              User is currently banned
+              {t("unbanInfo.title")}
             </h4>
             <p className="text-sm text-yellow-700">
-              This user was banned and cannot access the platform. Click &quot;
-              Unban User&quot; below to restore their access.
+              {t("unbanInfo.description")}
             </p>
           </div>
         )}
@@ -378,7 +415,7 @@ export function BanDialog({
             onClick={() => onOpenChange(false)}
             className="h-10"
           >
-            Cancel
+            {t("buttons.cancel")}
           </Button>
           {isUserBanned ? (
             <Button
@@ -386,7 +423,7 @@ export function BanDialog({
               disabled={isSubmitting}
               className="h-10 bg-green-600 hover:bg-green-700 text-white"
             >
-              {isSubmitting ? "Unbanning..." : "Unban User"}
+              {isSubmitting ? t("buttons.unbanning") : t("buttons.unbanUser")}
             </Button>
           ) : (
             <Button
@@ -394,7 +431,7 @@ export function BanDialog({
               disabled={!banData.reason.trim() || isSubmitting}
               className="h-10 bg-red-600 hover:bg-red-700 text-white"
             >
-              {isSubmitting ? "Banning..." : "Ban User"}
+              {isSubmitting ? t("buttons.banning") : t("buttons.banUser")}
             </Button>
           )}
         </DialogFooter>

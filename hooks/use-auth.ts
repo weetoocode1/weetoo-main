@@ -3,6 +3,20 @@
 import { createClient } from "@/lib/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef } from "react";
+import { useBanStore } from "@/lib/store/ban-store";
+interface MinimalAuthUserIdentity {
+  provider?: string;
+}
+interface MinimalAuthUserAppMeta {
+  provider?: string;
+}
+interface MinimalAuthUser {
+  id: string;
+  email?: string | null;
+  user_metadata?: Record<string, unknown> | null;
+  app_metadata?: MinimalAuthUserAppMeta | null;
+  identities?: MinimalAuthUserIdentity[] | null;
+}
 
 interface UserData {
   id: string;
@@ -19,6 +33,9 @@ interface UserData {
   identity_verified?: boolean;
   identity_verified_at?: string;
   identity_verification_id?: string;
+  banned?: boolean;
+  ban_reason?: string;
+  banned_at?: string;
 }
 
 // Query key for user data
@@ -30,7 +47,7 @@ async function fetchUserData(userId: string): Promise<UserData> {
   const { data, error } = await supabase
     .from("users")
     .select(
-      "id, first_name, last_name, nickname, email, avatar_url, level, exp, kor_coins, role, mobile_number, identity_verified"
+      "id, first_name, last_name, nickname, email, avatar_url, level, exp, kor_coins, role, mobile_number, identity_verified, banned, ban_reason, banned_at"
     )
     .eq("id", userId)
     .single();
@@ -52,6 +69,7 @@ async function fetchUserData(userId: string): Promise<UserData> {
 export function useAuth() {
   const queryClient = useQueryClient();
   const lastSessionId = useRef<string | null>(null);
+  const openBan = useBanStore((s) => s.openBan);
 
   // Get current session
   const { data: session, isLoading: sessionLoading } = useQuery({
@@ -66,6 +84,109 @@ export function useAuth() {
   });
 
   const userId = session?.user?.id;
+
+  // Best-effort profile synchronization: when we have a fresh session, ensure
+  // a corresponding row exists in public.users and backfill first/last name
+  // from the OAuth provider display name. This runs client-side after sign-in
+  // and avoids overwriting existing non-null values.
+  useEffect(() => {
+    const syncProfile = async () => {
+      if (!session?.user?.id) return;
+
+      const supabase = createClient();
+      const authUser = session.user as unknown as MinimalAuthUser;
+
+      // Derive names from auth metadata/display name
+      const meta = (authUser.user_metadata || {}) as Record<string, unknown>;
+      const providerFromAppMeta = authUser.app_metadata?.provider as
+        | string
+        | undefined;
+      const providerFromIdentity = authUser.identities?.[0]?.provider as
+        | string
+        | undefined;
+      const provider: string | undefined =
+        providerFromAppMeta || providerFromIdentity;
+
+      const getString = (v: unknown): string | undefined =>
+        typeof v === "string" && v.trim().length > 0 ? v : undefined;
+      const displayName: string | undefined =
+        getString(meta.full_name) ||
+        getString(meta.name) ||
+        getString(meta.user_name) ||
+        getString(meta.nickname) ||
+        getString(meta.preferred_username);
+
+      let derivedFirst: string | null = null;
+      let derivedLast: string | null = null;
+      if (displayName && typeof displayName === "string") {
+        const parts = displayName.trim().split(/\s+/);
+        if (parts.length === 1) {
+          derivedFirst = parts[0];
+          derivedLast = "";
+        } else if (parts.length > 1) {
+          derivedFirst = parts[0];
+          derivedLast = parts.slice(1).join(" ");
+        }
+      }
+
+      const avatarUrl: string | null =
+        getString(meta.avatar_url) || getString(meta.picture) || null;
+
+      // Derive nickname from email local part if available
+      const email = authUser.email || undefined;
+      const derivedNickname: string | null = email
+        ? (email.split("@")[0] || "").trim() || null
+        : null;
+
+      // 1) fetch current public.users row
+      const { data: existing } = await supabase
+        .from("users")
+        .select(
+          "id, first_name, last_name, email, avatar_url, provider_type, nickname"
+        )
+        .eq("id", authUser.id)
+        .maybeSingle();
+
+      if (!existing) {
+        // Insert new row with best-available fields
+        await supabase.from("users").insert({
+          id: authUser.id,
+          email: authUser.email,
+          first_name: derivedFirst,
+          last_name: derivedLast,
+          avatar_url: avatarUrl,
+          provider_type: provider ?? null,
+          nickname: derivedNickname,
+        });
+        return;
+      }
+
+      // 2) Update only missing name fields or avatar/provider if absent
+      const needsUpdate =
+        (!existing.first_name && derivedFirst) ||
+        (!existing.last_name && derivedLast) ||
+        (!existing.avatar_url && avatarUrl) ||
+        (!existing.provider_type && provider) ||
+        (!existing.nickname && derivedNickname);
+
+      if (needsUpdate) {
+        await supabase
+          .from("users")
+          .update({
+            first_name: existing.first_name || derivedFirst,
+            last_name: existing.last_name || derivedLast,
+            avatar_url: existing.avatar_url || avatarUrl,
+            provider_type: existing.provider_type || provider || null,
+            nickname: existing.nickname || derivedNickname,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", authUser.id);
+      }
+    };
+
+    // Run once when session becomes available
+    syncProfile().catch(() => {});
+  }, [session?.user?.id]);
 
   // Fetch user data when userId changes
   const {
@@ -92,6 +213,37 @@ export function useAuth() {
 
   // If no session and not loading, user should be null
   const finalUser = !session && !sessionLoading ? null : user;
+
+  // Immediate client-side guard: if a banned user logs in, show modal and end session
+  const banHandledRef = useRef(false);
+  useEffect(() => {
+    if (!finalUser || banHandledRef.current) return;
+    const anyUser = finalUser as unknown as {
+      banned?: boolean;
+      ban_reason?: string;
+      banned_at?: string;
+    };
+    if (anyUser?.banned) {
+      banHandledRef.current = true;
+      try {
+        // Open global ban dialog
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { useBanStore } = require("@/lib/store/ban-store");
+        useBanStore.getState().openBan({
+          reason: anyUser.ban_reason || "",
+          bannedAt: anyUser.banned_at || new Date().toISOString(),
+        });
+      } catch {}
+      try {
+        createClient().auth.signOut();
+      } catch {}
+      try {
+        if (typeof window !== "undefined" && window.location.pathname !== "/") {
+          window.location.href = "/";
+        }
+      } catch {}
+    }
+  }, [finalUser]);
 
   // Set up auth state change listener and real-time subscriptions
   useEffect(() => {
@@ -121,8 +273,9 @@ export function useAuth() {
       }
     );
 
-    // Set up real-time subscription for user data changes
+    // Set up real-time subscriptions for user and user_bans changes
     let userSubscription: any = null;
+    let bansSubscription: any = null;
     if (userId) {
       userSubscription = supabase
         .channel(`user-${userId}`)
@@ -165,6 +318,24 @@ export function useAuth() {
               }
             );
 
+            // If user is banned, show modal, sign out, keep on "/"
+            if (newData?.banned) {
+              try {
+                openBan({
+                  reason: newData.ban_reason || "",
+                  bannedAt: newData.banned_at || new Date().toISOString(),
+                });
+              } catch {}
+              try {
+                createClient().auth.signOut();
+              } catch {}
+              try {
+                if (window.location.pathname !== "/") {
+                  window.location.href = "/";
+                }
+              } catch {}
+            }
+
             // Dispatch custom event for KOR coins changes
             const oldData = queryClient.getQueryData([
               ...USER_QUERY_KEY,
@@ -180,6 +351,75 @@ export function useAuth() {
                   },
                 })
               );
+            }
+          }
+        )
+        .subscribe();
+
+      // Realtime: react to admin bans immediately via user_bans table
+      bansSubscription = supabase
+        .channel(`user-bans-${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "user_bans",
+            filter: `user_id=eq.${userId}`,
+          },
+          (payload) => {
+            const row = payload.new as {
+              active?: boolean;
+              reason?: string;
+              banned_at?: string;
+            };
+            if (row?.active) {
+              try {
+                openBan({
+                  reason: (row as any)?.reason || "",
+                  bannedAt: (row as any)?.banned_at || new Date().toISOString(),
+                });
+              } catch {}
+              try {
+                createClient().auth.signOut();
+              } catch {}
+              try {
+                if (window.location.pathname !== "/") {
+                  window.location.href = "/";
+                }
+              } catch {}
+            }
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "user_bans",
+            filter: `user_id=eq.${userId}`,
+          },
+          (payload) => {
+            const row = payload.new as {
+              active?: boolean;
+              reason?: string;
+              banned_at?: string;
+            };
+            if (row?.active) {
+              try {
+                openBan({
+                  reason: (row as any)?.reason || "",
+                  bannedAt: (row as any)?.banned_at || new Date().toISOString(),
+                });
+              } catch {}
+              try {
+                createClient().auth.signOut();
+              } catch {}
+              try {
+                if (window.location.pathname !== "/") {
+                  window.location.href = "/";
+                }
+              } catch {}
             }
           }
         )
@@ -237,9 +477,8 @@ export function useAuth() {
 
     return () => {
       listener?.subscription.unsubscribe();
-      if (userSubscription) {
-        userSubscription.unsubscribe();
-      }
+      if (userSubscription) userSubscription.unsubscribe();
+      if (bansSubscription) bansSubscription.unsubscribe();
       window.removeEventListener("identity-verified", handleIdentityVerified);
     };
   }, [queryClient, userId]);

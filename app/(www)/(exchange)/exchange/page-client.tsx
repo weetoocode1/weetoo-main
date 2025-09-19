@@ -21,7 +21,7 @@ export function BrokerPageClient() {
                   <h1 className="text-3xl md:text-4xl font-bold tracking-tight px-2">
                     {t("title")}
                   </h1>
-                  <p className="text-sm md:text-base text-neutral-600 dark:text-neutral-400 break-words px-2 text-balance max-w-4xl mx-auto">
+                  <p className="text-sm md:text-base text-neutral-600 dark:text-neutral-400 break-words px-2 text-balance max-w-4xl mx-auto whitespace-pre-line">
                     {t("description")}
                   </p>
                 </div>

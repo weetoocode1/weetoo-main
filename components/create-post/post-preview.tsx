@@ -12,6 +12,7 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel";
 import { Eye } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -41,6 +42,7 @@ export function PostPreview({
   carouselIndex,
   setCarouselIndex,
 }: PostPreviewProps) {
+  const t = useTranslations("createPost");
   const [carouselApi, setCarouselApi] = useState<CarouselApi | null>(null);
   // Fetch current user from public.users
   const [user, setUser] = useState<UserData | null>(null);
@@ -115,16 +117,17 @@ export function PostPreview({
                   variant="outline"
                   className="ml-2 whitespace-nowrap"
                 >
-                  Follow
+                  {t("follow")}
                 </Button>
               </div>
               {/* Details: views, time */}
               <div className="flex items-center gap-3 text-xs text-muted-foreground whitespace-nowrap">
                 <span className="flex items-center gap-1">
-                  <Eye className="w-4 h-4" />0 views
+                  <Eye className="w-4 h-4" />
+                  {t("views", { count: 0 })}
                 </span>
                 <span>•</span>
-                <span>just now</span>
+                <span>{t("justNow")}</span>
               </div>
             </div>
           </>
@@ -157,7 +160,7 @@ export function PostPreview({
                     <CarouselItem key={idx}>
                       <img
                         src={img}
-                        alt={`Image ${idx + 1}`}
+                        alt={t("imageSlideAlt", { index: idx + 1 })}
                         className="h-[400px] w-full object-cover rounded- border border-border"
                       />
                     </CarouselItem>
@@ -181,7 +184,7 @@ export function PostPreview({
                   <img
                     key={idx}
                     src={img}
-                    alt={`Thumbnail ${idx + 1}`}
+                    alt={t("thumbnailAlt", { index: idx + 1 })}
                     className={`w-12 h-12 object-cover rounded-none border-2 cursor-pointer transition-all ${
                       carouselIndex === idx
                         ? "border-primary scale-105"
@@ -209,7 +212,7 @@ export function PostPreview({
         )}
         {!title && !tags.length && !content && images.length === 0 && (
           <div className="text-muted-foreground text-left opacity-70 select-none">
-            Start creating your post to see a live preview here.
+            {t("startCreatingPreviewHint")}
           </div>
         )}
       </div>

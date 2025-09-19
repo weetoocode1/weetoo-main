@@ -24,6 +24,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { ChatMessage } from "./chat-message";
+import { useTranslations } from "next-intl";
 
 // Add UserData interface for user state
 interface UserData {
@@ -94,6 +95,7 @@ function useTimeUntilReset() {
 }
 
 export function FloatingChat() {
+  const t = useTranslations("chat");
   const isRoomOpen = useRoomStore(
     (state: { isRoomOpen: boolean }) => state.isRoomOpen
   );
@@ -491,7 +493,9 @@ export function FloatingChat() {
                 className="rounded-full shadow-lg bg-gradient-to-br from-[#549BCC] to-[#63b3e4] hover:from-[#63b3e4] hover:to-[#549BCC] relative transition-all duration-300 h-11 px-2 text-xs flex items-center justify-center space-x-1 whitespace-nowrap cursor-pointer sm:h-12 sm:px-3 sm:text-sm"
               >
                 <MessageSquare className="h-4 w-4 text-white sm:h-5 sm:w-5" />
-                <span className="font-medium text-white">Chat</span>
+                <span className="font-medium text-white">
+                  {t("chatButton")}
+                </span>
                 {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 h-5 w-5 rounded-full border-2 border-background" />
                 )}
@@ -527,11 +531,11 @@ export function FloatingChat() {
               <div className="flex items-center gap-1 min-w-0 flex-1 sm:gap-2">
                 <MessageSquare className="h-4 w-4 text-[#549BCC] sm:h-5 sm:w-5" />
                 <h3 className="font-medium text-xs truncate sm:text-sm">
-                  Global Chat
+                  {t("globalChat")}
                 </h3>
                 <span className="ml-2 flex items-center gap-1 text-[0.8rem] font-semibold text-primary">
                   <span className="opacity-60 font-normal">|</span>
-                  <span>Reset in {timeUntilReset} (UTC)</span>
+                  <span>{t("resetIn", { time: timeUntilReset })}</span>
                 </span>
               </div>
               <div className="flex items-center gap-1 min-w-0 flex-shrink-0">
@@ -586,13 +590,17 @@ export function FloatingChat() {
                           <div className="flex items-center gap-1">
                             <Star className="h-3.5 w-3.5 text-yellow-500 sm:h-4 sm:w-4" />
                             <span className="text-[10px] text-muted-foreground sm:text-xs">
-                              {(user.exp ?? 0).toLocaleString()} XP
+                              {t("xp", {
+                                value: (user.exp ?? 0).toLocaleString(),
+                              })}
                             </span>
                           </div>
                           <div className="flex items-center gap-1">
                             <Coins className="h-3.5 w-3.5 text-amber-500 sm:h-4 sm:w-4" />
                             <span className="text-[10px] text-muted-foreground sm:text-xs">
-                              {(user.kor_coins ?? 0).toLocaleString()} KOR
+                              {t("kor", {
+                                value: (user.kor_coins ?? 0).toLocaleString(),
+                              })}
                             </span>
                           </div>
                         </div>
@@ -601,8 +609,12 @@ export function FloatingChat() {
                     {/* Experience Level - Redesigned for minimal and clean look */}
                     <div className="w-full flex flex-col gap-y-0.5 mt-1 sm:mt-2 sm:gap-y-1">
                       <div className="flex items-center justify-between text-[10px] text-muted-foreground sm:text-xs">
-                        <span>Level {level}</span>
-                        <span>Level {level + 1}</span>
+                        <span>
+                          {t("level")} {level}
+                        </span>
+                        <span>
+                          {t("level")} {level + 1}
+                        </span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-1 dark:bg-gray-700 sm:h-1.5">
                         <div
@@ -613,8 +625,17 @@ export function FloatingChat() {
                         ></div>
                       </div>
                       <div className="flex items-center justify-between text-[10px] text-muted-foreground sm:text-xs">
-                        <span>{`${progress.toFixed(0)}% Complete`}</span>
-                        <span className="text-red-500">{`${expThisLevel.toLocaleString()} / ${EXP_PER_LEVEL} EXP`}</span>
+                        <span>
+                          {t("percentComplete", {
+                            percent: Number(progress.toFixed(0)),
+                          })}
+                        </span>
+                        <span className="text-red-500">
+                          {t("expProgress", {
+                            current: expThisLevel.toLocaleString(),
+                            total: EXP_PER_LEVEL,
+                          })}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -637,22 +658,22 @@ export function FloatingChat() {
                   </div>
                 ) : authChecked && !user ? (
                   <div className="bg-gradient-to-r from-[#549BCC]/5 to-[#63b3e4]/5 border-b border-border p-2 sm:p-3 flex items-center gap-2 justify-between">
-                    <span className="text-xs sm:text-sm">Please </span>
+                    <span className="text-xs sm:text-sm">{t("please")}</span>
                     <Button
                       variant="outline"
                       size="sm"
                       className="h-7 px-3 py-1 text-xs sm:h-9 sm:px-4 sm:text-sm"
                       asChild
                     >
-                      <Link href="/login">Login</Link>
+                      <Link href="/login">{t("login")}</Link>
                     </Button>
-                    <span className="text-xs sm:text-sm">or</span>
+                    <span className="text-xs sm:text-sm">{t("or")}</span>
                     <Button
                       size="sm"
                       className="h-7 px-3 py-1 text-xs sm:h-9 sm:px-4 sm:text-sm"
                       asChild
                     >
-                      <Link href="/register">Register</Link>
+                      <Link href="/register">{t("register")}</Link>
                     </Button>
                   </div>
                 ) : null}
@@ -676,7 +697,7 @@ export function FloatingChat() {
                     <Input
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder="Type a message..."
+                      placeholder={t("typeMessagePlaceholder")}
                       className="flex-1 h-9 text-xs rounded-md px-2 min-w-0 sm:h-12 sm:text-sm sm:px-4"
                     />
                     <Button
@@ -696,7 +717,7 @@ export function FloatingChat() {
               <div className="p-2 flex items-center justify-between gap-1 min-w-0 sm:p-3">
                 <div className="flex items-center gap-1 min-w-0 flex-1 sm:gap-2">
                   <span className="text-xs truncate sm:text-sm">
-                    Global Chat
+                    {t("globalChat")}
                   </span>
                 </div>
                 <div className="flex items-center gap-1 min-w-0 flex-shrink-0">

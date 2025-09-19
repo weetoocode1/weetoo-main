@@ -4,6 +4,7 @@ import { useLikePost } from "@/hooks/use-like-post";
 import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useHydration } from "@/hooks/use-hydration";
+import { useTranslations } from "next-intl";
 
 interface LikeButtonProps {
   postId: string;
@@ -27,13 +28,14 @@ export function LikeButton({
   const displayLiked = isHydrated ? liked : false;
   const displayLikes = isHydrated ? likes : initialLikes;
   const displayLoading = isHydrated ? loading : false;
+  const t = useTranslations("post");
 
   return (
     <button
       onClick={toggleLike}
       disabled={displayLoading || !isHydrated}
       aria-pressed={displayLiked}
-      aria-label={displayLiked ? "Unlike post" : "Like post"}
+      aria-label={displayLiked ? t("unlikePostAria") : t("likePostAria")}
       className={cn(
         "flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border bg-background hover:bg-muted transition-colors text-sm font-medium select-none",
         displayLiked
@@ -51,7 +53,7 @@ export function LikeButton({
         aria-hidden="true"
       />
       <span>
-        {displayLikes} {displayLikes === 1 ? "Like" : "Likes"}
+        {displayLikes} {displayLikes === 1 ? t("like") : t("likes")}
       </span>
       <span className="sr-only">likes</span>
     </button>

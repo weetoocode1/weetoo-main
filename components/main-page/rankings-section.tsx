@@ -14,6 +14,11 @@ import { motion } from "motion/react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import React, { useMemo } from "react";
+import {
+  getDummyUsers,
+  getDummyDonationUsers,
+  getDummyFollowersUsers,
+} from "@/lib/dummy-users";
 
 // Leaderboard entry interface
 interface LeaderboardEntry {
@@ -452,7 +457,7 @@ export function RankingsSection({ data }: RankingsSectionProps) {
 
   // Convert real data to leaderboard entries with proper fallback to mock data
   const leaderboardData = useMemo(() => {
-    // Mock data for fallback with unique IDs
+    // Mock data for fallback with unique IDs (excluding activity which should use real data)
     const mockData = {
       winrate: [
         {
@@ -556,58 +561,6 @@ export function RankingsSection({ data }: RankingsSectionProps) {
           score: 9100,
           change: -0.5,
           category: "profitrate",
-        },
-      ],
-      activity: [
-        {
-          id: "mock-activity-1",
-          rank: 1,
-          name: "ActiveAce",
-          avatar:
-            "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face",
-          score: 5000,
-          change: 5.0,
-          category: "activity",
-        },
-        {
-          id: "mock-activity-2",
-          rank: 2,
-          name: "EngageEnthusiast",
-          avatar:
-            "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=face",
-          score: 4800,
-          change: 4.5,
-          category: "activity",
-        },
-        {
-          id: "mock-activity-3",
-          rank: 3,
-          name: "DailyDegen",
-          avatar:
-            "https://images.unsplash.com/photo-1502823403499-6ccfcf4cf687?w=150&h=150&fit=crop&crop=face",
-          score: 4500,
-          change: -2.0,
-          category: "activity",
-        },
-        {
-          id: "mock-activity-4",
-          rank: 4,
-          name: "ChattyTrader",
-          avatar:
-            "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-          score: 4200,
-          change: 1.0,
-          category: "activity",
-        },
-        {
-          id: "mock-activity-5",
-          rank: 5,
-          name: "ForumFanatic",
-          avatar:
-            "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
-          score: 4000,
-          change: -0.5,
-          category: "activity",
         },
       ],
       sponsored: [
@@ -722,7 +675,91 @@ export function RankingsSection({ data }: RankingsSectionProps) {
       icon: React.ComponentType<React.SVGProps<SVGSVGElement>>,
       title: string
     ): LeaderboardCategory => {
-      // Convert real data and filter out 0 scores and duplicates
+      // Special handling for activity category - use real data with dummy fallback like most-activity-ranking.tsx
+      if (categoryId === "activity") {
+        const realEntries = convertToLeaderboardEntries(realData, categoryId)
+          .filter((entry) => entry.score > 0)
+          .reduce((acc, entry) => {
+            // Remove duplicates based on user name
+            const existing = acc.find((e) => e.name === entry.name);
+            if (!existing) {
+              acc.push(entry);
+            }
+            return acc;
+          }, [] as LeaderboardEntry[]);
+
+        // If we have real data, use it; otherwise use dummy data
+        if (realEntries.length > 0) {
+          // Fill up to 5 entries with real data, then dummy data if needed
+          const filledEntries = [...realEntries];
+
+          // Use getDummyUsers for fallback
+          const dummyUsers = getDummyUsers("weekly"); // Use weekly timeframe to match the API
+
+          // Convert dummy users to leaderboard entries
+          const dummyEntries = dummyUsers.map((user, index) => ({
+            id: `dummy-activity-${index + 1}`,
+            rank: filledEntries.length + index + 1,
+            name: user.nickname,
+            avatar:
+              user.avatar_url ||
+              `https://images.unsplash.com/photo-${
+                1472099645785 + index
+              }?w=150&h=150&fit=crop&crop=face`,
+            score: user.total_exp || 0,
+            change: 0, // Dummy data has no change
+            category: "activity",
+          }));
+
+          // Fill remaining slots with dummy data (avoiding duplicates with real data)
+          const usedNames = new Set(filledEntries.map((e) => e.name));
+          let dummyIndex = 0;
+
+          while (filledEntries.length < 5 && dummyIndex < dummyEntries.length) {
+            const dummyEntry = dummyEntries[dummyIndex];
+            if (!usedNames.has(dummyEntry.name)) {
+              filledEntries.push({
+                ...dummyEntry,
+                rank: filledEntries.length + 1,
+              });
+              usedNames.add(dummyEntry.name);
+            }
+            dummyIndex++;
+          }
+
+          return {
+            id: categoryId,
+            title,
+            icon,
+            entries: filledEntries.slice(0, 5), // Always exactly 5 entries
+          };
+        } else {
+          // No real data, use dummy data only
+          const dummyUsers = getDummyUsers("weekly");
+          const dummyEntries = dummyUsers.slice(0, 5).map((user, index) => ({
+            id: `dummy-activity-${index + 1}`,
+            rank: index + 1,
+            name: user.nickname,
+            avatar:
+              user.avatar_url ||
+              `https://images.unsplash.com/photo-${
+                1472099645785 + index
+              }?w=150&h=150&fit=crop&crop=face`,
+            score: user.total_exp || 0,
+            change: 0,
+            category: "activity",
+          }));
+
+          return {
+            id: categoryId,
+            title,
+            icon,
+            entries: dummyEntries,
+          };
+        }
+      }
+
+      // For other categories, use real data with appropriate dummy fallback
       const realEntries = convertToLeaderboardEntries(realData, categoryId)
         .filter((entry) => entry.score > 0)
         .reduce((acc, entry) => {
@@ -734,42 +771,73 @@ export function RankingsSection({ data }: RankingsSectionProps) {
           return acc;
         }, [] as LeaderboardEntry[]);
 
-      // Get mock data for this category
-      const mockEntries = mockData[categoryId as keyof typeof mockData] || [];
+      // Fill up to 5 entries with real data, then dummy data if needed
+      const filledEntries = [...realEntries];
 
-      // Mix real data with mock data to always have exactly 5 entries
-      const mixedEntries: LeaderboardEntry[] = [];
+      // Get appropriate dummy data based on category
+      let dummyEntries: LeaderboardEntry[] = [];
 
-      // Add real entries first (up to 5)
-      for (let i = 0; i < Math.min(realEntries.length, 5); i++) {
-        mixedEntries.push({
-          ...realEntries[i],
-          rank: i + 1,
-        });
+      if (categoryId === "sponsored") {
+        const dummyUsers = getDummyDonationUsers("weekly");
+        dummyEntries = dummyUsers.map((user, index) => ({
+          id: `dummy-sponsored-${index + 1}`,
+          rank: filledEntries.length + index + 1,
+          name: user.nickname,
+          avatar:
+            user.avatar_url ||
+            `https://images.unsplash.com/photo-${
+              1472099645785 + index
+            }?w=150&h=150&fit=crop&crop=face`,
+          score: user.total_donation || 0,
+          change: 0, // Dummy data has no change
+          category: "sponsored",
+        }));
+      } else if (categoryId === "followers") {
+        const dummyUsers = getDummyFollowersUsers("weekly");
+        dummyEntries = dummyUsers.map((user, index) => ({
+          id: `dummy-followers-${index + 1}`,
+          rank: filledEntries.length + index + 1,
+          name: user.nickname,
+          avatar:
+            user.avatar_url ||
+            `https://images.unsplash.com/photo-${
+              1472099645785 + index
+            }?w=150&h=150&fit=crop&crop=face`,
+          score: user.total_followers || 0,
+          change: 0, // Dummy data has no change
+          category: "followers",
+        }));
+      } else if (categoryId === "winrate" || categoryId === "profitrate") {
+        // For win rate and profit rate, use mock data from the existing mockData
+        const mockEntries = mockData[categoryId as keyof typeof mockData] || [];
+        dummyEntries = mockEntries.map((entry, index) => ({
+          ...entry,
+          id: `dummy-${categoryId}-${index + 1}`,
+          rank: filledEntries.length + index + 1,
+        }));
       }
 
-      // Fill remaining slots with mock data (avoiding duplicates with real data)
-      const usedNames = new Set(mixedEntries.map((e) => e.name));
-      let mockIndex = 0;
+      // Fill remaining slots with dummy data (avoiding duplicates with real data)
+      const usedNames = new Set(filledEntries.map((e) => e.name));
+      let dummyIndex = 0;
 
-      while (mixedEntries.length < 5 && mockIndex < mockEntries.length) {
-        const mockEntry = mockEntries[mockIndex];
-        if (!usedNames.has(mockEntry.name)) {
-          mixedEntries.push({
-            ...mockEntry,
-            id: `mock-${categoryId}-${mixedEntries.length + 1}`, // Ensure unique ID
-            rank: mixedEntries.length + 1,
+      while (filledEntries.length < 5 && dummyIndex < dummyEntries.length) {
+        const dummyEntry = dummyEntries[dummyIndex];
+        if (!usedNames.has(dummyEntry.name)) {
+          filledEntries.push({
+            ...dummyEntry,
+            rank: filledEntries.length + 1,
           });
-          usedNames.add(mockEntry.name);
+          usedNames.add(dummyEntry.name);
         }
-        mockIndex++;
+        dummyIndex++;
       }
 
       return {
         id: categoryId,
         title,
         icon,
-        entries: mixedEntries, // Always exactly 5 entries or less
+        entries: filledEntries.slice(0, 5), // Always exactly 5 entries
       };
     };
 
@@ -802,7 +870,7 @@ export function RankingsSection({ data }: RankingsSectionProps) {
     ];
 
     return categories;
-  }, [data]);
+  }, [data, t]);
 
   return (
     <section className="bg-background relative py-24 px-4 md:px-0">

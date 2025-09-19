@@ -12,12 +12,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useMarketPurchases } from "@/hooks/use-market-purchases";
+import { useAuth } from "@/hooks/use-auth";
 import { Minus, Plus } from "lucide-react";
 import { useState } from "react";
 import { Icons } from "../icons";
 import { useTranslations } from "next-intl";
 
-type ProductKey = "memberReset" | "chatReset" | "messageRights";
+type ProductKey = "tradingHistoryReset" | "chatReset" | "messageRights";
 
 type Product = {
   key: ProductKey;
@@ -30,8 +32,10 @@ type Quantities = Record<ProductKey, number>;
 
 export function WeetooMarketDialog() {
   const t = useTranslations("weetooMarket");
+  const { user, computed } = useAuth();
+  const { purchaseItems, isPurchasing } = useMarketPurchases(user?.id);
   const [quantities, setQuantities] = useState<Quantities>({
-    memberReset: 0,
+    tradingHistoryReset: 0,
     chatReset: 0,
     messageRights: 0,
   });
@@ -41,22 +45,16 @@ export function WeetooMarketDialog() {
   // Translated products
   const Products: Product[] = [
     {
-      key: "memberReset" as ProductKey,
+      key: "tradingHistoryReset" as ProductKey,
       name: t("memberHistoryReset"),
       description: t("memberHistoryResetDesc"),
       price: 10000,
     },
     {
-      key: "chatReset" as ProductKey,
-      name: t("chatRoomHistoryReset"),
-      description: t("chatRoomHistoryResetDesc"),
-      price: 300,
-    },
-    {
       key: "messageRights" as ProductKey,
       name: t("messageUsageRights"),
       description: t("messageUsageRightsDesc"),
-      price: 300,
+      price: 1000,
     },
   ];
 
@@ -70,6 +68,40 @@ export function WeetooMarketDialog() {
       ...prev,
       [key]: Math.max(minQty, Math.min(maxQty, prev[key] + delta)),
     }));
+  };
+
+  const handlePurchase = async () => {
+    if (total === 0 || !user) return;
+
+    // Check if user has enough KOR coins
+    const currentBalance = computed?.kor_coins || 0;
+    if (currentBalance < total) {
+      return; // Error will be shown by the hook
+    }
+
+    // Prepare items for purchase
+    const itemsToPurchase = Products.filter(
+      (product) => quantities[product.key] > 0
+    ).map((product) => ({
+      product_key: product.key,
+      product_name: product.name,
+      product_description: product.description,
+      quantity: quantities[product.key],
+      unit_price: product.price,
+      total_price: product.price * quantities[product.key],
+    }));
+
+    if (itemsToPurchase.length === 0) return;
+
+    // Execute purchase
+    purchaseItems(itemsToPurchase);
+
+    // Reset quantities after successful purchase
+    setQuantities({
+      tradingHistoryReset: 0,
+      chatReset: 0,
+      messageRights: 0,
+    });
   };
 
   return (
@@ -113,8 +145,7 @@ export function WeetooMarketDialog() {
                   {product.description}
                 </div>
                 <div className="text-sm font-bold text-yellow-500 mt-1">
-                  {product.price.toLocaleString()}{" "}
-                  {product.key === "memberReset" ? t("korCoins") : t("cash")}
+                  {product.price.toLocaleString()} {t("korCoins")}
                 </div>
               </div>
               <div className="flex items-center gap-2 mt-3 sm:mt-0 sm:ml-4 shrink-0 self-start sm:self-center">
@@ -148,19 +179,44 @@ export function WeetooMarketDialog() {
 
         {/* Total and Purchase Button */}
         <div className="px-6 pt-4 pb-6 border-t bg-background/95 rounded-b-2xl shadow-inner">
+          {/* KOR Coins Balance */}
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-muted-foreground">
+              Your Balance
+            </span>
+            <span className="text-lg font-bold tabular-nums text-yellow-500">
+              {(computed?.kor_coins || 0).toLocaleString()} {t("korCoins")}
+            </span>
+          </div>
+
+          {/* Total Cost */}
           <div className="flex items-center justify-between mb-3">
             <span className="text-base font-semibold text-muted-foreground">
               {t("total")}
             </span>
             <span className="text-2xl font-bold tabular-nums text-yellow-500">
-              {total.toLocaleString()} {t("cash")}
+              {total.toLocaleString()} {t("korCoins")}
             </span>
           </div>
+
+          {/* Insufficient Balance Warning */}
+          {total > 0 && (computed?.kor_coins || 0) < total && (
+            <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+              <p className="text-sm text-red-600 dark:text-red-400">
+                Insufficient KOR coins. You need{" "}
+                {(total - (computed?.kor_coins || 0)).toLocaleString()} more.
+              </p>
+            </div>
+          )}
+
           <Button
             className="w-full h-12 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold rounded-xl text-lg transition-colors shadow-md disabled:opacity-60"
-            disabled={total === 0}
+            disabled={
+              total === 0 || (computed?.kor_coins || 0) < total || isPurchasing
+            }
+            onClick={handlePurchase}
           >
-            {t("purchase")}
+            {isPurchasing ? "Processing..." : t("purchase")}
           </Button>
         </div>
       </DialogContent>

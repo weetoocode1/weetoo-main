@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Award, DollarSign, TrendingUp, Trophy, Medal } from "lucide-react";
@@ -84,8 +85,13 @@ export const ProfitRankingTable = memo(
     selectedTimeFrame: TimeFrame;
     onTimeFrameChange: (t: TimeFrame) => void;
   }) => {
+    const t = useTranslations("profitRanking");
     const filledTraders = useMemo<TraderRow[]>(() => {
-      const top10 = (traders || []).slice(0, 10);
+      const nonZero = (traders || []).filter(
+        (t) => (t.total_trades ?? 0) > 0 || (t.total_return ?? 0) > 0
+      );
+      const base = nonZero.length > 0 ? nonZero : traders || [];
+      const top10 = base.slice(0, 10);
       const demo = getDummyTraders(selectedTimeFrame);
       const filled = [...top10];
       while (filled.length < 10) {
@@ -101,13 +107,12 @@ export const ProfitRankingTable = memo(
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
           <div className="flex-1">
             <h2 className="text-2xl font-bold text-foreground">
-              Full Leaderboard
+              {t("fullLeaderboard")}
             </h2>
             <p className="text-muted-foreground">
-              Complete ranking by profit rate •{" "}
-              {selectedTimeFrame.charAt(0).toUpperCase() +
-                selectedTimeFrame.slice(1)}{" "}
-              Rankings
+              {t("fullLeaderboardSubtitle", {
+                timeframe: t(selectedTimeFrame),
+              })}
             </p>
           </div>
           <div className="bg-muted/30 rounded-lg p-1 backdrop-blur-sm border border-border/50">
@@ -123,7 +128,7 @@ export const ProfitRankingTable = memo(
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  {timeFrame.charAt(0).toUpperCase() + timeFrame.slice(1)}
+                  {t(timeFrame)}
                 </button>
               )
             )}
@@ -132,11 +137,11 @@ export const ProfitRankingTable = memo(
 
         <div className="bg-background/60 backdrop-blur-sm rounded-2xl border border-border/50 overflow-hidden shadow-xl">
           <div className="hidden md:grid grid-cols-10 gap-4 px-6 py-5 bg-gradient-to-r from-muted/40 via-muted/30 to-muted/40 border-b border-border/50 font-semibold text-sm text-muted-foreground">
-            <div className="col-span-1">Rank</div>
-            <div className="col-span-3">Trader</div>
-            <div className="col-span-2">Profit Rate</div>
-            <div className="col-span-2">Portfolio</div>
-            <div className="col-span-2">Trades</div>
+            <div className="col-span-1">{t("tableRank")}</div>
+            <div className="col-span-3">{t("tableTrader")}</div>
+            <div className="col-span-2">{t("tableProfitRate")}</div>
+            <div className="col-span-2">{t("tablePortfolio")}</div>
+            <div className="col-span-2">{t("tableTrades")}</div>
           </div>
 
           <div className="hidden md:block divide-y divide-border/50">
@@ -210,7 +215,7 @@ export const ProfitRankingTable = memo(
                           isTop3 ? "text-base" : "text-sm"
                         )}
                       >
-                        {trader.nickname}
+                        {trader.nickname || "Unknown Trader"}
                       </div>
                     </div>
                   </div>
@@ -277,7 +282,9 @@ export const ProfitRankingTable = memo(
                       {trader.nickname?.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="font-semibold text-sm">{trader.nickname}</div>
+                  <div className="font-semibold text-sm">
+                    {trader.nickname || "Unknown Trader"}
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="flex items-center gap-2">

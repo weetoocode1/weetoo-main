@@ -4,14 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { Coins, Star, Timer, Layers } from "lucide-react";
+import { Coins, Star, Timer } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 interface RewardStatsData {
   totalToday: number;
   expToday: number;
   korToday: number;
-  activeRules: number;
+  korSpentToday: number;
 }
 
 export function RewardStats() {
@@ -26,7 +26,7 @@ export function RewardStats() {
         { count: totalToday },
         { data: expRows },
         { data: korRows },
-        { count: activeRules },
+        { data: korSpentRows },
       ] = await Promise.all([
         supabase
           .from("rewards")
@@ -35,9 +35,10 @@ export function RewardStats() {
         supabase.from("rewards").select("exp_delta").eq("day_bucket", today),
         supabase.from("rewards").select("kor_delta").eq("day_bucket", today),
         supabase
-          .from("reward_rules")
-          .select("type", { count: "exact", head: true })
-          .eq("active", true),
+          .from("market_purchases")
+          .select("total_price")
+          .gte("created_at", `${today}T00:00:00Z`)
+          .lte("created_at", `${today}T23:59:59.999Z`),
       ]);
 
       const expToday = (expRows || []).reduce(
@@ -48,12 +49,16 @@ export function RewardStats() {
         (sum, r: { kor_delta: number }) => sum + (r.kor_delta || 0),
         0
       );
+      const korSpentToday = (korSpentRows || []).reduce(
+        (sum, r: { total_price: number }) => sum + (r.total_price || 0),
+        0
+      );
 
       return {
         totalToday: totalToday || 0,
         expToday,
         korToday,
-        activeRules: activeRules || 0,
+        korSpentToday,
       };
     },
     staleTime: 60_000,
@@ -79,10 +84,10 @@ export function RewardStats() {
       color: "text-yellow-600",
     },
     {
-      title: t("stats.activeRules"),
-      value: data?.activeRules ?? 0,
-      icon: Layers,
-      color: "text-emerald-600",
+      title: t("stats.korSpentToday"),
+      value: (data?.korSpentToday ?? 0).toLocaleString(),
+      icon: Coins,
+      color: "text-red-600",
     },
   ];
 
@@ -131,7 +136,7 @@ export function RewardStats() {
                 {idx === 0
                   ? t("statsDescriptions.rewardsToday")
                   : idx === 3
-                  ? t("statsDescriptions.activeRules")
+                  ? t("statsDescriptions.korSpentToday")
                   : t("statsDescriptions.sumAcross")}
               </p>
             </CardContent>

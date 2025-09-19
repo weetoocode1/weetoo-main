@@ -281,7 +281,7 @@ export function HeroSection() {
           <div className="flex flex-col lg:flex-row items-center justify-between w-full gap-8 lg:gap-12">
             {/* Left Column - Content */}
             <motion.div
-              className="space-y-10 w-full max-w-[580px]"
+              className="space-y-10 w-full max-w-[600px]"
               initial={{ opacity: 0, x: -30, y: 20 }}
               animate={{ opacity: 1, x: 0, y: 0 }}
               transition={{
@@ -318,10 +318,10 @@ export function HeroSection() {
                   ease: [0.25, 0.46, 0.45, 0.94],
                 }}
               >
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground leading-tight text-balance">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground whitespace-pre-line">
                   {t("experienceNextGen")}
                 </h1>
-                <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed text-balance">
+                <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed text-balance whitespace-pre-line">
                   {t("joinCommunity")}
                 </p>
               </motion.div>
@@ -336,10 +336,10 @@ export function HeroSection() {
                       </div>
                       <div>
                         <div className="text-sm text-muted-foreground">
-                          Bitcoin
+                          {t("bitcoin")}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          BTC/USD
+                          {t("btcUsd")}
                         </div>
                       </div>
                     </div>
@@ -375,10 +375,10 @@ export function HeroSection() {
                   </div>
                   <div className="text-sm text-muted-foreground">
                     {btcData.ticker
-                      ? `24h: $${(
+                      ? `${t("volume24h")}: $${(
                           parseFloat(btcData.ticker.quoteVolume) / 1000000000
-                        ).toFixed(1)}B volume`
-                      : "Loading..."}
+                        ).toFixed(1)}B ${t("volume")}`
+                      : t("loading")}
                   </div>
                 </div>
 
@@ -390,10 +390,10 @@ export function HeroSection() {
                       </div>
                       <div>
                         <div className="text-sm text-muted-foreground">
-                          Ethereum
+                          {t("ethereum")}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          ETH/USD
+                          {t("ethUsd")}
                         </div>
                       </div>
                     </div>
@@ -429,10 +429,10 @@ export function HeroSection() {
                   </div>
                   <div className="text-sm text-muted-foreground">
                     {ethData.ticker
-                      ? `24h: $${(
+                      ? `${t("volume24h")}: $${(
                           parseFloat(ethData.ticker.quoteVolume) / 1000000000
-                        ).toFixed(1)}B volume`
-                      : "Loading..."}
+                        ).toFixed(1)}B ${t("volume")}`
+                      : t("loading")}
                   </div>
                 </div>
               </div>

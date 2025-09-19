@@ -1,7 +1,7 @@
 {
   "hero": {
     "tradeSmarter": "글로벌 최초 데모 트레이딩 방송 플랫폼",
-    "experienceNextGen": "WEETOO_우리는 투자자다",
+    "experienceNextGen": "WEETOO_우\n리는 투자자다",
     "joinCommunity": "혼자가 아닌 함께하는 트레이딩 연습도,실전도 WEETOO와 함께",
     "getStarted": "시작하기",
     "latestNews": "최신 뉴스",
@@ -21,7 +21,91 @@
     "viewMarkets": "시장분석",
     "realTimeAnalytics": "실시간 분석",
     "expertTraders": "전문 트레이더",
-    "globalCommunity": "글로벌 커뮤니티"
+    "globalCommunity": "글로벌 커뮤니티",
+    "bitcoin": "비트코인",
+    "ethereum": "이더리움",
+    "btcUsd": "BTC/USD",
+    "ethUsd": "ETH/USD",
+    "volume24h": "24시간",
+    "volume": "거래량",
+    "loading": "로딩 중..."
+  },
+  "banDialog": {
+    "title": "계정 차단됨",
+    "subtitle": "접근이 제한되었습니다. 아래 세부사항을 확인하세요.",
+    "banned": "차단됨",
+    "reason": "사유",
+    "noReasonProvided": "제공된 사유가 없습니다.",
+    "callout": "로그아웃되었습니다. 차단이 활성화된 동안 로그인할 수 없습니다.",
+    "contactSupport": "지원팀 문의",
+    "close": "닫기"
+  },
+  "adminBanDialog": {
+    "title": "사용자 차단",
+    "unbanTitle": "사용자 차단 해제",
+    "description": "{firstName} {lastName}을(를) 플랫폼에서 차단합니다",
+    "unbanDescription": "{firstName} {lastName}의 접근을 복원하기 위해 차단을 해제합니다",
+    "loadingTitle": "사용자 정보 로딩 중",
+    "loadingMessage": "사용자 정보를 로딩 중...",
+    "userInfo": {
+      "warnings": "경고:",
+      "banReason": "차단 사유:"
+    },
+    "form": {
+      "banReasonLabel": "차단 사유",
+      "banReasonPlaceholder": "이 사용자를 차단하는 이유를 입력하세요...",
+      "permanentBan": "영구 차단 (사용자가 자동으로 차단 해제될 수 없음)",
+      "notifyUser": "이 차단에 대해 사용자에게 알림"
+    },
+    "unbanInfo": {
+      "title": "사용자가 현재 차단됨",
+      "description": "이 사용자는 차단되어 플랫폼에 접근할 수 없습니다. 아래의 \"사용자 차단 해제\"를 클릭하여 접근을 복원하세요."
+    },
+    "buttons": {
+      "cancel": "취소",
+      "banUser": "사용자 차단",
+      "banning": "차단 중...",
+      "unbanUser": "사용자 차단 해제",
+      "unbanning": "차단 해제 중..."
+    },
+    "toast": {
+      "reasonRequired": "차단 사유를 제공해주세요",
+      "banSuccess": "사용자가 성공적으로 차단되었습니다",
+      "banFailed": "사용자 차단에 실패했습니다. 다시 시도해주세요.",
+      "unbanSuccess": "사용자가 성공적으로 차단 해제되었습니다",
+      "unbanFailed": "사용자 차단 해제에 실패했습니다. 다시 시도해주세요."
+    }
+  },
+  "adminVerification": {
+    "title": "관리자 인증",
+    "description": {
+      "enterCode": "이메일로 전송된 인증 코드를 입력하세요",
+      "clickToReceive": "아래 버튼을 클릭하여 인증 코드를 받으세요"
+    },
+    "sentTo": "전송 대상:",
+    "buttons": {
+      "sendVerificationCode": "인증 코드 전송",
+      "sendingOtp": "OTP 전송 중...",
+      "verifyAndAccess": "인증 및 대시보드 접근",
+      "verifying": "인증 중...",
+      "resendCode": "코드 재전송",
+      "sending": "전송 중..."
+    },
+    "codeExpiresIn": "코드 만료 시간:",
+    "instructions": {
+      "enterSixDigit": "이메일로 전송된 6자리 코드를 입력하세요",
+      "validFor24Hours": "코드는 24시간 동안 유효합니다"
+    },
+    "toast": {
+      "alreadyVerified": "이미 인증되었습니다! 관리자 대시보드로 리디렉션 중...",
+      "otpSentSuccess": "OTP가 이메일로 성공적으로 전송되었습니다!",
+      "otpSentFailed": "OTP 전송에 실패했습니다",
+      "otpSentError": "OTP 전송에 실패했습니다. 다시 시도해주세요.",
+      "invalidOtpLength": "6자리 OTP 코드를 입력해주세요",
+      "otpVerifiedSuccess": "OTP 인증이 성공적으로 완료되었습니다!",
+      "invalidOtpCode": "잘못된 OTP 코드입니다",
+      "otpVerifyError": "OTP 인증에 실패했습니다. 다시 시도해주세요."
+    }
   },
   "brokers": {
     "payback": "환급"
@@ -45,15 +129,15 @@
     "mostActivity": "가장 활발한 활동 (XP)",
     "mostActivityDesc": "커뮤니티 핵심 멤버 💪",
     "mostActivityPage": "가장 활발한 활동 (XP)",
-    "mostActivityDescPage": "이 랭킹은 게시글 작성, 댓글 참여, 전략 공유, 후원 활동 등 커뮤니티 기여도를 기반으로 산정됩니다. 많은 활동을 통해 얻은 XP(경험치)는 레벨 상승으로 이어지며, 커뮤니티 내 영향력 지표가 됩니다. 단순 참여보다 지속적인 활동·지식 공유·소통 기여도에 주목해보세요 🌟",
+    "mostActivityDescPage": "이 랭킹은 게시글 작성, 댓글 참여, 전략 공유, 후원 활동 등 커뮤니티 기여도를 기반으로 산정됩니다.\n많은 활동을 통해 얻은 XP(경험치)는 레벨 상승으로 이어지며, 커뮤니티 내 영향력 지표가 됩니다.\n단순 참여보다 지속적인 활동·지식 공유·소통 기여도에 주목해보세요 🌟",
     "sponsored": "후원",
     "sponsoredDesc": "팬심 폭발, 후원이 쏟아진 스타 💰",
     "sponsoredPage": "후원",
-    "sponsoredDescPage": "이 랭킹은 커뮤니티 멤버들이 받은 총 코코인 금액을 기준으로 산정됩니다. 높은 후원은 실력뿐만 아니라 팬심과 신뢰를 동시에 얻은 트레이더임을 의미해요. 단순한 수익률보다 얼마나 많은 사람들이 그를 지지했는지에 주목해보세요 💛",
+    "sponsoredDescPage": "이 랭킹은 커뮤니티 멤버들이 받은 총 코코인 금액을 기준으로 산정됩니다.\n높은 후원은 실력뿐만 아니라 팬심과 신뢰를 동시에 얻은 트레이더임을 의미해요.\n단순한 수익률보다 얼마나 많은 사람들이 그를 지지했는지에 주목해보세요 💛",
     "mostFollowed": "팔로워",
     "mostFollowedDesc": "신뢰받는 인기 스타 트레이더 ✨",
     "mostFollowedPage": "팔로워",
-    "mostFollowedDescPage": "이 랭킹은 각 트레이더가 보유한 총 팔로워 수를 기준으로 산정됩니다. 많은 팔로워는 단순한 실력뿐 아니라 신뢰·매력·소통 능력까지 갖춘 인기 트레이더임을 의미해요. 숫자 이상의 가치, 사람들을 움직이는 영향력에 주목해보세요 💫",
+    "mostFollowedDescPage": "이 랭킹은 각 트레이더가 보유한 총 팔로워 수를 기준으로 산정됩니다.\n많은 팔로워는 단순한 실력뿐 아니라 신뢰·매력·소통 능력까지 갖춘 인기 트레이더임을 의미해요.\n숫자 이상의 가치, 사람들을 움직이는 영향력에 주목해보세요 💫",
     "community": "커뮤니티",
     "freeBulletinBoard": "WEETOO 라운지",
     "freeBulletinBoardDesc": "트레이딩, 밈, 잡담, 뭐든지 수다 떠는 우리들의 놀이터 🎉",
@@ -240,7 +324,13 @@
     "getStartedNow": "지금 시작하기",
     "readyToJoin": "참여할 준비가 되셨나요?",
     "joinDescription": "동료들과 함께 배우고, 의도적으로 검토하며, 전문적이고 방해받지 않는 공간에서 연습하세요.",
-    "joinNow": "지금 참여하기"
+    "joinNow": "지금 참여하기",
+    "mantra": "하이프보다 일관성 • 피어 리뷰 문화 • 추측보다 프로세스",
+    "badge": "프로세스 우선. 노이즈 제거.",
+    "focusedSessions": "집중 세션",
+    "peerReviews": "피어 리뷰",
+    "alwaysOnCommunity": "항상 열려있는 커뮤니티",
+    "focusMode": "포커스 모드"
   },
   "footer": {
     "companyDescription": "Solomon Partners (WEETOO_We are investors)는 일반 대중을 위한 크립토(가상자산) 관련 정보 제공 및 커뮤니티 플랫폼입니다.본 사이트는 정보제공, 커뮤니티 운영, 모의투자 시스템 제공을 주된 목적으로 하며, 실제 투자 중개, 자문, 매매 유도 및 수익 보장과는 무관합니다.\n\nWEETOO는 대한민국 관련 법률을 준수하며, 투자 권유, 금융상품 판매 등 금융업에 해당하는 어떠한 행위도 하지 않습니다.",
@@ -260,18 +350,343 @@
     "riskNoticeParagraph1": "Solomon Partners (WEETOO_We are investors)는 일반 대중을 위한 마진 트레이딩/해외 선물 정보 사이트이므로 '투자 중개' 또는 '투자 자문 및 대리'와 같은 서비스를 제공하지 않으며, 당사의 트레이딩 내역은 시뮬레이션 투자 콘텐츠입니다. 실제 CFD 트레이딩는 고위험, 고수익 금융 파생상품이며 모든 손실은 트레이더에게 귀속됨을 유의하시기 바랍니다.",
     "riskNoticeParagraph2": "위험 면책 조항: Solomon Partners (WEETOO_We are Investors)는 시장 뉴스, 분석, 트레이딩 신호 및 외환 브로커 리뷰를 포함한 이 웹사이트에 포함된 정보에 의존하여 발생하는 모든 손실이나 손해에 대해 책임지지 않습니다. 이 웹사이트에 포함된 데이터는 반드시 실시간이거나 정확하지 않을 수 있으며 분석은 저자의 의견이며 Solomon Partners (WEETOO_We are Investors) 또는 직원의 권장사항을 나타내지 않습니다.",
     "riskNoticeParagraph3": "마진으로 통화 트레이딩는 높은 수준의 위험을 수반하며 모든 투자자에게 적합하지 않습니다. 레버리지 상품은 초기 예치금을 초과하는 손실을 초래할 수 있으며 자본이 위험에 처할 수 있습니다. 외환 또는 기타 금융 상품을 트레이딩하기로 결정하기 전에 투자 목표, 경험 수준 및 위험 성향을 신중하게 고려해야 합니다. 우리는 검토하는 모든 브로커에 대한 가치 있는 정보를 제공하기 위해 노력합니다. 이 무료 서비스를 제공하기 위해 우리는 이 페이지와 순위에 나열된 일부를 포함한 해외 브로커로부터 광고 수수료를 받습니다. 모든 데이터가 최신 상태인지 확인하기 위해 최선을 다하지만 해외 브로커와 직접 정보를 확인하는 것을 권장합니다.",
-    "copyrightText": "Solomon Partners (WEETOO_We are investors). All rights reserved."
+    "copyrightText": "Solomon Partners (WEETOO_We are investors). 모든 권리를 보유하고 있습니다."
+  },
+  "chat": {
+    "chatButton": "채팅",
+    "globalChat": "글로벌 채팅",
+    "resetIn": "UTC 기준 {time} 후 초기화",
+    "please": "로그인이 필요합니다",
+    "login": "로그인",
+    "or": "또는",
+    "register": "회원가입",
+    "typeMessagePlaceholder": "메시지를 입력하세요...",
+    "level": "레벨",
+    "percentComplete": "{percent}% 완료",
+    "expProgress": "{current} / {total} 경험치",
+    "xp": "{value} XP",
+    "kor": "{value} KOR"
   },
   "trading": {
     "tradingRooms": "트레이딩",
     "tradingRoomsDescription": "당신의 전략을 증명할 무대가 여기 있습니다.실시간으로 벌어지는 승부의 세계 — 지금 도전해보세요 ⚔️"
+  },
+  "room": {
+    "chat": {
+      "title": "채팅",
+      "labels": { "user": "사용자" },
+      "failedToSend": "전송 실패",
+      "join": {
+        "joining": "참여 중...",
+        "joinRoomToChat": "채팅하려면 방에 참여하세요"
+      },
+      "input": { "placeholder": "메시지를 입력하세요..." }
+    },
+    "tradeHistory": {
+      "common": { "cancel": "취소" },
+      "tabs": { "positions": "보유 포지션", "tradeHistory": "거래 내역" },
+      "headers": {
+        "symbol": "심볼",
+        "side": "방향 (롱/숏)",
+        "quantity": "수량",
+        "size": "계약 크기",
+        "entry": "진입가",
+        "exit": "청산가",
+        "initialMargin": "초기 증거금",
+        "pnl": "손익",
+        "actions": "액션"
+      },
+      "sides": { "long": "롱", "short": "숏" },
+      "actions": {
+        "close": "종료",
+        "closeAll": "전체 청산",
+        "closeAllPositions": "모든 포지션 정리",
+        "ok": "확인",
+        "goToMarket": "마켓으로 이동"
+      },
+      "tooltips": {
+        "onlyHostClose": "방장만 포지션을 청산할 수 있습니다.",
+        "onlyHostCloseAll": "방장만 모든 포지션을 청산할 수 있습니다.",
+        "noOpenPositions": "청산할 오픈 포지션이 없습니다."
+      },
+      "close": {
+        "title": "포지션 정리",
+        "description": "모든 포지션을 정리하시겠습니까? 종료된 포지션은 되돌릴 수 없습니다.",
+        "confirm": "확인"
+      },
+      "closeAll": {
+        "title": "모든 포지션 청산",
+        "description": "모든 포지션을 정리하시겠습니까? 종료된 포지션은 되돌릴 수 없습니다."
+      },
+      "empty": {
+        "noOpenPositions": "오픈 포지션이 없습니다.",
+        "noTradeHistory": "아직 거래 내역이 없습니다."
+      },
+      "reset": {
+        "button": "거래 내역 초기화",
+        "title": "거래 내역 초기화",
+        "onlyHost": "방장만 거래 내역을 초기화할 수 있습니다.",
+        "nothingToReset": "초기화할 거래 내역이 없습니다.",
+        "noCreditsLine1": "사용 가능한 초기화 크레딧이 없습니다. 이 기능을 사용하려면 위투 마켓에서 초기화 크레딧을 구매해 주세요.",
+        "noCreditsHint": "💡 마켓에서 초기화 크레딧 구매하기",
+        "confirmText": "모든 거래 내역을 초기화하시겠습니까? 이 작업은 되돌릴 수 없으며 모든 청산된 포지션이 영구적으로 삭제됩니다. 보유 중인 {credits}개의 초기화 크레딧 중 1개가 사용됩니다{pluralS}.",
+        "resetting": "초기화 중...",
+        "actionLabel": "내역 초기화 (크레딧 1개 사용)"
+      }
+    },
+    "windowTitleBar": {
+      "public": "공개",
+      "private": "비공개",
+      "edit": {
+        "tooltip": "방 설정 편집",
+        "title": "방 설정 편집",
+        "description": "방 이름, 심볼, 공개 설정을 수정하세요."
+      },
+      "thumbnail": {
+        "tooltip": {
+          "change": "커스텀 썸네일 변경",
+          "upload": "커스텀 썸네일 업로드"
+        },
+        "title": {
+          "change": "방 썸네일 변경",
+          "upload": "방 썸네일 업로드"
+        },
+        "description": {
+          "change": "현재 썸네일을 새 이미지로 교체하거나 제거하여 자동 스크린샷을 사용하세요.",
+          "upload": "커스텀 썸네일 이미지를 업로드합니다. 이 방에서는 자동 스크린샷이 비활성화됩니다."
+        },
+        "labels": {
+          "newThumbnail": "새 썸네일",
+          "selectImage": "이미지 선택",
+          "preview": "미리보기",
+          "currentThumbnail": "현재 썸네일"
+        },
+        "buttons": {
+          "cancel": "취소",
+          "uploading": "업로드 중...",
+          "confirmUpload": "업로드 확인"
+        }
+      },
+      "lateJoin": {
+        "warningText": "호스트 소리가 잘 들리지 않나요? 호스트에게 마이크를 껐다가 다시 켜달라고 요청해보세요",
+        "dismiss": "닫기"
+      },
+      "stream": {
+        "start": "차트 스트림 시작",
+        "stop": "차트 스트림 중지",
+        "sharing": "현재 탭 공유 중",
+        "shareHint": "현재 탭을 참가자와 공유",
+        "errorPrefix": "오류:"
+      },
+      "streamStatus": {
+        "hostStreamBanner": "호스트 차트 스트림",
+        "connectionLostTitle": "연결이 끊어졌습니다",
+        "notStreamingTitle": "호스트가 스트리밍 중이 아닙니다",
+        "attemptingReconnect": "스트림에 다시 연결을 시도하는 중...",
+        "waitingForHost": "호스트가 차트 스트리밍을 시작할 때까지 기다리는 중...",
+        "reconnecting": "재연결 중...",
+        "checkingForStream": "비디오 스트림을 확인하는 중...",
+        "errorPrefix": "오류:",
+        "disconnectedHint": "일반적으로 자동으로 복구됩니다. 계속되면 페이지를 새로고침해 보세요."
+      },
+      "orderBook": {
+        "tabs": { "book": "호가", "trades": "채결" },
+        "headers": {
+          "priceUsdt": "가격 ({quote})",
+          "amountBase": "수량 ({base})",
+          "total": "총액",
+          "qtyBase": "수량 ({base})",
+          "time": "시간"
+        },
+        "messages": {
+          "failedLoad": "호가창 로드 실패:",
+          "empty": "이 심볼에 대한 호가 데이터가 없습니다."
+        }
+      },
+      "mic": { "mute": "마이크 음소거", "unmute": "마이크 음소거 해제" },
+      "audioHelp": {
+        "button": "오디오 문제 도움말",
+        "tooltip": "오디오 도움말 표시"
+      },
+      "labels": { "virtualBalance": "가상머니:" },
+      "pnl": {
+        "unrealized": "미실현 손익",
+        "realized": "실현 손익",
+        "usdt": "USDT"
+      },
+      "profitRate": { "cumulative": "누적 수익률:" },
+      "closeRoom": {
+        "button": "방 닫기",
+        "dialog": {
+          "title": "방 닫기",
+          "description": "이 방을 닫으시겠습니까? 이 작업은 되돌릴 수 없습니다."
+        }
+      },
+      "leaveRoom": {
+        "sr": "방 나가기",
+        "full": "방 나가기",
+        "short": "나가기",
+        "failed": "방 나가기에 실패했습니다"
+      },
+      "common": { "cancel": "취소" }
+    },
+    "orderBook": {
+      "tabs": { "book": "호가창", "trades": "체결" },
+      "headers": {
+        "priceUsdt": "가격 ({quote})",
+        "amountBase": "수량 ({base})",
+        "total": "총합",
+        "qtyBase": "수량 ({base})",
+        "time": "시간"
+      },
+      "messages": {
+        "failedLoad": "호가창 로드 실패:",
+        "empty": "이 심볼에 대한 호가 데이터가 없습니다."
+      }
+    },
+    "tradingForm": {
+      "common": { "cancel": "취소", "confirm": "확인" },
+      "tabs": { "limit": "지정가", "market": "시장가" },
+      "margin": {
+        "cross": "교차",
+        "isolated": "격리",
+        "chooseTitle": "마진 모드 선택",
+        "chooseDesc": "마진 모드를 변경하세요. 완료 후 확인을 누르세요.",
+        "notice1": "손실이 총 보유액의 60%를 초과하면 청산됩니다.",
+        "notice2": "변경 시 현재 심볼의 모든 포지션과 미체결 주문에 영향을 줍니다."
+      },
+      "leverage": {
+        "title": "레버리지 조정",
+        "desc": "레버리지를 변경하세요. 완료 후 확인을 누르세요.",
+        "notice1": "기본 최대는 x50이며, 아이템 사용 시 x100까지 가능합니다.",
+        "notice2": "보유 금액을 기준으로 주문 가능한 수량 비율을 더하거나 뺄 수 있습니다.",
+        "notice3": "변경 시 현재 심볼의 모든 포지션과 미체결 주문에 영향을 줍니다."
+      },
+      "inputs": {
+        "orderPrice": "주문 가격 ({quote})",
+        "orderQuantity": "주문 수량 ({base})",
+        "orderAmount": "주문 금액 ({quote})"
+      },
+      "buttons": { "currentPrice": "현재가" },
+      "errors": { "insufficientBalance": "잔액이 부족합니다." },
+      "info": {
+        "fee": "수수료:",
+        "leverage": "레버리지:",
+        "positionSize": "포지션 규모 ({quote}):",
+        "initialMargin": "초기 증거금 ({quote}):",
+        "estLiqLong": "예상 청산가(롱):",
+        "estLiqShort": "예상 청산가(숏):"
+      },
+      "tooltips": { "onlyHost": "방 생성자만 이 방에서 거래할 수 있습니다." },
+      "actions": { "buyLong": "롱 오픈", "sellShort": "숏 오픈" },
+      "confirm": {
+        "titleBuy": "매수 / 롱 주문 확인",
+        "titleSell": "매도 / 숏 주문 확인",
+        "subtitle": "주문 제출 전에 내용을 확인하세요.",
+        "pair": "거래 상품",
+        "direction": "주문 방향",
+        "orderType": "주문 유형",
+        "quantity": "수량",
+        "price": "가격",
+        "leverage": "레버리지",
+        "total": "총액",
+        "confirming": "확인 중..."
+      }
+    },
+    "donation": {
+      "openButton": "후원",
+      "title": "후원",
+      "receivedInThisRoom": "이 방에서 받은 후원:",
+      "noDonations": "아직 후원이 없습니다.",
+      "kor": "KOR",
+      "supportHost": "호스트를 코코인으로 후원해보세요!",
+      "placeholders": { "enterAmount": "금액 입력" },
+      "yourBalance": "내 잔액:",
+      "buttons": { "donating": "후원 중...", "donate": "후원하기" },
+      "errors": {
+        "enterValidAmount": "유효한 금액을 입력하세요",
+        "insufficient": "코코인이 부족합니다"
+      },
+      "toast": {
+        "success": "후원이 완료되었습니다!",
+        "failed": "후원에 실패했습니다",
+        "userDonated": "{name} 님이 {amount} 코코인을 후원했습니다!"
+      }
+    },
+    "editRoom": {
+      "labels": {
+        "roomName": "방 이름",
+        "roomPrivacy": "방 공개 설정",
+        "roomPassword": "방 비밀번호",
+        "symbol": "심볼",
+        "new": "NEW"
+      },
+      "placeholders": {
+        "roomName": "방 이름",
+        "roomPassword": "방 비밀번호",
+        "selectValue": "값을 선택하세요",
+        "selectSymbol": "심볼을 선택하세요"
+      },
+      "options": { "public": "공개", "private": "비공개" },
+      "status": { "checkingName": "이름 확인 중..." },
+      "aria": {
+        "hidePassword": "비밀번호 숨기기",
+        "showPassword": "비밀번호 보기"
+      },
+      "buttons": {
+        "cancel": "취소",
+        "saveChanges": "변경사항 저장",
+        "saving": "저장 중..."
+      }
+    },
+    "marketOverview": {
+      "usdtFuturesTrading": "USDT 선물 거래",
+      "change24h": "24시간 변동",
+      "high24h": "24시간 최고가",
+      "low24h": "24시간 최저가",
+      "turnover24h": "24시간 거래대금",
+      "volume24h": "24시간 볼륨",
+      "openInterest24h": "24시간 미결제약정",
+      "fundingTime": "펀딩비/시간",
+      "todayRecords": "오늘의 기록",
+      "totalRecords": "전체 기록",
+      "buy": "매수",
+      "sell": "매도"
+    },
+    "participants": {
+      "title": "참가자",
+      "loading": "로딩 중...",
+      "empty": {
+        "noParticipants": "아직 참가자가 없습니다."
+      },
+      "roles": {
+        "host": "방장",
+        "participant": "참여자"
+      },
+      "actions": {
+        "joinRoom": "방 참가"
+      },
+      "labels": {
+        "you": "당신"
+      },
+      "errors": {
+        "pleaseLogin": "방에 참가하려면 로그인해주세요.",
+        "mustBeLoggedIn": "참가하려면 로그인이 필요합니다.",
+        "userSessionNotFound": "사용자 세션을 찾을 수 없습니다",
+        "failedToJoinRoom": "방 참가 실패: {message}",
+        "failedToJoinRoomGeneric": "방 참가에 실패했습니다"
+      },
+      "success": {
+        "alreadyInRoom": "이미 이 방에 참가되어 있습니다!",
+        "joinedRoom": "방에 성공적으로 참가했습니다!"
+      }
+    }
   },
   "tradingRooms": {
     "room": "방",
     "host": "호스트",
     "creator": "생성자",
     "pnlPercentage": "손익 %",
-    "participants": "참가자",
     "type": "유형",
     "voice": "음성",
     "chat": "채팅",
@@ -296,7 +711,35 @@
     "incorrectPassword": "잘못된 비밀번호입니다. 다시 시도해주세요.",
     "passwordCorrect": "비밀번호가 맞습니다! 방에 참여 중...",
     "view": "보기",
-    "toggleColumns": "열 토글"
+    "toggleColumns": "열 토글",
+    "typeFilter": "유형",
+    "roomType": "방 유형",
+    "accessFilter": "접근",
+    "roomAccess": "방 접근",
+    "privateRoomAccess": "비공개 방 접근",
+    "passwordSecurityNote": "비밀번호는 암호화되어 안전하게 보호됩니다",
+    "loadMoreRooms": "방 더 불러오기",
+    "loadingMoreRooms": "방을 불러오는 중...",
+    "noRoomsAvailable": "사용 가능한 트레이딩방이 없습니다",
+    "identityVerificationToJoin": "방에 참여하려면 본인 인증을 완료하세요",
+    "live": "실시간",
+    "participant": "명 참여",
+    "enterPasswordPlaceholder": "보안 비밀번호를 입력하세요",
+    "timeAgo": {
+      "justNow": "방금 전",
+      "minuteAgo": "1분 전",
+      "minutesAgo": "{count}분 전",
+      "hourAgo": "1시간 전",
+      "hoursAgo": "{count}시간 전",
+      "dayAgo": "1일 전",
+      "daysAgo": "{count}일 전",
+      "weekAgo": "1주 전",
+      "weeksAgo": "{count}주 전",
+      "monthAgo": "1개월 전",
+      "monthsAgo": "{count}개월 전",
+      "yearAgo": "1년 전",
+      "yearsAgo": "{count}년 전"
+    }
   },
   "createRoom": {
     "createRoom": "방 만들기",
@@ -332,15 +775,168 @@
     "loading": "로딩 중...",
     "roomNameAlreadyInUse": "이 방 이름은 이미 사용 중입니다. 다른 이름을 선택해주세요.",
     "couldNotCheckRoomName": "방 이름을 확인할 수 없습니다. 다시 시도해주세요.",
-    "failedToCreateRoom": "방을 만들 수 없습니다. 다시 시도해주세요."
+    "failedToCreateRoom": "방을 만들 수 없습니다. 다시 시도해주세요.",
+    "alreadyActiveTitle": "⚠️ 이미 활성화된 방이 있습니다",
+    "roomLabel": "방:",
+    "alreadyActiveInstruction": "새 방을 만들기 전에 기존 방을 닫아주세요."
   },
   "ranking": {
     "winRateRankings": "승률 랭킹",
-    "topWinRateTraders": "이 랭킹은 각 트레이더의 총 트레이딩 횟수 대비 승리한 포지션 비율을 기준으로 산정됩니다. 최근 성과에 가중치를 두어, 꾸준한 실력과 지속적인 성장세를 동시에 평가해요. 트레이딩 횟수, 연승 기록도 함께 확인해 실제 실력을 비교해보세요. ⚡"
+    "topWinRateTraders": "이 랭킹은 각 트레이더의 총 트레이딩 횟수 대비 승리한 포지션 비율을 기준으로 산정됩니다.\n최근 성과에 가중치를 두어, 꾸준한 실력과 지속적인 성장세를 동시에 평가해요.\n트레이딩 횟수, 연승 기록도 함께 확인해 실제 실력을 비교해보세요. ⚡"
   },
   "profitRanking": {
     "profitRateRankings": "수익률 랭킹",
-    "topProfitRateTraders": "이 랭킹은 각 트레이더의 초기 자산 대비 누적 수익률을 기준으로 산정됩니다. 수익률뿐만 아니라 거래 횟수, 가상머니의 규모, 손익 변동 추이도 함께 살펴보며 실력을 평가하세요. 짧은 단기 성과보다 꾸준한 수익곡선과 안정적 성장세에 주목하는 것이 중요합니다 📈"
+    "topProfitRateTraders": "이 랭킹은 각 트레이더의 초기 자산 대비 누적 수익률을 기준으로 산정됩니다.\n수익률뿐만 아니라 거래 횟수, 가상머니의 규모, 손익 변동 추이도 함께 살펴보며 실력을 평가하세요.\n짧은 단기 성과보다 꾸준한 수익곡선과 안정적 성장세에 주목하는 것이 중요합니다 📈",
+    "daily": "일간",
+    "weekly": "주간",
+    "monthly": "월간",
+    "fullLeaderboard": "전체 리더보드",
+    "fullLeaderboardSubtitle": "수익률 기준 전체 순위 • {timeframe} 순위",
+    "tableRank": "순위",
+    "tableTrader": "트레이더",
+    "tableProfitRate": "수익률",
+    "tablePortfolio": "포트폴리오",
+    "tableTrades": "거래 수",
+    "cardProfitRate": "수익률",
+    "cardPortfolio": "포트폴리오",
+    "cardTrades": "거래 수"
+  },
+  "mostActivity": {
+    "fullLeaderboard": "전체 리더보드",
+    "fullLeaderboardSubtitle": "모든 활동 사용자 전체 순위 • {timeframe} 순위",
+    "daily": "일간",
+    "weekly": "주간",
+    "monthly": "월간",
+    "tableRank": "순위",
+    "tableUser": "사용자",
+    "tableLevel": "레벨",
+    "tableExperience": "경험치",
+    "tableChange": "변동",
+    "totalExperience": "총 경험치",
+    "topPerformer": "TOP 퍼포머",
+    "level": "레벨"
+  },
+  "sponsoredRanking": {
+    "fullLeaderboard": "전체 리더보드",
+    "fullLeaderboardSubtitle": "모든 활동 사용자 전체 순위 • {timeframe} 순위",
+    "daily": "일간",
+    "weekly": "주간",
+    "monthly": "월간",
+    "tableRank": "순위",
+    "tableUser": "사용자",
+    "tableLevel": "레벨",
+    "tableDonation": "후원",
+    "tableChange": "변동",
+    "totalDonation": "총 후원",
+    "topPerformer": "TOP 퍼포머",
+    "level": "레벨"
+  },
+  "mostFollowedRanking": {
+    "fullLeaderboard": "전체 리더보드",
+    "fullLeaderboardSubtitle": "모든 활동 사용자 전체 순위 • {timeframe} 순위",
+    "daily": "일간",
+    "weekly": "주간",
+    "monthly": "월간",
+    "tableRank": "순위",
+    "tableUser": "사용자",
+    "tableLevel": "레벨",
+    "tableFollowers": "팔로워",
+    "tableChange": "변동",
+    "totalFollowers": "총 팔로워",
+    "topPerformer": "TOP 퍼포머",
+    "level": "레벨"
+  },
+  "createPost": {
+    "createTab": "작성",
+    "previewTab": "미리보기",
+    "postTitle": "게시글 제목",
+    "enterPostTitle": "게시글 제목을 입력하세요",
+    "tags": "태그",
+    "addTagHint": "태그를 추가하고 Enter 키를 누르세요",
+    "content": "내용",
+    "publishing": "게시 중...",
+    "publish": "게시",
+    "cancel": "취소",
+    "pleaseFillRequired": "필수 항목을 모두 입력해주세요",
+    "onlyImagesAllowed": "이미지 파일만 업로드할 수 있습니다",
+    "imageTooLarge": "이미지는 10MB 이하만 가능합니다",
+    "imageUploadFailed": "이미지 업로드 실패: {message}",
+    "postPublished": "게시글이 성공적으로 게시되었습니다!",
+    "rewardEarned": "보상 획득: +{exp} EXP, +{kor} KOR",
+    "failedToCreate": "게시글 생성에 실패했습니다",
+    "errorGeneric": "게시글 생성에 실패했습니다",
+    "boardLabel": "{board} 게시판",
+    "removeTag": "태그 {tag} 제거",
+    "imagesLabel": "이미지",
+    "imagesLimitNote": "(최대 4장)",
+    "removeImage": "이미지 제거",
+    "addImages": "이미지 추가",
+    "imageAlt": "업로드 {index}",
+    "thumbnailAlt": "썸네일 {index}",
+    "imageSlideAlt": "이미지 {index}",
+    "follow": "팔로우",
+    "views": "{count} 조회수",
+    "justNow": "방금 전",
+    "startCreatingPreviewHint": "여기에서 실시간 미리보기를 확인하려면 게시글 작성을 시작하세요.",
+    "editorPlaceholder": "입력을 시작하세요..."
+  },
+  "post": {
+    "goBack": "뒤로가기",
+    "postNotFound": "게시글을 찾을 수 없습니다.",
+    "views": "{count} 조회수",
+    "tags": "태그:",
+    "youViewedThis": "내가 본 글",
+    "readingTimeLessThan": "1분 미만 소요",
+    "readingTimeOne": "1분 소요",
+    "readingTimeMany": "{minutes}분 소요",
+    "like": "좋아요",
+    "likes": "좋아요",
+    "comment": "댓글",
+    "comments": "댓글",
+    "viewComments": "댓글 보기",
+    "share": "공유",
+    "sharePost": "게시글 공유",
+    "shareThisPost": "이 게시글을 네트워크와 공유하세요",
+    "public": "공개",
+    "copyLink": "링크 복사",
+    "copyLinkDesc": "링크를 복사합니다",
+    "twitter": "트위터",
+    "twitterDesc": "트위터/X에 공유",
+    "facebook": "페이스북",
+    "facebookDesc": "페이스북에 공유",
+    "whatsapp": "왓츠앱",
+    "whatsappDesc": "왓츠앱에 공유",
+    "linkCopied": "링크가 클립보드에 복사되었습니다!",
+    "rewardEarned": "보상 획득: +{exp} EXP, +{kor} KOR",
+    "failedAwardShare": "공유 보상에 실패했습니다",
+    "failedCopyLink": "링크 복사에 실패했습니다",
+    "goBackAria": "뒤로가기",
+    "likePostAria": "좋아요",
+    "unlikePostAria": "좋아요 취소",
+    "viewCommentsAria": "댓글 보기",
+    "sharePostAria": "게시글 공유",
+    "identityVerificationRequired": "본인 인증이 필요합니다",
+    "commentsRestricted": "댓글 제한",
+    "commentsRestrictedDesc": "댓글을 보거나 작성하려면 본인 인증이 필요합니다.",
+    "signInToComment": "댓글을 작성하려면 로그인하세요.",
+    "noComments": "아직 댓글이 없습니다.",
+    "commentCount": "{count} {label}",
+    "reply": "답글",
+    "replying": "답글 작성 중...",
+    "writeAReply": "답글을 작성하세요...",
+    "commenting": "댓글 작성 중...",
+    "commentAddPlaceholder": "댓글을 입력하세요...",
+    "delete": "삭제",
+    "cancel": "취소",
+    "deleteCommentQ": "댓글을 삭제할까요?",
+    "deleteCommentDesc": "이 작업은 되돌릴 수 없습니다. 댓글이 영구적으로 삭제됩니다.",
+    "commentAdded": "댓글이 추가되었습니다",
+    "failedAddComment": "댓글 추가에 실패했습니다",
+    "commentDeleted": "댓글이 삭제되었습니다",
+    "failedDeleteComment": "댓글 삭제에 실패했습니다",
+    "following": "팔로잉",
+    "unfollow": "언팔로우",
+    "follow": "팔로우"
   },
   "traderRanking": {
     "online": "온라인",
@@ -352,6 +948,16 @@
     "trades": "트레이딩 횟수",
     "winStreak": "연승",
     "fullLeaderboard": "전체 리더보드",
+    "fullLeaderboardSubtitle": "모든 활동 중인 트레이더의 전체 순위 • {timeframe} 순위",
+    "daily": "일간",
+    "weekly": "주간",
+    "monthly": "월간",
+    "tableRank": "순위",
+    "tableTrader": "트레이더",
+    "tableWinRate": "승률",
+    "tableTrades": "거래 수",
+    "tableWinStreak": "연승",
+    "topPerformer": "최고 실적자",
     "rank": "순위",
     "trader": "트레이딩자",
     "rowsPerPage": "페이지당 행 수",
@@ -360,7 +966,7 @@
   },
   "investmentCompetition": {
     "title": "투자 대회",
-    "description": "누구나 참가할 수 있는 트레이딩 대회! 실력을 시험하고, 이름을 남기고, 전설이 되어보세요 ✨",
+    "description": "누구나 참가할 수 있는 트레이딩 대회!\n 실력을 시험하고, 이름을 남기고, 전설이 되어보세요 ✨",
     "ongoingEvents": "진행 중인 이벤트",
     "pastEvents": "지난 이벤트",
     "noOngoingCompetitions": "진행 중인 대회 없음",
@@ -373,6 +979,9 @@
     "start": "시작",
     "end": "종료",
     "unknown": "알 수 없음",
+    "completed": "완료됨",
+    "noPastCompetitions": "지난 대회 없음",
+    "noPastCompetitionsDescription": "아직 완료된 대회가 없습니다. 대회가 끝나면 지난 대회가 여기에 표시됩니다.",
     "addNewCompetition": "새 대회 추가",
     "createNewCompetition": "참가할 새 대회를 만드세요.",
     "competitionName": "대회 이름",
@@ -445,7 +1054,7 @@
   },
   "broker": {
     "title": "페이백",
-    "description": "당신의 거래, 더 많은 보상으로 돌려드립니다. 최고 페이백을 제공하는 파트너 거래소 TOP 리스트 💵. 이제 거래는 수익만 보는 게 아닙니다 . 혜택까지 챙기세요!"
+    "description": "당신의 거래, 더 많은 보상으로 돌려드립니다.\n 최고 페이백을 제공하는 파트너 거래소 TOP 리스트 💵.\n 이제 거래는 수익만 보는 게 아닙니다 . 혜택까지 챙기세요!"
   },
   "exchange": {
     "paybackRate": "환급률",
@@ -474,6 +1083,11 @@
     "tags": "태그",
     "actions": "작업",
     "points": "점수",
+    "registerUid": "UID 등록",
+    "signUp": "가입하기",
+    "uidRegistrationComingSoon": "UID 등록 준비 중",
+    "signUpComingSoon": "가입 준비 중",
+    "verifiedPartner": "검증된 파트너",
     "off": "할인",
     "perUser": "사용자당",
     "editExchange": "트레이딩소 편집",
@@ -495,6 +1109,8 @@
       "header": "관리자",
       "adminMenu": "관리자 메뉴",
       "goBackToTrading": "트레이딩으로 돌아가기",
+      "toggleSidebar": "사이드바 토글 (Ctrl+B)",
+      "openAdminMenu": "관리자 메뉴 열기",
       "roles": {
         "super_admin": "슈퍼 관리자",
         "admin": "관리자",
@@ -577,6 +1193,7 @@
         "korCoins": {
           "title": "KOR 코인 활동",
           "description": "최근 30일 간 일일 KOR 코인 사용량",
+          "monthlyActivity": "월간 활동",
           "series": {
             "coins": "KOR 코인"
           }
@@ -687,6 +1304,12 @@
           "requestKor": "{user} 님이 {amount} KOR를 요청했습니다",
           "actionBy": "{user}의 작업",
           "noDetails": "추가 정보가 없습니다"
+        },
+        "notificationTypes": {
+          "withdrawal_request_created": "새 출금 요청",
+          "deposit_request_created": "새 입금 요청",
+          "withdrawal_status_updated": "출금 상태 업데이트",
+          "deposit_status_updated": "입금 상태 업데이트"
         }
       }
     },
@@ -695,22 +1318,27 @@
         "rewardsToday": "오늘의 리워드",
         "expAwardedToday": "오늘 지급된 경험치",
         "korAwardedToday": "오늘 지급된 KOR",
-        "activeRules": "활성 규칙"
+        "korSpentToday": "오늘 사용된 KOR"
       },
       "statsDescriptions": {
         "rewardsToday": "오늘 발생한 모든 리워드 이벤트",
-        "activeRules": "현재 활성화된 리워드 규칙",
+        "korSpentToday": "오늘 마켓에서 사용된 KOR 총액",
         "sumAcross": "모든 리워드 합계"
       },
       "table": {
         "searchPlaceholder": "리워드 검색...",
         "columns": {
           "user": "사용자",
-          "rewardType": "리워드 유형",
+          "rewardType": "활동",
           "exp": "경험치",
           "kor": "KOR",
           "date": "날짜",
           "actions": "작업"
+        },
+        "menu": {
+          "open": "메뉴 열기",
+          "title": "작업",
+          "view": "보기"
         }
       },
       "filters": {
@@ -721,7 +1349,8 @@
           "post_liked": "게시물 좋아요",
           "post_shared": "게시물 공유",
           "daily_login": "일일 로그인",
-          "room_created": "방 생성"
+          "room_created": "방 생성",
+          "market_purchase": "마켓 구매"
         }
       },
       "mobile": {
@@ -733,9 +1362,30 @@
         "showing": "총 {total}개 중 {start}-{end} 표시",
         "previous": "이전",
         "next": "다음"
+      },
+      "detailsDialog": {
+        "title": "리워드 상세",
+        "description": "이 리워드 항목에 대한 상세 정보",
+        "fields": {
+          "rewardId": "리워드 ID",
+          "userId": "사용자 ID",
+          "title": "제목",
+          "date": "날짜",
+          "exp": "경험치",
+          "kor": "KOR"
+        },
+        "close": "닫기"
       }
     },
     "rewardRules": {
+      "descriptions": {
+        "daily_login": "매일 로그인 보상 (하루 1회)",
+        "post_commented": "게시글에 댓글 작성 보상",
+        "post_created": "게시글 작성 보상",
+        "post_liked": "게시글 좋아요 보상",
+        "post_shared": "게시글 공유 보상",
+        "room_created": "트레이딩방 생성 보상 (UTC 기준 하루 1회)"
+      },
       "sections": {
         "basicInfo": "기본 정보",
         "rewardValues": "보상 값",
@@ -1042,7 +1692,39 @@
           "admin": "관리자",
           "super_admin": "슈퍼 관리자"
         },
-        "actions": { "close": "닫기" }
+        "actions": { "close": "닫기" },
+        "loading": "로딩 중..."
+      },
+      "editUserDialog": {
+        "title": "사용자 편집",
+        "description": "{first} {last}의 정보를 업데이트하세요",
+        "firstName": "이름",
+        "lastName": "성",
+        "emailAddress": "이메일 주소",
+        "superAdminOnly": "(슈퍼 관리자 전용)",
+        "phoneNumber": "전화번호",
+        "userRole": "사용자 역할",
+        "selectRole": "역할 선택",
+        "role_user": "사용자",
+        "role_admin": "관리자",
+        "role_super_admin": "슈퍼 관리자",
+        "korCoins": "KOR 코인",
+        "enterFirstName": "이름을 입력하세요",
+        "enterLastName": "성을 입력하세요",
+        "enterEmail": "이메일 주소를 입력하세요",
+        "enterPhone": "전화번호를 입력하세요",
+        "enterKorCoins": "KOR 코인을 입력하세요",
+        "userId": "사용자 ID",
+        "warnings": "경고",
+        "accountCreated": "계정 생성일",
+        "lastUpdated": "마지막 업데이트",
+        "cancel": "취소",
+        "saveChanges": "변경사항 저장",
+        "saving": "저장 중...",
+        "toastSaved": "사용자가 성공적으로 업데이트되었습니다!",
+        "toastSaveFailed": "사용자 업데이트에 실패했습니다. 다시 시도해주세요.",
+        "toastNameRequired": "이름과 성은 필수입니다",
+        "toastInvalidEmail": "유효한 이메일 주소를 입력하세요"
       }
     },
     "adminNotes": {
@@ -1194,12 +1876,17 @@
           "uid": "UID",
           "exchange": "거래소",
           "status": "상태",
+          "verificationReferral": "인증 및 추천",
           "created": "생성일",
           "actions": "작업"
         },
         "status": {
           "active": "활성",
-          "inactive": "비활성"
+          "inactive": "비활성",
+          "verified": "인증됨",
+          "notVerified": "인증 안됨",
+          "referral": "추천",
+          "notReferral": "추천 안됨"
         },
         "menu": {
           "open": "메뉴 열기",
@@ -1890,7 +2577,7 @@
       "stats": {
         "totalReferred": "총 초대한 인원",
         "referred": "추천",
-        "totalEarned": "총 정립된 코코인",
+        "totalEarned": "총 적립된 코코인",
         "earned": "수익",
         "pendingPayout": "지급 대기중인 코코인",
         "pending": "대기",

@@ -19,7 +19,7 @@ export function MostFollowedClient() {
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
                   {t("mostFollowedPage")}
                 </h1>
-                <p className="text-sm sm:text-base text-neutral-600 dark:text-neutral-400 mt-1 sm:mt-2 text-balance max-w-4xl mx-auto">
+                <p className="text-sm sm:text-base text-neutral-600 dark:text-neutral-400 mt-1 sm:mt-2 text-balance max-w-4xl mx-auto whitespace-pre-line">
                   {t("mostFollowedDescPage")}
                 </p>
               </div>

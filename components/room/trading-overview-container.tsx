@@ -1,13 +1,22 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import useSWR from "swr";
 import { TradingOverview } from "./trading-overview";
+import { useLatestRoomReset } from "@/hooks/use-room-reset";
 
 export const TRADER_PNL_KEY = (roomId: string) =>
   `/api/room/${encodeURIComponent(roomId)}/trader-pnl`;
 
 export function TradingOverviewContainer({ roomId }: { roomId: string }) {
   const fetcher = (url: string) => fetch(url).then((res) => res.json());
-  const { data, isLoading, error } = useSWR(TRADER_PNL_KEY(roomId), fetcher);
+  const { data: latestResetData } = useLatestRoomReset(roomId);
+  const sinceResetAt = latestResetData?.latest?.reset_at;
+
+  const { data, isLoading, error } = useSWR(
+    sinceResetAt
+      ? `${TRADER_PNL_KEY(roomId)}?since=${encodeURIComponent(sinceResetAt)}`
+      : TRADER_PNL_KEY(roomId),
+    fetcher
+  );
 
   if (isLoading)
     return (

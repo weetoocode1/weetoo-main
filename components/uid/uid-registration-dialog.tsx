@@ -55,19 +55,64 @@ const BROKERS = [
     status: "active",
     logo: "/broker/orangex.webp",
   },
+  {
+    id: "lbank",
+    name: "LBank",
+    paybackRate: 50,
+    status: "coming-soon",
+    logo: "/broker/lbank.png",
+  },
 ];
 
-const uidFormSchema = z.object({
-  brokerId: z.string().min(1, "Please select a broker"),
-  uid: z
-    .string()
-    .min(3, "UID must be at least 3 characters")
-    .max(20, "UID cannot exceed 20 characters")
-    .regex(/^\d+$/, "UID must contain only digits")
-    .refine((uid) => !/^(\d)\1+$/.test(uid), {
-      message: "UID cannot be all the same digits",
-    }),
-});
+const uidFormSchema = z
+  .object({
+    brokerId: z.string().min(1, "Please select a broker"),
+    uid: z.string().min(1, "UID is required"),
+  })
+  .superRefine((val, ctx) => {
+    const { brokerId, uid } = val;
+    if (brokerId === "lbank") {
+      // LBank openId: allow 1-64 length, alphanumeric plus _ and -
+      if (!/^[A-Za-z0-9_-]{1,64}$/.test(uid)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["uid"],
+          message: "OpenID must be 1-64 chars (letters, numbers, _ or -)",
+        });
+      }
+      return;
+    }
+
+    // Default (DeepCoin/OrangeX): numeric-only 3-20 and not all same digit
+    if (uid.length < 3) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["uid"],
+        message: "UID must be at least 3 characters",
+      });
+    }
+    if (uid.length > 20) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["uid"],
+        message: "UID cannot exceed 20 characters",
+      });
+    }
+    if (!/^\d+$/.test(uid)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["uid"],
+        message: "UID must contain only digits",
+      });
+    }
+    if (/^(\d)\1+$/.test(uid)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["uid"],
+        message: "UID cannot be all the same digits",
+      });
+    }
+  });
 
 type UidFormData = z.infer<typeof uidFormSchema>;
 

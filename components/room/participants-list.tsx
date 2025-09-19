@@ -2,6 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { createClient } from "@/lib/supabase/client";
 import { Crown, Users } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import useSWR, { mutate } from "swr";
@@ -35,6 +36,7 @@ export function ParticipantsList({
   roomId: string;
   hostId: string;
 }) {
+  const t = useTranslations("room.participants");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const supabaseRef = useRef(createClient());
 
@@ -150,8 +152,8 @@ export function ParticipantsList({
 
   const handleJoinRoom = async () => {
     if (!currentUserId) {
-      toast.error("Please log in to join the room.", {
-        description: "You must be logged in to participate.",
+      toast.error(t("errors.pleaseLogin"), {
+        description: t("errors.mustBeLoggedIn"),
       });
       return;
     }
@@ -165,7 +167,7 @@ export function ParticipantsList({
     } = await supabase.auth.getUser();
 
     if (!user) {
-      toast.error("User session not found");
+      toast.error(t("errors.userSessionNotFound"));
       return;
     }
 
@@ -179,8 +181,8 @@ export function ParticipantsList({
     const userName = userProfile
       ? [userProfile.first_name, userProfile.last_name]
           .filter(Boolean)
-          .join(" ") || "You"
-      : "You";
+          .join(" ") || t("labels.you")
+      : t("labels.you");
 
     // Optimistic UI: add current user to the list instantly
     mutate(
@@ -224,13 +226,13 @@ export function ParticipantsList({
           );
           // Don't show error for duplicate - just revalidate to get current state
           mutate(["participants", roomId], undefined, { revalidate: true });
-          toast.success("You're already in this room!");
+          toast.success(t("success.alreadyInRoom"));
           return;
         }
 
         // Roll back optimistic update if error
         mutate(["participants", roomId], undefined, { revalidate: true });
-        toast.error("Failed to join room: " + error.message);
+        toast.error(t("errors.failedToJoinRoom", { message: error.message }));
         return;
       }
 
@@ -247,7 +249,7 @@ export function ParticipantsList({
         false
       );
 
-      toast.success("Successfully joined the room!");
+      toast.success(t("success.joinedRoom"));
 
       // Revalidate after a short delay to ensure consistency
       setTimeout(() => {
@@ -257,7 +259,7 @@ export function ParticipantsList({
       console.error("Error joining room:", error);
       // Roll back optimistic update if error
       mutate(["participants", roomId], undefined, { revalidate: true });
-      toast.error("Failed to join room");
+      toast.error(t("errors.failedToJoinRoomGeneric"));
     }
   };
 
@@ -265,7 +267,7 @@ export function ParticipantsList({
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-background sticky top-0 z-10 select-none">
         <Users className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-medium">Participants</span>
+        <span className="text-sm font-medium">{t("title")}</span>
         <span className="text-xs text-muted-foreground ml-auto">
           {participants.length}
         </span>
@@ -274,11 +276,11 @@ export function ParticipantsList({
         <div className="p-2">
           {isLoading ? (
             <div className="text-center text-muted-foreground py-8">
-              Loading...
+              {t("loading")}
             </div>
           ) : participants.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
-              No participants yet.
+              {t("empty.noParticipants")}
             </div>
           ) : (
             participants.map((participant) => (
@@ -304,11 +306,11 @@ export function ParticipantsList({
                   <div className="text-xs text-muted-foreground capitalize">
                     {participant.id === hostId ? (
                       <div className="flex items-center gap-0">
-                        <span>Host</span>
+                        <span>{t("roles.host")}</span>
                         <Crown className="inline-block ml-1 h-3 w-3 text-amber-400 align-text-bottom" />
                       </div>
                     ) : (
-                      "Participant"
+                      t("roles.participant")
                     )}
                   </div>
                 </div>
@@ -322,7 +324,7 @@ export function ParticipantsList({
                 className="px-4 py-2 rounded bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition"
                 onClick={handleJoinRoom}
               >
-                Join Room
+                {t("actions.joinRoom")}
               </button>
             </div>
           )}

@@ -24,6 +24,7 @@ import { MoreVertical } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { useRealtimeUpdates } from "@/hooks/use-realtime-updates";
 
 export interface PostComment {
@@ -66,6 +67,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   commentCount,
   setCommentCount,
 }) => {
+  const t = useTranslations("post");
   const [comments, setComments] = useState<PostComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -106,13 +108,13 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
     setError(null);
     try {
       const res = await fetch(`/api/posts/${postId}/comments`);
-      if (!res.ok) throw new Error("Failed to fetch comments");
+      if (!res.ok) throw new Error(t("failedAddComment"));
       const data = await res.json();
       setComments(data);
       // Update the parent component's comment count
       updateCommentCount(data.length);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to fetch comments");
+      setError(err instanceof Error ? err.message : t("failedAddComment"));
     } finally {
       setLoading(false);
     }
@@ -154,9 +156,9 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
       setReplyTo(null);
       // Fetch comments will update the count automatically
       await fetchComments();
-      toast.success("Comment added");
+      toast.success(t("commentAdded"));
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to add comment");
+      toast.error(err instanceof Error ? err.message : t("failedAddComment"));
     } finally {
       setSubmitting(false);
     }
@@ -174,10 +176,10 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
       }
       // Fetch comments will update the count automatically
       await fetchComments();
-      toast.success("Comment deleted");
+      toast.success(t("commentDeleted"));
     } catch (err: unknown) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to delete comment"
+        err instanceof Error ? err.message : t("failedDeleteComment")
       );
     } finally {
       setDeleting(null);
@@ -259,26 +261,27 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
                               className="w-full text-left text-red-600 hover:bg-muted px-3 py-1 rounded-md cursor-pointer"
                               type="button"
                             >
-                              Delete
+                              {t("delete")}
                             </button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>
-                                Delete comment?
+                                {t("deleteCommentQ")}
                               </AlertDialogTitle>
                               <AlertDialogDescription>
-                                This action cannot be undone. This will
-                                permanently delete your comment.
+                                {t("deleteCommentDesc")}
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogCancel>
+                                {t("cancel")}
+                              </AlertDialogCancel>
                               <AlertDialogAction
                                 className="bg-red-600 hover:bg-red-700 text-white"
                                 onClick={() => handleDelete(comment.id)}
                               >
-                                Delete
+                                {t("delete")}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
@@ -300,7 +303,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
                 onClick={() => setReplyTo(comment.id)}
                 disabled={replyTo === comment.id}
               >
-                Reply
+                {t("reply")}
               </Button>
             )}
             {replyTo === comment.id && (
@@ -315,7 +318,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
                   }}
                   value={commentInput}
                   onChange={(e) => setCommentInput(e.target.value)}
-                  placeholder="Write a reply..."
+                  placeholder={t("writeAReply")}
                   className="flex-1 resize-none min-h-[80px] max-h-[120px]"
                   rows={2}
                   maxLength={1000}
@@ -326,7 +329,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
                   type="submit"
                   disabled={submitting || !commentInput.trim()}
                 >
-                  {submitting ? "Replying..." : "Reply"}
+                  {submitting ? t("replying") : t("reply")}
                 </Button>
                 <Button
                   type="button"
@@ -334,7 +337,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
                   onClick={() => setReplyTo(null)}
                   disabled={submitting}
                 >
-                  Cancel
+                  {t("cancel")}
                 </Button>
               </form>
             )}
@@ -356,9 +359,13 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
         {loading ? (
           <Skeleton className="w-24 h-6" />
         ) : (
-          `${commentCount || comments.length} Comment${
-            (commentCount || comments.length) !== 1 ? "s" : ""
-          }`
+          t("commentCount", {
+            count: commentCount || comments.length,
+            label:
+              (commentCount || comments.length) !== 1
+                ? t("comments")
+                : t("comment"),
+          })
         )}
       </h2>
       {/* Add comment input */}
@@ -376,7 +383,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
               ref={commentInputRef}
               value={commentInput}
               onChange={(e) => setCommentInput(e.target.value)}
-              placeholder="Add a comment..."
+              placeholder={t("commentAddPlaceholder")}
               className="flex-1 resize-none min-h-[80px] max-h-[120px]"
               rows={2}
               maxLength={1000}
@@ -387,13 +394,13 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
               disabled={submitting || !commentInput.trim()}
               className="self-end"
             >
-              {submitting ? "Commenting..." : "Comment"}
+              {submitting ? t("commenting") : t("comment")}
             </Button>
           </form>
         )
       ) : (
         <div className="mb-6 text-muted-foreground text-sm">
-          Sign in to comment.
+          {t("signInToComment")}
         </div>
       )}
       {/* Comments list */}
@@ -407,7 +414,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
         ) : error ? (
           <div className="text-destructive">{error}</div>
         ) : comments.length === 0 ? (
-          <div className="text-muted-foreground">No comments yet.</div>
+          <div className="text-muted-foreground">{t("noComments")}</div>
         ) : (
           comments.map((comment) => renderComment(comment))
         )}

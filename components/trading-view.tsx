@@ -7,18 +7,18 @@ import {
 } from "@/public/static/charting_library";
 import { BinanceDatafeed } from "./binance-datafeed";
 import { useTheme } from "next-themes";
+import { useLocale } from "next-intl";
 
 export const TradingViewChart = (
   props: Partial<ChartingLibraryWidgetOptions>
 ) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const tvWidgetRef = useRef<InstanceType<typeof widget> | null>(null);
-  const initializedRef = useRef(false);
   const { theme } = useTheme();
+  const locale = useLocale();
 
-  // Initialize ONCE
+  // Initialize, rebuild on locale change to update TradingView UI language instantly
   useEffect(() => {
-    if (initializedRef.current) return;
     if (!chartContainerRef.current) return;
 
     const widgetOptions: ChartingLibraryWidgetOptions = {
@@ -27,7 +27,9 @@ export const TradingViewChart = (
       interval: props.interval as ResolutionString,
       container: chartContainerRef.current!,
       library_path: props.library_path,
-      locale: props.locale as LanguageCode,
+      locale:
+        (props.locale as LanguageCode) ||
+        ((locale === "ko" ? "ko" : "en") as LanguageCode),
       disabled_features: props.disabled_features || [
         "use_localstorage_for_settings",
       ],
@@ -42,20 +44,24 @@ export const TradingViewChart = (
       theme: theme === "light" ? "light" : "dark",
     };
 
+    // Dispose any existing instance before creating a new one (locale change)
+    if (tvWidgetRef.current) {
+      try {
+        tvWidgetRef.current.remove();
+      } catch (_) {}
+      tvWidgetRef.current = null;
+    }
+
     const tvWidgetInstance = new widget(widgetOptions);
     tvWidgetRef.current = tvWidgetInstance;
-    initializedRef.current = true;
 
     return () => {
       try {
         tvWidgetInstance.remove();
       } catch (_) {}
       tvWidgetRef.current = null;
-      initializedRef.current = false;
     };
-    // Intentionally no props in deps to avoid re-creating the widget
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [locale]);
 
   // Update symbol without rebuilding
   useEffect(() => {

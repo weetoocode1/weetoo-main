@@ -7,6 +7,7 @@ import { Button } from "../ui/button";
 import { DialogFooter } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { useTranslations } from "next-intl";
 import {
   Select,
   SelectContent,
@@ -42,6 +43,7 @@ export function EditRoomForm({
   onRoomUpdated,
   onCancel,
 }: EditRoomFormProps) {
+  const t = useTranslations("room.editRoom");
   const [name, setName] = useState(initialName);
   const [privacy, setPrivacy] = useState<"public" | "private">(initialPrivacy);
   const [symbol, setSymbol] = useState(initialSymbol);
@@ -162,10 +164,10 @@ export function EditRoomForm({
     <form className="space-y-4" onSubmit={handleSubmit}>
       <div className="grid grid-cols-2 gap-2">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="room-name">Room Name</Label>
+          <Label htmlFor="room-name">{t("labels.roomName")}</Label>
           <Input
             id="room-name"
-            placeholder="Room Name"
+            placeholder={t("placeholders.roomName")}
             className="h-10 !bg-transparent"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -175,7 +177,7 @@ export function EditRoomForm({
           />
           {checkingName && (
             <span className="text-xs text-muted-foreground">
-              Checking name...
+              {t("status.checkingName")}
             </span>
           )}
           {nameError && (
@@ -183,29 +185,29 @@ export function EditRoomForm({
           )}
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="room-privacy">Room Privacy</Label>
+          <Label htmlFor="room-privacy">{t("labels.roomPrivacy")}</Label>
           <Select
             value={privacy}
             onValueChange={(v) => setPrivacy(v as "public" | "private")}
             disabled={loading}
           >
             <SelectTrigger className="h-10" id="room-privacy">
-              <SelectValue placeholder="Select a value" />
+              <SelectValue placeholder={t("placeholders.selectValue")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="public">Public</SelectItem>
-              <SelectItem value="private">Private</SelectItem>
+              <SelectItem value="public">{t("options.public")}</SelectItem>
+              <SelectItem value="private">{t("options.private")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
       {privacy === "private" && (
         <div className="w-full flex flex-col gap-2">
-          <Label htmlFor="room-password">Room Password</Label>
+          <Label htmlFor="room-password">{t("labels.roomPassword")}</Label>
           <div className="relative">
             <Input
               type={showPassword ? "text" : "password"}
-              placeholder="Room Password"
+              placeholder={t("placeholders.roomPassword")}
               className="h-10 !bg-transparent pr-10"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -218,7 +220,9 @@ export function EditRoomForm({
               tabIndex={-1}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
               onClick={() => setShowPassword((v) => !v)}
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-label={
+                showPassword ? t("aria.hidePassword") : t("aria.showPassword")
+              }
               disabled={loading}
             >
               {showPassword ? (
@@ -231,10 +235,10 @@ export function EditRoomForm({
         </div>
       )}
       <div className="w-full flex flex-col gap-2">
-        <Label htmlFor="symbol">Symbol</Label>
+        <Label htmlFor="symbol">{t("labels.symbol")}</Label>
         <Select value={symbol} onValueChange={setSymbol} disabled={loading}>
           <SelectTrigger className="h-10" id="symbol">
-            <SelectValue placeholder="Select a symbol" />
+            <SelectValue placeholder={t("placeholders.selectSymbol")} />
           </SelectTrigger>
           <SelectContent className="max-h-60 overflow-y-auto">
             {TRADING_SYMBOLS.map((s) => (
@@ -246,7 +250,7 @@ export function EditRoomForm({
                 <span>{s.label}</span>
                 {s.isNew && (
                   <span className="ml-2 px-2 py-0.5 text-xs rounded bg-amber-200 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-                    NEW
+                    {t("labels.new")}
                   </span>
                 )}
               </SelectItem>
@@ -263,10 +267,10 @@ export function EditRoomForm({
             if (onCancel) onCancel();
           }}
         >
-          Cancel
+          {t("buttons.cancel")}
         </Button>
         <Button type="submit" disabled={loading || !!nameError || checkingName}>
-          {loading ? "Saving..." : "Save Changes"}
+          {loading ? t("buttons.saving") : t("buttons.saveChanges")}
         </Button>
       </DialogFooter>
     </form>

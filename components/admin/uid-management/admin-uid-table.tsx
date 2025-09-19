@@ -30,7 +30,6 @@ import { createClient } from "@/lib/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Calendar,
-  CheckCircle,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -42,11 +41,11 @@ import {
   Search,
   Shield,
   User,
-  XCircle,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useTranslations } from "next-intl";
+import { UidStatusIndicator } from "./uid-status-indicator";
 
 interface UidRecord {
   id: string;
@@ -754,20 +753,8 @@ export function AdminUidTable() {
                         </span>
                       </button>
                     </th>
-                    <th className="px-6 py-4 text-left">
-                      <button
-                        onClick={() => handleSort("is_active")}
-                        className="flex items-center gap-2 font-medium text-xs uppercase tracking-wider hover:text-primary transition-colors"
-                      >
-                        {t("columns.status")}
-                        <span className="text-muted-foreground">
-                          {sortBy === "is_active"
-                            ? sortOrder === "asc"
-                              ? "↑"
-                              : "↓"
-                            : "↕"}
-                        </span>
-                      </button>
+                    <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
+                      {t("columns.verificationReferral")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
                       {t("columns.created")}
@@ -839,19 +826,13 @@ export function AdminUidTable() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-medium ${
-                                record.is_active
-                                  ? "bg-green-100 text-green-800 border border-green-300"
-                                  : "bg-gray-100 text-gray-800 border border-gray-300"
-                              }`}
-                            >
-                              {record.is_active
-                                ? t("status.active")
-                                : t("status.inactive")}
-                            </div>
-                          </div>
+                          {/* Verification and Referral Status */}
+                          <UidStatusIndicator
+                            brokerId={record.exchange_id}
+                            uid={record.uid}
+                            uidId={record.id}
+                            className="text-xs"
+                          />
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm text-muted-foreground">
@@ -994,24 +975,13 @@ export function AdminUidTable() {
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <div
-                          className={`w-2 h-2 rounded-full ${
-                            record.is_active ? "bg-green-500" : "bg-gray-500"
-                          }`}
-                        />
-                        <span
-                          className={`text-sm ${
-                            record.is_active
-                              ? "text-green-600"
-                              : "text-gray-600"
-                          }`}
-                        >
-                          {record.is_active
-                            ? t("status.active")
-                            : t("status.inactive")}
-                        </span>
-                      </div>
+                      {/* Verification and Referral Status */}
+                      <UidStatusIndicator
+                        brokerId={record.exchange_id}
+                        uid={record.uid}
+                        uidId={record.id}
+                        className="text-xs"
+                      />
                       <div className="flex items-center gap-2">
                         <Shield className="h-4 w-4 text-muted-foreground" />
                         <span className="text-muted-foreground">
@@ -1183,28 +1153,15 @@ export function AdminUidTable() {
                     </div>
                     <div>
                       <label className="text-sm text-muted-foreground">
-                        {tUidDetails("labels.status")}
+                        {t("columns.verificationReferral")}
                       </label>
                       <div className="mt-1">
-                        <div
-                          className={`inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-medium ${
-                            selectedUid.is_active
-                              ? "bg-green-100 text-green-800 border border-green-300"
-                              : "bg-gray-100 text-gray-800 border border-gray-300"
-                          }`}
-                        >
-                          {selectedUid.is_active ? (
-                            <>
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              {tUidDetails("status.active")}
-                            </>
-                          ) : (
-                            <>
-                              <XCircle className="w-3 h-3 mr-1" />
-                              {tUidDetails("status.inactive")}
-                            </>
-                          )}
-                        </div>
+                        <UidStatusIndicator
+                          brokerId={selectedUid.exchange_id}
+                          uid={selectedUid.uid}
+                          uidId={selectedUid.id}
+                          className="text-sm"
+                        />
                       </div>
                     </div>
                     <div>
@@ -1418,17 +1375,12 @@ export function AdminUidTable() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div
-                          className={`inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-medium ${
-                            selectedUser.is_active
-                              ? "bg-green-100 text-green-800 border border-green-300"
-                              : "bg-gray-100 text-gray-800 border border-gray-300"
-                          }`}
-                        >
-                          {selectedUser.is_active
-                            ? tUserDetails("status.active")
-                            : tUserDetails("status.inactive")}
-                        </div>
+                        <UidStatusIndicator
+                          brokerId={selectedUser.exchange_id}
+                          uid={selectedUser.uid}
+                          uidId={selectedUser.id}
+                          className="text-sm"
+                        />
                       </div>
                     </div>
                   </div>

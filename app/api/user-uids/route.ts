@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
 const UID_REGEX = /^[0-9]{3,20}$/;
+const LBANK_UID_REGEX = /^[A-Za-z0-9_-]{1,64}$/;
 const EXCHANGE_ID_REGEX = /^[a-zA-Z0-9_-]{1,50}$/; // Safe exchange ID format
 
 // Input sanitization functions
@@ -125,16 +126,22 @@ export async function POST(req: NextRequest) {
     }
 
     // Sanitize and validate UID
-    const sanitizedUid = sanitizeString(String(uid), 20);
-    if (!UID_REGEX.test(sanitizedUid)) {
+    const sanitizedExchangeId = sanitizeString(String(exchange_id), 50);
+    const isLbank = sanitizedExchangeId === "lbank";
+    const sanitizedUid = sanitizeString(String(uid), isLbank ? 64 : 20);
+    if (
+      !(isLbank
+        ? LBANK_UID_REGEX.test(sanitizedUid)
+        : UID_REGEX.test(sanitizedUid))
+    ) {
       return NextResponse.json(
-        { error: "Invalid UID format" },
+        { error: "Invalid UID format for selected broker" },
         { status: 400 }
       );
     }
 
     // Sanitize and validate exchange_id
-    const sanitizedExchangeId = sanitizeString(String(exchange_id), 50);
+    // (already sanitized above)
     if (!validateExchangeId(sanitizedExchangeId)) {
       return NextResponse.json(
         { error: "Invalid exchange ID" },

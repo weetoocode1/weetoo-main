@@ -3,6 +3,8 @@
 import { Info } from "lucide-react";
 import { useEffect, useState } from "react";
 import useSWR from "swr";
+import { useLatestRoomReset } from "@/hooks/use-room-reset";
+import { useTranslations } from "next-intl";
 
 export const TRADER_PNL_KEY = (roomId: string) =>
   `/api/room/${encodeURIComponent(roomId)}/trader-pnl`;
@@ -32,6 +34,7 @@ export function MarketOverview({
   data: MarketOverviewData;
   roomId: string;
 }) {
+  const t = useTranslations("room.marketOverview");
   const ticker = data?.ticker;
   const openInterest = data?.openInterest;
   const fundingRate = data?.lastFundingRate;
@@ -60,7 +63,15 @@ export function MarketOverview({
 
   const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-  const { data: traderPnl } = useSWR(TRADER_PNL_KEY(roomId), fetcher);
+  const { data: latestResetData } = useLatestRoomReset(roomId);
+  const sinceResetAt = latestResetData?.latest?.reset_at;
+
+  const { data: traderPnl } = useSWR(
+    sinceResetAt
+      ? `${TRADER_PNL_KEY(roomId)}?since=${encodeURIComponent(sinceResetAt)}`
+      : TRADER_PNL_KEY(roomId),
+    fetcher
+  );
 
   // Extract trading stats for inline display
   const todayBuyPnl = traderPnl?.today?.buy ?? 0;
@@ -70,7 +81,7 @@ export function MarketOverview({
 
   return (
     <div
-      className="flex flex-col lg:flex-row lg:items-center lg:justify-between w-full h-full p-4 text-sm select-none gap-3"
+      className="flex flex-col lg:flex-row lg:items-center lg:justify-between w-full h-full p-4 text-sm  gap-3"
       data-testid="market-overview"
     >
       {/* Left Section: Symbol and Price */}
@@ -80,7 +91,7 @@ export function MarketOverview({
             <p className="text-sm font-semibold">{symbol}</p>
           </div>
           <p className="text-muted-foreground text-xs whitespace-nowrap">
-            USDT Futures Trading
+            {t("usdtFuturesTrading")}
           </p>
         </div>
         {/* separator: horizontal on mobile, vertical on desktop */}
@@ -114,7 +125,7 @@ export function MarketOverview({
       {/* Main Market Data Row */}
       <div className="flex flex-wrap lg:flex-nowrap items-center gap-2 lg:gap-1 h-full w-full lg:w-auto lg:min-w-0 flex-1 overflow-x-auto lg:overflow-x-visible">
         <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[90px] lg:min-w-[100px]">
-          <p className="text-muted-foreground text-xs">Change (24H)</p>
+          <p className="text-muted-foreground text-xs">{t("change24h")}</p>
           <p
             className={
               ticker && parseFloat(ticker.priceChange) < 0
@@ -130,7 +141,7 @@ export function MarketOverview({
           </p>
         </div>
         <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[90px] lg:min-w-[100px]">
-          <p className="text-muted-foreground text-xs">High (24H)</p>
+          <p className="text-muted-foreground text-xs">{t("high24h")}</p>
           <p className="text-foreground font-semibold text-xs lg:text-sm whitespace-nowrap">
             {ticker && ticker.highPrice
               ? parseFloat(ticker.highPrice).toLocaleString(undefined, {
@@ -140,7 +151,7 @@ export function MarketOverview({
           </p>
         </div>
         <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[90px] lg:min-w-[100px]">
-          <p className="text-muted-foreground text-xs">Low (24H)</p>
+          <p className="text-muted-foreground text-xs">{t("low24h")}</p>
           <p className="text-foreground font-semibold text-xs lg:text-sm whitespace-nowrap">
             {ticker && ticker.lowPrice
               ? parseFloat(ticker.lowPrice).toLocaleString(undefined, {
@@ -150,7 +161,7 @@ export function MarketOverview({
           </p>
         </div>
         <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[100px] lg:min-w-[120px]">
-          <p className="text-muted-foreground text-xs">Turnover (24H)</p>
+          <p className="text-muted-foreground text-xs">{t("turnover24h")}</p>
           <p className="text-foreground font-semibold text-xs lg:text-sm whitespace-nowrap">
             {ticker && ticker.quoteVolume
               ? parseFloat(ticker.quoteVolume).toLocaleString(undefined, {
@@ -160,7 +171,7 @@ export function MarketOverview({
           </p>
         </div>
         <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[100px] lg:min-w-[120px]">
-          <p className="text-muted-foreground text-xs">Volume (24H)</p>
+          <p className="text-muted-foreground text-xs">{t("volume24h")}</p>
           <p className="text-foreground font-semibold text-xs lg:text-sm whitespace-nowrap">
             {ticker && ticker.volume
               ? parseFloat(ticker.volume).toLocaleString(undefined, {
@@ -170,7 +181,9 @@ export function MarketOverview({
           </p>
         </div>
         <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[100px] lg:min-w-[120px]">
-          <p className="text-muted-foreground text-xs">Open Int. (24H)</p>
+          <p className="text-muted-foreground text-xs">
+            {t("openInterest24h")}
+          </p>
           <p className="text-foreground font-semibold text-xs lg:text-sm whitespace-nowrap">
             {openInterest
               ? parseFloat(openInterest).toLocaleString(undefined, {
@@ -180,7 +193,7 @@ export function MarketOverview({
           </p>
         </div>
         <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[120px] lg:min-w-[140px]">
-          <p className="text-muted-foreground text-xs">Funding/Time</p>
+          <p className="text-muted-foreground text-xs">{t("fundingTime")}</p>
           <div className="flex items-center gap-1">
             <p
               className={
@@ -206,10 +219,10 @@ export function MarketOverview({
 
         {/* Today Records - Integrated into main row */}
         <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[140px] lg:min-w-[160px]">
-          <p className="text-muted-foreground text-xs">Today Records</p>
+          <p className="text-muted-foreground text-xs">{t("todayRecords")}</p>
           <div className="flex items-center gap-2 lg:gap-3">
             <div className="flex items-center gap-1">
-              <span className="text-xs text-foreground">Buy</span>
+              <span className="text-xs text-foreground">{t("buy")}</span>
               <span
                 className={`text-xs lg:text-sm font-semibold whitespace-nowrap ${
                   todayBuyPnl >= 0 ? "text-green-500" : "text-red-500"
@@ -219,7 +232,7 @@ export function MarketOverview({
               </span>
             </div>
             <div className="flex items-center gap-1">
-              <span className="text-xs text-foreground">Sell</span>
+              <span className="text-xs text-foreground">{t("sell")}</span>
               <span
                 className={`text-xs lg:text-sm font-semibold whitespace-nowrap ${
                   todaySellPnl >= 0 ? "text-green-500" : "text-red-500"
@@ -233,10 +246,10 @@ export function MarketOverview({
 
         {/* Total Records - Integrated into main row */}
         <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[140px] lg:min-w-[160px]">
-          <p className="text-muted-foreground text-xs">Total Records</p>
+          <p className="text-muted-foreground text-xs">{t("totalRecords")}</p>
           <div className="flex items-center gap-2 lg:gap-3">
             <div className="flex items-center gap-1">
-              <span className="text-xs text-foreground">Buy</span>
+              <span className="text-xs text-foreground">{t("buy")}</span>
               <span
                 className={`text-xs lg:text-sm font-semibold whitespace-nowrap ${
                   totalBuyPnl >= 0 ? "text-green-500" : "text-red-500"
@@ -246,7 +259,7 @@ export function MarketOverview({
               </span>
             </div>
             <div className="flex items-center gap-1">
-              <span className="text-xs text-foreground">Sell</span>
+              <span className="text-xs text-foreground">{t("sell")}</span>
               <span
                 className={`text-xs lg:text-sm font-semibold whitespace-nowrap ${
                   totalSellPnl >= 0 ? "text-green-500" : "text-red-500"

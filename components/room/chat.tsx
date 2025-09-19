@@ -6,6 +6,7 @@ import { useRoomParticipant } from "@/hooks/use-room-participant";
 import { createClient } from "@/lib/supabase/client";
 import { Crown, MessageSquare, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { v4 as uuidv4 } from "uuid";
 
 interface User {
@@ -41,6 +42,7 @@ interface ChatProps {
 }
 
 export function Chat({ roomId, creatorId }: ChatProps) {
+  const t = useTranslations("room.chat");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [message, setMessage] = useState("");
   const [user, setUser] = useState<User | null>(null);
@@ -187,7 +189,7 @@ export function Chat({ roomId, creatorId }: ChatProps) {
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-background sticky top-0 z-10 select-none">
         <MessageSquare className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-medium">Chat</span>
+        <span className="text-sm font-medium">{t("title")}</span>
       </div>
       <ScrollArea className="flex-1 overflow-y-auto select-none">
         <div className="p-4 space-y-4">
@@ -205,7 +207,7 @@ export function Chat({ roomId, creatorId }: ChatProps) {
                   alt={
                     msg.user
                       ? `${msg.user.first_name} ${msg.user.last_name}`
-                      : "User"
+                      : t("labels.user")
                   }
                 />
                 <AvatarFallback className="bg-muted text-muted-foreground">
@@ -234,7 +236,9 @@ export function Chat({ roomId, creatorId }: ChatProps) {
                 <p className="text-[0.8rem] text-muted-foreground">
                   {msg.message}
                 </p>
-                {msg.failed && <span className="text-xs">Failed to send</span>}
+                {msg.failed && (
+                  <span className="text-xs">{t("failedToSend")}</span>
+                )}
               </div>
             </div>
           ))}
@@ -248,7 +252,9 @@ export function Chat({ roomId, creatorId }: ChatProps) {
             disabled={isParticipantLoading}
             className="w-full"
           >
-            {isParticipantLoading ? "Joining..." : "Join Room to Chat"}
+            {isParticipantLoading
+              ? t("join.joining")
+              : t("join.joinRoomToChat")}
           </Button>
           {participantError && (
             <p className="text-xs text-red-500 mt-1 text-center">
@@ -264,7 +270,7 @@ export function Chat({ roomId, creatorId }: ChatProps) {
           <Input
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Type your message..."
+            placeholder={t("input.placeholder")}
             className="flex-1 rounded-none"
             disabled={isParticipantLoading}
           />

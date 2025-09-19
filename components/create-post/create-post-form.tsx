@@ -8,12 +8,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createClient } from "@/lib/supabase/client";
 import { X } from "lucide-react";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { ImageUploader } from "./image-uploader";
 import { PostPreview } from "./post-preview";
 import { RichTextEditor } from "./rich-text-editor";
 
 export function CreatePostForm({ board }: { board?: string }) {
+  const t = useTranslations("createPost");
   const [title, setTitle] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
@@ -50,7 +52,7 @@ export function CreatePostForm({ board }: { board?: string }) {
     // Validation before async operations
     if (!title || !content || !board) {
       setLoading(false);
-      toast.error("Please fill in all required fields");
+      toast.error(t("pleaseFillRequired"));
       return;
     }
 
@@ -65,12 +67,12 @@ export function CreatePostForm({ board }: { board?: string }) {
           // Client-side validation: type and size
           if (!file.type || !file.type.startsWith("image/")) {
             setLoading(false);
-            toast.error("Only image files are allowed");
+            toast.error(t("onlyImagesAllowed"));
             return;
           }
           if (file.size > MAX_IMAGE_SIZE) {
             setLoading(false);
-            toast.error("Image must be 10MB or smaller");
+            toast.error(t("imageTooLarge"));
             return;
           }
 
@@ -83,7 +85,7 @@ export function CreatePostForm({ board }: { board?: string }) {
           if (error) {
             console.log("Image upload failed, setting loading to false");
             setLoading(false);
-            toast.error("Image upload failed: " + error.message);
+            toast.error(t("imageUploadFailed", { message: error.message }));
             return;
           }
           const url = supabase.storage
@@ -111,13 +113,17 @@ export function CreatePostForm({ board }: { board?: string }) {
       if (res.ok) {
         const body = await res.json();
         setSuccess(true);
-        toast.success("Post published successfully!");
+
         if (body?.reward) {
           const exp = body.reward.exp_delta ?? 0;
           const kor = body.reward.kor_delta ?? 0;
           if (exp > 0 || kor > 0) {
-            toast.success(`Reward earned: +${exp} EXP, +${kor} KOR`);
+            toast.success(t("rewardEarned", { exp, kor }));
+          } else {
+            toast.success(t("postPublished"));
           }
+        } else {
+          toast.success(t("postPublished"));
         }
         // Optionally reset form or redirect
         setTitle("");
@@ -132,11 +138,11 @@ export function CreatePostForm({ board }: { board?: string }) {
         if (board) localStorage.removeItem(`draft-${board}`);
       } else {
         const { error } = await res.json();
-        toast.error(error || "Failed to create post");
+        toast.error(error || t("failedToCreate"));
       }
     } catch (err: unknown) {
       console.log("Error occurred, setting loading to false");
-      toast.error(err instanceof Error ? err.message : "Failed to create post");
+      toast.error(err instanceof Error ? err.message : t("errorGeneric"));
     } finally {
       console.log("Finally block: setting loading to false");
       setLoading(false);
@@ -157,7 +163,9 @@ export function CreatePostForm({ board }: { board?: string }) {
   const boardLabel = board ? (
     <div className="mb-3">
       <span className="inline-block rounded-none bg-muted px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {board.charAt(0).toUpperCase() + board.slice(1)} Board
+        {t("boardLabel", {
+          board: board.charAt(0).toUpperCase() + board.slice(1),
+        })}
       </span>
     </div>
   ) : null;
@@ -172,13 +180,13 @@ export function CreatePostForm({ board }: { board?: string }) {
               value="create"
               className="flex-1 rounded-none py-2 px-2 text-base font-semibold data-[state=active]:bg-muted data-[state=active]:shadow-none"
             >
-              Create
+              {t("createTab")}
             </TabsTrigger>
             <TabsTrigger
               value="preview"
               className="flex-1 rounded-none py-2 px-2 text-base font-semibold data-[state=active]:bg-muted data-[state=active]:shadow-none"
             >
-              Preview
+              {t("previewTab")}
             </TabsTrigger>
           </TabsList>
           <TabsContent
@@ -190,11 +198,11 @@ export function CreatePostForm({ board }: { board?: string }) {
               {/* Title */}
               <div className="mb-4">
                 <Label htmlFor="title" className="mb-2 text-muted-foreground">
-                  Post Title
+                  {t("postTitle")}
                 </Label>
                 <Input
                   id="title"
-                  placeholder="Enter post title"
+                  placeholder={t("enterPostTitle")}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   maxLength={100}
@@ -211,9 +219,11 @@ export function CreatePostForm({ board }: { board?: string }) {
               />
               {/* Tags */}
               <div className="mb-4">
-                <Label className="mb-2 text-muted-foreground">Tags</Label>
+                <Label className="mb-2 text-muted-foreground">
+                  {t("tags")}
+                </Label>
                 <Input
-                  placeholder="Add a tag and press Enter"
+                  placeholder={t("addTagHint")}
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={handleTagKeyDown}
@@ -232,7 +242,7 @@ export function CreatePostForm({ board }: { board?: string }) {
                         size="icon"
                         className="ml-1 text-muted-foreground hover:text-destructive focus:outline-none p-0 h-4 w-4"
                         onClick={() => handleRemoveTag(tag)}
-                        aria-label={`Remove tag ${tag}`}
+                        aria-label={t("removeTag", { tag })}
                       >
                         <X className="w-3 h-3" />
                       </Button>
@@ -243,7 +253,7 @@ export function CreatePostForm({ board }: { board?: string }) {
               {/* Content */}
               <div className="mb-6">
                 <Label htmlFor="content" className="mb-2 text-muted-foreground">
-                  Content
+                  {t("content")}
                 </Label>
                 <RichTextEditor key={editorKey} onChange={setContent} />
               </div>
@@ -255,7 +265,7 @@ export function CreatePostForm({ board }: { board?: string }) {
                   className="font-semibold px-6 w-full sm:w-auto"
                   disabled={loading}
                 >
-                  {loading ? "Publishing..." : "Publish"}
+                  {loading ? t("publishing") : t("publish")}
                 </Button>
                 <Button
                   type="button"
@@ -263,7 +273,7 @@ export function CreatePostForm({ board }: { board?: string }) {
                   onClick={handleCancel}
                   className="font-semibold px-6 w-full sm:w-auto"
                 >
-                  Cancel
+                  {t("cancel")}
                 </Button>
               </div>
             </div>
@@ -293,11 +303,11 @@ export function CreatePostForm({ board }: { board?: string }) {
           {/* Title */}
           <div className="mb-6">
             <Label htmlFor="title" className="mb-2 text-muted-foreground">
-              Post Title
+              {t("postTitle")}
             </Label>
             <Input
               id="title"
-              placeholder="Enter post title"
+              placeholder={t("enterPostTitle")}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={100}
@@ -314,9 +324,9 @@ export function CreatePostForm({ board }: { board?: string }) {
           />
           {/* Tags */}
           <div className="mb-6">
-            <Label className="mb-2 text-muted-foreground">Tags</Label>
+            <Label className="mb-2 text-muted-foreground">{t("tags")}</Label>
             <Input
-              placeholder="Add a tag and press Enter"
+              placeholder={t("addTagHint")}
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={handleTagKeyDown}
@@ -345,7 +355,7 @@ export function CreatePostForm({ board }: { board?: string }) {
           </div>
           {/* Content */}
           <Label htmlFor="content" className="mb-2 text-muted-foreground">
-            Content
+            {t("content")}
           </Label>
           <RichTextEditor key={editorKey} onChange={setContent} />
           {/* Actions */}
@@ -356,7 +366,7 @@ export function CreatePostForm({ board }: { board?: string }) {
               className="font-semibold px-6 w-full sm:w-auto rounded-none"
               disabled={loading}
             >
-              {loading ? "Publishing..." : "Publish"}
+              {loading ? t("publishing") : t("publish")}
             </Button>
             <Button
               type="button"
@@ -364,7 +374,7 @@ export function CreatePostForm({ board }: { board?: string }) {
               onClick={handleCancel}
               className="font-semibold px-6 w-full sm:w-auto rounded-none"
             >
-              Cancel
+              {t("cancel")}
             </Button>
           </div>
         </div>

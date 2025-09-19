@@ -10,9 +10,10 @@ import {
 import {
   useInfiniteQuery,
   useMutation,
+  useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { format, formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import {
   AlertTriangle,
   CircleXIcon,
@@ -67,6 +68,7 @@ interface TradingRoom {
   participants: number;
   pnlPercentage: number | null;
   thumbnail_url: string | null;
+  isHostStreaming?: boolean; // New field to track if host is streaming
 }
 
 const multiColumnFilterFn = (room: TradingRoom, searchTerm: string) => {
@@ -85,17 +87,76 @@ const accessFilterFn = (room: TradingRoom, selectedAccess: string[]) => {
   return selectedAccess.includes(room.isPublic ? "public" : "private");
 };
 
-function CreatedAtCell({ value }: { value: string }) {
+// Custom time formatting function with translations
+const formatTimeAgo = (
+  date: Date,
+  t: (key: string, values?: Record<string, string | number | Date>) => string
+): string => {
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 60) {
+    return t("timeAgo.justNow");
+  }
+
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) {
+    return diffInMinutes === 1
+      ? t("timeAgo.minuteAgo")
+      : t("timeAgo.minutesAgo", { count: diffInMinutes });
+  }
+
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) {
+    return diffInHours === 1
+      ? t("timeAgo.hourAgo")
+      : t("timeAgo.hoursAgo", { count: diffInHours });
+  }
+
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 7) {
+    return diffInDays === 1
+      ? t("timeAgo.dayAgo")
+      : t("timeAgo.daysAgo", { count: diffInDays });
+  }
+
+  const diffInWeeks = Math.floor(diffInDays / 7);
+  if (diffInWeeks < 4) {
+    return diffInWeeks === 1
+      ? t("timeAgo.weekAgo")
+      : t("timeAgo.weeksAgo", { count: diffInWeeks });
+  }
+
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths < 12) {
+    return diffInMonths === 1
+      ? t("timeAgo.monthAgo")
+      : t("timeAgo.monthsAgo", { count: diffInMonths });
+  }
+
+  const diffInYears = Math.floor(diffInDays / 365);
+  return diffInYears === 1
+    ? t("timeAgo.yearAgo")
+    : t("timeAgo.yearsAgo", { count: diffInYears });
+};
+
+function CreatedAtCell({
+  value,
+  t,
+}: {
+  value: string;
+  t: (key: string, values?: Record<string, string | number | Date>) => string;
+}) {
   const [relative, setRelative] = useState<string>("");
 
   useEffect(() => {
     const date = new Date(value);
     if (!isNaN(date.getTime())) {
-      setRelative(formatDistanceToNow(date, { addSuffix: true }));
+      setRelative(formatTimeAgo(date, t));
     } else {
       setRelative("-");
     }
-  }, [value]);
+  }, [value, t]);
 
   return (
     <TooltipProvider>
@@ -116,6 +177,7 @@ function CreatedAtCell({ value }: { value: string }) {
 
 export function TradingRoomsList() {
   const t = useTranslations("tradingRooms");
+  const tCreate = useTranslations("createRoom");
   const tCommon = useTranslations("common");
   const { user: authUser } = useAuth();
   const id = useId();
@@ -126,9 +188,29 @@ export function TradingRoomsList() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedAccess, setSelectedAccess] = useState<string[]>([]);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+  const [streamingRooms, setStreamingRooms] = useState<Set<string>>(new Set());
 
   // React Query client for cache management
   const queryClient = useQueryClient();
+
+  // ===== Latest reset markers (to zero PNL display when a room has been reset) =====
+  const { data: latestResets } = useQuery({
+    queryKey: ["trading-rooms", "latest-resets"],
+    queryFn: async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("v_room_latest_reset")
+        .select("room_id, reset_at")
+        .limit(10000);
+      if (error) throw error;
+      return data as { room_id: string; reset_at: string }[];
+    },
+    staleTime: 10_000,
+  });
+  const resetRoomIdSet = useMemo(
+    () => new Set((latestResets || []).map((r) => r.room_id)),
+    [latestResets]
+  );
 
   // Password verification mutation
   const verifyPasswordMutation = useMutation({
@@ -153,7 +235,7 @@ export function TradingRoomsList() {
       return response.json();
     },
     onSuccess: (data, variables) => {
-      toast.success("Password correct! Joining room...");
+      toast.success(t("passwordCorrect"));
       setPasswordDialog({
         open: false,
         roomId: null,
@@ -257,8 +339,9 @@ export function TradingRoomsList() {
     return filteredRooms.map((room: TradingRoom) => ({
       ...room,
       isHosted: room.creator.id === currentUserId,
+      isHostStreaming: streamingRooms.has(room.id),
     }));
-  }, [currentUserId, filteredRooms]);
+  }, [currentUserId, filteredRooms, streamingRooms]);
 
   // Debug logging to track state changes
   useEffect(() => {
@@ -408,6 +491,38 @@ export function TradingRoomsList() {
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
+
+  // Real-time subscription for streaming status updates
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel("room-streaming-status")
+      .on(
+        "broadcast",
+        {
+          event: "streaming-status",
+        },
+        (payload) => {
+          const { roomId, isStreaming } = payload.payload;
+          console.log("Streaming status update:", { roomId, isStreaming });
+
+          setStreamingRooms((prev) => {
+            const newSet = new Set(prev);
+            if (isStreaming) {
+              newSet.add(roomId);
+            } else {
+              newSet.delete(roomId);
+            }
+            return newSet;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   // Remove virtual scrolling setup that's causing the bug
   // const parentRef = useRef<HTMLDivElement>(null);
@@ -619,10 +734,10 @@ export function TradingRoomsList() {
             {/* Title with animated gradient */}
             <div className="text-center space-y-3">
               <DialogTitle className="text-3xl font-bold tracking-tight bg-gradient-to-r from-orange-400 via-red-400 to-purple-400 bg-clip-text text-transparent animate-pulse">
-                Private Room Access
+                {t("privateRoomAccess")}
               </DialogTitle>
               <p className="text-slate-300 text-sm leading-relaxed max-w-sm">
-                Enter the secure password to join{" "}
+                {t("enterPasswordPlaceholder")}{" "}
                 <span className="font-semibold text-orange-300 bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text bg-transparent">
                   {passwordDialog.roomName}
                 </span>
@@ -638,7 +753,7 @@ export function TradingRoomsList() {
                 <div className="relative">
                   <Input
                     type={showPassword ? "text" : "password"}
-                    placeholder="Enter your secure password"
+                    placeholder={t("enterPasswordPlaceholder")}
                     className="h-14 pr-14 text-base bg-slate-800/50 border-2 border-slate-700/50 focus:border-orange-500/70 focus:bg-slate-800/70 rounded-xl transition-all duration-300 text-white placeholder:text-slate-400 backdrop-blur-sm"
                     value={passwordDialog.password}
                     onChange={(e) =>
@@ -684,7 +799,7 @@ export function TradingRoomsList() {
                   className="flex-1 h-14 text-base font-medium bg-slate-800/50 border-slate-700/50 hover:bg-slate-700/50 hover:border-slate-600/50 text-slate-300 hover:text-white rounded-xl transition-all duration-300 backdrop-blur-sm"
                   disabled={verifyPasswordMutation.isPending}
                 >
-                  Cancel
+                  {tCreate("cancel")}
                 </Button>
 
                 <Button
@@ -719,12 +834,12 @@ export function TradingRoomsList() {
                             d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                           />
                         </svg>
-                        <span>Joining...</span>
+                        <span>{t("joining")}</span>
                       </>
                     ) : (
                       <>
                         <LockIcon className="h-4 w-4" />
-                        <span>Join Room</span>
+                        <span>{t("joinRoom")}</span>
                       </>
                     )}
                   </span>
@@ -736,7 +851,7 @@ export function TradingRoomsList() {
             <div className="text-center">
               <p className="text-xs text-slate-400 flex items-center justify-center gap-2">
                 <LockIcon className="h-3 w-3" />
-                Your password is encrypted and secure
+                {t("passwordSecurityNote")}
               </p>
             </div>
           </div>
@@ -754,7 +869,7 @@ export function TradingRoomsList() {
               className="pl-10 pr-10 h-10 w-full"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search rooms, symbols, or creators..."
+              placeholder={t("filterPlaceholder")}
             />
             {searchTerm && (
               <button
@@ -781,7 +896,7 @@ export function TradingRoomsList() {
                     className="h-9 px-3 flex-shrink-0"
                   >
                     <FilterIcon className="h-4 w-4 mr-2" />
-                    Type
+                    {t("typeFilter")}
                     {selectedCategories.length > 0 && (
                       <Badge variant="secondary" className="ml-2">
                         {selectedCategories.length}
@@ -791,7 +906,7 @@ export function TradingRoomsList() {
                 </PopoverTrigger>
                 <PopoverContent className="w-56 p-4" align="start">
                   <div className="space-y-3">
-                    <h4 className="font-medium text-sm">Room Type</h4>
+                    <h4 className="font-medium text-sm">{t("roomType")}</h4>
                     {uniqueCategoryValues.map((value, i) => (
                       <div key={value} className="flex items-center space-x-2">
                         <Checkbox
@@ -805,7 +920,7 @@ export function TradingRoomsList() {
                           htmlFor={`${id}-category-${i}`}
                           className="flex-1 text-sm cursor-pointer"
                         >
-                          {value === "voice" ? "Voice" : "Chat"}
+                          {value === "voice" ? t("voice") : t("chat")}
                         </Label>
                         <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
                           {categoryCounts.get(value)}
@@ -825,7 +940,7 @@ export function TradingRoomsList() {
                     className="h-9 px-3 flex-shrink-0"
                   >
                     <FilterIcon className="h-4 w-4 mr-2" />
-                    Access
+                    {t("accessFilter")}
                     {selectedAccess.length > 0 && (
                       <Badge variant="secondary" className="ml-2">
                         {selectedAccess.length}
@@ -835,7 +950,7 @@ export function TradingRoomsList() {
                 </PopoverTrigger>
                 <PopoverContent className="w-56 p-4" align="start">
                   <div className="space-y-3">
-                    <h4 className="font-medium text-sm">Room Access</h4>
+                    <h4 className="font-medium text-sm">{t("roomAccess")}</h4>
                     {accessOptions.map((option, i) => (
                       <div
                         key={option.value}
@@ -884,7 +999,7 @@ export function TradingRoomsList() {
             className="pl-10 pr-10 h-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search rooms, symbols, or creators..."
+            placeholder={t("filterPlaceholder")}
           />
           {searchTerm && (
             <button
@@ -902,7 +1017,7 @@ export function TradingRoomsList() {
             <PopoverTrigger asChild>
               <Button variant="outline" className="h-10">
                 <FilterIcon className="h-4 w-4 mr-2" />
-                Type
+                {t("typeFilter")}
                 {selectedCategories.length > 0 && (
                   <Badge variant="secondary" className="ml-2">
                     {selectedCategories.length}
@@ -912,7 +1027,7 @@ export function TradingRoomsList() {
             </PopoverTrigger>
             <PopoverContent className="w-56 p-4" align="end">
               <div className="space-y-3">
-                <h4 className="font-medium text-sm">Room Type</h4>
+                <h4 className="font-medium text-sm">{t("roomType")}</h4>
                 {uniqueCategoryValues.map((value, i) => (
                   <div key={value} className="flex items-center space-x-2">
                     <Checkbox
@@ -926,7 +1041,7 @@ export function TradingRoomsList() {
                       htmlFor={`${id}-category-lg-${i}`}
                       className="flex-1 text-sm cursor-pointer"
                     >
-                      {value === "voice" ? "Voice" : "Chat"}
+                      {value === "voice" ? t("voice") : t("chat")}
                     </Label>
                     <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
                       {categoryCounts.get(value)}
@@ -942,7 +1057,7 @@ export function TradingRoomsList() {
             <PopoverTrigger asChild>
               <Button variant="outline" className="h-10">
                 <FilterIcon className="h-4 w-4 mr-2" />
-                Access
+                {t("accessFilter")}
                 {selectedAccess.length > 0 && (
                   <Badge variant="secondary" className="ml-2">
                     {selectedAccess.length}
@@ -952,7 +1067,7 @@ export function TradingRoomsList() {
             </PopoverTrigger>
             <PopoverContent className="w-56 p-4" align="end">
               <div className="space-y-3">
-                <h4 className="font-medium text-sm">Room Access</h4>
+                <h4 className="font-medium text-sm">{t("roomAccess")}</h4>
                 {accessOptions.map((option, i) => (
                   <div
                     key={option.value}
@@ -1078,10 +1193,10 @@ export function TradingRoomsList() {
                     </div>
                   )}
 
-                  {/* Live indicator */}
-                  {room.participants > 0 && (
-                    <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
-                      LIVE
+                  {/* Live indicator - only show when host is actively streaming */}
+                  {room.isHostStreaming && (
+                    <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded animate-pulse">
+                      {t("live")}
                     </div>
                   )}
 
@@ -1089,7 +1204,7 @@ export function TradingRoomsList() {
                   {!room.isPublic && (
                     <div className="absolute top-2 right-2 bg-orange-500/90 backdrop-blur-sm text-white text-xs font-bold px-2 py-1 rounded flex items-center gap-1">
                       <LockIcon className="h-3 w-3" />
-                      PRIVATE
+                      {t("private")}
                     </div>
                   )}
 
@@ -1097,7 +1212,9 @@ export function TradingRoomsList() {
                   {room.participants > 0 && (
                     <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
                       {room.participants}{" "}
-                      {room.participants === 1 ? "participant" : "participants"}
+                      {room.participants === 1
+                        ? t("participant")
+                        : t("participants")}
                     </div>
                   )}
 
@@ -1107,10 +1224,10 @@ export function TradingRoomsList() {
                       <div className="text-center text-white p-4">
                         <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-amber-400" />
                         <p className="text-sm font-medium">
-                          Verification Required
+                          {tCommon("identityVerificationRequired")}
                         </p>
                         <p className="text-xs text-gray-300 mt-1">
-                          Complete identity verification to join rooms
+                          {t("identityVerificationToJoin")}
                         </p>
                       </div>
                     </div>
@@ -1181,32 +1298,53 @@ export function TradingRoomsList() {
                           {/* Time with clock icon */}
                           <Clock className="h-3 w-3 text-blue-400" />
                           <span className="text-xs text-muted-foreground">
-                            <CreatedAtCell value={room.createdAt} />
+                            <CreatedAtCell value={room.createdAt} t={t} />
                           </span>
                         </div>
 
                         {/* PNL with trending icon - moved to right */}
                         {room.pnlPercentage !== null && (
                           <div className="flex items-center gap-2">
-                            {room.pnlPercentage > 0 ? (
-                              <TrendingUp className="h-3 w-3 text-green-400" />
-                            ) : room.pnlPercentage < 0 ? (
-                              <TrendingDown className="h-3 w-3 text-red-400" />
-                            ) : (
-                              <TrendingUp className="h-3 w-3 text-slate-400" />
-                            )}
+                            {(() => {
+                              const effectivePnl = resetRoomIdSet.has(room.id)
+                                ? 0
+                                : (room.pnlPercentage as number);
+                              if (effectivePnl > 0) {
+                                return (
+                                  <TrendingUp className="h-3 w-3 text-green-400" />
+                                );
+                              }
+                              if (effectivePnl < 0) {
+                                return (
+                                  <TrendingDown className="h-3 w-3 text-red-400" />
+                                );
+                              }
+                              return (
+                                <TrendingUp className="h-3 w-3 text-slate-400" />
+                              );
+                            })()}
                             <span
                               className={cn(
                                 "text-xs font-semibold",
-                                room.pnlPercentage > 0
+                                (resetRoomIdSet.has(room.id)
+                                  ? 0
+                                  : (room.pnlPercentage as number)) > 0
                                   ? "text-green-400"
-                                  : room.pnlPercentage < 0
+                                  : (resetRoomIdSet.has(room.id)
+                                      ? 0
+                                      : (room.pnlPercentage as number)) < 0
                                   ? "text-red-400"
                                   : "text-muted-foreground"
                               )}
                             >
-                              {room.pnlPercentage > 0 ? "+" : ""}
-                              {room.pnlPercentage.toFixed(2)}% PNL
+                              {(() => {
+                                const effectivePnl = resetRoomIdSet.has(room.id)
+                                  ? 0
+                                  : (room.pnlPercentage as number);
+                                return `${
+                                  effectivePnl > 0 ? "+" : ""
+                                }${effectivePnl.toFixed(2)}% PNL`;
+                              })()}
                             </span>
                           </div>
                         )}
@@ -1271,7 +1409,7 @@ export function TradingRoomsList() {
                 <div className="flex items-center gap-2">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
                   <span className="text-sm text-muted-foreground">
-                    Loading more rooms...
+                    {t("loadingMoreRooms")}
                   </span>
                 </div>
               </div>
@@ -1288,7 +1426,7 @@ export function TradingRoomsList() {
                   onClick={loadMore}
                   className="text-sm"
                 >
-                  Load More Rooms
+                  {t("loadMoreRooms")}
                 </Button>
               </div>
             )}
@@ -1300,7 +1438,7 @@ export function TradingRoomsList() {
               selectedCategories.length > 0 ||
               selectedAccess.length > 0
                 ? t("noTradingRoomsFound")
-                : "No trading rooms available"}
+                : t("noRoomsAvailable")}
             </div>
           </div>
         )}

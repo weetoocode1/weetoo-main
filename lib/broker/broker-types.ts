@@ -57,6 +57,7 @@ export interface BrokerAPI {
 export type BrokerType =
   | "deepcoin"
   | "orangex"
+  | "lbank"
   | "bingx"
   | "okx"
   | "bybit"

@@ -3,6 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Award, Medal, Target, TrendingUp, Trophy } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { memo, useMemo } from "react";
 
 type TimeFrame = "daily" | "weekly" | "monthly";
@@ -260,11 +261,15 @@ export const TraderRankingTable = memo(
     selectedTimeFrame: TimeFrame;
     onTimeFrameChange: (timeFrame: TimeFrame) => void;
   }) => {
-    // const t = useTranslations("traderRanking");
+    const t = useTranslations("traderRanking");
 
     // Fill remaining slots with demo data if we have fewer than 10 real traders
     const filledTraders = useMemo(() => {
-      const top10Traders = traders.slice(0, 10);
+      const nonZero = traders.filter(
+        (tr) => (tr.total_trades ?? 0) > 0 || (tr.win_rate ?? 0) > 0
+      );
+      const baseList = nonZero.length > 0 ? nonZero : traders;
+      const top10Traders = baseList.slice(0, 10);
       const demoTraders = getDummyTraders(selectedTimeFrame);
 
       const filled = [...top10Traders];
@@ -294,13 +299,12 @@ export const TraderRankingTable = memo(
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
           <div className="flex-1">
             <h2 className="text-2xl font-bold text-foreground">
-              Full Leaderboard
+              {t("fullLeaderboard")}
             </h2>
             <p className="text-muted-foreground">
-              Complete ranking of all active traders •{" "}
-              {selectedTimeFrame.charAt(0).toUpperCase() +
-                selectedTimeFrame.slice(1)}{" "}
-              Rankings
+              {t("fullLeaderboardSubtitle", {
+                timeframe: t(selectedTimeFrame),
+              })}
             </p>
           </div>
 
@@ -318,7 +322,7 @@ export const TraderRankingTable = memo(
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  {timeFrame.charAt(0).toUpperCase() + timeFrame.slice(1)}
+                  {t(timeFrame)}
                 </button>
               )
             )}
@@ -328,11 +332,11 @@ export const TraderRankingTable = memo(
         <div className="bg-background/60 backdrop-blur-sm rounded-2xl border border-border/50 overflow-hidden shadow-xl">
           {/* Table Header */}
           <div className="hidden md:grid grid-cols-10 gap-4 px-6 py-5 bg-gradient-to-r from-muted/40 via-muted/30 to-muted/40 border-b border-border/50 font-semibold text-sm text-muted-foreground">
-            <div className="col-span-1">Rank</div>
-            <div className="col-span-3">Trader</div>
-            <div className="col-span-2">Win Rate</div>
-            <div className="col-span-2">Trades</div>
-            <div className="col-span-2">Win Streak</div>
+            <div className="col-span-1">{t("tableRank")}</div>
+            <div className="col-span-3">{t("tableTrader")}</div>
+            <div className="col-span-2">{t("tableWinRate")}</div>
+            <div className="col-span-2">{t("tableTrades")}</div>
+            <div className="col-span-2">{t("tableWinStreak")}</div>
           </div>
 
           {/* Desktop Table Rows */}

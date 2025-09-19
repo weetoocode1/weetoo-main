@@ -2,7 +2,11 @@ import { createClient } from "@/lib/supabase/client";
 import { useCallback, useEffect } from "react";
 import useSWR from "swr";
 
-export function usePositions(roomId: string) {
+export interface UsePositionsOptions {
+  sinceResetAt?: string; // ISO timestamp; when provided, only return closed positions since this time
+}
+
+export function usePositions(roomId: string, options?: UsePositionsOptions) {
   const supabase = createClient();
 
   // Fetch open positions
@@ -19,12 +23,19 @@ export function usePositions(roomId: string) {
 
   // Fetch closed positions (history)
   const fetchClosed = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from("trading_room_positions")
       .select("*")
       .eq("room_id", roomId)
-      .not("closed_at", "is", null)
-      .order("closed_at", { ascending: false });
+      .not("closed_at", "is", null);
+
+    if (options?.sinceResetAt) {
+      query = query.gte("closed_at", options.sinceResetAt);
+    }
+
+    const { data, error } = await query.order("closed_at", {
+      ascending: false,
+    });
     if (error) throw error;
     return data;
   };
@@ -41,7 +52,10 @@ export function usePositions(roomId: string) {
     mutate: mutateClosed,
     isLoading: loadingClosed,
     error: errorClosed,
-  } = useSWR(["closed-positions", roomId], fetchClosed);
+  } = useSWR(
+    ["closed-positions", roomId, options?.sinceResetAt ?? null],
+    fetchClosed
+  );
 
   // Realtime subscription for open/closed positions
   useEffect(() => {

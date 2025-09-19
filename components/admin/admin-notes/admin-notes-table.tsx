@@ -331,7 +331,7 @@ export function AdminNotesTable() {
         </div>
         <div className="flex items-center gap-3">
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="w-32 shadow-none rounded-none h-10">
+            <SelectTrigger className="w-40 shadow-none rounded-none h-10">
               <SelectValue placeholder={t("filters.allPriorities")} />
             </SelectTrigger>
             <SelectContent>

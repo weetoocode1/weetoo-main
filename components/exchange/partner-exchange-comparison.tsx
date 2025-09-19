@@ -327,7 +327,7 @@ export const PartnerExchangeComparison = () => {
                 </th>
                 {isSuperAdmin && (
                   <th className="text-left p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
-                    Actions
+                    {t("actions")}
                   </th>
                 )}
               </tr>
@@ -565,7 +565,7 @@ export const PartnerExchangeComparison = () => {
                                       setUidDialogOpen(true);
                                     }}
                                   >
-                                    Register UID
+                                    {t("registerUid")}
                                   </Button>
                                   <Button
                                     size="sm"
@@ -580,10 +580,10 @@ export const PartnerExchangeComparison = () => {
                                         target="_blank"
                                         rel="noopener noreferrer"
                                       >
-                                        Sign Up
+                                        {t("signUp")}
                                       </a>
                                     ) : (
-                                      <>Sign Up</>
+                                      <>{t("signUp")}</>
                                     )}
                                   </Button>
                                 </>
@@ -593,13 +593,13 @@ export const PartnerExchangeComparison = () => {
                                     size="sm"
                                     className="rounded-none hover:shadow-sm"
                                   >
-                                    UID Registration Coming Soon
+                                    {t("uidRegistrationComingSoon")}
                                   </Button>
                                   <Button
                                     size="sm"
                                     className="rounded-none hover:shadow-sm"
                                   >
-                                    Sign Up Coming Soon
+                                    {t("signUpComingSoon")}
                                   </Button>
                                 </>
                               )}
@@ -657,7 +657,7 @@ export const PartnerExchangeComparison = () => {
                     <div className="flex items-center gap-1 mt-1">
                       <BadgeCheck className="w-3 h-3 text-blue-500" />
                       <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                        Verified Partner
+                        {t("verifiedPartner")}
                       </span>
                     </div>
                   </div>
@@ -836,7 +836,7 @@ export const PartnerExchangeComparison = () => {
         onSave={handleSave}
       />
       <UidRegistrationDialog
-        title="Register UID"
+        title={t("registerUid")}
         trigger={<span />}
         onUIDAdded={() => setUidDialogOpen(false)}
         isOpen={uidDialogOpen}

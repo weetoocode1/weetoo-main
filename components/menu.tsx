@@ -291,14 +291,9 @@ export function Menu({ onNavigate }: { onNavigate?: () => void }) {
         <NavigationMenuItem>
           <NavigationMenuTrigger>{t("community")}</NavigationMenuTrigger>
           <NavigationMenuContent className="left-1/2 -translate-x-1/2">
-            <ul className="grid gap-2 p-2 w-[300px]">
+            <ul className="grid gap-2 p-2 w-[400px]">
               {community.map((item) => (
-                <ListItem
-                  key={item.title}
-                  title={item.title}
-                  href={item.href}
-                  className="text-balance"
-                >
+                <ListItem key={item.title} title={item.title} href={item.href}>
                   {item.description}
                 </ListItem>
               ))}
@@ -320,14 +315,9 @@ export function Menu({ onNavigate }: { onNavigate?: () => void }) {
         <NavigationMenuItem>
           <NavigationMenuTrigger>{t("information")}</NavigationMenuTrigger>
           <NavigationMenuContent className="left-1/2 -translate-x-1/2">
-            <ul className="w-[300px] p-2">
+            <ul className="w-[320px] p-2">
               {information.map((item) => (
-                <ListItem
-                  key={item.title}
-                  title={item.title}
-                  href={item.href}
-                  className="text-balance"
-                >
+                <ListItem key={item.title} title={item.title} href={item.href}>
                   {item.description}
                 </ListItem>
               ))}

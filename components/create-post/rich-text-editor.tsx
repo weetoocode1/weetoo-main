@@ -12,6 +12,7 @@ import { PlainTextPlugin } from "@lexical/react/LexicalPlainTextPlugin";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { ParagraphNode, TextNode } from "lexical";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { ContentEditable } from "@/components/editor/editor-ui/content-editable";
 import { ActionsPlugin } from "@/components/editor/plugins/actions/actions-plugin";
@@ -50,7 +51,7 @@ export function RichTextEditor({ onChange }: RichTextEditorProps) {
   );
 }
 
-const placeholder = "Start typing...";
+const placeholderKey = "editorPlaceholder";
 
 interface PluginsProps {
   onChange?: (content: string) => void;
@@ -58,6 +59,7 @@ interface PluginsProps {
 
 export function Plugins({ onChange }: PluginsProps) {
   const [, setFloatingAnchorElem] = useState<HTMLDivElement | null>(null);
+  const t = useTranslations("createPost");
 
   const onRef = (_floatingAnchorElem: HTMLDivElement) => {
     if (_floatingAnchorElem !== null) {
@@ -82,7 +84,7 @@ export function Plugins({ onChange }: PluginsProps) {
           }
           placeholder={
             <div className="pointer-events-none absolute left-4 top-[18px] select-none text-muted-foreground/60">
-              {placeholder}
+              {t(placeholderKey)}
             </div>
           }
           ErrorBoundary={LexicalErrorBoundary}

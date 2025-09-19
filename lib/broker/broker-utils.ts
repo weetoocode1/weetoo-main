@@ -60,6 +60,7 @@ export function getBrokerDisplayName(brokerType: BrokerType): string {
     orangex: "OrangeX",
     bingx: "BingX",
     okx: "OKX",
+    lbank: "LBank",
     bybit: "Bybit",
     gate: "Gate.io",
     kucoin: "KuCoin",

@@ -19,7 +19,7 @@ export function ProfitRatePageClient() {
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
                   {t("profitRateRankings")}
                 </h1>
-                <p className="text-sm sm:text-base text-neutral-600 dark:text-neutral-400 text-balance max-w-4xl mt-1 mx-auto">
+                <p className="text-sm sm:text-base text-neutral-600 dark:text-neutral-400 text-balance max-w-4xl mt-1 mx-auto whitespace-pre-line">
                   {t("topProfitRateTraders")}
                 </p>
               </div>
