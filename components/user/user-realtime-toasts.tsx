@@ -37,6 +37,15 @@ const getGenericConfig = (
 
 // Notification configurations for user notifications
 const userNotificationConfigs: Record<string, NotificationConfig> = {
+  user_banned: {
+    toastType: "error",
+    title: (metadata) => metadata?.title?.toString?.() || "Account Banned",
+    description: (metadata) =>
+      `Your account has been banned${
+        metadata?.reason ? `: ${metadata.reason}` : "."
+      }`,
+    duration: 6000,
+  },
   deposit_failed: {
     toastType: "error",
     title: "Deposit Failed",

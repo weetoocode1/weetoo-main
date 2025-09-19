@@ -20,8 +20,6 @@ interface PostData {
   likes: number;
   comments: number;
   category: "Free Board" | "Education Board" | "Profit Board";
-  isTrending?: boolean;
-  isPinned?: boolean;
   isDemo?: boolean;
   boardPath?: string; // For demo data: full path like "/free-board", for real data: board parameter like "free-board"
 }
@@ -50,7 +48,6 @@ const demoPostsData: PostData[] = [
     likes: 1247,
     comments: 89,
     category: "Free Board",
-    isTrending: true,
     isDemo: true,
     boardPath: "/free-board",
   },
@@ -100,7 +97,6 @@ const demoPostsData: PostData[] = [
     likes: 2156,
     comments: 134,
     category: "Education Board",
-    isPinned: true,
     isDemo: true,
     boardPath: "/education-board",
   },
@@ -150,7 +146,6 @@ const demoPostsData: PostData[] = [
     likes: 3245,
     comments: 156,
     category: "Profit Board",
-    isTrending: true,
     isDemo: true,
     boardPath: "/profit-board",
   },
@@ -268,8 +263,6 @@ const convertToPostData = (
     likes: post.likes || 0, // Use actual database value
     comments: post.comments || 0, // Use actual database value
     category,
-    isTrending: false, // Fixed: Remove Math.random() for hydration consistency
-    isPinned: false, // Fixed: Remove Math.random() for hydration consistency
     isDemo: false, // Real data is not demo
     boardPath: getBoardParam(category), // Store board parameter for URL construction
   };
@@ -326,23 +319,7 @@ const PostCard = ({ post, index }: { post: PostData; index: number }) => {
         </div>
 
         <div className="p-6 flex-1 flex flex-col relative z-10">
-          {/* Status badges */}
-          <div className="flex items-center justify-start mb-4">
-            <div className="flex items-center space-x-2">
-              {post.isPinned && (
-                <span className="px-2 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 text-xs font-medium rounded-full">
-                  📌 Pinned
-                </span>
-              )}
-              {post.isTrending && (
-                <span className="px-2 py-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 text-xs font-medium rounded-full">
-                  🔥 Trending
-                </span>
-              )}
-            </div>
-          </div>
-
-          <h3 className="text-lg font-bold text-foreground truncate mb-3 leading-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
+          <h3 className="text-lg font-bold text-foreground truncate mb-3 leading-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 pr-20">
             {post.title}
           </h3>
 

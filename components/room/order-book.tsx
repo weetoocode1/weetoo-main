@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { TRADING_SYMBOLS } from "@/lib/trading/symbols-config";
 
 interface OrderBookData {
@@ -37,6 +38,7 @@ interface OrderBookProps {
 export function OrderBook({ symbol = "BTCUSDT", data }: OrderBookProps) {
   const [activeTab, setActiveTab] = useState("orderBook");
   const [priceDecimals, setPriceDecimals] = useState(2);
+  const t = useTranslations("room.orderBook");
 
   // const baseAsset = symbol.replace(/USDT$/i, "").replace(/.{4}$/, "");
 
@@ -98,7 +100,7 @@ export function OrderBook({ symbol = "BTCUSDT", data }: OrderBookProps) {
             }`}
             onClick={() => setActiveTab("orderBook")}
           >
-            Book
+            {t("tabs.book")}
           </button>
           <button
             className={`px-4 py-2 ${
@@ -108,7 +110,7 @@ export function OrderBook({ symbol = "BTCUSDT", data }: OrderBookProps) {
             }`}
             onClick={() => setActiveTab("recentTrades")}
           >
-            Trades
+            {t("tabs.trades")}
           </button>
         </div>
 
@@ -139,19 +141,21 @@ export function OrderBook({ symbol = "BTCUSDT", data }: OrderBookProps) {
       {activeTab === "orderBook" && (
         <div className="flex flex-col flex-1 overflow-hidden">
           <div className="grid grid-cols-3 text-muted-foreground p-2 text-sm border-b border-border">
-            <span>Price (USDT)</span>
-            <span className="text-right">Amt. ({baseAssetLabel})</span>
-            <span className="text-right">Total</span>
+            <span>{t("headers.priceUsdt", { quote: "USDT" })}</span>
+            <span className="text-right">
+              {t("headers.amountBase", { base: baseAssetLabel })}
+            </span>
+            <span className="text-right">{t("headers.total")}</span>
           </div>
           <div className="flex flex-col flex-1 overflow-y-auto custom-scrollbar">
             {/* Show error or empty message if no order book data */}
             {orderBookError ? (
               <div className="flex-1 flex items-center justify-center text-red-500 text-sm p-4">
-                Failed to load order book: {orderBookError}
+                {t("messages.failedLoad")} {orderBookError}
               </div>
             ) : buyRows.length === 0 && sellRows.length === 0 ? (
               <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-4">
-                No order book data available for this symbol.
+                {t("messages.empty")}
               </div>
             ) : (
               <>
@@ -280,9 +284,11 @@ export function OrderBook({ symbol = "BTCUSDT", data }: OrderBookProps) {
       {activeTab === "recentTrades" && (
         <div className="flex flex-col flex-1 overflow-hidden">
           <div className="grid grid-cols-3 text-muted-foreground p-2 text-sm border-b border-border">
-            <span>Price (USDT)</span>
-            <span className="text-right">Qty ({baseAssetLabel})</span>
-            <span className="text-right">Time</span>
+            <span>{t("headers.priceUsdt", { quote: "USDT" })}</span>
+            <span className="text-right">
+              {t("headers.qtyBase", { base: baseAssetLabel })}
+            </span>
+            <span className="text-right">{t("headers.time")}</span>
           </div>
           <div className="flex flex-col flex-1 overflow-y-auto custom-scrollbar">
             {tradesData?.map((item: TradeData, index: number) => (

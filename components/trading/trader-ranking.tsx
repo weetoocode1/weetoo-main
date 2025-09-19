@@ -776,7 +776,7 @@ const MobileTraderCard = memo(
 MobileTraderCard.displayName = "MobileTraderCard";
 
 export const TraderRanking = memo(() => {
-  // const t = useTranslations("traderRanking");
+  const tTabs = useTranslations("traderRanking");
   const [selectedTimeFrame, setSelectedTimeFrame] =
     useState<TimeFrame>("daily");
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -821,10 +821,17 @@ export const TraderRanking = memo(() => {
   });
 
   // Determine if we need to use demo data
-  const useDummyData = traders.length < 10 || error;
+  const useDummyData = traders.length < 10 || !!error;
 
   // If there's an error, use demo data
-  const displayTraders = error ? getDummyTraders(selectedTimeFrame) : traders;
+  const displayTraders = useMemo(() => {
+    const raw = (traders as TraderData[]) || [];
+    const nonZero = raw.filter(
+      (t) => (t.total_trades ?? 0) > 0 || (t.win_rate ?? 0) > 0
+    );
+    if (nonZero.length > 0) return nonZero;
+    return getDummyTraders(selectedTimeFrame);
+  }, [traders, selectedTimeFrame]);
 
   // Set initial load state
   useEffect(() => {
@@ -909,7 +916,7 @@ export const TraderRanking = memo(() => {
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {timeFrame.charAt(0).toUpperCase() + timeFrame.slice(1)}
+              {tTabs(timeFrame)}
             </button>
           ))}
         </div>

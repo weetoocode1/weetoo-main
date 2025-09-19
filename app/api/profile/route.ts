@@ -9,6 +9,22 @@ export async function PATCH(req: NextRequest) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    // Server-side ban guard: block banned users from mutating profile
+    const { data: banRow } = await supabase
+      .from("users")
+      .select("banned, ban_reason, banned_at")
+      .eq("id", user!.id)
+      .single();
+    if (banRow?.banned) {
+      return NextResponse.json(
+        {
+          error: "Account banned",
+          reason: banRow.ban_reason || null,
+          banned_at: banRow.banned_at || null,
+        },
+        { status: 403 }
+      );
+    }
 
     if (!user) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });

@@ -13,6 +13,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 export function AdminVerificationClient() {
   const [otp, setOtp] = useState("");
@@ -26,6 +27,7 @@ export function AdminVerificationClient() {
   const router = useRouter();
   const redirecting = useRef(false);
   const checkingVerification = useRef(false);
+  const t = useTranslations("adminVerification");
 
   // Check if user is admin and redirect if not, also check verification status
   useEffect(() => {
@@ -61,7 +63,7 @@ export function AdminVerificationClient() {
       const data = await response.json();
 
       if (response.ok && data.verified) {
-        toast.success("Already verified! Redirecting to admin dashboard...");
+        toast.success(t("toast.alreadyVerified"));
         router.push("/admin");
       }
     } catch (error) {
@@ -114,13 +116,13 @@ export function AdminVerificationClient() {
           );
           setCountdown(timeLeft);
         }
-        toast.success("OTP sent to your email successfully!");
+        toast.success(t("toast.otpSentSuccess"));
       } else {
-        toast.error(data.error || "Failed to send OTP");
+        toast.error(data.error || t("toast.otpSentFailed"));
       }
     } catch (error) {
       console.error("Error sending OTP:", error);
-      toast.error("Failed to send OTP. Please try again.");
+      toast.error(t("toast.otpSentError"));
     } finally {
       setIsSendingOtp(false);
     }
@@ -128,7 +130,7 @@ export function AdminVerificationClient() {
 
   const verifyOTP = async () => {
     if (otp.length !== 6) {
-      toast.error("Please enter a 6-digit OTP code");
+      toast.error(t("toast.invalidOtpLength"));
       return;
     }
 
@@ -145,16 +147,16 @@ export function AdminVerificationClient() {
       const data = await response.json();
 
       if (response.ok) {
-        toast.success("OTP verified successfully!");
+        toast.success(t("toast.otpVerifiedSuccess"));
         // Redirect to admin dashboard
         router.push("/admin");
       } else {
-        toast.error(data.error || "Invalid OTP code");
+        toast.error(data.error || t("toast.invalidOtpCode"));
         setOtp("");
       }
     } catch (error) {
       console.error("Error verifying OTP:", error);
-      toast.error("Failed to verify OTP. Please try again.");
+      toast.error(t("toast.otpVerifyError"));
     } finally {
       setIsLoading(false);
     }
@@ -183,15 +185,15 @@ export function AdminVerificationClient() {
             </div>
           </div>
           <div className="space-y-1.5 text-center">
-            <CardTitle className="text-xl">Admin Verification</CardTitle>
+            <CardTitle className="text-xl">{t("title")}</CardTitle>
             <p className="text-sm text-muted-foreground">
               {otpSent
-                ? "Enter the verification code sent to your email"
-                : "Click the button below to receive a verification code"}
+                ? t("description.enterCode")
+                : t("description.clickToReceive")}
             </p>
             {otpSent && computed?.email && (
               <p className="text-xs text-muted-foreground">
-                Sent to:{" "}
+                {t("sentTo")}{" "}
                 <span className="font-medium text-foreground">
                   {computed.email}
                 </span>
@@ -209,12 +211,12 @@ export function AdminVerificationClient() {
               {isSendingOtp ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Sending OTP...
+                  {t("buttons.sendingOtp")}
                 </>
               ) : (
                 <>
                   <Mail className="w-4 h-4 mr-2" />
-                  Send Verification Code
+                  {t("buttons.sendVerificationCode")}
                 </>
               )}
             </Button>
@@ -244,7 +246,7 @@ export function AdminVerificationClient() {
               {countdown > 0 && (
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground mb-2">
-                    Code expires in:{" "}
+                    {t("codeExpiresIn")}{" "}
                     <span className="font-mono font-medium text-foreground">
                       {formatCountdown(countdown)}
                     </span>
@@ -261,10 +263,10 @@ export function AdminVerificationClient() {
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Verifying...
+                      {t("buttons.verifying")}
                     </>
                   ) : (
-                    "Verify & Access Dashboard"
+                    t("buttons.verifyAndAccess")
                   )}
                 </Button>
 
@@ -277,20 +279,20 @@ export function AdminVerificationClient() {
                   {isSendingOtp ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Sending...
+                      {t("buttons.sending")}
                     </>
                   ) : (
-                    "Resend Code"
+                    t("buttons.resendCode")
                   )}
                 </Button>
               </div>
 
               <div className="text-center space-y-1">
                 <p className="text-xs text-muted-foreground">
-                  Enter the 6-digit code sent to your email
+                  {t("instructions.enterSixDigit")}
                 </p>
                 <p className="text-xs text-muted-foreground/70">
-                  The code is valid for 24 hours
+                  {t("instructions.validFor24Hours")}
                 </p>
               </div>
             </>

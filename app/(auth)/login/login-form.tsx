@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
+import { useBanStore } from "@/lib/store/ban-store";
 
 const NAVER_CLIENT_ID = process.env.NEXT_PUBLIC_NAVER_CLIENT_ID;
 const NAVER_REDIRECT_URI =
@@ -40,6 +41,7 @@ export function LoginForm() {
   const [remember, setRemember] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+  const openBan = useBanStore((s) => s.openBan);
 
   // Only read from localStorage once on mount
   useEffect(() => {
@@ -71,6 +73,31 @@ export function LoginForm() {
         if (error) {
           toast.error(error.message || "Login failed");
         } else {
+          // Immediately verify ban status and prevent session if banned
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          if (user?.id) {
+            const { data: userRow } = await supabase
+              .from("users")
+              .select("banned, ban_reason, banned_at")
+              .eq("id", user.id)
+              .single();
+            if (userRow?.banned) {
+              try {
+                openBan({
+                  reason: userRow.ban_reason || "",
+                  bannedAt: userRow.banned_at || new Date().toISOString(),
+                });
+              } catch {}
+              try {
+                await supabase.auth.signOut();
+              } catch {}
+              toast.error("Your account is banned.");
+              // Stay on login page but show modal; do not navigate
+              return;
+            }
+          }
           localStorage.setItem("weetoo-last-sign-in-method", "email");
           toast.success("Logged in successfully");
           router.refresh();
@@ -78,7 +105,7 @@ export function LoginForm() {
         }
       });
     },
-    [email, password, remember, router, supabase]
+    [email, password, remember, router, supabase, openBan]
   );
 
   // Memoized social login handler
@@ -100,6 +127,7 @@ export function LoginForm() {
             position: "top-center",
           });
         } else {
+          // Note: final ban check will occur after OAuth redirect, in useAuth
           localStorage.setItem("weetoo-last-sign-in-method", provider);
           toast.success(`Redirecting to ${provider}...`, {
             position: "top-center",

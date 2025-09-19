@@ -66,7 +66,7 @@ export function UserDetailsDialog({
 
   const humanizeRole = (role: string) => {
     return role === "super_admin"
-      ? "Super Admin"
+      ? t("roles.super_admin")
       : role.charAt(0).toUpperCase() + role.slice(1);
   };
 
@@ -202,7 +202,7 @@ export function UserDetailsDialog({
                             <span className="text-xs font-semibold text-foreground">
                               {adminInfo
                                 ? `${adminInfo.first_name} ${adminInfo.last_name}`
-                                : "Loading..."}
+                                : t("loading")}
                             </span>
                             {adminInfo && (
                               <TooltipProvider>
@@ -233,12 +233,12 @@ export function UserDetailsDialog({
                 <div>
                   <h4 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wide flex items-center gap-2">
                     <div className="w-2 h-2 bg-primary rounded-full"></div>
-                    Personal Information
+                    {t("sections.personal")}
                   </h4>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-background border border-border p-3">
                       <div className="text-xs text-muted-foreground mb-1">
-                        Email
+                        {t("labels.email")}
                       </div>
                       <div className="text-sm font-medium font-mono">
                         {user.email}
@@ -247,7 +247,7 @@ export function UserDetailsDialog({
 
                     <div className="bg-background border border-border p-3">
                       <div className="text-xs text-muted-foreground mb-1">
-                        Phone
+                        {t("labels.phone")}
                       </div>
                       <div className="text-sm font-medium">
                         {user.mobile_number || "-"}
@@ -256,7 +256,7 @@ export function UserDetailsDialog({
 
                     <div className="bg-background border border-border p-3">
                       <div className="text-xs text-muted-foreground mb-1">
-                        Nickname
+                        {t("labels.nickname")}
                       </div>
                       <div className="text-sm font-medium">
                         {user.nickname || "-"}
@@ -265,7 +265,7 @@ export function UserDetailsDialog({
 
                     <div className="bg-background border border-border p-3">
                       <div className="text-xs text-muted-foreground mb-1">
-                        Gender
+                        {t("labels.gender")}
                       </div>
                       <div className="text-sm font-medium">
                         {user.gender
@@ -277,7 +277,7 @@ export function UserDetailsDialog({
 
                     <div className="bg-background border border-border p-3">
                       <div className="text-xs text-muted-foreground mb-1">
-                        Birth Date
+                        {t("labels.birthDate")}
                       </div>
                       <div className="text-sm font-medium">
                         {user.birth_date
@@ -288,7 +288,7 @@ export function UserDetailsDialog({
 
                     <div className="bg-background border border-border p-3">
                       <div className="text-xs text-muted-foreground mb-1">
-                        Identity Name
+                        {t("labels.identityName")}
                       </div>
                       <div className="text-sm font-medium">
                         {user.identity_verification_name || "-"}
@@ -301,12 +301,12 @@ export function UserDetailsDialog({
                 <div>
                   <h4 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wide flex items-center gap-2">
                     <div className="w-2 h-2 bg-success rounded-full"></div>
-                    Account Information
+                    {t("sections.account")}
                   </h4>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-background border border-border p-3">
                       <div className="text-xs text-muted-foreground mb-1">
-                        Warnings
+                        {t("labels.warnings")}
                       </div>
                       <div className="text-sm font-medium">
                         {user.warningCount}
@@ -315,7 +315,7 @@ export function UserDetailsDialog({
 
                     <div className="bg-background border border-border p-3">
                       <div className="text-xs text-muted-foreground mb-1">
-                        Last Updated
+                        {t("labels.lastUpdated")}
                       </div>
                       <div className="text-sm font-medium">
                         {new Date(user.updated_at).toLocaleDateString()}
@@ -324,9 +324,9 @@ export function UserDetailsDialog({
 
                     <div className="bg-background border border-border p-3">
                       <div className="text-xs text-muted-foreground mb-1">
-                        Identity ID
+                        {t("labels.identityId")}
                       </div>
-                      <div className="text-sm font-medium font-mono text-xs">
+                      <div className="text-xs font-medium font-mono">
                         {user.identity_verification_id || "-"}
                       </div>
                     </div>
@@ -334,7 +334,7 @@ export function UserDetailsDialog({
                     {user.identity_verified && user.identity_verified_at && (
                       <div className="bg-background border border-border p-3">
                         <div className="text-xs text-muted-foreground mb-1">
-                          Verified On
+                          {t("labels.verifiedOn")}
                         </div>
                         <div className="text-sm font-medium">
                           {new Date(
@@ -352,7 +352,7 @@ export function UserDetailsDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
+            {t("actions.close")}
           </Button>
         </DialogFooter>
       </DialogContent>

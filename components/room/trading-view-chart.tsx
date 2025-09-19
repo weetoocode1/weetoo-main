@@ -16,6 +16,7 @@ import React, {
 } from "react";
 import { useChartStreaming } from "@/hooks/use-chart-streaming";
 import { Video, VideoOff } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 // Dynamic import for TradingView chart
 const TradingViewChart = dynamic(
@@ -34,6 +35,8 @@ export const TradingViewChartComponent = React.memo(
   ({ symbol, isHost = false, roomId, hostId }: TradingViewChartProps) => {
     const [isScriptReady, setIsScriptReady] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
+    const locale = useLocale();
+    const t = useTranslations("room.windowTitleBar");
 
     // Get chart streaming state
     const {
@@ -78,6 +81,18 @@ export const TradingViewChartComponent = React.memo(
           videoElement.play().catch(() => {});
         };
         const handleError = (e: Event) => {
+          // Suppress LiveKit client disconnect errors as they are expected
+          const errorEvent = e as ErrorEvent;
+          const errorMessage =
+            errorEvent?.message || (errorEvent?.error as Error)?.message || "";
+          if (
+            errorMessage.includes("Client initiated disconnect") ||
+            errorMessage.includes("ConnectionError") ||
+            errorMessage.includes("CLIENT_DISCONNECTED")
+          ) {
+            // These are expected disconnection errors, don't log them
+            return;
+          }
           console.error("Video error:", e);
         };
 
@@ -109,6 +124,16 @@ export const TradingViewChartComponent = React.memo(
           // Start playing after a short delay
           setTimeout(attemptPlay, 100);
         } catch (error) {
+          // Suppress LiveKit client disconnect errors as they are expected
+          const errorMessage = (error as Error)?.message || "";
+          if (
+            errorMessage.includes("Client initiated disconnect") ||
+            errorMessage.includes("ConnectionError") ||
+            errorMessage.includes("CLIENT_DISCONNECTED")
+          ) {
+            // These are expected disconnection errors, don't log them
+            return;
+          }
           console.error("Failed to attach video track:", error);
         }
 
@@ -218,6 +243,16 @@ export const TradingViewChartComponent = React.memo(
           try {
             hostVideoTrack.detach(videoElement);
           } catch (error) {
+            // Suppress LiveKit client disconnect errors as they are expected
+            const errorMessage = (error as Error)?.message || "";
+            if (
+              errorMessage.includes("Client initiated disconnect") ||
+              errorMessage.includes("ConnectionError") ||
+              errorMessage.includes("CLIENT_DISCONNECTED")
+            ) {
+              // These are expected disconnection errors, don't log them
+              return;
+            }
             console.error("Failed to detach video track:", error);
           }
         };
@@ -238,7 +273,7 @@ export const TradingViewChartComponent = React.memo(
         symbol: symbol,
         interval: "1D" as ResolutionString,
         library_path: "/static/charting_library/",
-        locale: "en" as LanguageCode,
+        locale: (locale === "ko" ? "ko" : "en") as LanguageCode,
         charts_storage_url: "https://saveload.tradingview.com",
         charts_storage_api_version: "1.1" as const,
         client_id: "tradingview.com",
@@ -265,7 +300,7 @@ export const TradingViewChartComponent = React.memo(
               "control_bar",
             ],
       }),
-      [symbol, isHost]
+      [symbol, isHost, locale]
     );
 
     const handleScriptReady = useCallback(() => {
@@ -296,7 +331,22 @@ export const TradingViewChartComponent = React.memo(
             playsInline
             muted
             className={`w-full h-full object-contain absolute inset-0 ${minSizeClass}`}
-            onError={(e) => console.error("Video error:", e)}
+            onError={(e) => {
+              // Suppress LiveKit client disconnect errors as they are expected
+              const errorMessage =
+                (e.nativeEvent as ErrorEvent)?.message ||
+                ((e.nativeEvent as ErrorEvent)?.error as Error)?.message ||
+                "";
+              if (
+                errorMessage.includes("Client initiated disconnect") ||
+                errorMessage.includes("ConnectionError") ||
+                errorMessage.includes("CLIENT_DISCONNECTED")
+              ) {
+                // These are expected disconnection errors, don't log them
+                return;
+              }
+              console.error("Video error:", e);
+            }}
             style={{
               width: "100%",
               height: "100%",
@@ -306,7 +356,7 @@ export const TradingViewChartComponent = React.memo(
           />
           <div className="absolute top-2 right-2 flex items-center gap-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
             <Video className="h-3 w-3" />
-            <span>Host Chart Stream</span>
+            <span>{t("streamStatus.hostStreamBanner")}</span>
           </div>
 
           {/* Quality selection removed - only host controls quality */}
@@ -325,29 +375,30 @@ export const TradingViewChartComponent = React.memo(
             <VideoOff className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">
               {streamingError?.includes("Disconnected")
-                ? "Connection Lost"
-                : "Host Not Streaming"}
+                ? t("streamStatus.connectionLostTitle")
+                : t("streamStatus.notStreamingTitle")}
             </h3>
             <p className="text-sm text-muted-foreground">
               {streamingError?.includes("Disconnected")
-                ? "Attempting to reconnect to the stream..."
-                : "Waiting for host to start chart streaming..."}
+                ? t("streamStatus.attemptingReconnect")
+                : t("streamStatus.waitingForHost")}
             </p>
             <div className="mt-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
               <p className="text-xs text-muted-foreground mt-2">
                 {streamingError?.includes("Disconnected")
-                  ? "Reconnecting..."
-                  : "Checking for video stream..."}
+                  ? t("streamStatus.reconnecting")
+                  : t("streamStatus.checkingForStream")}
               </p>
             </div>
             {streamingError && (
               <div className="mt-2">
-                <p className="text-xs text-red-500">Error: {streamingError}</p>
+                <p className="text-xs text-red-500">
+                  {t("streamStatus.errorPrefix")} {streamingError}
+                </p>
                 {streamingError.includes("Disconnected") && (
                   <p className="text-xs text-blue-500 mt-1">
-                    This usually resolves automatically. If it persists, try
-                    refreshing the page.
+                    {t("streamStatus.disconnectedHint")}
                   </p>
                 )}
               </div>

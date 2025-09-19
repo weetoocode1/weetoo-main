@@ -6,11 +6,11 @@ export const runtime = "nodejs";
 
 // Input validation schema
 const brokerApiSchema = z.object({
-  broker: z.enum(["deepcoin", "orangex"]),
+  broker: z.enum(["deepcoin", "orangex", "lbank"]),
   action: z.string().min(1).max(50),
   uid: z
     .string()
-    .regex(/^[0-9]{3,20}$/)
+    .regex(/^[A-Za-z0-9_-]{1,64}$/)
     .optional(),
   sourceType: z.string().optional(),
   date: z

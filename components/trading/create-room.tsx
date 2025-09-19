@@ -371,6 +371,14 @@ export function CreateRoom() {
     e.preventDefault();
     if (!user || !roomName.trim() || nameError) return;
 
+    // Check if user has enough KOR coins
+    if (!canAfford) {
+      toast.error(
+        `Insufficient KOR coins. You need ${roomCost.toLocaleString()} KOR coins to create a ${category} room. You currently have ${userKorCoins.toLocaleString()} KOR coins.`
+      );
+      return;
+    }
+
     // Double-check if user already has an active room
     const { data: activeRooms, error: checkError } = await supabase
       .from("trading_rooms")
@@ -435,6 +443,26 @@ export function CreateRoom() {
         user_id: user.id,
       },
     ]);
+
+    // Deduct KOR coins for room creation (server update + optimistic client update)
+    try {
+      const oldAmount = user.kor_coins ?? 0;
+      const newAmount = Math.max(0, oldAmount - roomCost);
+      await supabase
+        .from("users")
+        .update({ kor_coins: newAmount })
+        .eq("id", user.id);
+      setUser((prev) => (prev ? { ...prev, kor_coins: newAmount } : prev));
+      try {
+        window.dispatchEvent(
+          new CustomEvent("kor-coins-updated", {
+            detail: { userId: user.id, oldAmount, newAmount },
+          })
+        );
+      } catch {}
+    } catch (err) {
+      console.error("Failed to deduct KOR coins after creating room", err);
+    }
     setSubmitting(false);
     setOpen(false);
     toast.success("Room created successfully!");
@@ -484,17 +512,15 @@ export function CreateRoom() {
             {existingRoom && (
               <TooltipContent side="bottom" className="max-w-xs">
                 <div className="text-sm">
-                  <p className="font-medium mb-1">
-                    ⚠️ You already have an active room
-                  </p>
+                  <p className="font-medium mb-1">{t("alreadyActiveTitle")}</p>
                   <p className="text-muted-foreground">
-                    Room:{" "}
+                    {t("roomLabel")}{" "}
                     <span className="font-medium">
                       &quot;{existingRoom.name}&quot;
                     </span>
                   </p>
                   <p className="text-muted-foreground mt-1">
-                    Close your existing room before creating a new one.
+                    {t("alreadyActiveInstruction")}
                   </p>
                 </div>
               </TooltipContent>
@@ -682,7 +708,8 @@ export function CreateRoom() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="regular">{t("regularRoom")}</SelectItem>
-                    <SelectItem value="voice">{t("voiceRoom")}</SelectItem>
+                    {/** Temporarily disabled voice room option */}
+                    {/** <SelectItem value="voice">{t("voiceRoom")}</SelectItem> */}
                   </SelectContent>
                 </Select>
               </div>
@@ -768,13 +795,19 @@ export function CreateRoom() {
                 <Button
                   type="submit"
                   disabled={
-                    loading || submitting || !!nameError || checkingName
+                    loading ||
+                    submitting ||
+                    !!nameError ||
+                    checkingName ||
+                    !canAfford
                   }
                 >
                   {submitting
                     ? t("creating")
                     : loading
                     ? t("loading")
+                    : !canAfford
+                    ? "Insufficient KOR Coins"
                     : t("createRoom")}
                 </Button>
               </div>

@@ -34,12 +34,22 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { useRealtimeUpdates } from "@/hooks/use-realtime-updates";
 
+// Type for the global Next.js internationalization object
+interface NextIntlGlobal {
+  NEXT_INTL_DO_NOT_USE?: (namespace: string) => {
+    (key: string): string;
+    (key: string, values?: Record<string, unknown>): string;
+  };
+}
+
 const calculateReadingTime = (
   text: string,
   wordsPerMinute: number = 238
 ): string => {
+  const t =
+    (globalThis as NextIntlGlobal).NEXT_INTL_DO_NOT_USE?.("post") || undefined;
   if (!text?.trim()) {
-    return "Less than 1 min read";
+    return t ? t("readingTimeLessThan") : "Less than 1 min read";
   }
   // Remove HTML tags and count words
   const words = text
@@ -48,7 +58,8 @@ const calculateReadingTime = (
     .filter((word) => word.length > 0).length;
   // Calculate reading time and round up
   const minutes = Math.ceil(words / wordsPerMinute);
-  return minutes === 1 ? "1 min read" : `${minutes} min read`;
+  if (minutes === 1) return t ? t("readingTimeOne") : "1 min read";
+  return t ? t("readingTimeMany", { minutes }) : `${minutes} min read`;
 };
 
 interface PostDetailClientProps {
@@ -62,7 +73,7 @@ export default function PostDetailClient({
 }: PostDetailClientProps) {
   const router = useRouter();
   const { user: authUser } = useAuth();
-  const t = useTranslations("common");
+  const t = useTranslations("post");
   const [api, setApi] = React.useState<CarouselApi>();
   const [current, setCurrent] = React.useState(0);
   const [currentUser, setCurrentUser] = React.useState<User | null>(null);
@@ -156,7 +167,8 @@ export default function PostDetailClient({
     },
   });
 
-  if (!post) return <div className="text-center py-20">Post not found.</div>;
+  if (!post)
+    return <div className="text-center py-20">{t("postNotFound")}</div>;
 
   const readingTime = calculateReadingTime(post.content);
 
@@ -184,10 +196,10 @@ export default function PostDetailClient({
         <button
           onClick={() => router.back()}
           className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition mb-6 sm:mb-8 cursor-pointer"
-          aria-label="Go back"
+          aria-label={t("goBackAria")}
         >
           <ChevronLeftIcon className="h-4 w-4" />
-          Go Back
+          {t("goBack")}
         </button>
         <article>
           <header className="mb-4 sm:mb-6">
@@ -235,7 +247,7 @@ export default function PostDetailClient({
               <span className="hidden sm:inline">·</span>
               <div className="flex items-center gap-1.5">
                 <Eye className="h-3 w-3" />
-                <span>{viewCount} views</span>
+                <span>{t("views", { count: viewCount })}</span>
               </div>
               <span className="hidden sm:inline">·</span>
               <div className="flex items-center gap-1.5">
@@ -244,7 +256,7 @@ export default function PostDetailClient({
               </div>
               {(isAuthor || hasViewed) && (
                 <Badge variant="default" className="ml-auto">
-                  You viewed this
+                  {t("youViewedThis")}
                 </Badge>
               )}
             </div>
@@ -324,7 +336,7 @@ export default function PostDetailClient({
           {post.tags && post.tags.length > 0 && (
             <div className="mb-6 sm:mb-8 flex flex-wrap items-center gap-2">
               <span className="text-xs font-semibold text-muted-foreground mr-2">
-                Tags:
+                {t("tags")}
               </span>
               {post.tags.map((tag: string) => (
                 <Badge key={tag} variant="secondary">
@@ -343,7 +355,7 @@ export default function PostDetailClient({
               <button
                 disabled
                 aria-pressed={false}
-                aria-label="Like post"
+                aria-label={t("likePostAria")}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border bg-background opacity-60 cursor-not-allowed text-sm font-medium select-none"
               >
                 <HeartIcon
@@ -351,9 +363,9 @@ export default function PostDetailClient({
                   aria-hidden="true"
                 />
                 <span>
-                  {post.likes} {post.likes === 1 ? "Like" : "Likes"}
+                  {post.likes} {post.likes === 1 ? t("like") : t("likes")}
                 </span>
-                <span className="sr-only">likes</span>
+                <span className="sr-only">{t("likes")}</span>
               </button>
             ) : authUser?.identity_verified ? (
               <LikeButton postId={post.id} initialLikes={post.likes} />
@@ -364,18 +376,19 @@ export default function PostDetailClient({
                 title={t("identityVerificationRequired")}
               >
                 <AlertTriangle className="h-4 w-4 text-amber-500" />
-                <span>Like</span>
+                <span>{t("like")}</span>
               </button>
             )}
 
             {!mounted ? (
               <button
                 disabled
-                aria-label="View comments"
+                aria-label={t("viewCommentsAria")}
                 className="flex items-center gap-1.5 transition opacity-60 cursor-not-allowed"
               >
                 <MessageSquare className="h-5 w-5" />
-                {commentCount} {commentCount === 1 ? "Comment" : "Comments"}
+                {commentCount}{" "}
+                {commentCount === 1 ? t("comment") : t("comments")}
               </button>
             ) : (
               <button
@@ -396,23 +409,24 @@ export default function PostDetailClient({
                 }}
                 title={
                   authUser?.identity_verified
-                    ? "View comments"
+                    ? t("viewComments")
                     : t("identityVerificationRequired")
                 }
               >
                 <MessageSquare className="h-5 w-5" />
-                {commentCount} {commentCount === 1 ? "Comment" : "Comments"}
+                {commentCount}{" "}
+                {commentCount === 1 ? t("comment") : t("comments")}
               </button>
             )}
 
             {!mounted ? (
               <button
                 disabled
-                aria-label="Share post"
+                aria-label={t("sharePostAria")}
                 className="flex items-center gap-1.5 opacity-60 cursor-not-allowed"
               >
                 <Share2 className="h-4 w-4" />
-                <span>Share</span>
+                <span>{t("share")}</span>
               </button>
             ) : authUser?.identity_verified ? (
               <SharePost
@@ -430,7 +444,7 @@ export default function PostDetailClient({
                 title={t("identityVerificationRequired")}
               >
                 <AlertTriangle className="h-4 w-4 text-amber-500" />
-                <span>Share</span>
+                <span>{t("share")}</span>
               </button>
             )}
           </div>
@@ -450,11 +464,10 @@ export default function PostDetailClient({
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-foreground mb-2">
-                    Comments Restricted
+                    {t("commentsRestricted")}
                   </h3>
                   <p className="text-muted-foreground mb-4">
-                    You need to verify your identity to view and add comments on
-                    posts.
+                    {t("commentsRestrictedDesc")}
                   </p>
                   <div className="text-sm text-amber-600 dark:text-amber-400 font-medium">
                     🔒 {t("identityVerificationRequired")}

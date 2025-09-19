@@ -13,7 +13,8 @@ import { useEffect } from "react";
 import type { FC } from "react";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "../theme-toggle";
-import { getAdminPageTitle } from "@/lib/admin-navigation";
+import { getTranslatedAdminPageTitle } from "@/lib/admin-navigation";
+import { useTranslations } from "next-intl";
 
 interface SidebarHeadingProps {
   onOpenMobileMenu?: () => void;
@@ -22,6 +23,7 @@ interface SidebarHeadingProps {
 export const SidebarHeading: FC<SidebarHeadingProps> = ({
   onOpenMobileMenu,
 }) => {
+  const t = useTranslations("admin.leftSidebar");
   const pathname = usePathname();
   const toggle = useSidebarStore((state) => state.toggle);
 
@@ -50,7 +52,7 @@ export const SidebarHeading: FC<SidebarHeadingProps> = ({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Toggle sidebar (Ctrl+B)</p>
+                <p>{t("toggleSidebar")}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -62,13 +64,13 @@ export const SidebarHeading: FC<SidebarHeadingProps> = ({
             variant="ghost"
             size="icon"
             onClick={onOpenMobileMenu}
-            aria-label="Open admin menu"
+            aria-label={t("openAdminMenu")}
           >
             <Menu className="w-5 h-5" />
           </Button>
         </div>
         <span className="font-semibold text-foreground">
-          {getAdminPageTitle(pathname)}
+          {getTranslatedAdminPageTitle(pathname, t)}
         </span>
       </div>
 

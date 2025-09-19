@@ -886,6 +886,8 @@ export function UserManagementTable() {
                                   {t("menu.editUser")}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
+                                {/** Issue Warning - temporarily disabled */}
+                                {/**
                                 <DropdownMenuItem
                                   onClick={() => {
                                     setSelectedUser(user);
@@ -896,6 +898,7 @@ export function UserManagementTable() {
                                   <AlertTriangle className="mr-2 h-4 w-4" />
                                   {t("menu.issueWarning")}
                                 </DropdownMenuItem>
+                                */}
                                 {currentUserRole === "super_admin" && (
                                   <DropdownMenuItem
                                     onClick={() => {
@@ -993,6 +996,8 @@ export function UserManagementTable() {
                               Edit User
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
+                            {/** Issue Warning - temporarily disabled */}
+                            {/**
                             <DropdownMenuItem
                               onClick={() => {
                                 setSelectedUser(user);
@@ -1003,6 +1008,7 @@ export function UserManagementTable() {
                               <AlertTriangle className="mr-2 h-4 w-4" />
                               Issue Warning
                             </DropdownMenuItem>
+                            */}
                             {currentUserRole === "super_admin" && (
                               <DropdownMenuItem
                                 onClick={() => {

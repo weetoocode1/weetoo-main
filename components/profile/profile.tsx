@@ -9,10 +9,35 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-import { BadgeCheckIcon, Camera, Edit2, Save, X } from "lucide-react";
+import {
+  BadgeCheckIcon,
+  Camera,
+  Edit2,
+  Save,
+  X,
+  ArrowLeft,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useFileUpload } from "@/hooks/use-file-upload";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Cropper,
+  CropperCropArea,
+  CropperDescription,
+  CropperImage,
+} from "@/components/ui/cropper";
+import { Slider } from "@/components/ui/slider";
 
 // Type definitions
 interface UserData {
@@ -38,6 +63,51 @@ interface FormData {
   nickname: string;
 }
 
+// ===== Avatar Crop Types & Helpers =====
+type Area = { x: number; y: number; width: number; height: number };
+
+const createImage = (url: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener("load", () => resolve(image));
+    image.addEventListener("error", (error) => reject(error));
+    image.setAttribute("crossOrigin", "anonymous");
+    image.src = url;
+  });
+
+async function getCroppedImg(
+  imageSrc: string,
+  pixelCrop: Area,
+  outputWidth: number = pixelCrop.width,
+  outputHeight: number = pixelCrop.height
+): Promise<Blob | null> {
+  try {
+    const image = await createImage(imageSrc);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    canvas.width = outputWidth;
+    canvas.height = outputHeight;
+    ctx.drawImage(
+      image,
+      pixelCrop.x,
+      pixelCrop.y,
+      pixelCrop.width,
+      pixelCrop.height,
+      0,
+      0,
+      outputWidth,
+      outputHeight
+    );
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), "image/jpeg");
+    });
+  } catch (error) {
+    console.error("Error in getCroppedImg:", error);
+    return null;
+  }
+}
+
 export function Profile() {
   const { user, loading } = useAuth();
   const [, setForceUpdate] = useState(false);
@@ -53,7 +123,28 @@ export function Profile() {
     last_name: "",
     nickname: "",
   });
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // File upload & crop state
+  const [
+    { files, isDragging },
+    {
+      handleDragEnter,
+      handleDragLeave,
+      handleDragOver,
+      handleDrop,
+      openFileDialog,
+      getInputProps,
+      removeFile,
+    },
+  ] = useFileUpload({ accept: "image/*" });
+  const previewUrl = files[0]?.preview || null;
+  const fileId = files[0]?.id as string | undefined;
+  const previousFileIdRef = useRef<string | undefined | null>(null);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const handleCropChange = useCallback((pixels: Area | null) => {
+    setCroppedAreaPixels(pixels);
+  }, []);
 
   // Initialize form data when user data changes
   useEffect(() => {
@@ -175,101 +266,73 @@ export function Profile() {
     }));
   };
 
-  const handleAvatarUpload = async (file: File) => {
-    if (!user?.id) return;
-
-    // Validate file type
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error(t("edit.invalidImageType"));
-      return;
+  const handleApplyCroppedAvatar = async () => {
+    if (!user?.id || !previewUrl || !fileId || !croppedAreaPixels) {
+      return setIsDialogOpen(false);
     }
-
-    // Validate file size (5MB limit)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error(t("edit.fileTooLarge"));
-      return;
-    }
-
-    setIsUploadingAvatar(true);
-
     try {
+      setIsUploadingAvatar(true);
+      const croppedBlob = await getCroppedImg(previewUrl, croppedAreaPixels);
+      if (!croppedBlob) throw new Error("Failed to generate cropped image");
+
       const supabase = createClient();
-
-      // Create unique filename
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}/avatar.${fileExt}`;
-
-      // Upload file to Supabase storage
+      const fileName = `${user.id}/avatar.jpg`;
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(fileName, file, {
+        .upload(fileName, croppedBlob, {
           cacheControl: "3600",
           upsert: true,
+          contentType: "image/jpeg" as const,
         });
+      if (uploadError) throw uploadError;
 
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      // Get public URL
       const {
         data: { publicUrl },
       } = supabase.storage.from("avatars").getPublicUrl(fileName);
+      const versionedUrl = `${publicUrl}?v=${Date.now()}`;
 
-      // Update user's avatar_url in database
       const { error: updateError } = await supabase
         .from("users")
-        .update({ avatar_url: publicUrl })
+        .update({ avatar_url: versionedUrl })
         .eq("id", user.id);
+      if (updateError) throw updateError;
 
-      if (updateError) {
-        throw updateError;
-      }
-
-      // Update cache
       queryClient.setQueryData(
         ["user", user.id],
         (oldData: UserData | undefined) => {
-          if (oldData) {
-            return {
-              ...oldData,
-              avatar_url: publicUrl,
-            };
-          }
+          if (oldData) return { ...oldData, avatar_url: versionedUrl };
           return oldData;
         }
       );
-
       queryClient.setQueryData(["user"], (oldData: UserData | undefined) => {
-        if (oldData && oldData.id === user.id) {
-          return {
-            ...oldData,
-            avatar_url: publicUrl,
-          };
-        }
+        if (oldData && oldData.id === user.id)
+          return { ...oldData, avatar_url: versionedUrl };
         return oldData;
       });
 
       toast.success(t("edit.avatarUpdated"));
+      setIsDialogOpen(false);
+      removeFile(fileId);
+      setCroppedAreaPixels(null);
+      setZoom(1);
     } catch (error) {
       console.error("Error uploading avatar:", error);
       toast.error(t("edit.avatarUpdateFailed"));
+      setIsDialogOpen(false);
     } finally {
       setIsUploadingAvatar(false);
     }
   };
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      handleAvatarUpload(file);
+  // Open crop dialog when a new file is selected
+  useEffect(() => {
+    if (fileId && fileId !== previousFileIdRef.current) {
+      setIsDialogOpen(true);
+      setCroppedAreaPixels(null);
+      setZoom(1);
     }
-  };
-
-  const triggerFileInput = () => {
-    fileInputRef.current?.click();
-  };
+    previousFileIdRef.current = fileId;
+  }, [fileId]);
 
   if (loading) {
     return (
@@ -289,7 +352,14 @@ export function Profile() {
             {loading ? (
               <Skeleton className="h-[150px] w-[150px] sm:h-[200px] sm:w-[200px] lg:h-[250px] lg:w-[250px] border" />
             ) : (
-              <div className="relative group">
+              <div
+                className="relative group"
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                data-dragging={isDragging || undefined}
+              >
                 <Avatar className="h-[150px] w-[150px] sm:h-[200px] sm:w-[200px] lg:h-[250px] lg:w-[250px] border rounded-none">
                   <AvatarImage
                     src={user?.avatar_url || ""}
@@ -304,7 +374,7 @@ export function Profile() {
                 {/* Upload overlay */}
                 <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-none flex items-center justify-center">
                   <Button
-                    onClick={triggerFileInput}
+                    onClick={openFileDialog}
                     disabled={isUploadingAvatar}
                     size="sm"
                     className="flex items-center gap-2 rounded-none"
@@ -325,14 +395,78 @@ export function Profile() {
               </div>
             )}
 
-            {/* Hidden file input */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
+            {/* Hidden file input for uploader */}
+            <input {...getInputProps()} className="hidden" />
+
+            {/* Cropper Dialog */}
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogContent className="gap-0 p-0 sm:max-w-140 *:[button]:hidden">
+                <DialogDescription className="sr-only">
+                  {t("form.profilePictureAlt")}
+                </DialogDescription>
+                <DialogHeader className="contents space-y-0 text-left">
+                  <DialogTitle className="flex items-center justify-between border-b p-4 text-base">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="-my-1 opacity-60"
+                        onClick={() => setIsDialogOpen(false)}
+                        aria-label={t("edit.cancel")}
+                      >
+                        <ArrowLeft aria-hidden="true" />
+                      </Button>
+                      <span>{t("edit.changePhoto")}</span>
+                    </div>
+                    <Button
+                      className="-my-1"
+                      onClick={handleApplyCroppedAvatar}
+                      disabled={!previewUrl}
+                      autoFocus
+                    >
+                      {t("edit.save")}
+                    </Button>
+                  </DialogTitle>
+                </DialogHeader>
+                {previewUrl && (
+                  <Cropper
+                    className="h-96 sm:h-120"
+                    image={previewUrl}
+                    zoom={zoom}
+                    onCropChange={handleCropChange}
+                    onZoomChange={setZoom}
+                  >
+                    <CropperDescription />
+                    <CropperImage />
+                    <CropperCropArea />
+                  </Cropper>
+                )}
+                <DialogFooter className="border-t px-4 py-6">
+                  <div className="mx-auto flex w-full max-w-80 items-center gap-4">
+                    <ZoomOut
+                      className="shrink-0 opacity-60"
+                      size={16}
+                      aria-hidden="true"
+                    />
+                    <Slider
+                      defaultValue={[1]}
+                      value={[zoom]}
+                      min={1}
+                      max={3}
+                      step={0.1}
+                      onValueChange={(value) => setZoom(value[0])}
+                      aria-label="Zoom slider"
+                    />
+                    <ZoomIn
+                      className="shrink-0 opacity-60"
+                      size={16}
+                      aria-hidden="true"
+                    />
+                  </div>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             {/* Verification Status */}
             {!loading && (

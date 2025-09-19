@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
+import { useTranslations } from "next-intl";
 
 import { Donation } from "@/components/room/donation";
 import {
@@ -30,6 +31,7 @@ import {
 import { useChartStreaming } from "@/hooks/use-chart-streaming";
 import { useLivektHostAudio } from "@/hooks/use-livekt-host-audio";
 import { usePositions } from "@/hooks/use-positions";
+import { useLatestRoomReset } from "@/hooks/use-room-reset";
 import { cn } from "@/lib/utils";
 import {
   GlobeIcon,
@@ -153,6 +155,7 @@ export function WindowTitleBar({
   setSymbol,
   initialUpdatedAt,
 }: WindowTitleBarProps) {
+  const t = useTranslations("room.windowTitleBar");
   const { isMicOn, toggleMic, currentUserId, roomConnected } =
     useLivektHostAudio({ roomType, hostId, roomId });
 
@@ -164,6 +167,49 @@ export function WindowTitleBar({
     startChartStream,
     stopChartStream,
   } = useChartStreaming(roomId, hostId);
+
+  // Broadcast streaming status changes
+  useEffect(() => {
+    if (!isChartHost) return;
+
+    const supabase = createClient();
+    const channel = supabase.channel("room-streaming-status");
+
+    const broadcastStreamingStatus = async (streaming: boolean) => {
+      try {
+        await channel.send({
+          type: "broadcast",
+          event: "streaming-status",
+          payload: {
+            roomId,
+            isStreaming: streaming,
+          },
+        });
+        console.log("Broadcasted streaming status:", {
+          roomId,
+          isStreaming: streaming,
+        });
+      } catch (error) {
+        console.error("Failed to broadcast streaming status:", error);
+      }
+    };
+
+    // Subscribe to the channel
+    channel.subscribe();
+
+    // Broadcast initial status
+    broadcastStreamingStatus(isStreaming);
+
+    // Broadcast when streaming status changes
+    const timeoutId = setTimeout(() => {
+      broadcastStreamingStatus(isStreaming);
+    }, 1000); // Small delay to ensure streaming state is stable
+
+    return () => {
+      clearTimeout(timeoutId);
+      supabase.removeChannel(channel);
+    };
+  }, [isChartHost, isStreaming, roomId]);
 
   // Host always streams at highest quality; no dialog needed
 
@@ -181,15 +227,7 @@ export function WindowTitleBar({
     typeof virtualBalance === "number" &&
     !isNaN(virtualBalance) &&
     (virtualBalance === settings.startingBalance || virtualBalance === 0);
-  const profitRate =
-    isStartingBalanceLoaded &&
-    typeof virtualBalance === "number" &&
-    !isNaN(virtualBalance) &&
-    settings.startingBalance > 0
-      ? ((virtualBalance - settings.startingBalance) /
-          settings.startingBalance) *
-        100
-      : 0;
+  let profitRate = 0 as number;
 
   const router = useRouter();
   const supabase = useRef(createClient());
@@ -214,13 +252,19 @@ export function WindowTitleBar({
     setUpdatedAt(initialUpdatedAt);
   }, [initialRoomName, initialIsPublic, initialUpdatedAt]);
 
-  // Fetch open and closed positions for PNL calculation
-  const { openPositions, closedPositions } = usePositions(roomId);
+  // Latest reset marker for soft reset scoping
+  const { data: latestResetData } = useLatestRoomReset(roomId);
+  const sinceResetAt = latestResetData?.latest?.reset_at;
+
+  // Fetch open and closed positions for PNL calculation (closed filtered since reset)
+  const { openPositions, closedPositions } = usePositions(roomId, {
+    sinceResetAt,
+  });
 
   // Calculate unrealized PNL using symbol-specific prices
   const unrealizedPnl = UnrealizedPnlCalculator({ openPositions });
 
-  // Calculate realized PNL from closed positions
+  // Calculate realized PNL from closed positions (scoped since reset)
   const realizedPnl = useMemo(() => {
     let realized = 0;
     if (Array.isArray(closedPositions)) {
@@ -230,6 +274,45 @@ export function WindowTitleBar({
     }
     return realized;
   }, [closedPositions]);
+
+  // Baseline for soft-reset display
+  const resetBaseline = useMemo(() => {
+    const markerVal = latestResetData?.latest?.reset_start_balance;
+    const markerNum = markerVal != null ? Number(markerVal) : NaN;
+    if (!Number.isNaN(markerNum) && markerNum > 0) return markerNum;
+    return isStartingBalanceLoaded ? Number(settings.startingBalance) || 0 : 0;
+  }, [
+    latestResetData?.latest?.reset_start_balance,
+    isStartingBalanceLoaded,
+    settings,
+  ]);
+
+  // Displayed virtual balance for UI (soft reset baseline)
+  // Use DB-tracked virtualBalance delta so it reacts immediately when opening positions
+  const displayedVirtualBalance = useMemo(() => {
+    if (!isStartingBalanceLoaded || typeof virtualBalance !== "number") {
+      return resetBaseline;
+    }
+    const snapshot = Number(
+      latestResetData?.latest?.reset_virtual_balance_snapshot ??
+        settings.startingBalance ??
+        0
+    );
+    const dbDeltaSinceReset = virtualBalance - snapshot;
+    return resetBaseline + dbDeltaSinceReset;
+  }, [
+    resetBaseline,
+    virtualBalance,
+    isStartingBalanceLoaded,
+    settings,
+    latestResetData?.latest?.reset_virtual_balance_snapshot,
+  ]);
+
+  // Now that resetBaseline/displayedVirtualBalance are defined, compute profitRate
+  profitRate =
+    resetBaseline > 0
+      ? ((displayedVirtualBalance - resetBaseline) / resetBaseline) * 100
+      : 0;
 
   useEffect(() => {
     if (!roomId) return;
@@ -426,7 +509,7 @@ export function WindowTitleBar({
                   </span>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" align="center">
-                  {isPublic ? "Public" : "Private"}
+                  {isPublic ? t("public") : t("private")}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -444,7 +527,7 @@ export function WindowTitleBar({
                           </span>
                         </TooltipTrigger>
                         <TooltipContent side="bottom" align="center">
-                          Edit Room
+                          {t("edit.tooltip")}
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -453,10 +536,10 @@ export function WindowTitleBar({
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle className="select-none">
-                      Edit Room Settings
+                      {t("edit.title")}
                     </DialogTitle>
                     <DialogDescription className="select-none">
-                      Edit the room name, symbol, and privacy settings.
+                      {t("edit.description")}
                     </DialogDescription>
                   </DialogHeader>
                   <Separator className="my-0" />
@@ -501,8 +584,8 @@ export function WindowTitleBar({
                         </TooltipTrigger>
                         <TooltipContent side="bottom" align="center">
                           {customThumbnailUrl
-                            ? "Change Custom Thumbnail"
-                            : "Upload Custom Thumbnail"}
+                            ? t("thumbnail.tooltip.change")
+                            : t("thumbnail.tooltip.upload")}
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -512,13 +595,13 @@ export function WindowTitleBar({
                   <DialogHeader>
                     <DialogTitle>
                       {customThumbnailUrl
-                        ? "Change Room Thumbnail"
-                        : "Upload Room Thumbnail"}
+                        ? t("thumbnail.title.change")
+                        : t("thumbnail.title.upload")}
                     </DialogTitle>
                     <DialogDescription>
                       {customThumbnailUrl
-                        ? "Upload a new image to replace the current thumbnail, or remove it to use automatic screenshots."
-                        : "Upload a custom thumbnail image. This will disable automatic screenshots for this room."}
+                        ? t("thumbnail.description.change")
+                        : t("thumbnail.description.upload")}
                     </DialogDescription>
                   </DialogHeader>
 
@@ -528,7 +611,9 @@ export function WindowTitleBar({
                         htmlFor="thumbnail"
                         className="text-sm font-medium"
                       >
-                        {customThumbnailUrl ? "New Thumbnail" : "Select Image"}
+                        {customThumbnailUrl
+                          ? t("thumbnail.labels.newThumbnail")
+                          : t("thumbnail.labels.selectImage")}
                       </label>
                       <input
                         id="thumbnail"
@@ -548,11 +633,13 @@ export function WindowTitleBar({
                     {/* Preview of selected file */}
                     {previewUrl && (
                       <div className="grid gap-2">
-                        <label className="text-sm font-medium">Preview</label>
+                        <label className="text-sm font-medium">
+                          {t("thumbnail.labels.preview")}
+                        </label>
                         <div className="relative">
                           <Image
                             src={previewUrl}
-                            alt="Preview"
+                            alt={t("thumbnail.labels.preview")}
                             width={400}
                             height={288}
                             className="w-full h-72 object-cover rounded-md border"
@@ -576,12 +663,12 @@ export function WindowTitleBar({
                     {customThumbnailUrl && !previewUrl && (
                       <div className="grid gap-2">
                         <label className="text-sm font-medium">
-                          Current Thumbnail
+                          {t("thumbnail.labels.currentThumbnail")}
                         </label>
                         <div className="relative">
                           <Image
                             src={customThumbnailUrl}
-                            alt="Current thumbnail"
+                            alt={t("thumbnail.labels.currentThumbnail")}
                             width={400}
                             height={288}
                             className="w-full h-72 object-cover rounded-md border"
@@ -616,13 +703,15 @@ export function WindowTitleBar({
                       onClick={handleCancelUpload}
                       disabled={isUploading}
                     >
-                      Cancel
+                      {t("thumbnail.buttons.cancel")}
                     </Button>
                     <Button
                       onClick={handleConfirmUpload}
                       disabled={!selectedFile || isUploading}
                     >
-                      {isUploading ? "Uploading..." : "Confirm Upload"}
+                      {isUploading
+                        ? t("thumbnail.buttons.uploading")
+                        : t("thumbnail.buttons.confirmUpload")}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -638,13 +727,12 @@ export function WindowTitleBar({
           showLateJoinWarning && (
             <div className="w-full lg:flex-1 mx-0 lg:mx-4 bg-yellow-50 border border-yellow-200 text-yellow-800 px-3 py-1 rounded text-sm flex items-center justify-between">
               <span className="truncate text-xs lg:text-sm">
-                🔊 Having trouble hearing the host? Ask Host to toggle their
-                microphone off and on again
+                🔊 {t("lateJoin.warningText")}
               </span>
               <button
                 onClick={() => setShowLateJoinWarning(false)}
                 className="ml-2 text-yellow-700 hover:text-yellow-900 font-bold flex-shrink-0 cursor-pointer"
-                aria-label="Dismiss"
+                aria-label={t("lateJoin.dismiss")}
               >
                 ×
               </button>
@@ -686,18 +774,16 @@ export function WindowTitleBar({
                   <TooltipContent side="bottom" align="center">
                     <div className="text-center">
                       <div>
-                        {isStreaming
-                          ? "Stop Chart Stream"
-                          : "Start Chart Stream"}
+                        {isStreaming ? t("stream.stop") : t("stream.start")}
                       </div>
                       <div className="text-xs text-gray-400 mt-1">
                         {isStreaming
-                          ? "Sharing current tab"
-                          : "Share current tab with participants"}
+                          ? t("stream.sharing")
+                          : t("stream.shareHint")}
                       </div>
                       {streamingError && (
                         <div className="text-xs text-red-400 mt-1">
-                          Error: {streamingError}
+                          {t("stream.errorPrefix")} {streamingError}
                         </div>
                       )}
                     </div>
@@ -733,7 +819,7 @@ export function WindowTitleBar({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" align="center">
-                  {isMicOn ? "Mute microphone" : "Unmute microphone"}
+                  {isMicOn ? t("mic.mute") : t("mic.unmute")}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -752,11 +838,11 @@ export function WindowTitleBar({
                       onClick={() => setShowLateJoinWarning(true)}
                     >
                       <Volume2Icon className="h-4 w-4" />
-                      <span>Audio Issues Help</span>
+                      <span>{t("audioHelp.button")}</span>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" align="center">
-                    Show audio help
+                    {t("audioHelp.tooltip")}
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -767,15 +853,16 @@ export function WindowTitleBar({
           {/* Virtual Currency */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 min-w-0">
             <span className="text-xs lg:text-sm font-medium text-muted-foreground whitespace-nowrap">
-              Virtual Balance:
+              {t("labels.virtualBalance")}
             </span>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="text-xs lg:text-sm font-semibold cursor-help truncate">
                     $
-                    {Math.max(0, virtualBalance)?.toLocaleString("en-US") ??
-                      "-"}
+                    {Math.max(0, displayedVirtualBalance)?.toLocaleString(
+                      "en-US"
+                    ) ?? "-"}
                   </span>
                 </TooltipTrigger>
                 <TooltipContent
@@ -785,7 +872,7 @@ export function WindowTitleBar({
                 >
                   <div className="flex flex-col gap-1 min-w-[220px]">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs">Unrealized PNL</span>
+                      <span className="text-xs">{t("pnl.unrealized")}</span>
                       <span
                         className={`text-xs font-semibold ${
                           unrealizedPnl > 0
@@ -799,7 +886,7 @@ export function WindowTitleBar({
                         {unrealizedPnl.toLocaleString("en-US", {
                           maximumFractionDigits: 2,
                         })}{" "}
-                        USDT
+                        {t("pnl.usdt")}
                         {isStartingBalanceLoaded &&
                           settings.startingBalance > 0 && (
                             <>
@@ -814,7 +901,7 @@ export function WindowTitleBar({
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs">Realized PNL</span>
+                      <span className="text-xs">{t("pnl.realized")}</span>
                       <span
                         className={`text-xs font-semibold ${
                           realizedPnl > 0
@@ -828,7 +915,7 @@ export function WindowTitleBar({
                         {realizedPnl.toLocaleString("en-US", {
                           maximumFractionDigits: 2,
                         })}{" "}
-                        USDT
+                        {t("pnl.usdt")}
                         {isStartingBalanceLoaded &&
                           settings.startingBalance > 0 && (
                             <>
@@ -851,7 +938,7 @@ export function WindowTitleBar({
           {/* Cummulative Profit rate*/}
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 min-w-0">
             <span className="text-xs lg:text-sm font-medium text-muted-foreground whitespace-nowrap">
-              Cumulative Profit Rate:
+              {t("profitRate.cumulative")}
             </span>
             {showSkeleton ? (
               <Skeleton className="h-4 lg:h-5 w-12 lg:w-16 inline-block align-middle" />
@@ -874,19 +961,20 @@ export function WindowTitleBar({
                     variant="destructive"
                     className="h-7 lg:h-8 text-xs lg:text-sm w-full sm:w-auto"
                   >
-                    Close Room
+                    {t("closeRoom.button")}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Close Room</AlertDialogTitle>
+                    <AlertDialogTitle>
+                      {t("closeRoom.dialog.title")}
+                    </AlertDialogTitle>
                     <AlertDialogDescription>
-                      Are you sure you want to close this room? This action
-                      cannot be undone.
+                      {t("closeRoom.dialog.description")}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={async () => {
                         await supabase.current
@@ -898,7 +986,7 @@ export function WindowTitleBar({
                       }}
                       className="bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60"
                     >
-                      Close Room
+                      {t("closeRoom.button")}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -922,7 +1010,7 @@ export function WindowTitleBar({
 
                   if (error) {
                     console.error("Error leaving room:", error);
-                    toast.error("Failed to leave room");
+                    toast.error(t("leaveRoom.failed"));
                     return;
                   }
 
@@ -936,9 +1024,9 @@ export function WindowTitleBar({
               }}
             >
               <LogOutIcon className="h-3 w-3 lg:h-4 lg:w-4" />
-              <span className="sr-only">Leave Room</span>
-              <span className="hidden sm:inline">Leave Room</span>
-              <span className="sm:hidden">Leave</span>
+              <span className="sr-only">{t("leaveRoom.sr")}</span>
+              <span className="hidden sm:inline">{t("leaveRoom.full")}</span>
+              <span className="sm:hidden">{t("leaveRoom.short")}</span>
             </Button>
           </div>
         </div>

@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
@@ -49,6 +50,7 @@ export function EditUserDialog({
   onUserUpdated,
   currentUserRole,
 }: EditUserDialogProps) {
+  const t = useTranslations("admin.userManagement.editUserDialog");
   const [editFormData, setEditFormData] = useState({
     first_name: user.first_name || "",
     last_name: user.last_name || "",
@@ -75,12 +77,12 @@ export function EditUserDialog({
   const handleSave = async () => {
     // Validation
     if (!editFormData.first_name.trim() || !editFormData.last_name.trim()) {
-      toast.error("First name and last name are required");
+      toast.error(t("toastNameRequired"));
       return;
     }
 
     if (editFormData.email && !editFormData.email.includes("@")) {
-      toast.error("Please enter a valid email address");
+      toast.error(t("toastInvalidEmail"));
       return;
     }
 
@@ -134,12 +136,12 @@ export function EditUserDialog({
         // Continue with success - user data was saved
       }
 
-      toast.success("User updated successfully!");
+      toast.success(t("toastSaved"));
       onUserUpdated(); // Refresh the table
       onOpenChange(false);
     } catch (error) {
       console.error("Error updating user:", error);
-      toast.error("Failed to update user. Please try again.");
+      toast.error(t("toastSaveFailed"));
     } finally {
       setIsSaving(false);
     }
@@ -149,9 +151,11 @@ export function EditUserDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full lg:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Edit User</DialogTitle>
+          <DialogTitle className="text-xl font-semibold">
+            {t("title")}
+          </DialogTitle>
           <DialogDescription>
-            Update information for {user.first_name} {user.last_name}
+            {t("description", { first: user.first_name, last: user.last_name })}
           </DialogDescription>
         </DialogHeader>
 
@@ -166,7 +170,7 @@ export function EditUserDialog({
             {/* First Name */}
             <div className="space-y-2">
               <Label htmlFor="firstName" className="text-sm font-medium">
-                First Name <span className="text-red-500">*</span>
+                {t("firstName")} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="firstName"
@@ -179,7 +183,7 @@ export function EditUserDialog({
                   }))
                 }
                 className="h-10 rounded-none"
-                placeholder="Enter first name"
+                placeholder={t("enterFirstName")}
                 required
               />
             </div>
@@ -187,7 +191,7 @@ export function EditUserDialog({
             {/* Last Name */}
             <div className="space-y-2">
               <Label htmlFor="lastName" className="text-sm font-medium">
-                Last Name <span className="text-red-500">*</span>
+                {t("lastName")} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="lastName"
@@ -200,7 +204,7 @@ export function EditUserDialog({
                   }))
                 }
                 className="h-10 rounded-none"
-                placeholder="Enter last name"
+                placeholder={t("enterLastName")}
                 required
               />
             </div>
@@ -208,10 +212,10 @@ export function EditUserDialog({
             {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">
-                Email Address
+                {t("emailAddress")}
                 {currentUserRole !== "super_admin" && (
                   <span className="text-xs text-muted-foreground ml-2">
-                    (Super Admin only)
+                    {t("superAdminOnly")}
                   </span>
                 )}
               </Label>
@@ -226,7 +230,7 @@ export function EditUserDialog({
                   }))
                 }
                 className="h-10 font-mono rounded-none"
-                placeholder="Enter email address"
+                placeholder={t("enterEmail")}
                 disabled={currentUserRole !== "super_admin"}
               />
             </div>
@@ -234,7 +238,7 @@ export function EditUserDialog({
             {/* Phone */}
             <div className="space-y-2">
               <Label htmlFor="phone" className="text-sm font-medium">
-                Phone Number
+                {t("phoneNumber")}
               </Label>
               <Input
                 id="phone"
@@ -247,14 +251,14 @@ export function EditUserDialog({
                   }))
                 }
                 className="h-10 rounded-none"
-                placeholder="Enter phone number"
+                placeholder={t("enterPhone")}
               />
             </div>
 
             {/* Role - Only editable by super admins */}
             <div className="space-y-2">
               <Label htmlFor="role" className="text-sm font-medium">
-                User Role
+                {t("userRole")}
               </Label>
               <Select
                 value={editFormData.role}
@@ -264,12 +268,14 @@ export function EditUserDialog({
                 disabled={currentUserRole !== "super_admin"}
               >
                 <SelectTrigger className="h-10 rounded-none">
-                  <SelectValue placeholder="Select role" />
+                  <SelectValue placeholder={t("selectRole")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="super_admin">Super Admin</SelectItem>
+                  <SelectItem value="user">{t("role_user")}</SelectItem>
+                  <SelectItem value="admin">{t("role_admin")}</SelectItem>
+                  <SelectItem value="super_admin">
+                    {t("role_super_admin")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -277,20 +283,17 @@ export function EditUserDialog({
             {/* KOR Coins */}
             <div className="space-y-2">
               <Label htmlFor="korCoins" className="text-sm font-medium">
-                KOR Coins
+                {t("korCoins")}
               </Label>
               <Input
                 id="korCoins"
                 type="text"
                 value={editFormData.kor_coins?.toString() || "0"}
-                onChange={(e) =>
-                  setEditFormData((prev) => ({
-                    ...prev,
-                    kor_coins: parseInt(e.target.value) || 0,
-                  }))
-                }
+                // Editing KOR coins is disabled by request
+                disabled
+                readOnly
                 className="h-10 font-mono rounded-none"
-                placeholder="Enter KOR coins"
+                placeholder={t("enterKorCoins")}
                 min="0"
               />
             </div>
@@ -300,7 +303,7 @@ export function EditUserDialog({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* User ID */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">User ID</Label>
+              <Label className="text-sm font-medium">{t("userId")}</Label>
               <Input
                 value={user.id || ""}
                 disabled
@@ -310,7 +313,7 @@ export function EditUserDialog({
 
             {/* Warnings */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Warnings</Label>
+              <Label className="text-sm font-medium">{t("warnings")}</Label>
               <Input
                 value={user.warningCount?.toString() || "0"}
                 disabled
@@ -320,7 +323,9 @@ export function EditUserDialog({
 
             {/* Created Date */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Account Created</Label>
+              <Label className="text-sm font-medium">
+                {t("accountCreated")}
+              </Label>
               <Input
                 value={
                   user.created_at
@@ -334,7 +339,7 @@ export function EditUserDialog({
 
             {/* Last Updated */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Last Updated</Label>
+              <Label className="text-sm font-medium">{t("lastUpdated")}</Label>
               <Input
                 value={
                   user.updated_at
@@ -355,10 +360,10 @@ export function EditUserDialog({
             disabled={isSaving}
             className="h-10"
           >
-            Cancel
+            {t("cancel")}
           </Button>
           <Button onClick={handleSave} disabled={isSaving} className="h-10">
-            {isSaving ? "Saving..." : "Save Changes"}
+            {isSaving ? t("saving") : t("saveChanges")}
           </Button>
         </DialogFooter>
       </DialogContent>

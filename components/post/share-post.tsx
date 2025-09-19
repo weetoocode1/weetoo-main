@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { Check, Copy, Share2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface SharePostProps {
   post: {
@@ -27,6 +28,7 @@ interface SharePostProps {
 export function SharePost({ post, className }: SharePostProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const t = useTranslations("post");
 
   const postUrl =
     typeof window !== "undefined"
@@ -36,14 +38,14 @@ export function SharePost({ post, className }: SharePostProps) {
   const shareData = {
     title: post.title,
     url: postUrl,
-    text: `Check out this post: ${post.title}`,
+    text: `${post.title}`,
   };
 
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(postUrl);
       setCopied(true);
-      toast.success("Link copied to clipboard!");
+      toast.success(t("linkCopied"));
       // Try to award share reward and show toast
       try {
         const res = await fetch(`/api/posts/${post.id}/share`, {
@@ -54,20 +56,18 @@ export function SharePost({ post, className }: SharePostProps) {
           const exp = data.reward.exp_delta ?? 0;
           const kor = data.reward.kor_delta ?? 0;
           if (exp > 0 || kor > 0) {
-            toast.success(`Reward earned: +${exp} EXP, +${kor} KOR`);
+            toast.success(t("rewardEarned", { exp, kor }));
           }
         } else if (data?.error) {
           toast.error(data.error);
         }
       } catch (err: Error | unknown) {
-        toast.error(
-          err instanceof Error ? err.message : "Failed to award share"
-        );
+        toast.error(err instanceof Error ? err.message : t("failedAwardShare"));
       }
       setTimeout(() => setCopied(false), 2000);
       setIsOpen(false);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to copy link");
+      toast.error(err instanceof Error ? err.message : t("failedCopyLink"));
     }
   };
 
@@ -83,35 +83,35 @@ export function SharePost({ post, className }: SharePostProps) {
 
   const shareOptions = [
     {
-      name: "Copy Link",
+      name: t("copyLink"),
       icon: copied ? Check : Copy,
       onClick: handleCopyLink,
       color: "bg-blue-500 hover:bg-blue-600",
-      description: "Copy the link",
+      description: t("copyLinkDesc"),
       type: "button",
     },
     {
-      name: "Twitter",
+      name: t("twitter"),
       icon: Icons.twitter,
       href: twitterUrl,
       color: "bg-black hover:bg-gray-800",
-      description: "Share on Twitter/X",
+      description: t("twitterDesc"),
       type: "link",
     },
     {
-      name: "Facebook",
+      name: t("facebook"),
       icon: Icons.facebook,
       href: facebookUrl,
       color: "bg-blue-600 hover:bg-blue-700",
-      description: "Share on Facebook",
+      description: t("facebookDesc"),
       type: "link",
     },
     {
-      name: "WhatsApp",
+      name: t("whatsapp"),
       icon: Icons.whatsapp,
       href: whatsappUrl,
       color: "bg-green-500 hover:bg-green-600",
-      description: "Share on WhatsApp",
+      description: t("whatsappDesc"),
       type: "link",
     },
   ];
@@ -128,14 +128,14 @@ export function SharePost({ post, className }: SharePostProps) {
           )}
         >
           <Share2 className="h-4 w-4" />
-          Share
+          {t("share")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Share2 className="h-5 w-5" />
-            Share Post
+            {t("sharePost")}
           </DialogTitle>
         </DialogHeader>
 
@@ -226,9 +226,9 @@ export function SharePost({ post, className }: SharePostProps) {
           {/* Quick Share Stats */}
           <div className="pt-3 border-t">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Share this post with your network</span>
+              <span>{t("shareThisPost")}</span>
               <Badge variant="secondary" className="text-xs">
-                Public
+                {t("public")}
               </Badge>
             </div>
           </div>

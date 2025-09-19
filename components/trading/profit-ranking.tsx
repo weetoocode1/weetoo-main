@@ -1,18 +1,19 @@
 "use client";
 
-import { memo, useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { createClient } from "@/lib/supabase/client";
-import { cn } from "@/lib/utils";
-import { ProfitRankingTable } from "./profit-ranking-table";
+import { FollowButton } from "@/components/post/follow-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FollowButton } from "@/components/post/follow-button";
 import { useAuth } from "@/hooks/use-auth";
-import { Award, DollarSign, TrendingUp, UserPlus, Star } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { Award, DollarSign, Star, TrendingUp, UserPlus } from "lucide-react";
 import { motion } from "motion/react";
+import { memo, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
+import { ProfitRankingTable } from "./profit-ranking-table";
 
 type TimeFrame = "daily" | "weekly" | "monthly";
 
@@ -86,6 +87,7 @@ const ProfitCard = memo(
     useDummyData: boolean;
     shouldAnimate?: boolean;
   }) => {
+    const t = useTranslations("profitRanking");
     // Card visual styles copied from TraderCard
     const cardStyles = useMemo(() => {
       const baseStyles = { boxShadow: "", backgroundImage: "", border: "none" };
@@ -317,7 +319,7 @@ const ProfitCard = memo(
                       data.rank === 1 ? "w-4 h-4" : "w-3.5 h-3.5"
                     } text-emerald-400`}
                   />
-                  <span className="font-medium">Profit Rate</span>
+                  <span className="font-medium">{t("cardProfitRate")}</span>
                 </div>
                 <span
                   className={`${
@@ -343,7 +345,7 @@ const ProfitCard = memo(
                       data.rank === 1 ? "w-4 h-4" : "w-3.5 h-3.5"
                     } text-amber-400`}
                   />
-                  <span className="font-medium">Portfolio</span>
+                  <span className="font-medium">{t("cardPortfolio")}</span>
                 </div>
                 <span
                   className={`${
@@ -369,7 +371,7 @@ const ProfitCard = memo(
                       data.rank === 1 ? "w-4 h-4" : "w-3.5 h-3.5"
                     } text-purple-400`}
                   />
-                  <span className="font-medium">Trades</span>
+                  <span className="font-medium">{t("cardTrades")}</span>
                 </div>
                 <span
                   className={`${
@@ -475,6 +477,7 @@ const MobileProfitCard = memo(({ data }: { data: CardData }) => {
 MobileProfitCard.displayName = "MobileProfitCard";
 
 export const ProfitRanking = memo(() => {
+  const t = useTranslations("profitRanking");
   const [selectedTimeFrame, setSelectedTimeFrame] =
     useState<TimeFrame>("daily");
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -509,12 +512,20 @@ export const ProfitRanking = memo(() => {
     if (!isLoading) setIsInitialLoad(false);
   }, [isLoading]);
 
-  const displayTraders = (traders as ProfitTraderData[]) || [];
+  const displayTradersRaw = (traders as ProfitTraderData[]) || [];
+  const displayTraders = useMemo(() => {
+    const nonZero = displayTradersRaw.filter(
+      (t) => (t.total_return ?? 0) > 0 || (t.total_trades ?? 0) > 0
+    );
+    if (nonZero.length > 0) return nonZero;
+    // fallback to demo-like placeholders when no non-zero values
+    // reuse existing logic that fills top3 in cardData below
+    return displayTradersRaw;
+  }, [displayTradersRaw]);
   //   const numberFormatter = useMemo(() => new Intl.NumberFormat("en-US"), []);
 
   const cardData = useMemo(() => {
-    const top3 = displayTraders.slice(0, 3);
-    const demoNames = [
+    const demoNamesLocal = [
       "Alex Morgan",
       "Priya Sharma",
       "Mateo Alvarez",
@@ -522,6 +533,7 @@ export const ProfitRanking = memo(() => {
       "Ava Chen",
       "Noah Kim",
     ];
+    const top3 = displayTraders.slice(0, 3);
     const timeFrameOffset =
       selectedTimeFrame === "daily"
         ? 0
@@ -529,10 +541,10 @@ export const ProfitRanking = memo(() => {
         ? 2
         : 4;
     while (top3.length < 3) {
-      const idx = (top3.length + timeFrameOffset) % demoNames.length;
+      const idx = (top3.length + timeFrameOffset) % demoNamesLocal.length;
       top3.push({
         id: `demo-${top3.length + 1}`,
-        nickname: demoNames[idx],
+        nickname: demoNamesLocal[idx],
         avatar_url: null,
         level: 0,
         total_pnl: 0,
@@ -545,8 +557,10 @@ export const ProfitRanking = memo(() => {
     return top3.map((trader, index) => ({
       id: trader.id,
       rank: index + 1,
-      name: trader.nickname,
-      username: `@${trader.nickname.toLowerCase().replace(/\s+/g, "")}`,
+      name: trader.nickname || "Unknown Trader",
+      username: `@${(trader.nickname || "unknown")
+        .toLowerCase()
+        .replace(/\s+/g, "")}`,
       avatar_url: trader.avatar_url,
       totalReturn: trader.total_return,
       portfolio: trader.portfolio_value,
@@ -575,7 +589,7 @@ export const ProfitRanking = memo(() => {
                         : "text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    {timeFrame.charAt(0).toUpperCase() + timeFrame.slice(1)}
+                    {t(timeFrame)}
                   </button>
                 )
               )}

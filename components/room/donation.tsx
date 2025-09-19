@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 const QUICK_AMOUNTS = [100, 500, 1000, 5000, 10000];
 
@@ -37,6 +38,7 @@ export function Donation({
   roomId: string;
   creatorId: string;
 }) {
+  const t = useTranslations("room.donation");
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(0);
   const [korCoins, setKorCoins] = useState<number | null>(null);
@@ -116,7 +118,7 @@ export function Donation({
               name = name.trim();
             }
           } catch {}
-          toast.success(`${name} donated ${amount} kor-coins!`);
+          toast.success(t("toast.userDonated", { name, amount }));
 
           if (isHost) {
             setDonations((prev) => [
@@ -150,9 +152,10 @@ export function Donation({
   }, [open, userId]);
 
   const handleDonate = async () => {
-    if (!amount || amount <= 0) return toast.error("Enter a valid amount");
+    if (!amount || amount <= 0)
+      return toast.error(t("errors.enterValidAmount"));
     if (korCoins !== null && amount > korCoins)
-      return toast.error("Insufficient kor-coins");
+      return toast.error(t("errors.insufficient"));
     setLoading(true);
     const res = await fetch("/api/rooms/donate", {
       method: "POST",
@@ -161,7 +164,7 @@ export function Donation({
     });
     setLoading(false);
     if (res.ok) {
-      toast.success("Donation successful!");
+      toast.success(t("toast.success"));
       setAmount(0);
       setOpen(false);
       // Refetch user's kor-coins after donation
@@ -176,27 +179,25 @@ export function Donation({
       router.refresh();
     } else {
       const { error } = await res.json();
-      toast.error(error || "Donation failed");
+      toast.error(error || t("toast.failed"));
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm">Donation</Button>
+        <Button size="sm">{t("openButton")}</Button>
       </DialogTrigger>
       <DialogContent>
-        <DialogTitle>Donation</DialogTitle>
+        <DialogTitle>{t("title")}</DialogTitle>
         {isHost ? (
           <div className="space-y-2">
-            <DialogDescription>
-              Donations received in this room:
-            </DialogDescription>
+            <DialogDescription>{t("receivedInThisRoom")}</DialogDescription>
             <div className="border rounded p-2 bg-card/80">
               <ScrollArea className="h-60 w-full pr-2">
                 {donations.length === 0 ? (
                   <div className="text-muted-foreground text-sm text-center py-8">
-                    No donations yet.
+                    {t("noDonations")}
                   </div>
                 ) : (
                   <ul>
@@ -224,7 +225,7 @@ export function Donation({
                                 +{d.amount}
                                 <Icons.coins className="w-4 h-4 text-amber-400" />
                                 <span className="text-xs font-semibold ml-1">
-                                  KOR
+                                  {t("kor")}
                                 </span>
                               </span>
                               <span className="text-xs text-muted-foreground mt-1 text-right">
@@ -245,21 +246,21 @@ export function Donation({
           </div>
         ) : (
           <div className="space-y-4">
-            <DialogDescription>
-              Support the host by donating kor-coins!
-            </DialogDescription>
+            <DialogDescription>{t("supportHost")}</DialogDescription>
             <div className="flex flex-col gap-1">
               <Input
                 type="number"
                 min={1}
                 value={amount || ""}
                 onChange={(e) => setAmount(Number(e.target.value))}
-                placeholder="Enter amount"
+                placeholder={t("placeholders.enterAmount")}
                 className="w-full no-spinner"
               />
               <span className="text-xs text-muted-foreground mt-1">
-                Your balance:{" "}
-                <span className="font-semibold">{korCoins ?? "-"} KOR</span>
+                {t("yourBalance")}{" "}
+                <span className="font-semibold">
+                  {korCoins ?? "-"} {t("kor")}
+                </span>
               </span>
             </div>
             <div className="grid grid-cols-5 gap-2 w-full">
@@ -283,7 +284,7 @@ export function Donation({
                 }
                 className="w-full"
               >
-                {loading ? "Donating..." : "Donate"}
+                {loading ? t("buttons.donating") : t("buttons.donate")}
               </Button>
             </DialogFooter>
           </div>

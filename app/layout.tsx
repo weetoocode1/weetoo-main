@@ -9,6 +9,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { AdminRealtimeToasts } from "@/components/realtime/admin-realtime-toasts";
 import { UserRealtimeToasts } from "@/components/user/user-realtime-toasts";
+import { BanDialog } from "@/components/user/ban-dialog";
+import { AuthRealtimeGuard } from "@/components/user/auth-realtime-guard";
 import { useEffect, useState } from "react";
 import Script from "next/script";
 import "./globals.css";
@@ -80,7 +82,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta charSet="utf-8" />
       </head>
-      <body className={`bg-background`}>
+      <body suppressHydrationWarning className={`bg-background`}>
         <Script
           src="https://cdn.portone.io/v2/browser-sdk.js"
           strategy="afterInteractive"
@@ -94,8 +96,10 @@ export default function RootLayout({
               disableTransitionOnChange
             >
               {children}
+              <AuthRealtimeGuard />
               <AdminRealtimeToasts />
               <UserRealtimeToasts />
+              <BanDialog />
               <Toaster richColors position="top-center" />
             </ThemeProvider>
           </LanguageProvider>

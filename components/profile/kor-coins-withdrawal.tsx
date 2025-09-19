@@ -689,7 +689,6 @@ export function KORCoinsWithdrawal() {
                       })}
                     </span>
                     <span className="font-medium">
-                      ~
                       {Math.floor(
                         (formData.amount *
                           (userLevel <= 25
@@ -709,7 +708,7 @@ export function KORCoinsWithdrawal() {
                       {t("withdrawalRequest.feeBreakdown.estimatedReceive")}
                     </span>
                     <span className="text-success text-lg">
-                      ₩ ~
+                      ₩
                       {Math.floor(
                         formData.amount -
                           (formData.amount *

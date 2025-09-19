@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { X } from "lucide-react";
@@ -21,6 +22,7 @@ export function ImageUploader({
   setCarouselIndex,
 }: ImageUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const t = useTranslations("createPost");
 
   // Handle image upload
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,14 +56,15 @@ export function ImageUploader({
   return (
     <div className="mb-6">
       <Label className="mb-2 text-muted-foreground">
-        Images <span className="font-normal text-xs">(up to 4)</span>
+        {t("imagesLabel")}{" "}
+        <span className="font-normal text-xs">{t("imagesLimitNote")}</span>
       </Label>
       <div className="flex gap-3 flex-wrap">
         {images.map((img, idx) => (
           <div key={idx} className="relative group">
             <img
               src={img}
-              alt={`Upload ${idx + 1}`}
+              alt={t("imageAlt", { index: idx + 1 })}
               className="w-20 h-20 object-cover rounded-none border border-border shadow-sm cursor-pointer hover:ring-2 hover:ring-primary/40"
               onClick={() => setCarouselIndex(idx)}
             />
@@ -71,7 +74,7 @@ export function ImageUploader({
               size="icon"
               className="absolute -top-2 -right-2 p-1 shadow opacity-80 hover:opacity-100"
               onClick={() => handleRemoveImage(idx)}
-              aria-label="Remove image"
+              aria-label={t("removeImage")}
             >
               <X className="w-4 h-4" />
             </Button>
@@ -87,7 +90,7 @@ export function ImageUploader({
               multiple
               className="hidden"
               onChange={handleImageChange}
-              aria-label="Add images"
+              aria-label={t("addImages")}
             />
           </Label>
         )}

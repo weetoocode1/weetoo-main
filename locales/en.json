@@ -21,10 +21,120 @@
     "viewMarkets": "View Markets",
     "realTimeAnalytics": "Real-time Analytics",
     "expertTraders": "Expert Traders",
-    "globalCommunity": "Global Community"
+    "globalCommunity": "Global Community",
+    "bitcoin": "Bitcoin",
+    "ethereum": "Ethereum",
+    "btcUsd": "BTC/USD",
+    "ethUsd": "ETH/USD",
+    "volume24h": "24h",
+    "volume": "volume",
+    "loading": "Loading..."
+  },
+  "banDialog": {
+    "title": "Account Banned",
+    "subtitle": "Your access has been restricted. Review the details below.",
+    "banned": "Banned",
+    "reason": "Reason",
+    "noReasonProvided": "No reason provided.",
+    "callout": "You have been logged out. You cannot log in while the ban is active.",
+    "contactSupport": "Contact Support",
+    "close": "Close"
+  },
+  "adminBanDialog": {
+    "title": "Ban User",
+    "unbanTitle": "Unban User",
+    "description": "Ban {firstName} {lastName} from the platform",
+    "unbanDescription": "Unban {firstName} {lastName} to restore their access",
+    "loadingTitle": "Loading User Information",
+    "loadingMessage": "Loading user information...",
+    "userInfo": {
+      "warnings": "Warnings:",
+      "banReason": "Ban Reason:"
+    },
+    "form": {
+      "banReasonLabel": "Ban Reason",
+      "banReasonPlaceholder": "Enter the reason for banning this user...",
+      "permanentBan": "Permanent ban (user cannot be unbanned automatically)",
+      "notifyUser": "Notify user about this ban"
+    },
+    "unbanInfo": {
+      "title": "User is currently banned",
+      "description": "This user was banned and cannot access the platform. Click \"Unban User\" below to restore their access."
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "banUser": "Ban User",
+      "banning": "Banning...",
+      "unbanUser": "Unban User",
+      "unbanning": "Unbanning..."
+    },
+    "toast": {
+      "reasonRequired": "Please provide a reason for the ban",
+      "banSuccess": "User has been banned successfully",
+      "banFailed": "Failed to ban user. Please try again.",
+      "unbanSuccess": "User has been unbanned successfully",
+      "unbanFailed": "Failed to unban user. Please try again."
+    }
+  },
+  "adminVerification": {
+    "title": "Admin Verification",
+    "description": {
+      "enterCode": "Enter the verification code sent to your email",
+      "clickToReceive": "Click the button below to receive a verification code"
+    },
+    "sentTo": "Sent to:",
+    "buttons": {
+      "sendVerificationCode": "Send Verification Code",
+      "sendingOtp": "Sending OTP...",
+      "verifyAndAccess": "Verify & Access Dashboard",
+      "verifying": "Verifying...",
+      "resendCode": "Resend Code",
+      "sending": "Sending..."
+    },
+    "codeExpiresIn": "Code expires in:",
+    "instructions": {
+      "enterSixDigit": "Enter the 6-digit code sent to your email",
+      "validFor24Hours": "The code is valid for 24 hours"
+    },
+    "toast": {
+      "alreadyVerified": "Already verified! Redirecting to admin dashboard...",
+      "otpSentSuccess": "OTP sent to your email successfully!",
+      "otpSentFailed": "Failed to send OTP",
+      "otpSentError": "Failed to send OTP. Please try again.",
+      "invalidOtpLength": "Please enter a 6-digit OTP code",
+      "otpVerifiedSuccess": "OTP verified successfully!",
+      "invalidOtpCode": "Invalid OTP code",
+      "otpVerifyError": "Failed to verify OTP. Please try again."
+    }
   },
   "brokers": {
     "payback": "Payback"
+  },
+  "exchange": {
+    "allExchanges": "All Exchanges",
+    "recommended": "Recommended",
+    "highestCashback": "Highest Cashback",
+    "highestRebate": "Highest Rebate",
+    "highestDiscount": "Highest Discount",
+    "lowestCashback": "Lowest Cashback",
+    "noDiscount": "No Discount",
+    "bestScore": "Best Score",
+    "trending": "Trending",
+    "exchange": "Exchange",
+    "score": "Score",
+    "cashbackRate": "Cashback Rate",
+    "tradingDiscount": "Trading Discount",
+    "limitPrice": "Limit Order Fee",
+    "marketPrice": "Market Order Fee",
+    "avgRebatePerUser": "Avg Rebate / User",
+    "tags": "Tags",
+    "points": "Points",
+    "actions": "Actions",
+    "registerUid": "Register UID",
+    "signUp": "Sign Up",
+    "uidRegistrationComingSoon": "UID Registration Coming Soon",
+    "signUpComingSoon": "Sign Up Coming Soon",
+    "verifiedPartner": "Verified Partner"
   },
   "header": {
     "login": "Login",
@@ -152,8 +262,8 @@
   "weetooMarket": {
     "weetooMarket": "Weetoo Market",
     "shopDescription": "Shop digital services and features for your account.",
-    "memberHistoryReset": "Member history reset (integrated)",
-    "memberHistoryResetDesc": "Reset all your member activity history in one go.",
+    "memberHistoryReset": "Reset Trading History",
+    "memberHistoryResetDesc": "Reset all your trading history and closed positions in one go.",
     "chatRoomHistoryReset": "Reset chat room history",
     "chatRoomHistoryResetDesc": "Clear your chat room conversations instantly.",
     "messageUsageRights": "Message Usage Rights",
@@ -240,7 +350,13 @@
     "getStartedNow": "Get Started Now",
     "readyToJoin": "Ready to Join?",
     "joinDescription": "Learn with peers, review with intention, and practice inside a professional, distraction‑free space.",
-    "joinNow": "Join now"
+    "joinNow": "Join now",
+    "mantra": "Consistency over hype • Peer review culture • Process over guesses",
+    "badge": "Process first. Noise free.",
+    "focusedSessions": "Focused sessions",
+    "peerReviews": "Peer reviews",
+    "alwaysOnCommunity": "Always‑on community",
+    "focusMode": "Focus Mode"
   },
   "footer": {
     "companyDescription": "Solomon Partners (WEETOO_We are investors) is a crypto-related information and community platform designed for the general public. The main purpose of this site is to provide information, support community engagement, and offer a simulated trading system. It is not involved in actual investment brokerage, advisory services, trade inducement, or profit guarantees.\n\nWEETOO does not engage in any activities that fall under financial services, such as investment solicitation or financial product sales.",
@@ -262,9 +378,337 @@
     "riskNoticeParagraph3": "Trading currency on margin carries a high level of risk and is not suitable for all investors. Leveraged products can result in losses exceeding the initial deposit and your capital is at risk. Before deciding to trade Forex or any other financial product, you should carefully consider your investment objectives, level of experience and risk appetite. We work hard to provide valuable information on all the brokers we review. In order to provide this free service, we receive advertising fees from overseas brokers, including some of those listed on this page and in our rankings. While we do our best to ensure that all data is up to date, we recommend that you verify the information directly with the overseas broker.",
     "copyrightText": "Solomon Partners (WEETOO_We are investors). All rights reserved."
   },
+  "chat": {
+    "chatButton": "Chat",
+    "globalChat": "Global Chat",
+    "resetIn": "Reset in {time} (UTC)",
+    "please": "Please",
+    "login": "Login",
+    "or": "or",
+    "register": "Register",
+    "typeMessagePlaceholder": "Type a message...",
+    "level": "Level",
+    "percentComplete": "{percent}% Complete",
+    "expProgress": "{current} / {total} EXP",
+    "xp": "{value} XP",
+    "kor": "{value} KOR"
+  },
   "trading": {
     "tradingRooms": "Trading Rooms",
     "tradingRoomsDescription": "Join a trading room to collaborate, share strategies, and trade"
+  },
+  "room": {
+    "chat": {
+      "title": "Chat",
+      "labels": { "user": "User" },
+      "failedToSend": "Failed to send",
+      "join": {
+        "joining": "Joining...",
+        "joinRoomToChat": "Join Room to Chat"
+      },
+      "input": { "placeholder": "Type your message..." }
+    },
+    "tradeHistory": {
+      "common": { "cancel": "Cancel" },
+      "tabs": { "positions": "Positions", "tradeHistory": "Trade History" },
+      "headers": {
+        "symbol": "Symbol",
+        "side": "Side",
+        "quantity": "Quantity",
+        "size": "Size",
+        "entry": "Entry",
+        "exit": "Exit",
+        "initialMargin": "Initial Margin",
+        "pnl": "PNL",
+        "actions": "Actions"
+      },
+      "sides": { "long": "Long", "short": "Short" },
+      "actions": {
+        "close": "Close",
+        "closeAll": "Close All",
+        "closeAllPositions": "Close All Positions",
+        "ok": "OK",
+        "goToMarket": "Go to Market"
+      },
+      "tooltips": {
+        "onlyHostClose": "Only the room creator can close positions.",
+        "onlyHostCloseAll": "Only the room creator can close all positions.",
+        "noOpenPositions": "No open positions to close."
+      },
+      "close": {
+        "title": "Close Position",
+        "description": "Are you sure you want to close this position at the current price?",
+        "confirm": "Confirm"
+      },
+      "closeAll": {
+        "title": "Close All Positions",
+        "description": "Are you sure you want to close all open positions? This action cannot be undone."
+      },
+      "empty": {
+        "noOpenPositions": "No open positions.",
+        "noTradeHistory": "No trade history yet."
+      },
+      "reset": {
+        "button": "Reset Trading History",
+        "title": "Reset Trading History",
+        "onlyHost": "Only the room creator can reset trading history.",
+        "nothingToReset": "No trading history to reset.",
+        "noCreditsLine1": "You don't have any reset credits available. Please purchase reset credits from the Weetoo Market to use this feature.",
+        "noCreditsHint": "💡 Visit the market to buy reset credits",
+        "confirmText": "Are you sure you want to reset all trading history? This action cannot be undone and will permanently delete all closed positions. This will use 1 of your {credits} reset credit{pluralS}.",
+        "resetting": "Resetting...",
+        "actionLabel": "Reset History (Use 1 Credit)"
+      }
+    },
+    "windowTitleBar": {
+      "public": "Public",
+      "private": "Private",
+      "edit": {
+        "tooltip": "Edit Room",
+        "title": "Edit Room Settings",
+        "description": "Edit the room name, symbol, and privacy settings."
+      },
+      "thumbnail": {
+        "tooltip": {
+          "change": "Change Custom Thumbnail",
+          "upload": "Upload Custom Thumbnail"
+        },
+        "title": {
+          "change": "Change Room Thumbnail",
+          "upload": "Upload Room Thumbnail"
+        },
+        "description": {
+          "change": "Upload a new image to replace the current thumbnail, or remove it to use automatic screenshots.",
+          "upload": "Upload a custom thumbnail image. This will disable automatic screenshots for this room."
+        },
+        "labels": {
+          "newThumbnail": "New Thumbnail",
+          "selectImage": "Select Image",
+          "preview": "Preview",
+          "currentThumbnail": "Current Thumbnail"
+        },
+        "buttons": {
+          "cancel": "Cancel",
+          "uploading": "Uploading...",
+          "confirmUpload": "Confirm Upload"
+        }
+      },
+      "lateJoin": {
+        "warningText": "Having trouble hearing the host? Ask the host to toggle their microphone off and on again",
+        "dismiss": "Dismiss"
+      },
+      "stream": {
+        "start": "Start Chart Stream",
+        "stop": "Stop Chart Stream",
+        "sharing": "Sharing current tab",
+        "shareHint": "Share current tab with participants",
+        "errorPrefix": "Error:"
+      },
+      "streamStatus": {
+        "hostStreamBanner": "Host Chart Stream",
+        "connectionLostTitle": "Connection Lost",
+        "notStreamingTitle": "Host Not Streaming",
+        "attemptingReconnect": "Attempting to reconnect to the stream...",
+        "waitingForHost": "Waiting for host to start chart streaming...",
+        "reconnecting": "Reconnecting...",
+        "checkingForStream": "Checking for video stream...",
+        "errorPrefix": "Error:",
+        "disconnectedHint": "This usually resolves automatically. If it persists, try refreshing the page."
+      },
+      "orderBook": {
+        "tabs": { "book": "Book", "trades": "Trades" },
+        "headers": {
+          "priceUsdt": "Price ({quote})",
+          "amountBase": "Amt. ({base})",
+          "total": "Total",
+          "qtyBase": "Qty ({base})",
+          "time": "Time"
+        },
+        "messages": {
+          "failedLoad": "Failed to load order book:",
+          "empty": "No order book data available for this symbol."
+        }
+      },
+      "mic": { "mute": "Mute microphone", "unmute": "Unmute microphone" },
+      "audioHelp": {
+        "button": "Audio Issues Help",
+        "tooltip": "Show audio help"
+      },
+      "labels": { "virtualBalance": "Virtual Balance:" },
+      "pnl": {
+        "unrealized": "Unrealized PNL",
+        "realized": "Realized PNL",
+        "usdt": "USDT"
+      },
+      "profitRate": { "cumulative": "Cumulative Profit Rate:" },
+      "closeRoom": {
+        "button": "Close Room",
+        "dialog": {
+          "title": "Close Room",
+          "description": "Are you sure you want to close this room? This action cannot be undone."
+        }
+      },
+      "leaveRoom": {
+        "sr": "Leave Room",
+        "full": "Leave Room",
+        "short": "Leave",
+        "failed": "Failed to leave room"
+      },
+      "common": { "cancel": "Cancel" }
+    },
+    "orderBook": {
+      "tabs": { "book": "Book", "trades": "Trades" },
+      "headers": {
+        "priceUsdt": "Price ({quote})",
+        "amountBase": "Amt. ({base})",
+        "total": "Total",
+        "qtyBase": "Qty ({base})",
+        "time": "Time"
+      },
+      "messages": {
+        "failedLoad": "Failed to load order book:",
+        "empty": "No order book data available for this symbol."
+      }
+    },
+    "tradingForm": {
+      "common": { "cancel": "Cancel", "confirm": "Confirm" },
+      "tabs": { "limit": "Limit", "market": "Market" },
+      "margin": {
+        "cross": "Cross",
+        "isolated": "Isolated",
+        "chooseTitle": "Choose Margin Mode",
+        "chooseDesc": "Make changes to your margin mode here. Click confirm when you're done.",
+        "notice1": "If the loss exceeds the total holding (60%), it will be liquidated.",
+        "notice2": "Changing this affects all positions and unfilled orders for the current symbol."
+      },
+      "leverage": {
+        "title": "Adjust Leverage",
+        "desc": "Make changes to your leverage here. Click confirm when you're done.",
+        "notice1": "Default max is x50. With items you can go up to x100.",
+        "notice2": "Add or subtract the orderable quantity ratio based on your balance.",
+        "notice3": "Changing this affects all positions and unfilled orders for the current symbol."
+      },
+      "inputs": {
+        "orderPrice": "Order Price ({quote})",
+        "orderQuantity": "Order Quantity ({base})",
+        "orderAmount": "Order Amount ({quote})"
+      },
+      "buttons": { "currentPrice": "Current Price" },
+      "errors": { "insufficientBalance": "Insufficient balance." },
+      "info": {
+        "fee": "Fee:",
+        "leverage": "Leverage:",
+        "positionSize": "Position Size ({quote}):",
+        "initialMargin": "Initial Margin ({quote}):",
+        "estLiqLong": "Est. Liq. Price (Long):",
+        "estLiqShort": "Est. Liq. Price (Short):"
+      },
+      "tooltips": {
+        "onlyHost": "Only the room creator can trade in this room."
+      },
+      "actions": { "buyLong": "Buy / Long", "sellShort": "Sell / Short" },
+      "confirm": {
+        "titleBuy": "Confirm Buy / Long Order",
+        "titleSell": "Confirm Sell / Short Order",
+        "subtitle": "Please review your order before submitting.",
+        "pair": "Trading Pair",
+        "direction": "Order Direction",
+        "orderType": "Order Type",
+        "quantity": "Quantity",
+        "price": "Price",
+        "leverage": "Leverage",
+        "total": "Total",
+        "confirming": "Confirming..."
+      }
+    },
+    "donation": {
+      "openButton": "Donation",
+      "title": "Donation",
+      "receivedInThisRoom": "Donations received in this room:",
+      "noDonations": "No donations yet.",
+      "kor": "KOR",
+      "supportHost": "Support the host by donating kor-coins!",
+      "placeholders": { "enterAmount": "Enter amount" },
+      "yourBalance": "Your balance:",
+      "buttons": { "donating": "Donating...", "donate": "Donate" },
+      "errors": {
+        "enterValidAmount": "Enter a valid amount",
+        "insufficient": "Insufficient kor-coins"
+      },
+      "toast": {
+        "success": "Donation successful!",
+        "failed": "Donation failed",
+        "userDonated": "{name} donated {amount} kor-coins!"
+      }
+    },
+    "editRoom": {
+      "labels": {
+        "roomName": "Room Name",
+        "roomPrivacy": "Room Privacy",
+        "roomPassword": "Room Password",
+        "symbol": "Symbol",
+        "new": "NEW"
+      },
+      "placeholders": {
+        "roomName": "Room Name",
+        "roomPassword": "Room Password",
+        "selectValue": "Select a value",
+        "selectSymbol": "Select a symbol"
+      },
+      "options": { "public": "Public", "private": "Private" },
+      "status": { "checkingName": "Checking name..." },
+      "aria": {
+        "hidePassword": "Hide password",
+        "showPassword": "Show password"
+      },
+      "buttons": {
+        "cancel": "Cancel",
+        "saveChanges": "Save Changes",
+        "saving": "Saving..."
+      }
+    },
+    "marketOverview": {
+      "usdtFuturesTrading": "USDT Futures Trading",
+      "change24h": "Change (24H)",
+      "high24h": "High (24H)",
+      "low24h": "Low (24H)",
+      "turnover24h": "Turnover (24H)",
+      "volume24h": "Volume (24H)",
+      "openInterest24h": "Open Int. (24H)",
+      "fundingTime": "Funding/Time",
+      "todayRecords": "Today Records",
+      "totalRecords": "Total Records",
+      "buy": "Buy",
+      "sell": "Sell"
+    },
+    "participants": {
+      "title": "Participants",
+      "loading": "Loading...",
+      "empty": {
+        "noParticipants": "No participants yet."
+      },
+      "roles": {
+        "host": "Host",
+        "participant": "Participant"
+      },
+      "actions": {
+        "joinRoom": "Join Room"
+      },
+      "labels": {
+        "you": "You"
+      },
+      "errors": {
+        "pleaseLogin": "Please log in to join the room.",
+        "mustBeLoggedIn": "You must be logged in to participate.",
+        "userSessionNotFound": "User session not found",
+        "failedToJoinRoom": "Failed to join room: {message}",
+        "failedToJoinRoomGeneric": "Failed to join room"
+      },
+      "success": {
+        "alreadyInRoom": "You're already in this room!",
+        "joinedRoom": "Successfully joined the room!"
+      }
+    }
   },
   "tradingRooms": {
     "room": "Room",
@@ -296,7 +740,35 @@
     "incorrectPassword": "Incorrect password. Please try again.",
     "passwordCorrect": "Password correct! Joining room...",
     "view": "View",
-    "toggleColumns": "Toggle columns"
+    "toggleColumns": "Toggle columns",
+    "typeFilter": "Type",
+    "roomType": "Room Type",
+    "accessFilter": "Access",
+    "roomAccess": "Room Access",
+    "privateRoomAccess": "Private Room Access",
+    "passwordSecurityNote": "Your password is encrypted and secure",
+    "loadMoreRooms": "Load More Rooms",
+    "loadingMoreRooms": "Loading more rooms...",
+    "noRoomsAvailable": "No trading rooms available",
+    "identityVerificationToJoin": "Complete identity verification to join rooms",
+    "live": "LIVE",
+    "participant": "participant",
+    "enterPasswordPlaceholder": "Enter your secure password",
+    "timeAgo": {
+      "justNow": "just now",
+      "minuteAgo": "1 minute ago",
+      "minutesAgo": "{count} minutes ago",
+      "hourAgo": "1 hour ago",
+      "hoursAgo": "{count} hours ago",
+      "dayAgo": "1 day ago",
+      "daysAgo": "{count} days ago",
+      "weekAgo": "1 week ago",
+      "weeksAgo": "{count} weeks ago",
+      "monthAgo": "1 month ago",
+      "monthsAgo": "{count} months ago",
+      "yearAgo": "1 year ago",
+      "yearsAgo": "{count} years ago"
+    }
   },
   "createRoom": {
     "createRoom": "Create Room",
@@ -332,7 +804,10 @@
     "loading": "Loading...",
     "roomNameAlreadyInUse": "This room name is already in use. Please choose another.",
     "couldNotCheckRoomName": "Could not check room name. Please try again.",
-    "failedToCreateRoom": "Failed to create room. Please try again."
+    "failedToCreateRoom": "Failed to create room. Please try again.",
+    "alreadyActiveTitle": "⚠️ You already have an active room",
+    "roomLabel": "Room:",
+    "alreadyActiveInstruction": "Close your existing room before creating a new one."
   },
   "ranking": {
     "winRateRankings": "Win Rate Rankings",
@@ -340,7 +815,157 @@
   },
   "profitRanking": {
     "profitRateRankings": "Profit Rate Rankings",
-    "topProfitRateTraders": "Discover top performing traders by profit rate, portfolio growth and trade activity"
+    "topProfitRateTraders": "Discover top performing traders by profit rate, portfolio growth and trade activity",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "fullLeaderboard": "Full Leaderboard",
+    "fullLeaderboardSubtitle": "Complete ranking by profit rate • {timeframe} Rankings",
+    "tableRank": "Rank",
+    "tableTrader": "Trader",
+    "tableProfitRate": "Profit Rate",
+    "tablePortfolio": "Portfolio",
+    "tableTrades": "Trades",
+    "cardProfitRate": "Profit Rate",
+    "cardPortfolio": "Portfolio",
+    "cardTrades": "Trades"
+  },
+  "mostActivity": {
+    "fullLeaderboard": "Full Leaderboard",
+    "fullLeaderboardSubtitle": "Complete ranking of all active users • {timeframe} Rankings",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "tableRank": "Rank",
+    "tableUser": "User",
+    "tableLevel": "Level",
+    "tableExperience": "Experience",
+    "tableChange": "Change",
+    "totalExperience": "Total Experience",
+    "topPerformer": "Top Performer",
+    "level": "Level"
+  },
+  "sponsoredRanking": {
+    "fullLeaderboard": "Full Leaderboard",
+    "fullLeaderboardSubtitle": "Complete ranking of all active users • {timeframe} Rankings",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "tableRank": "Rank",
+    "tableUser": "User",
+    "tableLevel": "Level",
+    "tableDonation": "Donation",
+    "tableChange": "Change",
+    "totalDonation": "Total Donation",
+    "topPerformer": "Top Performer",
+    "level": "Level"
+  },
+  "mostFollowedRanking": {
+    "fullLeaderboard": "Full Leaderboard",
+    "fullLeaderboardSubtitle": "Complete ranking of all active users • {timeframe} Rankings",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "tableRank": "Rank",
+    "tableUser": "User",
+    "tableLevel": "Level",
+    "tableFollowers": "Followers",
+    "tableChange": "Change",
+    "totalFollowers": "Total Followers",
+    "topPerformer": "Top Performer",
+    "level": "Level"
+  },
+  "createPost": {
+    "createTab": "Create",
+    "previewTab": "Preview",
+    "postTitle": "Post Title",
+    "enterPostTitle": "Enter post title",
+    "tags": "Tags",
+    "addTagHint": "Add a tag and press Enter",
+    "content": "Content",
+    "publishing": "Publishing...",
+    "publish": "Publish",
+    "cancel": "Cancel",
+    "pleaseFillRequired": "Please fill in all required fields",
+    "onlyImagesAllowed": "Only image files are allowed",
+    "imageTooLarge": "Image must be 10MB or smaller",
+    "imageUploadFailed": "Image upload failed: {message}",
+    "postPublished": "Post published successfully!",
+    "rewardEarned": "Reward earned: +{exp} EXP, +{kor} KOR",
+    "failedToCreate": "Failed to create post",
+    "errorGeneric": "Failed to create post",
+    "boardLabel": "{board} Board",
+    "removeTag": "Remove tag {tag}",
+    "imagesLabel": "Images",
+    "imagesLimitNote": "(up to 4)",
+    "removeImage": "Remove image",
+    "addImages": "Add images",
+    "imageAlt": "Upload {index}",
+    "thumbnailAlt": "Thumbnail {index}",
+    "imageSlideAlt": "Image {index}",
+    "follow": "Follow",
+    "views": "{count} views",
+    "justNow": "just now",
+    "startCreatingPreviewHint": "Start creating your post to see a live preview here.",
+    "editorPlaceholder": "Start typing..."
+  },
+  "post": {
+    "goBack": "Go Back",
+    "postNotFound": "Post not found.",
+    "views": "{count} views",
+    "tags": "Tags:",
+    "youViewedThis": "You viewed this",
+    "readingTimeLessThan": "Less than 1 min read",
+    "readingTimeOne": "1 min read",
+    "readingTimeMany": "{minutes} min read",
+    "like": "Like",
+    "likes": "Likes",
+    "comment": "Comment",
+    "comments": "Comments",
+    "viewComments": "View comments",
+    "share": "Share",
+    "sharePost": "Share Post",
+    "shareThisPost": "Share this post with your network",
+    "public": "Public",
+    "copyLink": "Copy Link",
+    "copyLinkDesc": "Copy the link",
+    "twitter": "Twitter",
+    "twitterDesc": "Share on Twitter/X",
+    "facebook": "Facebook",
+    "facebookDesc": "Share on Facebook",
+    "whatsapp": "WhatsApp",
+    "whatsappDesc": "Share on WhatsApp",
+    "linkCopied": "Link copied to clipboard!",
+    "rewardEarned": "Reward earned: +{exp} EXP, +{kor} KOR",
+    "failedAwardShare": "Failed to award share",
+    "failedCopyLink": "Failed to copy link",
+    "goBackAria": "Go back",
+    "likePostAria": "Like post",
+    "unlikePostAria": "Unlike post",
+    "viewCommentsAria": "View comments",
+    "sharePostAria": "Share post",
+    "identityVerificationRequired": "Identity verification required",
+    "commentsRestricted": "Comments Restricted",
+    "commentsRestrictedDesc": "You need to verify your identity to view and add comments on posts.",
+    "signInToComment": "Sign in to comment.",
+    "noComments": "No comments yet.",
+    "commentCount": "{count} {label}",
+    "reply": "Reply",
+    "replying": "Replying...",
+    "writeAReply": "Write a reply...",
+    "commenting": "Commenting...",
+    "commentAddPlaceholder": "Add a comment...",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "deleteCommentQ": "Delete comment?",
+    "deleteCommentDesc": "This action cannot be undone. This will permanently delete your comment.",
+    "commentAdded": "Comment added",
+    "failedAddComment": "Failed to add comment",
+    "commentDeleted": "Comment deleted",
+    "failedDeleteComment": "Failed to delete comment",
+    "following": "Following",
+    "unfollow": "Unfollow",
+    "follow": "Follow"
   },
   "traderRanking": {
     "online": "Online",
@@ -352,6 +977,16 @@
     "trades": "Trades",
     "winStreak": "Win Streak",
     "fullLeaderboard": "Full Leaderboard",
+    "fullLeaderboardSubtitle": "Complete ranking of all active traders • {timeframe} Rankings",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "tableRank": "Rank",
+    "tableTrader": "Trader",
+    "tableWinRate": "Win Rate",
+    "tableTrades": "Trades",
+    "tableWinStreak": "Win Streak",
+    "topPerformer": "Top Performer",
     "rank": "Rank",
     "trader": "Trader",
     "rowsPerPage": "Rows per page",
@@ -373,6 +1008,9 @@
     "start": "Start",
     "end": "End",
     "unknown": "Unknown",
+    "completed": "Completed",
+    "noPastCompetitions": "No Past Competitions",
+    "noPastCompetitionsDescription": "No completed competitions yet. Past competitions will appear here once they finish.",
     "addNewCompetition": "Add New Competition",
     "createNewCompetition": "Create a new competition to join.",
     "competitionName": "Competition Name",
@@ -486,6 +1124,11 @@
     "tradingInformation": "Trading Information",
     "paybackRatePercent": "Payback Rate (%)",
     "averageRebatePerUser": "Average Rebate per User",
+    "registerUid": "Register UID",
+    "verifiedPartner": "Verified Partner",
+    "signUp": "Sign Up",
+    "uidRegistrationComingSoon": "UID Registration Coming Soon",
+    "signUpComingSoon": "Sign Up Coming Soon",
     "cancel": "Cancel",
     "saveChanges": "Save Changes",
     "saving": "Saving..."
@@ -495,6 +1138,8 @@
       "header": "Admin",
       "adminMenu": "Admin Menu",
       "goBackToTrading": "Go Back to Trading",
+      "toggleSidebar": "Toggle sidebar (Ctrl+B)",
+      "openAdminMenu": "Open admin menu",
       "roles": {
         "super_admin": "Super Admin",
         "admin": "Admin",
@@ -577,6 +1222,7 @@
         "korCoins": {
           "title": "KOR Coins Activity",
           "description": "Showing daily KOR Coins usage for the last 30 days",
+          "monthlyActivity": "Monthly Activity",
           "series": {
             "coins": "KOR Coins"
           }
@@ -690,6 +1336,12 @@
           "requestKor": "{user} requested {amount} KOR",
           "actionBy": "Action by {user}",
           "noDetails": "No additional details available"
+        },
+        "notificationTypes": {
+          "withdrawal_request_created": "New Withdrawal Request",
+          "deposit_request_created": "New Deposit Request",
+          "withdrawal_status_updated": "Withdrawal Status Updated",
+          "deposit_status_updated": "Deposit Status Updated"
         }
       }
     },
@@ -698,22 +1350,27 @@
         "rewardsToday": "Rewards Today",
         "expAwardedToday": "EXP Awarded Today",
         "korAwardedToday": "KOR Awarded Today",
-        "activeRules": "Active Rules"
+        "korSpentToday": "KOR Spent Today"
       },
       "statsDescriptions": {
         "rewardsToday": "All reward events today",
-        "activeRules": "Currently active reward rules",
+        "korSpentToday": "Total KOR spent in market today",
         "sumAcross": "Sum across all rewards"
       },
       "table": {
         "searchPlaceholder": "Search rewards...",
         "columns": {
           "user": "User",
-          "rewardType": "Reward Type",
+          "rewardType": "Activity",
           "exp": "EXP",
           "kor": "KOR",
           "date": "Date",
           "actions": "Actions"
+        },
+        "menu": {
+          "open": "Open menu",
+          "title": "Actions",
+          "view": "View"
         }
       },
       "filters": {
@@ -724,7 +1381,8 @@
           "post_liked": "Post Liked",
           "post_shared": "Post Shared",
           "daily_login": "Daily Login",
-          "room_created": "Room Created"
+          "room_created": "Room Created",
+          "market_purchase": "Market Purchase"
         }
       },
       "mobile": {
@@ -736,9 +1394,30 @@
         "showing": "Showing {start}-{end} of {total} results",
         "previous": "Previous",
         "next": "Next"
+      },
+      "detailsDialog": {
+        "title": "Reward Details",
+        "description": "Full information about this reward entry",
+        "fields": {
+          "rewardId": "Reward ID",
+          "userId": "User ID",
+          "title": "Title",
+          "date": "Date",
+          "exp": "EXP",
+          "kor": "KOR"
+        },
+        "close": "Close"
       }
     },
     "rewardRules": {
+      "descriptions": {
+        "daily_login": "Reward for daily login (once per day)",
+        "post_commented": "Reward for writing a comment on a post",
+        "post_created": "Reward for creating a post",
+        "post_liked": "Reward for liking a post",
+        "post_shared": "Reward for sharing a post",
+        "room_created": "Reward for creating a trading room (once per UTC day)"
+      },
       "sections": {
         "basicInfo": "Basic Information",
         "rewardValues": "Reward Values",
@@ -1051,7 +1730,8 @@
           "admin": "Admin",
           "super_admin": "Super Admin"
         },
-        "actions": { "close": "Close" }
+        "actions": { "close": "Close" },
+        "loading": "Loading..."
       }
     },
     "adminNotes": {
@@ -1204,12 +1884,17 @@
           "uid": "UID",
           "exchange": "Exchange",
           "status": "Status",
+          "verificationReferral": "Verification & Referral",
           "created": "Created",
           "actions": "Actions"
         },
         "status": {
           "active": "Active",
-          "inactive": "Inactive"
+          "inactive": "Inactive",
+          "verified": "Verified",
+          "notVerified": "Not Verified",
+          "referral": "Referral",
+          "notReferral": "Not Referral"
         },
         "menu": {
           "open": "Open menu",
@@ -1251,6 +1936,37 @@
           "inactive": "Inactive"
         },
         "copyToClipboard": "{label} copied to clipboard"
+      },
+      "editUserDialog": {
+        "title": "Edit User",
+        "description": "Update information for {first} {last}",
+        "firstName": "First Name",
+        "lastName": "Last Name",
+        "emailAddress": "Email Address",
+        "superAdminOnly": "(Super Admin only)",
+        "phoneNumber": "Phone Number",
+        "userRole": "User Role",
+        "selectRole": "Select role",
+        "role_user": "User",
+        "role_admin": "Admin",
+        "role_super_admin": "Super Admin",
+        "korCoins": "KOR Coins",
+        "enterFirstName": "Enter first name",
+        "enterLastName": "Enter last name",
+        "enterEmail": "Enter email address",
+        "enterPhone": "Enter phone number",
+        "enterKorCoins": "Enter KOR coins",
+        "userId": "User ID",
+        "warnings": "Warnings",
+        "accountCreated": "Account Created",
+        "lastUpdated": "Last Updated",
+        "cancel": "Cancel",
+        "saveChanges": "Save Changes",
+        "saving": "Saving...",
+        "toastSaved": "User updated successfully!",
+        "toastSaveFailed": "Failed to update user. Please try again.",
+        "toastNameRequired": "First name and last name are required",
+        "toastInvalidEmail": "Please enter a valid email address"
       },
       "userDetailsDialog": {
         "title": "User Details",

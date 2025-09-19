@@ -49,28 +49,24 @@ interface NotificationTableProps {
 // Notification configuration - easily extensible for future categories
 const NOTIFICATION_CONFIG = {
   withdrawal_request_created: {
-    title: "New Withdrawal Request",
     category: "withdrawal",
     type: "success",
     icon: "💰",
     color: "bg-green-100 text-green-800 border-green-300",
   },
   deposit_request_created: {
-    title: "New Deposit Request",
     category: "deposit",
     type: "success",
     icon: "💳",
     color: "bg-green-100 text-green-800 border-green-300",
   },
   withdrawal_status_updated: {
-    title: "Withdrawal Status Updated",
     category: "withdrawal",
     type: "info",
     icon: "ℹ️",
     color: "bg-blue-100 text-blue-800 border-blue-300",
   },
   deposit_status_updated: {
-    title: "Deposit Status Updated",
     category: "deposit",
     type: "info",
     icon: "ℹ️",
@@ -120,19 +116,25 @@ export function NotificationTable({
 
   // Get notification configuration - fallback to defaults if not found
   const getNotificationConfig = (type: string) => {
-    return (
-      NOTIFICATION_CONFIG[type as keyof typeof NOTIFICATION_CONFIG] || {
-        title: type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
-        category: "other",
-        type: "info",
-        icon: "ℹ️",
-        color: "bg-gray-100 text-gray-800 border-gray-300",
-      }
-    );
+    const config =
+      NOTIFICATION_CONFIG[type as keyof typeof NOTIFICATION_CONFIG];
+    if (config) {
+      return {
+        ...config,
+        title: t(`notificationTypes.${type}`),
+      };
+    }
+    return {
+      title: type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+      category: "other",
+      type: "info",
+      icon: "ℹ️",
+      color: "bg-gray-100 text-gray-800 border-gray-300",
+    };
   };
 
   const getNotificationTitle = (notification: Notification) => {
-    return notification.title || getNotificationConfig(notification.type).title;
+    return getNotificationConfig(notification.type).title;
   };
 
   const getNotificationMessage = (notification: Notification) => {
@@ -368,7 +370,9 @@ export function NotificationTable({
                                   : "text-yellow-600"
                               }`}
                             >
-                              {notification.read ? "Read" : "Unread"}
+                              {notification.read
+                                ? t("status.read")
+                                : t("status.unread")}
                             </span>
                           </div>
                         </td>
@@ -431,7 +435,7 @@ export function NotificationTable({
                                 disabled={markAsReadMutation.isPending}
                               >
                                 <Check className="h-3 w-3 mr-1" />
-                                Mark Read
+                                {t("menu.markReadShort")}
                               </Button>
                             )}
                           </div>
@@ -468,7 +472,7 @@ export function NotificationTable({
                           </div>
                           <div className="text-xs text-muted-foreground">
                             {(notification.metadata?.user_name as string) ||
-                              "Unknown"}
+                              t("unknown")}
                           </div>
                         </div>
                       </div>
@@ -476,13 +480,13 @@ export function NotificationTable({
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
+                              <span className="sr-only">{t("menu.open")}</span>
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
                             <DropdownMenuLabel>
-                              Notification Actions
+                              {t("menu.title")}
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
@@ -491,7 +495,7 @@ export function NotificationTable({
                               }}
                             >
                               <Eye className="mr-2 h-4 w-4" />
-                              View Details
+                              {t("menu.viewDetails")}
                             </DropdownMenuItem>
                             {!notification.read && (
                               <DropdownMenuItem
@@ -500,7 +504,7 @@ export function NotificationTable({
                                 }
                               >
                                 <Check className="mr-2 h-4 w-4" />
-                                Mark as Read
+                                {t("menu.markAsRead")}
                               </DropdownMenuItem>
                             )}
                           </DropdownMenuContent>
@@ -530,7 +534,9 @@ export function NotificationTable({
                               : "text-yellow-600"
                           }`}
                         >
-                          {notification.read ? "Read" : "Unread"}
+                          {notification.read
+                            ? t("status.read")
+                            : t("status.unread")}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -561,11 +567,9 @@ export function NotificationTable({
             <div className="p-8 text-center">
               <div className="text-muted-foreground">
                 <div className="text-lg font-medium mb-2">
-                  No notifications found
+                  {t("empty.title")}
                 </div>
-                <div className="text-sm">
-                  Try adjusting your search criteria
-                </div>
+                <div className="text-sm">{t("empty.subtitle")}</div>
               </div>
             </div>
           )}
@@ -575,9 +579,11 @@ export function NotificationTable({
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Showing {startIndex + 1}-
-            {Math.min(endIndex, filteredNotifications.length)} of{" "}
-            {filteredNotifications.length} results
+            {t("pagination.showing", {
+              start: startIndex + 1,
+              end: Math.min(endIndex, filteredNotifications.length),
+              total: filteredNotifications.length,
+            })}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -587,7 +593,7 @@ export function NotificationTable({
               disabled={currentPage === 1}
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
-              Previous
+              {t("pagination.previous")}
             </Button>
             <div className="flex items-center gap-1">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -630,7 +636,7 @@ export function NotificationTable({
               }
               disabled={currentPage === totalPages}
             >
-              Next
+              {t("pagination.next")}
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </div>

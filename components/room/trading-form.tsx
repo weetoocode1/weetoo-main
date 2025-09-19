@@ -17,6 +17,7 @@ import { VIRTUAL_BALANCE_KEY } from "@/hooks/use-virtual-balance";
 import { createClient } from "@/lib/supabase/client";
 import { MinusIcon, PlusIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import useSWR, { mutate } from "swr";
 
 export function TradingForm({
@@ -32,6 +33,7 @@ export function TradingForm({
   hostId: string;
   symbol: string;
 }) {
+  const t = useTranslations("room.tradingForm");
   // Ensure orderType is typed as 'limit' | 'market' for correct comparison
   const [orderType, setOrderType] = useState<"limit" | "market">("limit");
   const [marginMode, setMarginMode] = useState("cross"); // 'cross' or 'isolated'
@@ -285,17 +287,14 @@ export function TradingForm({
             className="flex items-center justify-between gap-1 py-1.5 px-3 w-full text-xs font-medium"
             disabled={!isHost}
           >
-            {marginMode === "cross" ? "Cross" : "Isolated"}{" "}
+            {marginMode === "cross" ? t("margin.cross") : t("margin.isolated")}{" "}
             <span className="text-muted-foreground">▼</span>
           </Button>
           <Dialog open={showMarginModal} onOpenChange={setShowMarginModal}>
             <DialogContent className="sm:max-w-lg">
               <DialogHeader>
-                <DialogTitle>Choose Margin Mode</DialogTitle>
-                <DialogDescription>
-                  Make changes to your margin mode here. Click confirm when
-                  you&apos;re done.
-                </DialogDescription>
+                <DialogTitle>{t("margin.chooseTitle")}</DialogTitle>
+                <DialogDescription>{t("margin.chooseDesc")}</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <RadioGroup
@@ -319,7 +318,7 @@ export function TradingForm({
                       className="sr-only"
                     />
                     <Label htmlFor="cross" className="cursor-pointer">
-                      Cross
+                      {t("margin.cross")}
                     </Label>
                   </div>
                   <div
@@ -336,18 +335,16 @@ export function TradingForm({
                       className="sr-only"
                     />
                     <Label htmlFor="isolated" className="cursor-pointer">
-                      Isolated
+                      {t("margin.isolated")}
                     </Label>
                   </div>
                 </RadioGroup>
               </div>
               <p className="text-muted-foreground text-sm mb-4">
-                If the loss exceeds the total holding (60%), it will be
-                liquidated.
+                {t("margin.notice1")}
               </p>
               <p className="text-muted-foreground text-sm mb-6">
-                When changed, all positions and unfilled orders for the current
-                item will be affected.
+                {t("margin.notice2")}
               </p>
               <DialogFooter>
                 <Button
@@ -355,7 +352,7 @@ export function TradingForm({
                   onClick={() => setShowMarginModal(false)}
                   disabled={!isHost}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   onClick={() => {
@@ -364,7 +361,7 @@ export function TradingForm({
                   }}
                   disabled={!isHost}
                 >
-                  Confirm
+                  {t("common.confirm")}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -395,11 +392,8 @@ export function TradingForm({
           <Dialog open={showLeverageModal} onOpenChange={setShowLeverageModal}>
             <DialogContent className="sm:max-w-lg">
               <DialogHeader>
-                <DialogTitle>Adjust Leverage</DialogTitle>
-                <DialogDescription>
-                  Make changes to your leverage here. Click confirm when
-                  you&apos;re done.
-                </DialogDescription>
+                <DialogTitle>{t("leverage.title")}</DialogTitle>
+                <DialogDescription>{t("leverage.desc")}</DialogDescription>
               </DialogHeader>
               <div className="flex flex-col gap-4 py-4">
                 <div className="flex items-center gap-2 mb-4">
@@ -462,16 +456,13 @@ export function TradingForm({
                 </div>
               </div>
               <p className="text-muted-foreground text-sm mb-4">
-                It can be multiplied by up to x50 by default, and can be
-                multiplied by x100 when using items.
+                {t("leverage.notice1")}
               </p>
               <p className="text-muted-foreground text-sm mb-6">
-                Add or subtract the quantity ratio that can be ordered based on
-                the amount held.
+                {t("leverage.notice2")}
               </p>
               <p className="text-muted-foreground text-sm mb-6">
-                When changed, all positions and unfilled orders for the current
-                item will be affected.
+                {t("leverage.notice3")}
               </p>
               <DialogFooter>
                 <Button
@@ -479,7 +470,7 @@ export function TradingForm({
                   onClick={() => setShowLeverageModal(false)}
                   disabled={!isHost}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   onClick={() => {
@@ -489,7 +480,7 @@ export function TradingForm({
                   }}
                   disabled={!isHost}
                 >
-                  Confirm
+                  {t("common.confirm")}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -507,7 +498,7 @@ export function TradingForm({
           }`}
           onClick={() => setOrderType("limit")}
         >
-          Limit
+          {t("tabs.limit")}
         </button>
         <button
           className={`px-4 py-2 text-xs font-medium ${
@@ -517,7 +508,7 @@ export function TradingForm({
           }`}
           onClick={() => setOrderType("market")}
         >
-          Market
+          {t("tabs.market")}
         </button>
       </div>
 
@@ -525,7 +516,7 @@ export function TradingForm({
       <div className="flex flex-col gap-3 mb-3">
         <div>
           <Label className="block text-muted-foreground mb-1 text-xs">
-            Order Price (USDT)
+            {t("inputs.orderPrice", { quote: "USDT" })}
           </Label>
           <div className="flex items-center bg-secondary border border-border rounded-md px-3 py-1.5 relative">
             <Input
@@ -550,7 +541,7 @@ export function TradingForm({
                 tabIndex={-1}
                 disabled={!isHost}
               >
-                Current Price
+                {t("buttons.currentPrice")}
               </button>
             )}
           </div>
@@ -558,7 +549,7 @@ export function TradingForm({
 
         <div>
           <Label className="block text-muted-foreground mb-1 text-xs">
-            Order Quantity ({symbol})
+            {t("inputs.orderQuantity", { base: symbol })}
           </Label>
           <div className="flex items-center bg-secondary border border-border rounded-md px-3 py-1.5">
             <Input
@@ -575,7 +566,7 @@ export function TradingForm({
         {orderType === "limit" && (
           <div>
             <Label className="block text-muted-foreground mb-1 text-xs">
-              Order Amount (USDT)
+              {t("inputs.orderAmount", { quote: "USDT" })}
             </Label>
             <div
               className={`flex items-center bg-secondary border rounded-md px-3 py-1.5 ${
@@ -606,7 +597,7 @@ export function TradingForm({
             </div>
             {!hasEnoughBalance && (
               <div className="text-xs text-red-500 mt-1">
-                Insufficient balance.
+                {t("errors.insufficientBalance")}
               </div>
             )}
           </div>
@@ -644,29 +635,29 @@ export function TradingForm({
       {/* Trading Info */}
       <div className="flex flex-col gap-1.5 mb-3 text-xs">
         <div className="flex justify-between text-muted-foreground">
-          <span>Fee:</span>
+          <span>{t("info.fee")}</span>
           <span>{fee.toFixed(2)} USDT</span>
         </div>
         <div className="flex justify-between text-muted-foreground">
-          <span>Leverage:</span>
+          <span>{t("info.leverage")}</span>
           <span>{leverageValue.toFixed(2)}x</span>
         </div>
         <div className="flex justify-between text-muted-foreground">
-          <span>Position Size (USDT):</span>
+          <span>{t("info.positionSize", { quote: "USDT" })}</span>
           <span>{positionSize.toFixed(2)}</span>
         </div>
         <div className="flex justify-between text-muted-foreground">
-          <span>Initial Margin (USDT):</span>
+          <span>{t("info.initialMargin", { quote: "USDT" })}</span>
           <span>{initialMargin.toFixed(2)}</span>
         </div>
         <div className="flex justify-between text-muted-foreground">
-          <span>Est. Liq. Price (Long):</span>
+          <span>{t("info.estLiqLong")}</span>
           <span className="text-red-500">
             {liqPriceLong > 0 ? liqPriceLong.toFixed(2) : "-"}
           </span>
         </div>
         <div className="flex justify-between text-muted-foreground">
-          <span>Est. Liq. Price (Short):</span>
+          <span>{t("info.estLiqShort")}</span>
           <span className="text-green-500">
             {liqPriceShort > 0 ? liqPriceShort.toFixed(2) : "-"}
           </span>
@@ -682,13 +673,13 @@ export function TradingForm({
             disabled={!isHost || !hasEnoughBalance}
             title={
               !isHost
-                ? "Only the room creator can trade in this room."
+                ? t("tooltips.onlyHost")
                 : !hasEnoughBalance
-                ? "Insufficient balance."
+                ? t("errors.insufficientBalance")
                 : undefined
             }
           >
-            Buy / Long
+            {t("actions.buyLong")}
           </Button>
           <Button
             className="flex-1 bg-red-600 hover:bg-red-700 text-white h-9 text-xs font-medium"
@@ -696,13 +687,13 @@ export function TradingForm({
             disabled={!isHost || !hasEnoughBalance}
             title={
               !isHost
-                ? "Only the room creator can trade in this room."
+                ? t("tooltips.onlyHost")
                 : !hasEnoughBalance
-                ? "Insufficient balance."
+                ? t("errors.insufficientBalance")
                 : undefined
             }
           >
-            Sell / Short
+            {t("actions.sellShort")}
           </Button>
         </div>
       </div>
@@ -713,43 +704,47 @@ export function TradingForm({
           <div className="px-6 pt-5 pb-2">
             <DialogTitle className="text-lg font-semibold mb-2">
               {orderSide === "long"
-                ? "Confirm Buy / Long Order"
-                : "Confirm Sell / Short Order"}
+                ? t("confirm.titleBuy")
+                : t("confirm.titleSell")}
             </DialogTitle>
             <p className="text-muted-foreground text-sm mb-4">
-              Please review your order before submitting.
+              {t("confirm.subtitle")}
             </p>
             <div className="rounded-md border border-border bg-muted/50 px-4 py-3 mb-2">
               <div className="grid gap-2.5">
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground font-medium text-[15px]">
-                    Trading Pair
+                    {t("confirm.pair")}
                   </span>
                   <span className="font-semibold text-[15px]">{symbol}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground font-medium text-[15px]">
-                    Order Direction
+                    {t("confirm.direction")}
                   </span>
                   <span
                     className={`font-semibold text-[15px] ${
                       orderSide === "long" ? "text-success" : "text-red-400"
                     }`}
                   >
-                    {orderSide === "long" ? "Buy / Long" : "Sell / Short"}
+                    {orderSide === "long"
+                      ? t("actions.buyLong")
+                      : t("actions.sellShort")}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground font-medium text-[15px]">
-                    Order Type
+                    {t("confirm.orderType")}
                   </span>
                   <span className="font-semibold text-[15px]">
-                    {orderType === "market" ? "Market" : "Limit"}
+                    {orderType === "market"
+                      ? t("tabs.market")
+                      : t("tabs.limit")}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground font-medium text-[15px]">
-                    Quantity
+                    {t("confirm.quantity")}
                   </span>
                   <span className="font-semibold text-[15px]">
                     {orderQuantity || "0"}
@@ -757,7 +752,7 @@ export function TradingForm({
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground font-medium text-[15px]">
-                    Price
+                    {t("confirm.price")}
                   </span>
                   <span className="font-semibold text-[15px]">
                     {orderType === "market"
@@ -769,7 +764,7 @@ export function TradingForm({
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground font-medium text-[15px]">
-                    Leverage
+                    {t("confirm.leverage")}
                   </span>
                   <span className="font-semibold text-[15px]">{leverage}x</span>
                 </div>
@@ -777,7 +772,7 @@ export function TradingForm({
             </div>
             <div className="flex justify-between items-center mt-5 pt-4 border-t border-border bg-muted/30 rounded-md px-4 py-2">
               <span className="text-base font-semibold text-muted-foreground">
-                Total
+                {t("confirm.total")}
               </span>
               <span
                 className={`text-2xl font-bold tracking-tight ${
@@ -798,7 +793,7 @@ export function TradingForm({
               className="w-28 h-10"
               onClick={() => setShowOrderDialog(false)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               variant={orderSide === "long" ? "success" : "destructive"}
@@ -806,7 +801,7 @@ export function TradingForm({
               onClick={handleConfirmOrder}
               disabled={loading}
             >
-              {loading ? "Confirming..." : "Confirm"}
+              {loading ? t("confirm.confirming") : t("common.confirm")}
             </Button>
           </DialogFooter>
           {error && (

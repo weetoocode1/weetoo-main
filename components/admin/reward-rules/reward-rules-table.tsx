@@ -53,6 +53,7 @@ interface RewardRule {
 
 export function RewardRulesTable() {
   const t = useTranslations("admin.rewardRules");
+  const tActivity = useTranslations("admin.activityLog");
   const { computed } = useAuth();
   const [editingRule, setEditingRule] = useState<RewardRule | null>(null);
   const [viewingRule, setViewingRule] = useState<RewardRule | null>(null);
@@ -226,7 +227,7 @@ export function RewardRulesTable() {
               </SelectItem>
               {typeOptions.map((type) => (
                 <SelectItem key={type} value={type}>
-                  {type.replace(/_/g, " ")}
+                  {tActivity(`filters.typeNames.${type}`)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -297,15 +298,17 @@ export function RewardRulesTable() {
                       >
                         <td className="px-6 py-4">
                           <span className="text-sm font-medium text-muted-foreground">
-                            {rule.type.replace(/_/g, " ")}
+                            {tActivity(`filters.typeNames.${rule.type}`)}
                           </span>
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm font-medium">
-                            {rule.title}
+                            {tActivity(`filters.typeNames.${rule.type}`)}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {rule.description}
+                            {t(`descriptions.${rule.type}`, {
+                              default: rule.description || "",
+                            })}
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -398,7 +401,7 @@ export function RewardRulesTable() {
                       <div>
                         <div className="font-medium text-sm">{rule.title}</div>
                         <div className="text-xs text-muted-foreground">
-                          {rule.type.replace(/_/g, " ")}
+                          {tActivity(`filters.typeNames.${rule.type}`)}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">

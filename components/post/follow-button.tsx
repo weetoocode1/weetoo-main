@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { User } from "@/types/post";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 interface FollowButtonProps {
   targetUserId: string;
@@ -13,6 +14,7 @@ interface FollowButtonProps {
 }
 
 export function FollowButton({ targetUserId, className }: FollowButtonProps) {
+  const t = useTranslations("post");
   const [isFollowing, setIsFollowing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(true);
@@ -108,7 +110,7 @@ export function FollowButton({ targetUserId, className }: FollowButtonProps) {
           "!bg-red-500 !text-white !border-red-500 hover:!bg-red-600"
       )}
     >
-      {isFollowing ? (isHovered ? "Unfollow" : "Following") : "Follow"}
+      {isFollowing ? (isHovered ? t("unfollow") : t("following")) : t("follow")}
     </Button>
   );
 }

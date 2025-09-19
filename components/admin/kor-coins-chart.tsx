@@ -60,7 +60,10 @@ export function KorCoinsChart() {
   }
 
   const korCoinsData = chartData?.korCoinsActivity || [];
-  const latestCoins = korCoinsData[korCoinsData.length - 1]?.coins || 0;
+  const totalDailyActivity = korCoinsData.reduce(
+    (sum, day) => sum + day.coins,
+    0
+  );
   const localizedConfig = {
     coins: { ...chartConfig.coins, label: t("series.coins") },
   } as ChartConfig;
@@ -82,10 +85,10 @@ export function KorCoinsChart() {
           <div className="flex">
             <div className="relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left sm:border-t-0 sm:border-l sm:px-8 sm:py-6">
               <span className="text-muted-foreground text-xs">
-                {localizedConfig.coins.label}
+                {t("monthlyActivity")}
               </span>
               <span className="text-lg leading-none font-bold sm:text-3xl">
-                {latestCoins.toLocaleString()}
+                {totalDailyActivity.toLocaleString()}
               </span>
             </div>
           </div>
@@ -125,21 +128,7 @@ export function KorCoinsChart() {
                   return value.toLocaleString();
                 }}
               />
-              <ChartTooltip
-                content={
-                  <ChartTooltipContent
-                    className="w-[150px]"
-                    nameKey="coins"
-                    labelFormatter={(value) => {
-                      return new Date(value).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      });
-                    }}
-                  />
-                }
-              />
+              <ChartTooltip content={<ChartTooltipContent />} />
               <Bar
                 dataKey="coins"
                 fill={localizedConfig.coins.color}

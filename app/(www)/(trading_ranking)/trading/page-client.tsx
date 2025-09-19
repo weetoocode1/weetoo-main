@@ -20,9 +20,9 @@ export function TradingPageClient() {
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
                   {t("tradingRooms")}
                 </h1>
-                <p className="text-sm sm:text-base text-neutral-600 dark:text-neutral-400 text-balance max-w-xl mt-1 mx-auto">
+                {/* <p className="text-sm sm:text-base text-neutral-600 dark:text-neutral-400 text-balance max-w-xl mt-1 mx-auto">
                   {t("tradingRoomsDescription")}
-                </p>
+                </p> */}
               </div>
             </div>
           </div>

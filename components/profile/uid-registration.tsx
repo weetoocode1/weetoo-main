@@ -52,12 +52,20 @@ const BROKERS = [
     status: "active",
     logo: "/broker/orangex.webp",
   },
+  {
+    id: "lbank",
+    name: "LBank",
+    paybackRate: 50,
+    status: "coming-soon",
+    logo: "/broker/lbank.png",
+  },
 ];
 
 // Referral signup links per broker (extendable)
 const REFERRAL_LINKS: Record<string, string> = {
   deepcoin: "https://s.deepcoin.com/jedgica",
   orangex: "https://affiliates.orangex.com/affiliates/b/4dratgs2",
+  lbank: "",
 };
 
 interface UidRecord {
@@ -125,7 +133,7 @@ export function UidRegistration() {
   );
 
   return (
-    <div className="p-4 select-none">
+    <div className="p-4 ">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1">
           <KeyRoundIcon className="h-5 w-5 text-primary" />
@@ -375,24 +383,24 @@ function UIDCard({
       }`}
     >
       {/* Header */}
-      <div className="p-5 pb-2 border-b border-border">
-        {/* Header Layout: Image on left, Name/UID on right */}
-        <div className="flex items-center gap-4 mb-3">
+      <div className="p-4 sm:p-5 pb-2 border-b border-border">
+        {/* Header Layout: stack on mobile, row on larger screens */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:flex-wrap gap-3 sm:gap-4 mb-3 w-full">
           {/* Image on the left */}
-          <div className="w-12 h-12 bg-muted flex items-center justify-center">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-muted flex items-center justify-center shrink-0">
             <Image
               src={BROKERS.find((b) => b.id === record.brokerId)?.logo || ""}
               alt={`${record.brokerName} logo`}
               width={32}
               height={32}
-              className="object-contain"
+              className="h-full w-full object-contain"
             />
           </div>
 
           {/* Name and UID on the right */}
-          <div className="flex-1 flex flex-col justify-center">
+          <div className="flex-1 flex flex-col justify-center min-w-0">
             {/* Broker name */}
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1 min-w-0">
               <h3 className="text-base font-medium text-foreground">
                 {record.brokerName}
               </h3>
@@ -403,8 +411,8 @@ function UIDCard({
             </div>
 
             {/* UID below the name */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-[10px] sm:text-xs text-muted-foreground font-mono bg-muted px-2 py-1 truncate max-w-[60%] sm:max-w-none">
                 {record.uid}
               </span>
               <Button
@@ -414,7 +422,7 @@ function UIDCard({
                   navigator.clipboard.writeText(record.uid);
                   toast.success(t("toast.uidCopied"));
                 }}
-                className="h-5 w-5 p-0 hover:bg-muted"
+                className="h-5 w-5 p-0 hover:bg-muted shrink-0"
               >
                 <Copy className="h-3 w-3" />
               </Button>
@@ -422,10 +430,10 @@ function UIDCard({
           </div>
 
           {/* Status Indicators and Active/Inactive on the far right */}
-          <div className="flex flex-col items-end gap-2 min-w-[200px]">
+          <div className="flex flex-col sm:items-end gap-2 w-full sm:w-auto min-w-0 sm:min-w-[220px] sm:ml-auto">
             {/* Active/Inactive Status - Top line */}
             <div
-              className={`text-xs font-medium px-2 py-1 ${
+              className={`text-xs font-medium px-2 py-1 self-start sm:self-auto ${
                 isUidActuallyActive
                   ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
                   : "bg-muted text-muted-foreground"
@@ -441,8 +449,8 @@ function UIDCard({
             </div>
 
             {/* Status Indicators - Bottom line */}
-            <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground w-full">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-3 text-[11px] sm:text-xs text-muted-foreground w-full">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 break-words whitespace-normal">
                 <div className="flex items-center gap-1.5">
                   {uidVerification.isLoading && !uidVerification.isError ? (
                     <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
@@ -473,7 +481,7 @@ function UIDCard({
                       href={REFERRAL_LINKS[record.brokerId]}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer"
+                      className="flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer mt-1 sm:mt-0"
                     >
                       <div className="w-1.5 h-1.5 bg-amber-500"></div>
                       <span className="text-muted-foreground">
@@ -491,34 +499,34 @@ function UIDCard({
       </div>
 
       {/* Stats Grid */}
-      <div className="p-5 pb-2">
+      <div className="p-4 sm:p-5 pb-2">
         <div className="grid grid-cols-1 gap-3">
           {/* Total accumulated payback */}
-          <div className="p-4 border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 text-center">
-            <div className="text-2xl font-semibold text-emerald-700 dark:text-emerald-300 font-mono mb-2">
+          <div className="p-3 sm:p-4 border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 text-center">
+            <div className="text-xl sm:text-2xl font-semibold text-emerald-700 dark:text-emerald-300 font-mono mb-1 sm:mb-2">
               ${record.rebateLifetimeUsd?.toFixed(2) || "0.00"}
             </div>
-            <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+            <div className="text-[11px] sm:text-xs text-emerald-600 dark:text-emerald-400 font-medium">
               {t("stats.totalAccumulatedPayback")}
             </div>
           </div>
 
           {/* Withdrawn and Withdrawable */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 text-center">
-              <div className="text-lg font-semibold text-blue-700 dark:text-blue-300 font-mono mb-1">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            <div className="p-2.5 sm:p-3 border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 text-center">
+              <div className="text-base sm:text-lg font-semibold text-blue-700 dark:text-blue-300 font-mono mb-0.5 sm:mb-1">
                 ${withdrawnSum.toFixed(2)}
               </div>
-              <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+              <div className="text-[11px] sm:text-xs text-blue-600 dark:text-blue-400 font-medium">
                 {t("stats.withdrawnAmount")}
               </div>
             </div>
 
-            <div className="p-3 border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 text-center">
-              <div className="text-lg font-semibold text-amber-700 dark:text-amber-300 font-mono mb-1">
+            <div className="p-2.5 sm:p-3 border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 text-center">
+              <div className="text-base sm:text-lg font-semibold text-amber-700 dark:text-amber-300 font-mono mb-0.5 sm:mb-1">
                 ${withdrawableComputed.toFixed(2)}
               </div>
-              <div className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+              <div className="text-[11px] sm:text-xs text-amber-600 dark:text-amber-400 font-medium">
                 {t("stats.withdrawableBalance")}
               </div>
             </div>
@@ -526,15 +534,15 @@ function UIDCard({
         </div>
       </div>
       {/* Additional Info Footer */}
-      <div className="p-5 border-t border-border">
-        <div className="space-y-2 text-xs text-muted-foreground">
-          <div className="flex justify-between">
+      <div className="p-4 sm:p-5 border-t border-border">
+        <div className="space-y-2 text-[11px] sm:text-xs text-muted-foreground">
+          <div className="flex items-center justify-between gap-2">
             <span>{t("stats.totalLifetimeRebate")}</span>
             <span className="text-foreground font-medium font-mono">
               ${record.rebateLifetimeUsd?.toFixed(2) || "0.00"}
             </span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex items-center justify-between gap-2">
             <span>{t("stats.last24Hours")}</span>
             <span className="text-foreground font-medium font-mono">
               ${record.rebateLastDayUsd?.toFixed(2) || "0.00"}

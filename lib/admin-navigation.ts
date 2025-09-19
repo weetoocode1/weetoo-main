@@ -141,6 +141,34 @@ export function getAdminPageTitle(pathname: string): string {
 }
 
 /**
+ * Get the translated page title for a given pathname
+ * @param pathname - The current pathname
+ * @param t - Translation function
+ * @returns The translated display title for the page
+ */
+export function getTranslatedAdminPageTitle(
+  pathname: string,
+  t: (key: string) => string
+): string {
+  // Find the matching navigation item
+  for (const section of ADMIN_SECTIONS) {
+    const matchingItem = section.items.find(
+      (item: AdminNavItem) => item.href === pathname
+    );
+    if (matchingItem) {
+      return t(`items.${matchingItem.label}`);
+    }
+  }
+
+  // Fallback for root admin page
+  if (pathname === "/admin") {
+    return t("items.Overview");
+  }
+
+  return t("header");
+}
+
+/**
  * Check if a given pathname is an admin route
  * @param pathname - The pathname to check
  * @returns True if it's an admin route

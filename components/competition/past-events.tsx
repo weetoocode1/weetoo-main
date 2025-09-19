@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface Competition {
   id: string;
@@ -40,6 +41,7 @@ interface DisplayItem {
 const ITEMS_PER_PAGE = 12;
 
 export function PastEvents() {
+  const t = useTranslations("investmentCompetition");
   const [currentPage, setCurrentPage] = useState(1);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(true);
@@ -172,10 +174,9 @@ export function PastEvents() {
       <div className="flex flex-col items-center justify-center py-12">
         <div className="text-center space-y-4">
           <div className="text-6xl mb-4">🏆</div>
-          <h3 className="text-xl font-semibold">No Past Competitions</h3>
+          <h3 className="text-xl font-semibold">{t("noPastCompetitions")}</h3>
           <p className="text-muted-foreground max-w-md">
-            No completed competitions yet. Past competitions will appear here
-            once they finish.
+            {t("noPastCompetitionsDescription")}
           </p>
         </div>
       </div>
@@ -194,22 +195,22 @@ export function PastEvents() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">
                   <span className="text-2xl mr-2">🏆</span>
-                  {item.data?.name || "Unknown Competition"}
+                  {item.data?.name || t("unknownCompetition")}
                 </CardTitle>
               </div>
               <CardDescription>
-                {item.data?.description || "No description available"}
+                {item.data?.description || t("noDescriptionAvailable")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-sm text-muted-foreground space-y-2">
                 <p>
-                  <strong>Start:</strong>{" "}
+                  <strong>{t("start")}:</strong>{" "}
                   {item.data ? formatDate(item.data.start_date) : "N/A"} at{" "}
                   {item.data?.start_time || "N/A"}
                 </p>
                 <p>
-                  <strong>End:</strong>{" "}
+                  <strong>{t("end")}:</strong>{" "}
                   {item.data ? formatDate(item.data.end_date) : "N/A"} at{" "}
                   {item.data?.end_time || "N/A"}
                 </p>
@@ -220,7 +221,7 @@ export function PastEvents() {
                 variant="outline"
                 className="text-muted-foreground w-full rounded-none flex items-center justify-center text-sm border border-border h-10"
               >
-                Completed
+                {t("completed")}
               </Badge>
             </div>
           </Card>

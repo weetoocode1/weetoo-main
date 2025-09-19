@@ -10,7 +10,8 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Award, Medal, Minus, Trophy, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 
 type TimeFrame = "daily" | "weekly" | "monthly";
 
@@ -48,6 +49,7 @@ const rankStyles = {
 };
 
 export function MostFollowedRanking() {
+  const t = useTranslations("mostFollowedRanking");
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [selectedTimeFrame, setSelectedTimeFrame] =
     useState<TimeFrame>("daily");
@@ -120,8 +122,42 @@ export function MostFollowedRanking() {
     };
   }, [selectedTimeFrame]); // Re-subscribe when timeFrame changes
 
-  const topUsers = users.slice(0, 3);
-  const tableData = users;
+  const filteredUsers = useMemo(
+    () => users.filter((u) => (u.total_followers ?? 0) > 0),
+    [users]
+  );
+
+  const topUsers = useMemo(() => {
+    const demo = getDummyFollowersUsers(selectedTimeFrame);
+    const filled = [...filteredUsers];
+    const demoLen = demo.length || 1;
+    while (filled.length < 3) {
+      const d = demo[filled.length % demoLen];
+      filled.push({
+        ...d,
+        id: `demo-${filled.length + 1}`,
+      } as DummyFollowersUser);
+    }
+    return filled.slice(0, 3);
+  }, [filteredUsers, selectedTimeFrame]);
+
+  const tableData = useMemo(() => {
+    const base =
+      filteredUsers.length > 0
+        ? filteredUsers
+        : getDummyFollowersUsers(selectedTimeFrame);
+    const demo = getDummyFollowersUsers(selectedTimeFrame);
+    const filled = [...base];
+    const demoLen = demo.length || 1;
+    while (filled.length < 10) {
+      const d = demo[filled.length % demoLen];
+      filled.push({
+        ...d,
+        id: `demo-${filled.length + 1}`,
+      } as DummyFollowersUser);
+    }
+    return filled;
+  }, [filteredUsers, selectedTimeFrame]);
 
   return (
     <div className="w-full p-6 container mx-auto">
@@ -139,7 +175,7 @@ export function MostFollowedRanking() {
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {timeFrame.charAt(0).toUpperCase() + timeFrame.slice(1)}
+              {t(timeFrame)}
             </button>
           ))}
         </div>
@@ -261,7 +297,7 @@ export function MostFollowedRanking() {
                           <div className="relative z-10">
                             <div className="flex items-center justify-between mb-3">
                               <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
-                                Total Followers
+                                {t("totalFollowers")}
                               </p>
                               <div className="w-2 h-2 rounded-full bg-primary/60 animate-pulse" />
                             </div>
@@ -289,13 +325,12 @@ export function MostFollowedRanking() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
           <div className="flex-1">
             <h2 className="text-2xl font-bold text-foreground">
-              Full Leaderboard
+              {t("fullLeaderboard")}
             </h2>
             <p className="text-muted-foreground">
-              Complete ranking of all active users •{" "}
-              {selectedTimeFrame.charAt(0).toUpperCase() +
-                selectedTimeFrame.slice(1)}{" "}
-              Rankings
+              {t("fullLeaderboardSubtitle", {
+                timeframe: t(selectedTimeFrame),
+              })}
             </p>
           </div>
 
@@ -313,7 +348,7 @@ export function MostFollowedRanking() {
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  {timeFrame.charAt(0).toUpperCase() + timeFrame.slice(1)}
+                  {t(timeFrame)}
                 </button>
               )
             )}
@@ -386,11 +421,11 @@ export function MostFollowedRanking() {
         <div className="hidden md:block bg-background/60 backdrop-blur-sm rounded-2xl border border-border/50 overflow-hidden shadow-xl">
           {/* Table Header */}
           <div className="grid grid-cols-12 gap-4 px-6 py-5 bg-gradient-to-r from-muted/40 via-muted/30 to-muted/40 border-b border-border/50 font-semibold text-sm text-muted-foreground">
-            <div className="col-span-1">Rank</div>
-            <div className="col-span-4">User</div>
-            <div className="col-span-2">Level</div>
-            <div className="col-span-3">Followers</div>
-            <div className="col-span-2">Change</div>
+            <div className="col-span-1">{t("tableRank")}</div>
+            <div className="col-span-4">{t("tableUser")}</div>
+            <div className="col-span-2">{t("tableLevel")}</div>
+            <div className="col-span-3">{t("tableFollowers")}</div>
+            <div className="col-span-2">{t("tableChange")}</div>
           </div>
 
           {/* Table Rows */}

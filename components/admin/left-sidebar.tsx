@@ -57,10 +57,10 @@ export function LeftSidebar({
     if (computed) {
       const roleLabel =
         computed.role === "super_admin"
-          ? "Super Admin"
+          ? t("roles.super_admin")
           : computed.role === "admin"
-          ? "Admin"
-          : "User";
+          ? t("roles.admin")
+          : t("roles.user");
 
       // Always update cache when computed data is available to ensure real-time updates
       setCachedUser({
