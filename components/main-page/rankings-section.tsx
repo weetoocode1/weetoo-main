@@ -396,6 +396,14 @@ export function RankingsSection({ data }: RankingsSectionProps) {
 
   // Convert real data to leaderboard entries with proper fallback to mock data
   const leaderboardData = useMemo(() => {
+    // Debug: Log the incoming data to understand what we're working with
+    console.log("RankingsSection received data:", {
+      returnRateData: data.returnRateData?.length || 0,
+      virtualMoneyData: data.virtualMoneyData?.length || 0,
+      activityData: data.activityData?.length || 0,
+      donationData: data.donationData?.length || 0,
+      followersData: data.followersData?.length || 0,
+    });
     // Mock data for fallback with unique IDs (excluding activity which should use real data)
     const mockData = {
       winrate: [
@@ -710,74 +718,129 @@ export function RankingsSection({ data }: RankingsSectionProps) {
           return acc;
         }, [] as LeaderboardEntry[]);
 
-      // Fill up to 5 entries with real data, then dummy data if needed
-      const filledEntries = [...realEntries];
+      // If we have real data, use it; otherwise use dummy data
+      if (realEntries.length > 0) {
+        // Fill up to 5 entries with real data, then dummy data if needed
+        const filledEntries = [...realEntries];
 
-      // Get appropriate dummy data based on category
-      let dummyEntries: LeaderboardEntry[] = [];
+        // Get appropriate dummy data based on category
+        let dummyEntries: LeaderboardEntry[] = [];
 
-      if (categoryId === "sponsored") {
-        const dummyUsers = getDummyDonationUsers("weekly");
-        dummyEntries = dummyUsers.map((user, index) => ({
-          id: `dummy-sponsored-${index + 1}`,
-          rank: filledEntries.length + index + 1,
-          name: user.nickname,
-          avatar:
-            user.avatar_url ||
-            `https://images.unsplash.com/photo-${
-              1472099645785 + index
-            }?w=150&h=150&fit=crop&crop=face`,
-          score: user.total_donation || 0,
-          change: 0, // Dummy data has no change
-          category: "sponsored",
-        }));
-      } else if (categoryId === "followers") {
-        const dummyUsers = getDummyFollowersUsers("weekly");
-        dummyEntries = dummyUsers.map((user, index) => ({
-          id: `dummy-followers-${index + 1}`,
-          rank: filledEntries.length + index + 1,
-          name: user.nickname,
-          avatar:
-            user.avatar_url ||
-            `https://images.unsplash.com/photo-${
-              1472099645785 + index
-            }?w=150&h=150&fit=crop&crop=face`,
-          score: user.total_followers || 0,
-          change: 0, // Dummy data has no change
-          category: "followers",
-        }));
-      } else if (categoryId === "winrate" || categoryId === "profitrate") {
-        // For win rate and profit rate, use mock data from the existing mockData
-        const mockEntries = mockData[categoryId as keyof typeof mockData] || [];
-        dummyEntries = mockEntries.map((entry, index) => ({
-          ...entry,
-          id: `dummy-${categoryId}-${index + 1}`,
-          rank: filledEntries.length + index + 1,
-        }));
-      }
-
-      // Fill remaining slots with dummy data (avoiding duplicates with real data)
-      const usedNames = new Set(filledEntries.map((e) => e.name));
-      let dummyIndex = 0;
-
-      while (filledEntries.length < 5 && dummyIndex < dummyEntries.length) {
-        const dummyEntry = dummyEntries[dummyIndex];
-        if (!usedNames.has(dummyEntry.name)) {
-          filledEntries.push({
-            ...dummyEntry,
-            rank: filledEntries.length + 1,
-          });
-          usedNames.add(dummyEntry.name);
+        if (categoryId === "sponsored") {
+          const dummyUsers = getDummyDonationUsers("weekly");
+          dummyEntries = dummyUsers.map((user, index) => ({
+            id: `dummy-sponsored-${index + 1}`,
+            rank: filledEntries.length + index + 1,
+            name: user.nickname,
+            avatar:
+              user.avatar_url ||
+              `https://images.unsplash.com/photo-${
+                1472099645785 + index
+              }?w=150&h=150&fit=crop&crop=face`,
+            score: user.total_donation || 0,
+            change: 0, // Dummy data has no change
+            category: "sponsored",
+          }));
+        } else if (categoryId === "followers") {
+          const dummyUsers = getDummyFollowersUsers("weekly");
+          dummyEntries = dummyUsers.map((user, index) => ({
+            id: `dummy-followers-${index + 1}`,
+            rank: filledEntries.length + index + 1,
+            name: user.nickname,
+            avatar:
+              user.avatar_url ||
+              `https://images.unsplash.com/photo-${
+                1472099645785 + index
+              }?w=150&h=150&fit=crop&crop=face`,
+            score: user.total_followers || 0,
+            change: 0, // Dummy data has no change
+            category: "followers",
+          }));
+        } else if (categoryId === "winrate" || categoryId === "profitrate") {
+          // For win rate and profit rate, use mock data from the existing mockData
+          const mockEntries =
+            mockData[categoryId as keyof typeof mockData] || [];
+          dummyEntries = mockEntries.map((entry, index) => ({
+            ...entry,
+            id: `dummy-${categoryId}-${index + 1}`,
+            rank: filledEntries.length + index + 1,
+          }));
         }
-        dummyIndex++;
-      }
 
-      return {
-        id: categoryId,
-        title,
-        icon,
-        entries: filledEntries.slice(0, 5), // Always exactly 5 entries
-      };
+        // Fill remaining slots with dummy data (avoiding duplicates with real data)
+        const usedNames = new Set(filledEntries.map((e) => e.name));
+        let dummyIndex = 0;
+
+        while (filledEntries.length < 5 && dummyIndex < dummyEntries.length) {
+          const dummyEntry = dummyEntries[dummyIndex];
+          if (!usedNames.has(dummyEntry.name)) {
+            filledEntries.push({
+              ...dummyEntry,
+              rank: filledEntries.length + 1,
+            });
+            usedNames.add(dummyEntry.name);
+          }
+          dummyIndex++;
+        }
+
+        return {
+          id: categoryId,
+          title,
+          icon,
+          entries: filledEntries.slice(0, 5), // Always exactly 5 entries
+        };
+      } else {
+        // No real data, use dummy data only
+        let dummyEntries: LeaderboardEntry[] = [];
+
+        if (categoryId === "sponsored") {
+          const dummyUsers = getDummyDonationUsers("weekly");
+          dummyEntries = dummyUsers.slice(0, 5).map((user, index) => ({
+            id: `dummy-sponsored-${index + 1}`,
+            rank: index + 1,
+            name: user.nickname,
+            avatar:
+              user.avatar_url ||
+              `https://images.unsplash.com/photo-${
+                1472099645785 + index
+              }?w=150&h=150&fit=crop&crop=face`,
+            score: user.total_donation || 0,
+            change: 0,
+            category: "sponsored",
+          }));
+        } else if (categoryId === "followers") {
+          const dummyUsers = getDummyFollowersUsers("weekly");
+          dummyEntries = dummyUsers.slice(0, 5).map((user, index) => ({
+            id: `dummy-followers-${index + 1}`,
+            rank: index + 1,
+            name: user.nickname,
+            avatar:
+              user.avatar_url ||
+              `https://images.unsplash.com/photo-${
+                1472099645785 + index
+              }?w=150&h=150&fit=crop&crop=face`,
+            score: user.total_followers || 0,
+            change: 0,
+            category: "followers",
+          }));
+        } else if (categoryId === "winrate" || categoryId === "profitrate") {
+          // For win rate and profit rate, use mock data from the existing mockData
+          const mockEntries =
+            mockData[categoryId as keyof typeof mockData] || [];
+          dummyEntries = mockEntries.slice(0, 5).map((entry, index) => ({
+            ...entry,
+            id: `dummy-${categoryId}-${index + 1}`,
+            rank: index + 1,
+          }));
+        }
+
+        return {
+          id: categoryId,
+          title,
+          icon,
+          entries: dummyEntries,
+        };
+      }
     };
 
     const categories: LeaderboardCategory[] = [
