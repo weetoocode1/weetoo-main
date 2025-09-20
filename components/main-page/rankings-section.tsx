@@ -19,6 +19,7 @@ import {
   getDummyDonationUsers,
   getDummyFollowersUsers,
 } from "@/lib/dummy-users";
+import type { RankingsData } from "@/lib/data/rankings-data";
 
 // Leaderboard entry interface
 interface LeaderboardEntry {
@@ -39,49 +40,11 @@ interface LeaderboardCategory {
   entries: LeaderboardEntry[];
 }
 
-// Types for real data from Supabase
-interface TraderData {
-  id: string;
-  nickname: string;
-  avatar_url: string | null;
-  total_return: number;
-  portfolio_value: number;
-  win_rate?: number;
-  rank?: number;
-}
-
-interface ActivityData {
-  id: string;
-  nickname: string;
-  avatar_url: string | null;
-  total_exp: number;
-  rank?: number;
-}
-
-interface DonationData {
-  id: string;
-  nickname: string;
-  avatar_url: string | null;
-  total_donation: number;
-  rank?: number;
-}
-
-interface FollowersData {
-  id: string;
-  nickname: string;
-  avatar_url: string | null;
-  total_followers: number;
-  rank?: number;
-}
-
-// Data structure type
-interface RankingsData {
-  returnRateData: TraderData[];
-  virtualMoneyData: TraderData[];
-  activityData: ActivityData[];
-  donationData: DonationData[];
-  followersData: FollowersData[];
-}
+// Import types from the server-side data file
+type TraderData = RankingsData["returnRateData"][0];
+type ActivityData = RankingsData["activityData"][0];
+type DonationData = RankingsData["donationData"][0];
+type FollowersData = RankingsData["followersData"][0];
 
 // Category meta for small detail label and unit handling - will be updated with translations
 const getCategoryMeta = (
@@ -423,30 +386,6 @@ const LeaderboardCategoryComponent = ({
     </motion.div>
   );
 };
-
-// Server-side data fetching function
-export async function getRankingsData(): Promise<RankingsData> {
-  try {
-    // Use absolute URL for server-side fetching (works during build/SSG)
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-    const response = await fetch(`${baseUrl}/api/rankings`);
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch rankings data");
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Error fetching rankings data:", error);
-    return {
-      returnRateData: [],
-      virtualMoneyData: [],
-      activityData: [],
-      donationData: [],
-      followersData: [],
-    };
-  }
-}
 
 interface RankingsSectionProps {
   data: RankingsData;

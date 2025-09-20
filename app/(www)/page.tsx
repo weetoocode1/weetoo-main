@@ -1,8 +1,11 @@
 import { Metadata } from "next";
 import { HomeClient } from "./page-client";
 import { seoKeywords } from "./seo-keywords";
-import { getRankingsData } from "@/components/main-page/rankings-section";
+import { getRankingsData } from "@/lib/data/rankings-data";
 import { getBoardData } from "@/lib/data/board-data";
+
+// Force dynamic rendering since we use cookies for authentication
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   metadataBase: new URL(

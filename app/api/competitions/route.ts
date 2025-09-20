@@ -88,14 +88,11 @@ export async function GET() {
 
     console.log("Fetching competitions from API...");
 
-    // Get current user session for debugging
+    // Get current user for debugging
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    console.log(
-      "Current session:",
-      session ? "Authenticated" : "Not authenticated"
-    );
+      data: { user },
+    } = await supabase.auth.getUser();
+    console.log("Current user:", user ? "Authenticated" : "Not authenticated");
 
     // Fetch all competitions - this should work for all users
     const { data: competitions, error } = await supabase

@@ -602,8 +602,8 @@ export function TradingRoomsList() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data }) => {
-      setCurrentUserId(data.session?.user?.id || null);
+    supabase.auth.getUser().then(({ data }) => {
+      setCurrentUserId(data.user?.id || null);
     });
   }, []);
 

@@ -35,9 +35,9 @@ export function Header() {
     const supabase = createClient();
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getUser().then(({ data }) => {
       if (mounted) {
-        setIsLoggedIn(!!data.session);
+        setIsLoggedIn(!!data.user);
         setAuthChecked(true);
       }
     });

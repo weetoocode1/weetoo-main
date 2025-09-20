@@ -83,6 +83,7 @@ export function AdminUidTable() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [exchangeFilter, setExchangeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<string>("all");
   const [itemsPerPage] = useState(10);
 
   // Lightweight UI busy indicator for client-side interactions
@@ -98,6 +99,82 @@ export function AdminUidTable() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
 
+  // Helper function to check if a date falls within the selected range
+  const isDateInRange = (dateString: string, range: string): boolean => {
+    if (range === "all") return true;
+
+    const date = new Date(dateString);
+    const now = new Date();
+
+    switch (range) {
+      case "today": {
+        const today = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate()
+        );
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return date >= today && date < tomorrow;
+      }
+      case "yesterday": {
+        const yesterday = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate() - 1
+        );
+        const today = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate()
+        );
+        return date >= yesterday && date < today;
+      }
+      case "thisWeek": {
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        startOfWeek.setHours(0, 0, 0, 0);
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 7);
+        return date >= startOfWeek && date < endOfWeek;
+      }
+      case "last7Days": {
+        const sevenDaysAgo = new Date(now);
+        sevenDaysAgo.setDate(now.getDate() - 7);
+        sevenDaysAgo.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(now);
+        tomorrow.setDate(now.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+        return date >= sevenDaysAgo && date < tomorrow;
+      }
+      case "thisMonth": {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        return date >= startOfMonth && date < endOfMonth;
+      }
+      case "last30Days": {
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(now.getDate() - 30);
+        thirtyDaysAgo.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(now);
+        tomorrow.setDate(now.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+        return date >= thirtyDaysAgo && date < tomorrow;
+      }
+      case "last3Months": {
+        const threeMonthsAgo = new Date(now);
+        threeMonthsAgo.setMonth(now.getMonth() - 3);
+        threeMonthsAgo.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(now);
+        tomorrow.setDate(now.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+        return date >= threeMonthsAgo && date < tomorrow;
+      }
+      default:
+        return true;
+    }
+  };
+
   useEffect(() => {
     setIsUiBusy(true);
     const timer = setTimeout(() => setIsUiBusy(false), 150);
@@ -106,6 +183,7 @@ export function AdminUidTable() {
     searchTerm,
     exchangeFilter,
     statusFilter,
+    dateFilter,
     sortBy,
     sortOrder,
     currentPage,
@@ -402,8 +480,9 @@ export function AdminUidTable() {
         statusFilter === "all" ||
         (statusFilter === "active" && record.is_active) ||
         (statusFilter === "inactive" && !record.is_active);
+      const matchesDate = isDateInRange(record.created_at, dateFilter);
 
-      return matchesSearch && matchesExchange && matchesStatus;
+      return matchesSearch && matchesExchange && matchesStatus && matchesDate;
     }) || [];
 
   const sortedUidRecords = [...filteredUidRecords].sort((a, b) => {
@@ -592,6 +671,7 @@ export function AdminUidTable() {
           <Skeleton className="h-10 w-64" />
           <Skeleton className="h-10 w-40" />
           <Skeleton className="h-10 w-32" />
+          <Skeleton className="h-10 w-36" />
           <Skeleton className="h-10 w-24" />
         </div>
 
@@ -662,6 +742,31 @@ export function AdminUidTable() {
               <SelectItem value="all">{t("filters.allStatus")}</SelectItem>
               <SelectItem value="active">{t("filters.active")}</SelectItem>
               <SelectItem value="inactive">{t("filters.inactive")}</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={dateFilter} onValueChange={setDateFilter}>
+            <SelectTrigger className="w-36 shadow-none rounded-none h-10">
+              <SelectValue placeholder={t("filters.allDates")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("filters.allDates")}</SelectItem>
+              <SelectItem value="today">{t("filters.today")}</SelectItem>
+              <SelectItem value="yesterday">
+                {t("filters.yesterday")}
+              </SelectItem>
+              <SelectItem value="thisWeek">{t("filters.thisWeek")}</SelectItem>
+              <SelectItem value="last7Days">
+                {t("filters.last7Days")}
+              </SelectItem>
+              <SelectItem value="thisMonth">
+                {t("filters.thisMonth")}
+              </SelectItem>
+              <SelectItem value="last30Days">
+                {t("filters.last30Days")}
+              </SelectItem>
+              <SelectItem value="last3Months">
+                {t("filters.last3Months")}
+              </SelectItem>
             </SelectContent>
           </Select>
           <Button
