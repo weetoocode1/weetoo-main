@@ -50,7 +50,7 @@ export async function getRankingsData(): Promise<RankingsData> {
     // Direct database access instead of API call during build
     const supabase = await createClient();
 
-    // Fetch all ranking data in parallel
+    // Fetch all ranking data in parallel using the same weekly views as individual components
     const [
       winRateResult,
       profitRateResult,
@@ -58,44 +58,42 @@ export async function getRankingsData(): Promise<RankingsData> {
       donationResult,
       followersResult,
     ] = await Promise.allSettled([
+      // Use weekly trader leaderboard for win rate (same as trader-ranking.tsx)
+      supabase.from("weekly_trader_leaderboard").select("*").limit(10),
+      // Use weekly profit leaderboard for profit rate (same as profit-ranking.tsx)
+      supabase.from("weekly_profit_leaderboard").select("*").limit(10),
+      // Use weekly exp leaderboard for activity (same as most-activity-ranking.tsx)
       supabase
-        .from("trader_rankings")
+        .from("weekly_exp_leaderboard")
         .select("*")
-        .order("win_rate", { ascending: false })
+        .order("total_exp", { ascending: false })
         .limit(10),
+      // Use weekly donation leaderboard for sponsored (same as sponsored-ranking.tsx)
       supabase
-        .from("trader_rankings")
+        .from("weekly_donation_leaderboard")
         .select("*")
-        .order("profit_rate", { ascending: false })
+        .order("total_donation", { ascending: false })
         .limit(10),
+      // Use weekly followers leaderboard for followers (same as most-followed-ranking.tsx)
       supabase
-        .from("users")
-        .select("id, first_name, last_name, avatar_url, nickname, created_at")
-        .order("created_at", { ascending: false })
-        .limit(10),
-      supabase
-        .from("users")
-        .select(
-          "id, first_name, last_name, avatar_url, nickname, total_donations"
-        )
-        .order("total_donations", { ascending: false })
-        .limit(10),
-      supabase
-        .from("users")
-        .select(
-          "id, first_name, last_name, avatar_url, nickname, followers_count"
-        )
-        .order("followers_count", { ascending: false })
+        .from("weekly_followers_leaderboard")
+        .select("*")
+        .order("total_followers", { ascending: false })
         .limit(10),
     ]);
 
-    return {
+    const result = {
       returnRateData:
         winRateResult.status === "fulfilled" &&
         winRateResult.value.data &&
         winRateResult.value.data.length > 0
           ? winRateResult.value.data.map((trader, index) => ({
-              ...trader,
+              id: trader.id,
+              nickname: trader.nickname,
+              avatar_url: trader.avatar_url,
+              total_return: trader.total_return || 0,
+              portfolio_value: trader.portfolio_value || 0,
+              win_rate: trader.win_rate || 0,
               rank: index + 1,
             }))
           : [],
@@ -104,7 +102,12 @@ export async function getRankingsData(): Promise<RankingsData> {
         profitRateResult.value.data &&
         profitRateResult.value.data.length > 0
           ? profitRateResult.value.data.map((trader, index) => ({
-              ...trader,
+              id: trader.id,
+              nickname: trader.nickname,
+              avatar_url: trader.avatar_url,
+              total_return: trader.total_return || 0,
+              portfolio_value: trader.portfolio_value || 0,
+              win_rate: trader.win_rate || 0,
               rank: index + 1,
             }))
           : [],
@@ -116,7 +119,7 @@ export async function getRankingsData(): Promise<RankingsData> {
               id: user.id,
               nickname: user.nickname,
               avatar_url: user.avatar_url,
-              total_exp: 0, // Default value since created_at doesn't represent experience
+              total_exp: user.total_exp || 0,
               rank: index + 1,
             }))
           : [],
@@ -128,7 +131,7 @@ export async function getRankingsData(): Promise<RankingsData> {
               id: user.id,
               nickname: user.nickname,
               avatar_url: user.avatar_url,
-              total_donation: user.total_donations || 0,
+              total_donation: user.total_donation || 0,
               rank: index + 1,
             }))
           : [],
@@ -140,11 +143,22 @@ export async function getRankingsData(): Promise<RankingsData> {
               id: user.id,
               nickname: user.nickname,
               avatar_url: user.avatar_url,
-              total_followers: user.followers_count || 0,
+              total_followers: user.total_followers || 0,
               rank: index + 1,
             }))
           : [],
     };
+
+    // Debug: Log the result to understand what data is being returned
+    console.log("getRankingsData result:", {
+      returnRateData: result.returnRateData.length,
+      virtualMoneyData: result.virtualMoneyData.length,
+      activityData: result.activityData.length,
+      donationData: result.donationData.length,
+      followersData: result.followersData.length,
+    });
+
+    return result;
   } catch (error) {
     console.error("Error fetching rankings data:", error);
     return {
