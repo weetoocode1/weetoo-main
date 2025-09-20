@@ -263,8 +263,8 @@ export function CreateRoom() {
     let mounted = true;
     const supabase = createClient();
 
-    supabase.auth.getSession().then(({ data }) => {
-      const sessionId = data.session?.user?.id || null;
+    supabase.auth.getUser().then(({ data }) => {
+      const sessionId = data.user?.id || null;
 
       if (lastSessionId.current === sessionId && user) {
         setLoading(false);

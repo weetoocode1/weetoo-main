@@ -367,8 +367,8 @@ export function KorCoinsRechargeDialog() {
     let mounted = true;
     const supabase = createClient();
     setLoading(true);
-    supabase.auth.getSession().then(({ data }) => {
-      const sessionId = data.session?.user?.id || null;
+    supabase.auth.getUser().then(({ data }) => {
+      const sessionId = data.user?.id || null;
       if (lastSessionId.current === sessionId && userKorCoins !== null) {
         setLoading(false);
         return;

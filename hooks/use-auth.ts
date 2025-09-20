@@ -76,8 +76,8 @@ export function useAuth() {
     queryKey: ["session"],
     queryFn: async () => {
       const supabase = createClient();
-      const { data } = await supabase.auth.getSession();
-      return data.session;
+      const { data } = await supabase.auth.getUser();
+      return data.user ? { user: data.user } : null;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
@@ -250,7 +250,7 @@ export function useAuth() {
     const supabase = createClient();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
         const sessionId = session?.user?.id || null;
 
         if (lastSessionId.current === sessionId) {

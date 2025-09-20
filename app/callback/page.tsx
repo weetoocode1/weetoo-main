@@ -15,11 +15,11 @@ export default function AuthCallback() {
   // Memoized session check function
   const checkSession = useCallback(() => {
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data, error }) => {
-      if (error || !data.session) {
+    supabase.auth.getUser().then(({ data, error }) => {
+      if (error || !data.user) {
         setStatus("error");
         setErrorMsg(
-          error?.message || "No session found. Please try logging in again."
+          error?.message || "No user found. Please try logging in again."
         );
         toast.error(error?.message || "Login failed. Please try again.", {
           position: "top-center",

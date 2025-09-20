@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { Database, Hash, Shield, TrendingUp } from "lucide-react";
+import { Database, Hash, TrendingUp } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 interface UidStats {
@@ -98,13 +98,13 @@ export function AdminUidStats() {
       icon: Hash,
       color: "text-blue-600",
     },
-    {
-      title: t("activeUids.title"),
-      value: stats?.activeUids || 0,
-      description: t("activeUids.description"),
-      icon: Shield,
-      color: "text-green-600",
-    },
+    // {
+    //   title: t("activeUids.title"),
+    //   value: stats?.activeUids || 0,
+    //   description: t("activeUids.description"),
+    //   icon: Shield,
+    //   color: "text-green-600",
+    // },
     {
       title: t("totalExchanges.title"),
       value: stats?.totalExchanges || 0,
@@ -122,7 +122,7 @@ export function AdminUidStats() {
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 w-full">
       {statCards.map((stat, index) => {
         const Icon = stat.icon;
         return (

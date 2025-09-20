@@ -5,11 +5,11 @@ export async function GET() {
   try {
     const supabase = await createClient();
 
-    // Get current user session to exclude them from the list
+    // Get current user to exclude them from the list
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const currentUserId = session?.user?.id;
+      data: { user },
+    } = await supabase.auth.getUser();
+    const currentUserId = user?.id;
 
     // Fetch all users with their roles, excluding the current user
     const { data: users, error } = await supabase

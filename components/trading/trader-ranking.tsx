@@ -602,7 +602,7 @@ const TraderCard = memo(
                       data.rank === 1 ? "w-4 h-4" : "w-3.5 h-3.5"
                     } text-emerald-400`}
                   />
-                  <span className="font-medium">Win Streak</span>
+                  <span className="font-medium">{t("winStreak")}</span>
                 </div>
                 <span
                   className={`${
@@ -743,7 +743,7 @@ const MobileTraderCard = memo(
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Award className="w-4 h-4 text-emerald-400" />
-              <span className="text-sm font-medium">Win Streak</span>
+              <span className="text-sm font-medium">{t("winStreak")}</span>
             </div>
             <span className="font-semibold text-foreground">
               {data.winStreak}
