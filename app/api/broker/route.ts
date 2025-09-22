@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 
 // Input validation schema
 const brokerApiSchema = z.object({
-  broker: z.enum(["deepcoin", "orangex", "lbank"]),
+  broker: z.enum(["deepcoin", "orangex", "lbank", "bingx"]),
   action: z.string().min(1).max(50),
   uid: z
     .string()
@@ -107,6 +107,8 @@ export async function POST(request: NextRequest) {
             if (sourceType) {
               params.push(sourceType);
             }
+          } else if (action === "isReferral") {
+            params = [uid];
           } else {
             params = [uid];
           }
