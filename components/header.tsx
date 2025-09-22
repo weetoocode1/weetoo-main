@@ -113,7 +113,7 @@ export function Header() {
               </div>
             </>
           )}
-          <span suppressHydrationWarning>{renderAuthSection()}</span>
+          {renderAuthSection()}
 
           {/* Mobile Menu Button */}
           <div className="md:hidden">
