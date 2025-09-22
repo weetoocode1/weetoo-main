@@ -28,6 +28,7 @@ export function Header() {
   const t = useTranslations("header");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -54,9 +55,15 @@ export function Header() {
     };
   }, [router]);
 
+  // Ensure first client render matches SSR to avoid hydration mismatch
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
   // Memoized render for auth section
   const renderAuthSection = useCallback(() => {
-    if (!authChecked) return <div className="w-[120px] h-8" />;
+    // Until hydration, render stable skeleton that matches SSR
+    if (!hydrated || !authChecked) return <div className="w-[120px] h-8" />;
     if (isLoggedIn) return <UserDropdown />;
     return (
       <>
@@ -75,7 +82,7 @@ export function Header() {
         </Button>
       </>
     );
-  }, [authChecked, isLoggedIn, t]);
+  }, [authChecked, hydrated, isLoggedIn, t]);
 
   return (
     <header className="fixed top-0 inset-x-0 z-50 bg-background border-border rounded-lg border-b w-full">
@@ -106,7 +113,7 @@ export function Header() {
               </div>
             </>
           )}
-          {renderAuthSection()}
+          <span suppressHydrationWarning>{renderAuthSection()}</span>
 
           {/* Mobile Menu Button */}
           <div className="md:hidden">

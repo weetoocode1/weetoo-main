@@ -907,6 +907,7 @@ export function TradingRoomsList() {
                 <PopoverContent className="w-56 p-4" align="start">
                   <div className="space-y-3">
                     <h4 className="font-medium text-sm">{t("roomType")}</h4>
+                    {/* Hiding 'voice' option from the type filter. Original dynamic mapping kept for reference:
                     {uniqueCategoryValues.map((value, i) => (
                       <div key={value} className="flex items-center space-x-2">
                         <Checkbox
@@ -927,6 +928,32 @@ export function TradingRoomsList() {
                         </span>
                       </div>
                     ))}
+                    */}
+                    {uniqueCategoryValues
+                      .filter((value) => value !== "voice")
+                      .map((value, i) => (
+                        <div
+                          key={value}
+                          className="flex items-center space-x-2"
+                        >
+                          <Checkbox
+                            id={`${id}-category-${i}`}
+                            checked={selectedCategories.includes(value)}
+                            onCheckedChange={(checked: boolean) =>
+                              handleCategoryChange(checked, value)
+                            }
+                          />
+                          <Label
+                            htmlFor={`${id}-category-${i}`}
+                            className="flex-1 text-sm cursor-pointer"
+                          >
+                            {t("chat")}
+                          </Label>
+                          <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                            {categoryCounts.get(value)}
+                          </span>
+                        </div>
+                      ))}
                   </div>
                 </PopoverContent>
               </Popover>
@@ -1028,8 +1055,9 @@ export function TradingRoomsList() {
             <PopoverContent className="w-56 p-4" align="end">
               <div className="space-y-3">
                 <h4 className="font-medium text-sm">{t("roomType")}</h4>
+                {/* Hiding 'voice' option from the type filter (desktop). Keeping original for reference:
                 {uniqueCategoryValues.map((value, i) => (
-                  <div key={value} className="flex items-center space-x-2">
+                  <div key={value} className=\"flex items-center space-x-2\">
                     <Checkbox
                       id={`${id}-category-lg-${i}`}
                       checked={selectedCategories.includes(value)}
@@ -1039,15 +1067,38 @@ export function TradingRoomsList() {
                     />
                     <Label
                       htmlFor={`${id}-category-lg-${i}`}
-                      className="flex-1 text-sm cursor-pointer"
+                      className=\"flex-1 text-sm cursor-pointer\"
                     >
-                      {value === "voice" ? t("voice") : t("chat")}
+                      {value === \"voice\" ? t(\"voice\") : t(\"chat\")}
                     </Label>
-                    <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                    <span className=\"text-xs text-muted-foreground bg-muted px-2 py-1 rounded\">
                       {categoryCounts.get(value)}
                     </span>
                   </div>
                 ))}
+                */}
+                {uniqueCategoryValues
+                  .filter((value) => value !== "voice")
+                  .map((value, i) => (
+                    <div key={value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`${id}-category-lg-${i}`}
+                        checked={selectedCategories.includes(value)}
+                        onCheckedChange={(checked: boolean) =>
+                          handleCategoryChange(checked, value)
+                        }
+                      />
+                      <Label
+                        htmlFor={`${id}-category-lg-${i}`}
+                        className="flex-1 text-sm cursor-pointer"
+                      >
+                        {t("chat")}
+                      </Label>
+                      <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                        {categoryCounts.get(value)}
+                      </span>
+                    </div>
+                  ))}
               </div>
             </PopoverContent>
           </Popover>

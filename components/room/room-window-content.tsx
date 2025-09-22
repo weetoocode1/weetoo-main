@@ -1,19 +1,155 @@
 "use client";
 
-import { Chat } from "@/components/room/chat";
 // import LightweightChart from "@/components/room/lightweight-chart";
 import { LiveKitErrorBoundary } from "@/components/room/livekit-error-boundary";
 import { LivektParticipantAudio } from "@/components/room/livekit-participant-audio";
-import { MarketOverview } from "@/components/room/market-overview";
-import { OrderBook } from "@/components/room/order-book";
-import { ParticipantsList } from "@/components/room/participants-list";
-import { TradeHistoryTabs } from "@/components/room/trade-history-tabs";
-import { TradingForm } from "@/components/room/trading-form";
+// MarketOverview will be lazy loaded for host only
+// ParticipantsList will be lazy loaded
 import { useBinanceFutures } from "@/hooks/use-binance-futures";
 import { useRoomParticipant } from "@/hooks/use-room-participant";
 import { createClient } from "@/lib/supabase/client";
 import React, { useEffect, useRef, useState } from "react";
-import { TradingViewChartComponent } from "./trading-view-chart";
+// TradingViewChartComponent will be lazy loaded
+import dynamic from "next/dynamic";
+
+// Lazy load heavy components
+const Chat = dynamic(
+  () => import("@/components/room/chat").then((mod) => ({ default: mod.Chat })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p className="text-sm text-muted-foreground">Loading chat...</p>
+        </div>
+      </div>
+    ),
+  }
+);
+
+const OrderBook = dynamic(
+  () =>
+    import("@/components/room/order-book").then((mod) => ({
+      default: mod.OrderBook,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p className="text-xs text-muted-foreground">Loading order book...</p>
+        </div>
+      </div>
+    ),
+  }
+);
+
+const TradeHistoryTabs = dynamic(
+  () =>
+    import("@/components/room/trade-history-tabs").then((mod) => ({
+      default: mod.TradeHistoryTabs,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p className="text-xs text-muted-foreground">
+            Loading trade history...
+          </p>
+        </div>
+      </div>
+    ),
+  }
+);
+
+const TradingForm = dynamic(
+  () =>
+    import("@/components/room/trading-form").then((mod) => ({
+      default: mod.TradingForm,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p className="text-xs text-muted-foreground">
+            Loading trading form...
+          </p>
+        </div>
+      </div>
+    ),
+  }
+);
+
+const MarketOverview = dynamic(
+  () =>
+    import("@/components/room/market-overview").then((mod) => ({
+      default: mod.MarketOverview,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p className="text-xs text-muted-foreground">
+            Loading market data...
+          </p>
+        </div>
+      </div>
+    ),
+  }
+);
+
+// Lazy load TradingView chart - this is the heaviest component
+const TradingViewChartComponent = dynamic(
+  () =>
+    import("./trading-view-chart").then((mod) => ({
+      default: mod.TradingViewChartComponent,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full flex items-center justify-center bg-background border border-border">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">
+            Loading Trading Chart
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Preparing advanced charting tools...
+          </p>
+        </div>
+      </div>
+    ),
+  }
+);
+
+// Lazy load ParticipantsList
+const ParticipantsList = dynamic(
+  () =>
+    import("@/components/room/participants-list").then((mod) => ({
+      default: mod.ParticipantsList,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p className="text-xs text-muted-foreground">
+            Loading participants...
+          </p>
+        </div>
+      </div>
+    ),
+  }
+);
 
 function RoomJoiner({ roomId }: { roomId: string }) {
   const [user, setUser] = useState<{ id: string } | null>(null);

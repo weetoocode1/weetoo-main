@@ -15,8 +15,8 @@ import {
   KeyRoundIcon,
   PlusIcon,
 } from "lucide-react";
-import Image from "next/image";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 import { useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
@@ -35,7 +35,7 @@ const BROKERS = [
     id: "bingx",
     name: "BingX",
     paybackRate: 60,
-    status: "coming-soon",
+    status: "active",
     logo: "/broker/bingx.png",
   },
   {
@@ -56,8 +56,8 @@ const BROKERS = [
     id: "lbank",
     name: "LBank",
     paybackRate: 50,
-    status: "coming-soon",
-    logo: "/broker/lbank.png",
+    status: "active",
+    logo: "/broker/Lbank.png",
   },
 ];
 
@@ -65,8 +65,80 @@ const BROKERS = [
 const REFERRAL_LINKS: Record<string, string> = {
   deepcoin: "https://s.deepcoin.com/jedgica",
   orangex: "https://affiliates.orangex.com/affiliates/b/4dratgs2",
-  lbank: "",
+  lbank: "https://lbank.com/ref/5DJS5",
+  bingx: "https://bingx.com/invite/6PA4QR",
 };
+
+// Backup referral links for fallback
+const REFERRAL_BACKUP_LINKS: Record<string, string> = {
+  lbank: "https://lbank.one/ref/5DJS5",
+};
+
+// Function to get referral link with fallback
+// const getReferralLink = (brokerId: string): string => {
+//   const primaryLink = REFERRAL_LINKS[brokerId];
+//   const backupLink = REFERRAL_BACKUP_LINKS[brokerId];
+
+//   // If no primary link exists, return empty string
+//   if (!primaryLink) return "";
+
+//   // If no backup link exists, return primary
+//   if (!backupLink) return primaryLink;
+
+//   // Return primary link (backup will be used if primary fails)
+//   return primaryLink;
+// };
+
+// Component for referral link with fallback mechanism
+function ReferralLinkWithFallback({ brokerId }: { brokerId: string }) {
+  const t = useTranslations("profile.uidRegistration");
+  const primaryLink = REFERRAL_LINKS[brokerId];
+  const backupLink = REFERRAL_BACKUP_LINKS[brokerId];
+
+  if (!primaryLink) return null;
+
+  // If no backup link, just show primary
+  if (!backupLink) {
+    return (
+      <a
+        href={primaryLink}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer mt-1 sm:mt-0"
+      >
+        <div className="w-1.5 h-1.5 bg-amber-500"></div>
+        <span className="text-muted-foreground">{t("status.notReferral")}</span>
+        <ChevronRight className="w-3 h-3 text-muted-foreground" />
+      </a>
+    );
+  }
+
+  // If both links exist, show primary with backup option
+  return (
+    <div className="flex items-center gap-1.5 mt-1 sm:mt-0">
+      <a
+        href={primaryLink}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer"
+      >
+        <div className="w-1.5 h-1.5 bg-amber-500"></div>
+        <span className="text-muted-foreground">{t("status.notReferral")}</span>
+        <ChevronRight className="w-3 h-3 text-muted-foreground" />
+      </a>
+      <span className="text-muted-foreground text-xs">|</span>
+      <a
+        href={backupLink}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-xs text-muted-foreground hover:opacity-80 transition-opacity cursor-pointer"
+        title="Backup referral link"
+      >
+        Backup
+      </a>
+    </div>
+  );
+}
 
 interface UidRecord {
   id: string;
@@ -328,7 +400,24 @@ function UIDCard({
     (record.brokerId === "orangex" &&
       commission.isSuccess &&
       commission.data &&
-      commission.data.length > 0);
+      commission.data.length > 0) ||
+    // Method 5: For LBank, check if UID verification data shows it's verified
+    (record.brokerId === "lbank" &&
+      uidVerification.isSuccess &&
+      uidVerification.data?.verified === true) ||
+    // Method 6: For BingX, referral only if relation is confirmed
+    (record.brokerId === "bingx" &&
+      uidVerification.isSuccess &&
+      (uidVerification.data?.inviteResult === true ||
+        uidVerification.data?.existInviter === true));
+
+  // For BingX: instant referral determination from inviteRelationCheck
+  const bingxReferralFast =
+    record.brokerId === "bingx" &&
+    uidVerification.isSuccess &&
+    (uidVerification.data?.inviteResult === true ||
+      uidVerification.data?.existInviter === true ||
+      uidVerification.data?.verified === true);
 
   // Debug logging for DeepCoin
   if (record.brokerId === "deepcoin") {
@@ -350,6 +439,12 @@ function UIDCard({
         isReferralItem(ref) && String(ref.uid) === String(record.uid)
     );
 
+  // For LBank: Check if UID verification shows it's verified
+  const isLBankVerified =
+    record.brokerId === "lbank" &&
+    uidVerification.isSuccess &&
+    uidVerification.data?.verified === true;
+
   // Cache last known successful verification to avoid flicker on transient errors
   const lastVerifiedRef = useRef<Record<string, boolean>>({});
 
@@ -364,11 +459,12 @@ function UIDCard({
 
   const verifiedFallback = lastVerifiedRef.current[record.id] === true;
 
-  // Consider DeepCoin referral success as verification as well
+  // Consider DeepCoin referral success and LBank verification as verification as well
   const verifiedOverall =
     (uidVerification.isSuccess && verifiedFromAPI) ||
     (!uidVerification.isSuccess && verifiedFallback) ||
-    isDeepCoinVerified;
+    isDeepCoinVerified ||
+    isLBankVerified;
 
   // Determine if UID is actually active based on DB + overall verification
   const isUidActuallyActive =
@@ -404,10 +500,6 @@ function UIDCard({
               <h3 className="text-base font-medium text-foreground">
                 {record.brokerName}
               </h3>
-              {(uidVerification.isSuccess && uidVerification.data?.verified) ||
-              isDeepCoinVerified ? (
-                <BadgeCheck className="h-4 w-4 text-emerald-500" />
-              ) : null}
             </div>
 
             {/* UID below the name */}
@@ -457,9 +549,9 @@ function UIDCard({
                   ) : (uidVerification.isSuccess &&
                       uidVerification.data?.verified) ||
                     isDeepCoinVerified ? (
-                    <div className="w-1.5 h-1.5 bg-emerald-500"></div>
+                    <BadgeCheck className="h-5 w-5 text-emerald-500" />
                   ) : (
-                    <div className="w-1.5 h-1.5 bg-red-500"></div>
+                    <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
                   )}
                   <span>
                     {uidVerification.isLoading && !uidVerification.isError
@@ -476,20 +568,12 @@ function UIDCard({
                 </div>
 
                 {(referrals.isSuccess || isReferral !== undefined) &&
-                  !isReferral && (
-                    <a
-                      href={REFERRAL_LINKS[record.brokerId]}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer mt-1 sm:mt-0"
-                    >
-                      <div className="w-1.5 h-1.5 bg-amber-500"></div>
-                      <span className="text-muted-foreground">
-                        {t("status.notReferral")}
-                      </span>
-                      <ChevronRight className="w-3 h-3 text-muted-foreground" />
-                    </a>
-                  )}
+                  !isReferral &&
+                  // For BingX, don't show Not referral if fast check is positive or loading
+                  !(
+                    record.brokerId === "bingx" &&
+                    (bingxReferralFast || uidVerification.isLoading)
+                  ) && <ReferralLinkWithFallback brokerId={record.brokerId} />}
               </div>
 
               {/* Referral link removed by request */}

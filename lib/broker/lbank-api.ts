@@ -48,7 +48,7 @@ async function doSignedGet<T = unknown>(
 ): Promise<T> {
   const timestamp = Date.now();
   // LBank docs: alphanumeric echostr; use longer nonce for stricter checks (30-40 chars)
-  const echostr = Array.from(crypto.getRandomValues(new Uint8Array(24)))
+  const echostr = Array.from(crypto.getRandomValues(new Uint8Array(35)))
     .map((b) => (b % 36).toString(36))
     .join("");
 
@@ -63,7 +63,21 @@ async function doSignedGet<T = unknown>(
     ...params,
   };
 
-  const { sign } = signLbankHmacSha256(baseParams, LBANK_API_SECRET, "base64");
+  const { sign, md5String, canonical } = signLbankHmacSha256(
+    baseParams,
+    LBANK_API_SECRET,
+    "hex"
+  );
+
+  // Debug logging for signature troubleshooting
+  console.log("LBank Signature Debug:", {
+    canonical,
+    md5String,
+    sign,
+    baseParams,
+    secretKeyLength: LBANK_API_SECRET.length,
+  });
+
   const finalParams = new URLSearchParams();
   for (const [k, v] of Object.entries(baseParams)) {
     if (v === undefined || v === null) continue;

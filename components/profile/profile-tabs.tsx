@@ -20,13 +20,115 @@ import { useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { AllAccounts } from "./all-accounts";
-import { KORCoinsWithdrawal } from "./kor-coins-withdrawal";
-import { PaybackWithdrawal } from "./payback-withdrawal";
 import { Profile } from "./profile";
-import { Referral } from "./referral";
-import { Transactions } from "./transactions";
-import { UidRegistration } from "./uid-registration";
+import dynamic from "next/dynamic";
+
+// Lazy load Referral component as well since it has heavy features
+const Referral = dynamic(
+  () => import("./referral").then((mod) => ({ default: mod.Referral })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p className="text-sm text-muted-foreground">Loading referral...</p>
+        </div>
+      </div>
+    ),
+  }
+);
+
+// Lazy load heavy components to reduce initial bundle size
+const AllAccounts = dynamic(
+  () => import("./all-accounts").then((mod) => ({ default: mod.AllAccounts })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p className="text-sm text-muted-foreground">Loading accounts...</p>
+        </div>
+      </div>
+    ),
+  }
+);
+
+const Transactions = dynamic(
+  () => import("./transactions").then((mod) => ({ default: mod.Transactions })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p className="text-sm text-muted-foreground">
+            Loading transactions...
+          </p>
+        </div>
+      </div>
+    ),
+  }
+);
+
+const KORCoinsWithdrawal = dynamic(
+  () =>
+    import("./kor-coins-withdrawal").then((mod) => ({
+      default: mod.KORCoinsWithdrawal,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p className="text-sm text-muted-foreground">Loading withdrawal...</p>
+        </div>
+      </div>
+    ),
+  }
+);
+
+const UidRegistration = dynamic(
+  () =>
+    import("./uid-registration").then((mod) => ({
+      default: mod.UidRegistration,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p className="text-sm text-muted-foreground">
+            Loading UID registration...
+          </p>
+        </div>
+      </div>
+    ),
+  }
+);
+
+const PaybackWithdrawal = dynamic(
+  () =>
+    import("./payback-withdrawal").then((mod) => ({
+      default: mod.PaybackWithdrawal,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p className="text-sm text-muted-foreground">
+            Loading payback withdrawal...
+          </p>
+        </div>
+      </div>
+    ),
+  }
+);
 
 const TABS = [
   {

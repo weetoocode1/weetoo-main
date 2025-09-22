@@ -38,7 +38,7 @@ const BROKERS = [
     id: "bingx",
     name: "BingX",
     paybackRate: 60,
-    status: "coming-soon",
+    status: "active",
     logo: "/broker/bingx.png",
   },
   {
@@ -59,8 +59,8 @@ const BROKERS = [
     id: "lbank",
     name: "LBank",
     paybackRate: 50,
-    status: "coming-soon",
-    logo: "/broker/lbank.png",
+    status: "active",
+    logo: "/broker/Lbank.png",
   },
 ];
 
@@ -83,7 +83,7 @@ const uidFormSchema = z
       return;
     }
 
-    // Default (DeepCoin/OrangeX): numeric-only 3-20 and not all same digit
+    // Default (DeepCoin/OrangeX/BingX): numeric-only 3-20 and not all same digit
     if (uid.length < 3) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

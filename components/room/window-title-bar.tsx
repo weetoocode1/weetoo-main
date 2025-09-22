@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import useSWR from "swr";
 import { useTranslations } from "next-intl";
 
-import { Donation } from "@/components/room/donation";
+// Donation will be lazy loaded
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,7 +57,34 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import { Separator } from "../ui/separator";
-import { EditRoomForm } from "./edit-room";
+import dynamic from "next/dynamic";
+
+// Lazy load EditRoomForm since it's only used when editing
+const EditRoomForm = dynamic(
+  () => import("./edit-room").then((mod) => ({ default: mod.EditRoomForm })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center p-4">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+      </div>
+    ),
+  }
+);
+
+// Lazy load Donation component
+const Donation = dynamic(
+  () =>
+    import("@/components/room/donation").then((mod) => ({
+      default: mod.Donation,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-8 w-20 bg-muted animate-pulse rounded"></div>
+    ),
+  }
+);
 
 // Type definition for trading position
 interface TradingPosition {

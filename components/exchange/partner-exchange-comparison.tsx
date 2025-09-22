@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { ExchangeEditDialog } from "./exchange-edit-dialog";
 import { type Exchange } from "./exchanges-data";
 import { UidRegistrationDialog } from "../uid/uid-registration-dialog";
+import Link from "next/link";
 
 // Calculate score based on objective metrics
 const calculateScore = (exchange: Exchange): number => {
@@ -60,6 +61,11 @@ export const PartnerExchangeComparison = () => {
   const SIGNUP_LINKS: Record<string, string> = {
     deepcoin: "https://s.deepcoin.com/jedgica",
     orangex: "https://affiliates.orangex.com/affiliates/b/4dratgs2",
+    lbank: "https://lbank.com/ref/5DJS5",
+    bingx: "https://bingx.com/invite/6PA4QR",
+  };
+  const SIGNUP_BACKUP_LINKS: Record<string, string> = {
+    lbank: "https://lbank.one/ref/5DJS5",
   };
   const descriptionOverrides: Record<string, string> = {
     bybit:
@@ -553,7 +559,12 @@ export const PartnerExchangeComparison = () => {
                               ))}
                             </div>
                             <div className="flex items-center gap-2">
-                              {["deepcoin", "orangex"].includes(exchange.id) ? (
+                              {[
+                                "deepcoin",
+                                "orangex",
+                                "lbank",
+                                "bingx",
+                              ].includes(exchange.id) ? (
                                 <>
                                   <Button
                                     size="sm"
@@ -575,17 +586,33 @@ export const PartnerExchangeComparison = () => {
                                       : {})}
                                   >
                                     {SIGNUP_LINKS[exchange.id] ? (
-                                      <a
+                                      <Link
                                         href={SIGNUP_LINKS[exchange.id]}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                       >
                                         {t("signUp")}
-                                      </a>
+                                      </Link>
                                     ) : (
                                       <>{t("signUp")}</>
                                     )}
                                   </Button>
+                                  {SIGNUP_BACKUP_LINKS[exchange.id] && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="rounded-none hover:shadow-sm"
+                                      asChild
+                                    >
+                                      <Link
+                                        href={SIGNUP_BACKUP_LINKS[exchange.id]}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                      >
+                                        backup
+                                      </Link>
+                                    </Button>
+                                  )}
                                 </>
                               ) : (
                                 <>
@@ -772,7 +799,9 @@ export const PartnerExchangeComparison = () => {
 
                 {/* Actions */}
                 <div className="mt-4 grid grid-cols-2 gap-2">
-                  {["deepcoin", "orangex"].includes(exchange.id) ? (
+                  {["deepcoin", "orangex", "lbank", "bingx"].includes(
+                    exchange.id
+                  ) ? (
                     <>
                       <Button
                         size="sm"
@@ -804,6 +833,16 @@ export const PartnerExchangeComparison = () => {
                           <>Sign Up</>
                         )}
                       </Button>
+                      {SIGNUP_BACKUP_LINKS[exchange.id] && (
+                        <a
+                          href={SIGNUP_BACKUP_LINKS[exchange.id]}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-muted-foreground text-center hover:underline"
+                        >
+                          Alternate link
+                        </a>
+                      )}
                     </>
                   ) : (
                     <>
