@@ -17,6 +17,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Post, User } from "@/types/post";
 import { useTranslations } from "next-intl";
+import { sanitizeHtml } from "@/lib/sanitize-html";
 import {
   Calendar,
   ChevronLeftIcon,
@@ -346,7 +347,12 @@ export default function PostDetailClient({
             </div>
           )}
 
-          <div className="prose prose-base sm:prose-lg dark:prose-invert max-w-none mx-auto whitespace-pre-line leading-relaxed" />
+          <div
+            className="prose prose-base sm:prose-lg dark:prose-invert max-w-none mx-auto whitespace-pre-line leading-relaxed"
+            dangerouslySetInnerHTML={{
+              __html: sanitizeHtml(post.content || ""),
+            }}
+          />
 
           {/* Post Actions: Likes, Comments, Share */}
           <div className="flex items-center gap-4 sm:gap-6 text-muted-foreground text-sm mt-6 mb-6 sm:mb-8">

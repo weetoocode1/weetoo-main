@@ -4,6 +4,10 @@ import { Metadata } from "next";
 import { PostPageProps, Post } from "@/types/post";
 import PostDetailClient from "@/components/post/post-detail-client";
 
+// Ensure this page is always dynamic and never cached so edits reflect immediately
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 // Shared function to fetch post with author details
 async function fetchPostWithAuthor(id: string) {
   try {

@@ -121,12 +121,20 @@ export function EditPostDialog({
         .map((tag) => tag.trim())
         .filter((tag) => tag.length > 0);
 
+      // Generate excerpt from content if not provided
+      const plainText = editFormData.content
+        .replace(/<[^>]*>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      const newExcerpt =
+        (editFormData.excerpt || "").trim() || plainText.slice(0, 160);
+
       // Update post in database
       const { error } = await supabase
         .from("posts")
         .update({
           title: editFormData.title.trim(),
-          excerpt: editFormData.excerpt.trim() || null,
+          excerpt: newExcerpt || null,
           content: editFormData.content.trim(),
           board: editFormData.board,
           tags: tags.length > 0 ? tags : null,

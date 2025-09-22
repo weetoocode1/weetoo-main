@@ -493,8 +493,12 @@ export function ManagePostTable() {
                     </div>
                   ) : (
                     <div className="mb-3 flex-1">
-                      <p className="text-xs text-muted-foreground line-clamp-1 leading-relaxed italic">
-                        {t("excerpt.none")}
+                      <p className="text-xs text-muted-foreground line-clamp-1 leading-relaxed">
+                        {(post.content || "")
+                          .replace(/<[^>]*>/g, " ")
+                          .replace(/\s+/g, " ")
+                          .trim()
+                          .slice(0, 160) || t("excerpt.none")}
                       </p>
                     </div>
                   )}
