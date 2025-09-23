@@ -3,7 +3,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { createClient } from "@/lib/supabase/client";
 import { Crown, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import useSWR, { mutate } from "swr";
 
@@ -39,6 +39,12 @@ export function ParticipantsList({
   const t = useTranslations("room.participants");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const supabaseRef = useRef(createClient());
+  const presenceChannelRef = useRef<ReturnType<
+    typeof supabaseRef.current.channel
+  > | null>(null);
+  const revalidateThrottleRef = useRef<number>(0);
+  const attemptedAutoJoinRef = useRef<boolean>(false);
+  const [presentUserIds, setPresentUserIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const supabase = supabaseRef.current;
@@ -112,6 +118,87 @@ export function ParticipantsList({
     }
   );
 
+  // Derive the list actually shown, applying presence filtering like the UI
+  const visibleParticipants = useMemo(() => {
+    const list = (participants as Participant[]) || [];
+    // If presence hasn't synced yet (first 3 seconds), show all participants
+    // This prevents the list from being empty while presence is initializing
+    if (presentUserIds.size === 0) return list;
+    return list.filter((p) => presentUserIds.has(p.id));
+  }, [participants, presentUserIds]);
+
+  // Fallback: if presence fails to sync after 5 seconds, show all participants
+  useEffect(() => {
+    if (currentUserId && roomId && participants.length > 0) {
+      const timer = setTimeout(() => {
+        if (presentUserIds.size === 0) {
+          console.log("Presence fallback: showing all participants");
+          // Force a re-render by updating a dummy state
+          setPresentUserIds(new Set(participants.map((p) => p.id)));
+        }
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentUserId, roomId, participants, presentUserIds.size]);
+
+  // Presence subscription to track live users in the room
+  useEffect(() => {
+    const supabase = supabaseRef.current;
+    // Only attempt presence when we know the user
+    if (!currentUserId || !roomId) return;
+
+    const channel = supabase.channel(`room-presence-${roomId}`, {
+      config: {
+        presence: { key: currentUserId },
+      },
+    });
+
+    const handleSync = () => {
+      try {
+        const state = channel.presenceState() as Record<string, unknown[]>;
+        const ids = new Set<string>(Object.keys(state));
+        console.log("Presence sync - present users:", Array.from(ids));
+        setPresentUserIds(ids);
+      } catch (e) {
+        console.error("Failed to read presence state:", e);
+      }
+    };
+
+    channel.on("presence", { event: "sync" }, handleSync);
+
+    // Subscribe and then track this client's presence
+    channel.subscribe(async (status) => {
+      console.log("Presence channel status:", status);
+      if (status === "SUBSCRIBED") {
+        try {
+          await channel.track({
+            user_id: currentUserId,
+            room_id: roomId,
+            joined_at: new Date().toISOString(),
+          });
+          console.log("Started presence tracking for user:", currentUserId);
+        } catch (e) {
+          console.error("Failed to start presence tracking:", e);
+        }
+      }
+    });
+
+    presenceChannelRef.current = channel;
+
+    return () => {
+      try {
+        if (presenceChannelRef.current) {
+          supabase.removeChannel(presenceChannelRef.current);
+          presenceChannelRef.current = null;
+        }
+      } catch (e) {
+        console.error("Failed to cleanup presence channel:", e);
+      }
+      setPresentUserIds(new Set());
+    };
+  }, [currentUserId, roomId]);
+
   // Realtime subscription: on any event, call mutate to refetch
   useEffect(() => {
     const channel = supabaseRef.current
@@ -126,7 +213,12 @@ export function ParticipantsList({
         },
         async (payload) => {
           console.log("Participant change detected:", payload);
-          // Force immediate revalidation
+          // Throttle revalidation to at most once per 1500ms
+          const now = Date.now();
+          if (now - revalidateThrottleRef.current < 1500) {
+            return;
+          }
+          revalidateThrottleRef.current = now;
           await mutate(["participants", roomId], undefined, {
             revalidate: true,
           });
@@ -145,7 +237,10 @@ export function ParticipantsList({
       const isHostInList = participants.some((p) => p.id === currentUserId);
       if (!isHostInList) {
         console.log("Host not in participants list, auto-joining...");
-        handleJoinRoom();
+        if (!attemptedAutoJoinRef.current) {
+          attemptedAutoJoinRef.current = true;
+          handleJoinRoom();
+        }
       }
     }
   }, [currentUserId, hostId, participants, roomId]);
@@ -269,7 +364,7 @@ export function ParticipantsList({
         <Users className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm font-medium">{t("title")}</span>
         <span className="text-xs text-muted-foreground ml-auto">
-          {participants.length}
+          {visibleParticipants.length}
         </span>
       </div>
       <ScrollArea className="flex-1 overflow-y-auto select-none">
@@ -278,12 +373,12 @@ export function ParticipantsList({
             <div className="text-center text-muted-foreground py-8">
               {t("loading")}
             </div>
-          ) : participants.length === 0 ? (
+          ) : visibleParticipants.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
               {t("empty.noParticipants")}
             </div>
           ) : (
-            participants.map((participant) => (
+            visibleParticipants.map((participant) => (
               <div
                 key={participant.id}
                 className="flex items-center gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors"

@@ -106,8 +106,10 @@ interface TradingPosition {
 // Component to calculate unrealized PNL with symbol-specific prices
 function UnrealizedPnlCalculator({
   openPositions,
+  currentPrice,
 }: {
   openPositions: TradingPosition[];
+  currentPrice?: number;
 }) {
   const [unrealizedPnl, setUnrealizedPnl] = useState(0);
 
@@ -120,26 +122,40 @@ function UnrealizedPnlCalculator({
         const qty = Number(pos.quantity);
         const side = (pos.side ?? "").toLowerCase();
 
-        // Fetch current price for this position's symbol
-        try {
-          const response = await fetch(
-            `https://api.binance.us/api/v3/ticker/24hr?symbol=${pos.symbol}`
-          );
-          if (response.ok) {
-            const data = await response.json();
-            const currentPrice = parseFloat(data.lastPrice);
+        if (isNaN(entry) || isNaN(qty) || !side) continue;
 
-            if (side === "long") {
-              total += (currentPrice - entry) * qty;
-            } else if (side === "short") {
-              total += (entry - currentPrice) * qty;
+        let currentPriceToUse = currentPrice;
+
+        // Only fetch price if not provided and we have a symbol
+        if (!currentPriceToUse && pos.symbol) {
+          try {
+            const response = await fetch(
+              `https://api.binance.us/api/v3/ticker/24hr?symbol=${pos.symbol}`
+            );
+            if (response.ok) {
+              const data = await response.json();
+              currentPriceToUse = parseFloat(data.lastPrice);
             }
+          } catch (error) {
+            console.error(`Failed to fetch price for ${pos.symbol}:`, error);
+            continue; // Skip this position if we can't get the price
           }
-        } catch (error) {
-          console.error(`Failed to fetch price for ${pos.symbol}:`, error);
+        }
+
+        if (!currentPriceToUse) continue;
+
+        if (side === "long") {
+          total += (currentPriceToUse - entry) * qty;
+        } else if (side === "short") {
+          total += (entry - currentPriceToUse) * qty;
         }
       }
 
+      console.log(`UnrealizedPnlCalculator result:`, {
+        total,
+        currentPrice,
+        positionsCount: openPositions.length,
+      });
       setUnrealizedPnl(total);
     };
 
@@ -148,7 +164,7 @@ function UnrealizedPnlCalculator({
     } else {
       setUnrealizedPnl(0);
     }
-  }, [openPositions]);
+  }, [openPositions, currentPrice]);
 
   return unrealizedPnl;
 }
@@ -186,6 +202,9 @@ export function WindowTitleBar({
   const { isMicOn, toggleMic, currentUserId, roomConnected } =
     useLivektHostAudio({ roomType, hostId, roomId });
 
+  // Only show balance and PnL for the host since only host can trade
+  const isHost = currentUserId === hostId;
+
   // Chart streaming controls
   const {
     isHost: isChartHost,
@@ -212,10 +231,7 @@ export function WindowTitleBar({
             isStreaming: streaming,
           },
         });
-        console.log("Broadcasted streaming status:", {
-          roomId,
-          isStreaming: streaming,
-        });
+        // no-op
       } catch (error) {
         console.error("Failed to broadcast streaming status:", error);
       }
@@ -248,7 +264,9 @@ export function WindowTitleBar({
   const showSkeleton =
     !isStartingBalanceLoaded ||
     typeof virtualBalance !== "number" ||
-    isNaN(virtualBalance);
+    isNaN(virtualBalance) ||
+    virtualBalance === null ||
+    virtualBalance === undefined;
   const isNoTrades =
     isStartingBalanceLoaded &&
     typeof virtualBalance === "number" &&
@@ -289,7 +307,12 @@ export function WindowTitleBar({
   });
 
   // Calculate unrealized PNL using symbol-specific prices
-  const unrealizedPnl = UnrealizedPnlCalculator({ openPositions });
+  const unrealizedPnl = UnrealizedPnlCalculator({
+    openPositions,
+    currentPrice,
+  });
+
+  // remove debug logs
 
   // Calculate realized PNL from closed positions (scoped since reset)
   const realizedPnl = useMemo(() => {
@@ -306,40 +329,57 @@ export function WindowTitleBar({
   const resetBaseline = useMemo(() => {
     const markerVal = latestResetData?.latest?.reset_start_balance;
     const markerNum = markerVal != null ? Number(markerVal) : NaN;
-    if (!Number.isNaN(markerNum) && markerNum > 0) return markerNum;
-    return isStartingBalanceLoaded ? Number(settings.startingBalance) || 0 : 0;
+    const fallbackBaseline = isStartingBalanceLoaded
+      ? Number(settings.startingBalance) || 0
+      : 0;
+    const baseline =
+      !Number.isNaN(markerNum) && markerNum > 0 ? markerNum : fallbackBaseline;
+
+    // no-op
+
+    return baseline;
   }, [
     latestResetData?.latest?.reset_start_balance,
     isStartingBalanceLoaded,
     settings,
+    roomId,
+    currentUserId,
+    hostId,
   ]);
 
-  // Displayed virtual balance for UI (soft reset baseline)
-  // Use DB-tracked virtualBalance delta so it reacts immediately when opening positions
+  // Displayed virtual balance for UI - use the raw virtualBalance for consistency
   const displayedVirtualBalance = useMemo(() => {
-    if (!isStartingBalanceLoaded || typeof virtualBalance !== "number") {
+    // Show loading state if data isn't ready
+    if (
+      !isStartingBalanceLoaded ||
+      typeof virtualBalance !== "number" ||
+      isNaN(virtualBalance)
+    ) {
       return resetBaseline;
     }
-    const snapshot = Number(
-      latestResetData?.latest?.reset_virtual_balance_snapshot ??
-        settings.startingBalance ??
-        0
-    );
-    const dbDeltaSinceReset = virtualBalance - snapshot;
-    return resetBaseline + dbDeltaSinceReset;
+    // Use the raw virtualBalance directly for consistency across all clients
+    const balance = Math.max(0, virtualBalance);
+    return balance;
   }, [
-    resetBaseline,
     virtualBalance,
     isStartingBalanceLoaded,
-    settings,
-    latestResetData?.latest?.reset_virtual_balance_snapshot,
+    resetBaseline,
+    roomId,
+    currentUserId,
+    hostId,
   ]);
 
   // Now that resetBaseline/displayedVirtualBalance are defined, compute profitRate
-  profitRate =
-    resetBaseline > 0
-      ? ((displayedVirtualBalance - resetBaseline) / resetBaseline) * 100
-      : 0;
+  profitRate = useMemo(() => {
+    if (
+      resetBaseline > 0 &&
+      !isNaN(displayedVirtualBalance) &&
+      !isNaN(resetBaseline)
+    ) {
+      return ((displayedVirtualBalance - resetBaseline) / resetBaseline) * 100;
+    }
+    return 0;
+  }, [displayedVirtualBalance, resetBaseline]);
 
   useEffect(() => {
     if (!roomId) return;
@@ -877,107 +917,117 @@ export function WindowTitleBar({
 
           <Donation creatorId={hostId} roomId={roomId} key={roomId} />
 
-          {/* Virtual Currency */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-1 min-w-0">
-            <span className="text-xs lg:text-sm font-medium text-muted-foreground whitespace-nowrap">
-              {t("labels.virtualBalance")}
-            </span>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="text-xs lg:text-sm font-semibold cursor-help truncate">
-                    $
-                    {Math.max(0, displayedVirtualBalance)?.toLocaleString(
-                      "en-US"
-                    ) ?? "-"}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="bottom"
-                  align="center"
-                  className="select-none"
-                >
-                  <div className="flex flex-col gap-1 min-w-[220px]">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs">{t("pnl.unrealized")}</span>
-                      <span
-                        className={`text-xs font-semibold ${
-                          unrealizedPnl > 0
-                            ? "text-green-600"
-                            : unrealizedPnl < 0
-                            ? "text-red-600"
-                            : ""
-                        }`}
-                      >
-                        {unrealizedPnl >= 0 ? "+" : ""}
-                        {unrealizedPnl.toLocaleString("en-US", {
-                          maximumFractionDigits: 2,
-                        })}{" "}
-                        {t("pnl.usdt")}
-                        {isStartingBalanceLoaded &&
-                          settings.startingBalance > 0 && (
-                            <>
-                              {" ("}
-                              {unrealizedPnl >= 0 ? "+" : "-"}
-                              {Math.abs(
-                                (unrealizedPnl / settings.startingBalance) * 100
-                              ).toFixed(2)}
-                              %{")"}
-                            </>
-                          )}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs">{t("pnl.realized")}</span>
-                      <span
-                        className={`text-xs font-semibold ${
-                          realizedPnl > 0
-                            ? "text-green-600"
-                            : realizedPnl < 0
-                            ? "text-red-600"
-                            : ""
-                        }`}
-                      >
-                        {realizedPnl >= 0 ? "+" : ""}
-                        {realizedPnl.toLocaleString("en-US", {
-                          maximumFractionDigits: 2,
-                        })}{" "}
-                        {t("pnl.usdt")}
-                        {isStartingBalanceLoaded &&
-                          settings.startingBalance > 0 && (
-                            <>
-                              {" ("}
-                              {realizedPnl >= 0 ? "+" : "-"}
-                              {Math.abs(
-                                (realizedPnl / settings.startingBalance) * 100
-                              ).toFixed(2)}
-                              %{")"}
-                            </>
-                          )}
-                      </span>
-                    </div>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-
-          {/* Cummulative Profit rate*/}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-1 min-w-0">
-            <span className="text-xs lg:text-sm font-medium text-muted-foreground whitespace-nowrap">
-              {t("profitRate.cumulative")}
-            </span>
-            {showSkeleton ? (
-              <Skeleton className="h-4 lg:h-5 w-12 lg:w-16 inline-block align-middle" />
-            ) : isNoTrades ? (
-              <span className="text-xs lg:text-sm font-semibold">0.00%</span>
-            ) : (
-              <span className="text-xs lg:text-sm font-semibold">
-                {profitRate >= 0 ? "+" : ""}
-                {profitRate.toFixed(2)}%
+          {/* Virtual Currency - Only show for host */}
+          {isHost && (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 min-w-0">
+              <span className="text-xs lg:text-sm font-medium text-muted-foreground whitespace-nowrap">
+                {t("labels.virtualBalance")}
               </span>
-            )}
-          </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    {showSkeleton ? (
+                      <Skeleton className="h-4 lg:h-5 w-16 lg:w-20 inline-block align-middle" />
+                    ) : (
+                      <span className="text-xs lg:text-sm font-semibold cursor-help truncate">
+                        $
+                        {Math.max(0, displayedVirtualBalance)?.toLocaleString(
+                          "en-US"
+                        ) ?? "-"}
+                      </span>
+                    )}
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="bottom"
+                    align="center"
+                    className="select-none"
+                  >
+                    <div className="flex flex-col gap-1 min-w-[220px]">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs">{t("pnl.unrealized")}</span>
+                        <span
+                          className={`text-xs font-semibold ${
+                            unrealizedPnl > 0
+                              ? "text-green-600"
+                              : unrealizedPnl < 0
+                              ? "text-red-600"
+                              : ""
+                          }`}
+                        >
+                          {unrealizedPnl >= 0 ? "+" : ""}
+                          {unrealizedPnl.toLocaleString("en-US", {
+                            maximumFractionDigits: 2,
+                          })}{" "}
+                          {t("pnl.usdt")}
+                          {isStartingBalanceLoaded &&
+                            settings.startingBalance > 0 && (
+                              <>
+                                {" ("}
+                                {unrealizedPnl >= 0 ? "+" : "-"}
+                                {Math.abs(
+                                  (unrealizedPnl / settings.startingBalance) *
+                                    100
+                                ).toFixed(2)}
+                                %{")"}
+                              </>
+                            )}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs">{t("pnl.realized")}</span>
+                        <span
+                          className={`text-xs font-semibold ${
+                            realizedPnl > 0
+                              ? "text-green-600"
+                              : realizedPnl < 0
+                              ? "text-red-600"
+                              : ""
+                          }`}
+                        >
+                          {realizedPnl >= 0 ? "+" : ""}
+                          {realizedPnl.toLocaleString("en-US", {
+                            maximumFractionDigits: 2,
+                          })}{" "}
+                          {t("pnl.usdt")}
+                          {isStartingBalanceLoaded &&
+                            settings.startingBalance > 0 && (
+                              <>
+                                {" ("}
+                                {realizedPnl >= 0 ? "+" : "-"}
+                                {Math.abs(
+                                  (realizedPnl / settings.startingBalance) * 100
+                                ).toFixed(2)}
+                                %{")"}
+                              </>
+                            )}
+                        </span>
+                      </div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          )}
+
+          {/* Cummulative Profit rate - Only show for host */}
+          {isHost && (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 min-w-0">
+              <span className="text-xs lg:text-sm font-medium text-muted-foreground whitespace-nowrap">
+                {t("profitRate.cumulative")}
+              </span>
+              {showSkeleton ? (
+                <Skeleton className="h-4 lg:h-5 w-12 lg:w-16 inline-block align-middle" />
+              ) : isNoTrades ? (
+                <span className="text-xs lg:text-sm font-semibold">0.00%</span>
+              ) : (
+                <span className="text-xs lg:text-sm font-semibold">
+                  {isNaN(profitRate)
+                    ? "0.00%"
+                    : `${profitRate >= 0 ? "+" : ""}${profitRate.toFixed(2)}%`}
+                </span>
+              )}
+            </div>
+          )}
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-1 w-full sm:w-auto">
             {/* Close Room Button */}

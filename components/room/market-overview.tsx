@@ -1,10 +1,9 @@
 "use client";
 
-import { Info } from "lucide-react";
-import { useEffect, useState } from "react";
-import useSWR from "swr";
 import { useLatestRoomReset } from "@/hooks/use-room-reset";
 import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
+import useSWR from "swr";
 
 export const TRADER_PNL_KEY = (roomId: string) =>
   `/api/room/${encodeURIComponent(roomId)}/trader-pnl`;
@@ -81,7 +80,7 @@ export function MarketOverview({
 
   return (
     <div
-      className="flex flex-col lg:flex-row lg:items-center lg:justify-between w-full h-full p-4 text-sm  gap-3"
+      className="flex flex-col lg:flex-row lg:items-center lg:justify-between w-full h-full p-4 text-sm gap-2"
       data-testid="market-overview"
     >
       {/* Left Section: Symbol and Price */}
@@ -96,14 +95,14 @@ export function MarketOverview({
         </div>
         {/* separator: horizontal on mobile, vertical on desktop */}
         <div className="block md:hidden h-[1px] w-full bg-border my-1" />
-        <div className="hidden md:block h-full w-[1px] bg-border mx-2" />
+        <div className="hidden md:block h-full w-[1px] bg-border mx-0.5" />
         <div className="flex flex-col items-start justify-center h-full px-2">
           <p
             data-testid="current-price"
             className={
               ticker && parseFloat(ticker.priceChange) < 0
-                ? "text-red-500 text-base font-semibold min-w-[110px]"
-                : "text-green-500 text-base font-semibold min-w-[110px]"
+                ? "text-red-500 text-base font-semibold w-fit"
+                : "text-green-500 text-base font-semibold w-fit"
             }
           >
             {ticker && ticker.lastPrice
@@ -124,7 +123,7 @@ export function MarketOverview({
 
       {/* Main Market Data Row */}
       <div className="flex flex-wrap lg:flex-nowrap items-center gap-2 lg:gap-1 h-full w-full lg:w-auto lg:min-w-0 flex-1 overflow-x-auto lg:overflow-x-visible">
-        <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[90px] lg:min-w-[100px]">
+        <div className="flex flex-col items-center justify-center px-1 lg:px-2 w-fit">
           <p className="text-muted-foreground text-xs">{t("change24h")}</p>
           <p
             className={
@@ -140,7 +139,7 @@ export function MarketOverview({
               : "-"}
           </p>
         </div>
-        <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[90px] lg:min-w-[100px]">
+        <div className="flex flex-col items-center justify-center px-1 lg:px-2 w-fit">
           <p className="text-muted-foreground text-xs">{t("high24h")}</p>
           <p className="text-foreground font-semibold text-xs lg:text-sm whitespace-nowrap">
             {ticker && ticker.highPrice
@@ -150,7 +149,7 @@ export function MarketOverview({
               : "-"}
           </p>
         </div>
-        <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[90px] lg:min-w-[100px]">
+        <div className="flex flex-col items-center justify-center px-1 lg:px-2 w-fit">
           <p className="text-muted-foreground text-xs">{t("low24h")}</p>
           <p className="text-foreground font-semibold text-xs lg:text-sm whitespace-nowrap">
             {ticker && ticker.lowPrice
@@ -160,7 +159,7 @@ export function MarketOverview({
               : "-"}
           </p>
         </div>
-        <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[100px] lg:min-w-[120px]">
+        <div className="flex flex-col items-center justify-center px-1 lg:px-2 w-fit">
           <p className="text-muted-foreground text-xs">{t("turnover24h")}</p>
           <p className="text-foreground font-semibold text-xs lg:text-sm whitespace-nowrap">
             {ticker && ticker.quoteVolume
@@ -170,7 +169,7 @@ export function MarketOverview({
               : "-"}
           </p>
         </div>
-        <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[100px] lg:min-w-[120px]">
+        <div className="flex flex-col items-center justify-center px-1 lg:px-2 w-fit">
           <p className="text-muted-foreground text-xs">{t("volume24h")}</p>
           <p className="text-foreground font-semibold text-xs lg:text-sm whitespace-nowrap">
             {ticker && ticker.volume
@@ -180,7 +179,7 @@ export function MarketOverview({
               : "-"}
           </p>
         </div>
-        <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[100px] lg:min-w-[120px]">
+        <div className="flex flex-col items-center justify-center px-1 lg:px-2 w-fit">
           <p className="text-muted-foreground text-xs">
             {t("openInterest24h")}
           </p>
@@ -192,7 +191,7 @@ export function MarketOverview({
               : "-"}
           </p>
         </div>
-        <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[120px] lg:min-w-[140px]">
+        <div className="flex flex-col items-center justify-center px-1 lg:px-2 w-fit">
           <p className="text-muted-foreground text-xs">{t("fundingTime")}</p>
           <div className="flex items-center gap-1">
             <p
@@ -213,12 +212,11 @@ export function MarketOverview({
             <p className="text-foreground font-semibold text-xs lg:text-sm">
               {timeLeft}
             </p>
-            <Info size={14} className="text-muted-foreground lg:w-4 lg:h-4" />
           </div>
         </div>
 
         {/* Today Records - Integrated into main row */}
-        <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[140px] lg:min-w-[160px]">
+        <div className="flex flex-col items-center justify-center px-1 lg:px-2 w-fit">
           <p className="text-muted-foreground text-xs">{t("todayRecords")}</p>
           <div className="flex items-center gap-2 lg:gap-3">
             <div className="flex items-center gap-1">
@@ -245,7 +243,7 @@ export function MarketOverview({
         </div>
 
         {/* Total Records - Integrated into main row */}
-        <div className="flex flex-col items-center justify-center px-1 lg:px-2 min-w-[140px] lg:min-w-[160px]">
+        <div className="flex flex-col items-center justify-center px-1 lg:px-2 w-fit">
           <p className="text-muted-foreground text-xs">{t("totalRecords")}</p>
           <div className="flex items-center gap-2 lg:gap-3">
             <div className="flex items-center gap-1">

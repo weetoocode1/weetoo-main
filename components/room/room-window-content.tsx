@@ -153,6 +153,7 @@ const ParticipantsList = dynamic(
 
 function RoomJoiner({ roomId }: { roomId: string }) {
   const [user, setUser] = useState<{ id: string } | null>(null);
+  const attemptedJoinRef = useRef(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -164,7 +165,8 @@ function RoomJoiner({ roomId }: { roomId: string }) {
   const { joinRoom } = useRoomParticipant(roomId, user);
 
   useEffect(() => {
-    if (user && roomId) {
+    if (user && roomId && !attemptedJoinRef.current) {
+      attemptedJoinRef.current = true;
       joinRoom();
     }
   }, [user, roomId, joinRoom]);
@@ -254,7 +256,7 @@ export function RoomWindowContent({
                 <div className="flex w-full gap-2 flex-col md:flex-row md:h-[550px] h-auto">
                   <div
                     ref={chartOuterRef}
-                    className="md:max-w-[972px] max-w-full border-border border w-full bg-background md:h-full h-[320px]"
+                    className="flex-1 max-w-full border-border border w-full bg-background md:h-full h-[320px]"
                   >
                     <TradingViewChartComponent
                       symbol={symbol}
@@ -263,10 +265,10 @@ export function RoomWindowContent({
                       hostId={hostId}
                     />
                   </div>
-                  <div className="flex-1 border border-border w-full bg-background p-2 md:h-full h-[280px]">
+                  <div className="w-[300px] border border-border bg-background p-2 md:h-full h-[280px]">
                     <OrderBook symbol={symbol} data={marketData} />
                   </div>
-                  <div className="flex-1 border border-border w-full bg-background p-2 md:h-full h-[320px]">
+                  <div className="w-[300px] border border-border bg-background p-2 md:h-full h-[320px]">
                     <TradingForm
                       currentPrice={
                         marketData?.ticker?.lastPrice
