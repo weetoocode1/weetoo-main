@@ -381,6 +381,13 @@ export function TradingRoomsList() {
   // Real-time subscription for trading room participants - More responsive
   useEffect(() => {
     const supabase = createClient();
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const debouncedInvalidate = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        invalidateTradingRoomsCache();
+      }, 800); // debounce burst updates
+    };
     const channel = supabase
       .channel("trading-rooms-participants")
       .on(
@@ -392,7 +399,7 @@ export function TradingRoomsList() {
         },
         async (payload) => {
           console.log("Participant joined:", payload);
-          await invalidateTradingRoomsCache();
+          debouncedInvalidate();
         }
       )
       .on(
@@ -404,7 +411,7 @@ export function TradingRoomsList() {
         },
         async (payload) => {
           console.log("Participant updated:", payload);
-          await invalidateTradingRoomsCache();
+          debouncedInvalidate();
         }
       )
       .on(
@@ -416,7 +423,7 @@ export function TradingRoomsList() {
         },
         async (payload) => {
           console.log("Participant left:", payload);
-          await invalidateTradingRoomsCache();
+          debouncedInvalidate();
         }
       )
       .subscribe((status) => {
@@ -446,6 +453,7 @@ export function TradingRoomsList() {
     };
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [queryClient]);

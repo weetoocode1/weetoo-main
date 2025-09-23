@@ -45,7 +45,11 @@ export function usePositions(roomId: string, options?: UsePositionsOptions) {
     mutate: mutateOpen,
     isLoading: loadingOpen,
     error: errorOpen,
-  } = useSWR(["open-positions", roomId], fetchOpen);
+  } = useSWR(["open-positions", roomId], fetchOpen, {
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
+    dedupingInterval: 1000,
+  });
 
   const {
     data: closedPositions,
@@ -54,7 +58,12 @@ export function usePositions(roomId: string, options?: UsePositionsOptions) {
     error: errorClosed,
   } = useSWR(
     ["closed-positions", roomId, options?.sinceResetAt ?? null],
-    fetchClosed
+    fetchClosed,
+    {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      dedupingInterval: 1000,
+    }
   );
 
   // Realtime subscription for open/closed positions

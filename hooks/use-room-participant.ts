@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface User {
   id: string;
@@ -16,6 +16,7 @@ export function useRoomParticipant(roomId: string, user: User | null) {
   const [isParticipant, setIsParticipant] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isJoiningRef = useRef(false);
 
   useEffect(() => {
     if (!user || !roomId) {
@@ -107,9 +108,11 @@ export function useRoomParticipant(roomId: string, user: User | null) {
     };
   }, [user, roomId]);
 
-  const joinRoom = async () => {
+  const joinRoom = useCallback(async () => {
     if (!user || !roomId) return false;
+    if (isJoiningRef.current) return false;
 
+    isJoiningRef.current = true;
     try {
       setIsLoading(true);
       setError(null);
@@ -157,8 +160,9 @@ export function useRoomParticipant(roomId: string, user: User | null) {
       return false;
     } finally {
       setIsLoading(false);
+      isJoiningRef.current = false;
     }
-  };
+  }, [user, roomId]);
 
   return {
     isParticipant,
