@@ -23,6 +23,7 @@ import { ExchangeEditDialog } from "./exchange-edit-dialog";
 import { type Exchange } from "./exchanges-data";
 import { UidRegistrationDialog } from "../uid/uid-registration-dialog";
 import Link from "next/link";
+import { useAddUserUid } from "@/hooks/use-user-uids";
 
 // Calculate score based on objective metrics
 const calculateScore = (exchange: Exchange): number => {
@@ -97,6 +98,17 @@ export const PartnerExchangeComparison = () => {
   const [uidDialogBrokerId, setUidDialogBrokerId] = useState<
     string | undefined
   >(undefined);
+  const addUidMutation = useAddUserUid();
+
+  const handleUIDAdded = async (uid: string, brokerId: string) => {
+    try {
+      await addUidMutation.mutateAsync({ uid, exchange_id: brokerId });
+      toast.success("UID added successfully");
+      setUidDialogOpen(false);
+    } catch (_err) {
+      toast.error("Failed to add UID. Please try again.");
+    }
+  };
 
   const toggleRowExpand = (id: string | number) => {
     setExpandedExchangeId((prev) => (prev === id ? null : id));
@@ -877,7 +889,7 @@ export const PartnerExchangeComparison = () => {
       <UidRegistrationDialog
         title={t("registerUid")}
         trigger={<span />}
-        onUIDAdded={() => setUidDialogOpen(false)}
+        onUIDAdded={handleUIDAdded}
         isOpen={uidDialogOpen}
         onOpenChange={setUidDialogOpen}
         defaultBrokerId={uidDialogBrokerId}
