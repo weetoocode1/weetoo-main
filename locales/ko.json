@@ -2856,9 +2856,7 @@
           "save": "변경 사항 저장",
           "saving": "저장 중..."
         }
-      }
-    },
-    "rewardRules": {
+      },
       "page": {
         "readOnly": {
           "title": "읽기 전용 접근:",
