@@ -32,6 +32,8 @@ export async function DELETE(
   } // Call atomic function to delete comment and decrement counter
   const { error: fnError } = await supabase.rpc("delete_post_comment", {
     comment_id_input: commentId,
+    is_admin_delete: false,
+    admin_user_id: null,
   });
   if (fnError)
     return NextResponse.json({ error: fnError.message }, { status: 500 });

@@ -151,13 +151,13 @@ export function RewardRulesTable() {
 
       if (error) throw error;
 
-      toast.success("Reward rule updated successfully");
+      toast.success(t("toast.updated"));
       queryClient.invalidateQueries({ queryKey: ["admin", "reward-rules"] });
       setEditingRule(null);
       setEditForm({});
     } catch (error) {
       console.error("Error updating reward rule:", error);
-      toast.error("Failed to update reward rule");
+      toast.error(t("toast.updateFailed"));
     } finally {
       setIsSaving(false);
     }
@@ -408,12 +408,16 @@ export function RewardRulesTable() {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
+                              <span className="sr-only">
+                                {t("table.menu.open")}
+                              </span>
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuLabel>Rule Actions</DropdownMenuLabel>
+                            <DropdownMenuLabel>
+                              {t("table.menu.title")}
+                            </DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               key="view-details-mobile"
@@ -422,7 +426,7 @@ export function RewardRulesTable() {
                               }}
                             >
                               <Eye className="mr-2 h-4 w-4" />
-                              View Details
+                              {t("table.menu.viewDetails")}
                             </DropdownMenuItem>
                             {canEdit ? (
                               <DropdownMenuItem
@@ -430,7 +434,7 @@ export function RewardRulesTable() {
                                 onClick={() => handleEdit(rule)}
                               >
                                 <Edit className="mr-2 h-4 w-4" />
-                                Edit Rule
+                                {t("table.menu.editRule")}
                               </DropdownMenuItem>
                             ) : null}
                           </DropdownMenuContent>
@@ -441,27 +445,33 @@ export function RewardRulesTable() {
                     {/* Rule Details */}
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">EXP:</span>
+                        <span className="text-muted-foreground">
+                          {t("table.columns.expPerAction")}:
+                        </span>
                         <span className="font-mono text-amber-600">
                           +{rule.exp_per_action.toLocaleString()}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">KOR:</span>
+                        <span className="text-muted-foreground">
+                          {t("table.columns.korPerAction")}:
+                        </span>
                         <span className="font-mono text-emerald-600">
                           +{rule.kor_per_action.toLocaleString()}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground">
-                          Daily Limit:
+                          {t("table.columns.dailyCountLimit")}:
                         </span>
                         <span className="font-mono">
                           {rule.daily_count_limit.toLocaleString()}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">Status:</span>
+                        <span className="text-muted-foreground">
+                          {t("table.columns.status")}:
+                        </span>
                         <span
                           className={`inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium ${
                             rule.active
@@ -469,7 +479,9 @@ export function RewardRulesTable() {
                               : "bg-red-100 text-red-800 border border-red-300"
                           }`}
                         >
-                          {rule.active ? "Active" : "Inactive"}
+                          {rule.active
+                            ? t("status.active")
+                            : t("status.inactive")}
                         </span>
                       </div>
                     </div>
@@ -526,7 +538,9 @@ export function RewardRulesTable() {
                       }))
                     }
                     className="h-10 rounded-none"
-                    placeholder="Enter title"
+                    placeholder={t("editDialog.placeholders.title", {
+                      default: "Enter title",
+                    })}
                   />
                 </div>
 
@@ -545,7 +559,9 @@ export function RewardRulesTable() {
                       }))
                     }
                     className="h-10 rounded-none"
-                    placeholder="Enter description"
+                    placeholder={t("editDialog.placeholders.description", {
+                      default: "Enter description",
+                    })}
                   />
                 </div>
               </div>

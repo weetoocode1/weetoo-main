@@ -2,12 +2,12 @@
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
+import { useTranslations } from "next-intl";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
-import { useTranslations } from "next-intl";
 
 // Donation will be lazy loaded
 import {
@@ -47,6 +47,7 @@ import {
   Volume2Icon,
   XIcon,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import {
   Dialog,
   DialogContent,
@@ -57,7 +58,6 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import { Separator } from "../ui/separator";
-import dynamic from "next/dynamic";
 
 // Lazy load EditRoomForm since it's only used when editing
 const EditRoomForm = dynamic(
@@ -199,11 +199,30 @@ export function WindowTitleBar({
   initialUpdatedAt,
 }: WindowTitleBarProps) {
   const t = useTranslations("room.windowTitleBar");
+  // Read hostView via Suspense-safe reader and window fallback to avoid visible loaders
+  const [forcedHostView, setForcedHostView] = React.useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return (
+        new URLSearchParams(window.location.search).get("hostView") === "1"
+      );
+    }
+    return false;
+  });
+
+  const ForceHostViewReader: React.FC<{ onValue: (v: boolean) => void }> = ({
+    onValue,
+  }) => {
+    const sp = useSearchParams();
+    React.useEffect(() => {
+      onValue(sp?.get("hostView") === "1");
+    }, [sp, onValue]);
+    return null;
+  };
   const { isMicOn, toggleMic, currentUserId, roomConnected } =
     useLivektHostAudio({ roomType, hostId, roomId });
 
   // Only show balance and PnL for the host since only host can trade
-  const isHost = currentUserId === hostId;
+  const isHost = forcedHostView || currentUserId === hostId;
 
   // Chart streaming controls
   const {
@@ -257,21 +276,19 @@ export function WindowTitleBar({
   // Host always streams at highest quality; no dialog needed
 
   const fetcher = (url: string) => fetch(url).then((res) => res.json());
-  const { data: settings } = useSWR("/api/app-settings", fetcher);
-  const isStartingBalanceLoaded =
-    settings && typeof settings.startingBalance === "number";
+  const { data: settings } = useSWR("/api/app-settings", fetcher, {
+    fallbackData: { startingBalance: 10000 }, // Provide fallback to prevent loading states
+    revalidateOnFocus: false,
+    dedupingInterval: 0,
+  });
+  // const isStartingBalanceLoaded = true; // Always true with fallback
+  const startingBalance = settings?.startingBalance || 10000; // Use fallback value
 
-  const showSkeleton =
-    !isStartingBalanceLoaded ||
-    typeof virtualBalance !== "number" ||
-    isNaN(virtualBalance) ||
-    virtualBalance === null ||
-    virtualBalance === undefined;
+  const showSkeleton = false; // Never show skeleton with fallback data
   const isNoTrades =
-    isStartingBalanceLoaded &&
     typeof virtualBalance === "number" &&
     !isNaN(virtualBalance) &&
-    (virtualBalance === settings.startingBalance || virtualBalance === 0);
+    (virtualBalance === startingBalance || virtualBalance === 0);
   let profitRate = 0 as number;
 
   const router = useRouter();
@@ -325,49 +342,25 @@ export function WindowTitleBar({
     return realized;
   }, [closedPositions]);
 
-  // Baseline for soft-reset display
+  // Baseline for soft-reset display - simplified for instant loading
   const resetBaseline = useMemo(() => {
     const markerVal = latestResetData?.latest?.reset_start_balance;
     const markerNum = markerVal != null ? Number(markerVal) : NaN;
-    const fallbackBaseline = isStartingBalanceLoaded
-      ? Number(settings.startingBalance) || 0
-      : 0;
+    const fallbackBaseline = startingBalance;
     const baseline =
       !Number.isNaN(markerNum) && markerNum > 0 ? markerNum : fallbackBaseline;
 
-    // no-op
-
     return baseline;
-  }, [
-    latestResetData?.latest?.reset_start_balance,
-    isStartingBalanceLoaded,
-    settings,
-    roomId,
-    currentUserId,
-    hostId,
-  ]);
+  }, [latestResetData?.latest?.reset_start_balance, startingBalance]);
 
-  // Displayed virtual balance for UI - use the raw virtualBalance for consistency
+  // Displayed virtual balance for UI - simplified for instant loading
   const displayedVirtualBalance = useMemo(() => {
-    // Show loading state if data isn't ready
-    if (
-      !isStartingBalanceLoaded ||
-      typeof virtualBalance !== "number" ||
-      isNaN(virtualBalance)
-    ) {
-      return resetBaseline;
+    // Always show data instantly with fallback
+    if (typeof virtualBalance === "number" && !isNaN(virtualBalance)) {
+      return Math.max(0, virtualBalance);
     }
-    // Use the raw virtualBalance directly for consistency across all clients
-    const balance = Math.max(0, virtualBalance);
-    return balance;
-  }, [
-    virtualBalance,
-    isStartingBalanceLoaded,
-    resetBaseline,
-    roomId,
-    currentUserId,
-    hostId,
-  ]);
+    return resetBaseline;
+  }, [virtualBalance, resetBaseline]);
 
   // Now that resetBaseline/displayedVirtualBalance are defined, compute profitRate
   profitRate = useMemo(() => {
@@ -460,11 +453,11 @@ export function WindowTitleBar({
   const handleFileSelect = (file: File) => {
     const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
     if (!file.type || !file.type.startsWith("image/")) {
-      toast.error("Only image files are allowed");
+      toast.error(t("thumbnail.errors.onlyImages"));
       return;
     }
     if (file.size > MAX_IMAGE_SIZE) {
-      toast.error("Image must be 10MB or smaller");
+      toast.error(t("thumbnail.errors.maxSize", { sizeMB: 10 }));
       return;
     }
 
@@ -550,6 +543,10 @@ export function WindowTitleBar({
 
   return (
     <div className="px-3 pt-2">
+      {/* Suspense-safe hostView reader with empty fallback to avoid loaders in screenshots */}
+      <Suspense fallback={<></>}>
+        <ForceHostViewReader onValue={setForcedHostView} />
+      </Suspense>
       <div
         className="flex flex-col lg:flex-row items-start lg:items-center justify-between h-auto lg:h-14 px-4 py-3 lg:py-0 border bg-muted/30 select-none gap-3 lg:gap-0"
         onMouseDown={onTitleBarMouseDown}
@@ -959,18 +956,16 @@ export function WindowTitleBar({
                             maximumFractionDigits: 2,
                           })}{" "}
                           {t("pnl.usdt")}
-                          {isStartingBalanceLoaded &&
-                            settings.startingBalance > 0 && (
-                              <>
-                                {" ("}
-                                {unrealizedPnl >= 0 ? "+" : "-"}
-                                {Math.abs(
-                                  (unrealizedPnl / settings.startingBalance) *
-                                    100
-                                ).toFixed(2)}
-                                %{")"}
-                              </>
-                            )}
+                          {startingBalance > 0 && (
+                            <>
+                              {" ("}
+                              {unrealizedPnl >= 0 ? "+" : "-"}
+                              {Math.abs(
+                                (unrealizedPnl / startingBalance) * 100
+                              ).toFixed(2)}
+                              %{")"}
+                            </>
+                          )}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
@@ -989,17 +984,16 @@ export function WindowTitleBar({
                             maximumFractionDigits: 2,
                           })}{" "}
                           {t("pnl.usdt")}
-                          {isStartingBalanceLoaded &&
-                            settings.startingBalance > 0 && (
-                              <>
-                                {" ("}
-                                {realizedPnl >= 0 ? "+" : "-"}
-                                {Math.abs(
-                                  (realizedPnl / settings.startingBalance) * 100
-                                ).toFixed(2)}
-                                %{")"}
-                              </>
-                            )}
+                          {startingBalance > 0 && (
+                            <>
+                              {" ("}
+                              {realizedPnl >= 0 ? "+" : "-"}
+                              {Math.abs(
+                                (realizedPnl / startingBalance) * 100
+                              ).toFixed(2)}
+                              %{")"}
+                            </>
+                          )}
                         </span>
                       </div>
                     </div>
@@ -1096,7 +1090,7 @@ export function WindowTitleBar({
                   if (onCloseRoom) onCloseRoom();
                 } catch (error) {
                   console.error("Error leaving room:", error);
-                  toast.error("Failed to leave room");
+                  toast.error(t("leaveRoom.failed"));
                 }
               }}
             >

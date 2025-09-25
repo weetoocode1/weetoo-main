@@ -40,6 +40,7 @@ import { TRADING_SYMBOLS } from "@/lib/trading/symbols-config";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { IdentityVerificationButton } from "@/components/identity-verification-button";
+import { useTranslations as useT } from "next-intl";
 
 interface UserData {
   id: string;
@@ -56,6 +57,7 @@ interface ExistingRoom {
 export function CreateRoom() {
   const t = useTranslations("createRoom");
   const tCommon = useTranslations("common");
+  const tIV = useT("identityVerification");
   const { user: authUser } = useAuth();
   const [open, setOpen] = useState(false);
   const [privacy, setPrivacy] = useState("public");
@@ -124,7 +126,7 @@ export function CreateRoom() {
 
       if (error) {
         console.error("Error checking existing room:", error);
-        toast.error("Failed to check existing rooms. Please try again.");
+        toast.error(t("toasts.failedCheckExistingRooms"));
         setExistingRoom(null);
         // Clear localStorage on error
         localStorage.removeItem(`existing_room_${userId}`);
@@ -374,7 +376,11 @@ export function CreateRoom() {
     // Check if user has enough KOR coins
     if (!canAfford) {
       toast.error(
-        `Insufficient KOR coins. You need ${roomCost.toLocaleString()} KOR coins to create a ${category} room. You currently have ${userKorCoins.toLocaleString()} KOR coins.`
+        t("toasts.insufficientKorCoins", {
+          needed: roomCost.toLocaleString(),
+          category,
+          current: userKorCoins.toLocaleString(),
+        })
       );
       return;
     }
@@ -388,15 +394,13 @@ export function CreateRoom() {
 
     if (checkError) {
       console.error("Error checking active rooms:", checkError);
-      toast.error("Error checking existing rooms. Please try again.");
+      toast.error(t("toasts.errorCheckingRooms"));
       return;
     }
 
     if (activeRooms && activeRooms.length > 0) {
       const existingRoom = activeRooms[0];
-      toast.error(
-        `You already have an active room: "${existingRoom.name}". Please close your existing room before creating a new one.`
-      );
+      toast.error(t("toasts.alreadyHaveActive", { name: existingRoom.name }));
       setSubmitting(false);
       return;
     }
@@ -465,7 +469,7 @@ export function CreateRoom() {
     }
     setSubmitting(false);
     setOpen(false);
-    toast.success("Room created successfully!");
+    toast.success(t("toasts.created"));
     window.open(`/room/${data.id}`, "_blank");
   }
 
@@ -480,11 +484,7 @@ export function CreateRoom() {
                 onClick={async () => {
                   // Check identity verification first
                   if (!authUser?.identity_verified) {
-                    toast.error(
-                      `${tCommon(
-                        "identityVerificationRequired"
-                      )} to create trading rooms.`
-                    );
+                    toast.error(t("verify.requiredForRooms"));
                     return;
                   }
 
@@ -493,7 +493,9 @@ export function CreateRoom() {
                     const currentRoom = await checkExistingRoom(user.id);
                     if (currentRoom) {
                       toast.error(
-                        `You already have an active room: "${currentRoom.name}". Please close your existing room before creating a new one.`
+                        t("toasts.alreadyHaveActive", {
+                          name: currentRoom.name,
+                        })
                       );
                       return;
                     }
@@ -532,8 +534,7 @@ export function CreateRoom() {
                     🔒 {tCommon("identityVerificationRequired")}
                   </p>
                   <p className="text-muted-foreground">
-                    You need to verify your identity before creating trading
-                    rooms.
+                    {t("verify.tooltipBody")}
                   </p>
                 </div>
               </TooltipContent>
@@ -550,28 +551,23 @@ export function CreateRoom() {
             </div>
             <div>
               <DialogTitle className="text-xl font-semibold text-foreground mb-2">
-                Identity Verification Required
+                {tCommon("identityVerificationRequired")}
               </DialogTitle>
               <DialogDescription className="text-muted-foreground mb-6">
-                You need to verify your identity to create trading rooms. This
-                helps ensure security and compliance.
+                {t("verify.dialogBody")}
               </DialogDescription>
               <IdentityVerificationButton
                 isFormValid={true}
                 mobileNumber={authUser?.mobile_number || ""}
-                text="Verify Identity"
+                text={tIV("button.verificationNeeded")}
                 onVerificationSuccess={(verificationData, userData) => {
-                  toast.success(
-                    "Identity verification completed successfully!"
-                  );
+                  toast.success(tIV("toast.success"));
                   // Close the dialog and refresh the page to update verification status
                   setOpen(false);
                   window.location.reload();
                 }}
                 onVerificationFailure={() => {
-                  toast.error(
-                    "Identity verification failed. Please try again."
-                  );
+                  toast.error(tIV("errors.generic"));
                 }}
               />
             </div>
@@ -687,7 +683,7 @@ export function CreateRoom() {
                         <span>{symbol.label}</span>
                         {symbol.isNew && (
                           <span className="ml-2 px-2 py-0.5 text-xs rounded bg-amber-200 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-                            NEW
+                            {t("badges.new")}
                           </span>
                         )}
                       </SelectItem>
@@ -807,7 +803,7 @@ export function CreateRoom() {
                     : loading
                     ? t("loading")
                     : !canAfford
-                    ? "Insufficient KOR Coins"
+                    ? t("button.insufficientKor")
                     : t("createRoom")}
                 </Button>
               </div>

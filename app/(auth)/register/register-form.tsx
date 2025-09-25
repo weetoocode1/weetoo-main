@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 const NAVER_CLIENT_ID = process.env.NEXT_PUBLIC_NAVER_CLIENT_ID;
 const NAVER_REDIRECT_URI =
@@ -37,6 +38,7 @@ function getNaverOAuthUrl() {
 const REFERRAL_REWARD_KORCOINS = 500;
 
 export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
+  const t = useTranslations("register");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [nickname, setNickname] = useState("");
@@ -146,7 +148,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
           .maybeSingle();
         if (codeError || !codeRow) {
           setReferrer(null);
-          setReferralError("Referral code not found.");
+          setReferralError(t("referral.codeNotFound"));
           return;
         }
         // Lookup user by user_id
@@ -157,7 +159,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
           .maybeSingle();
         if (userError || !userRow) {
           setReferrer(null);
-          setReferralError("Referrer not found.");
+          setReferralError(t("referral.referrerNotFound"));
           return;
         }
         setReferralError(null);
@@ -174,19 +176,15 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       if (!agree) {
-        toast.error(
-          "You must agree to the Terms of Service and Privacy Policy."
-        );
+        toast.error(t("toast.mustAgree"));
         return;
       }
       if (password !== confirmPassword) {
-        toast.error("Passwords do not match.");
+        toast.error(t("toast.passwordMismatch"));
         return;
       }
       if (!isIdentityVerified) {
-        toast.error(
-          "You must complete identity verification before registering."
-        );
+        toast.error(t("toast.identityRequired"));
         return;
       }
       startTransition(async () => {
@@ -204,7 +202,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
           },
         });
         if (error) {
-          toast.error(error.message || "Registration failed");
+          toast.error(error.message || t("toast.registrationFailed"));
         } else {
           // Insert into public.users with role 'user' (if not handled by trigger)
           // This is a fallback; ideally, your DB trigger sets the role.
@@ -278,13 +276,9 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
                   verificationError
                 );
                 // Don't fail registration if verification storage fails
-                toast.warning(
-                  "Registration successful, but verification status could not be saved."
-                );
+                toast.warning(t("toast.verificationSaveFailed"));
               } else {
-                toast.success(
-                  "Registration successful with identity verification!"
-                );
+                toast.success(t("toast.registrationWithIdentitySuccess"));
               }
             } catch (verificationError) {
               console.error(
@@ -292,9 +286,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
                 verificationError
               );
               // Don't fail registration if verification storage fails
-              toast.warning(
-                "Registration successful, but verification status could not be saved."
-              );
+              toast.warning(t("toast.verificationSaveFailed"));
             }
           }
 
@@ -334,12 +326,14 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
                   .eq("id", newUser.id);
                 // 4. Show toast
                 toast.success(
-                  `You received ${REFERRAL_REWARD_KORCOINS} KORCOINS for signing up with a referral code!`
+                  t("toast.referralReward", {
+                    amount: REFERRAL_REWARD_KORCOINS,
+                  })
                 );
               }
             }
           }
-          toast.success("Registration successful! Please log in.");
+          toast.success(t("toast.registrationSuccess"));
           router.push("/");
         }
       });
@@ -374,12 +368,16 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
           },
         });
         if (error) {
-          toast.error(error.message || `Register with ${provider} failed`, {
-            position: "top-center",
-          });
+          toast.error(
+            error.message ||
+              t("toast.registerWithProviderFailed", { provider }),
+            {
+              position: "top-center",
+            }
+          );
         } else {
           localStorage.setItem("weetoo-last-sign-in-method", provider);
-          toast.success(`Redirecting to ${provider}...`, {
+          toast.success(t("toast.redirecting", { provider }), {
             position: "top-center",
           });
         }
@@ -448,10 +446,8 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
     <div className="w-full h-full flex items-center justify-center flex-col">
       <div className="flex flex-col w-full max-w-md gap-4">
         <div className="flex gap-0.5 flex-col items-center select-none">
-          <h3 className="text-[1.3rem] font-semibold">Create your account</h3>
-          <p className="text-muted-foreground text-sm">
-            Register to Weetoo to start trading cryptocurrencies and more.
-          </p>
+          <h3 className="text-[1.3rem] font-semibold">{t("title")}</h3>
+          <p className="text-muted-foreground text-sm">{t("subtitle")}</p>
         </div>
 
         <div className="max-w-md w-full mx-auto">
@@ -461,7 +457,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
               className="border w-full h-12 flex items-center justify-center rounded-lg cursor-pointer hover:bg-accent relative"
               onClick={() => handleSocialRegister("google")}
               disabled={loading}
-              aria-label="Register with Google"
+              aria-label={t("aria.registerWithGoogle")}
             >
               <svg
                 className="w-5 h-5 "
@@ -491,7 +487,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
                   className="absolute -top-1.5 -right-1.5 bg-gray-700 text-white text-[10px] px-1.5 py-0.5 rounded-full z-10 shadow-sm"
                   style={{ minWidth: "44px", textAlign: "center" }}
                 >
-                  Last used
+                  {t("lastUsed")}
                 </span>
               )}
             </button>
@@ -500,7 +496,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
               className="border w-full h-12 flex items-center justify-center rounded-lg bg-[#FFCD00] cursor-pointer hover:bg-[#FFB900] relative"
               onClick={() => handleSocialRegister("kakao")}
               disabled={loading}
-              aria-label="Register with Kakao"
+              aria-label={t("aria.registerWithKakao")}
             >
               <svg
                 width="20"
@@ -522,7 +518,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
                   className="absolute -top-1.5 -right-1.5 bg-gray-700 text-white text-[10px] px-1.5 py-0.5 rounded-full z-10 shadow-sm"
                   style={{ minWidth: "44px", textAlign: "center" }}
                 >
-                  Last used
+                  {t("lastUsed")}
                 </span>
               )}
             </button>
@@ -531,7 +527,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
               className="border w-full h-12 flex items-center justify-center rounded-lg bg-[#03C75A] cursor-pointer hover:bg-[#03B94D] relative"
               onClick={handleNaverRegister}
               disabled={loading}
-              aria-label="Register with Naver"
+              aria-label={t("aria.registerWithNaver")}
             >
               <svg
                 role="img"
@@ -547,7 +543,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
                   className="absolute -top-1.5 -right-1.5 bg-gray-700 text-white text-[10px] px-1.5 py-0.5 rounded-full z-10 shadow-sm"
                   style={{ minWidth: "44px", textAlign: "center" }}
                 >
-                  Last used
+                  {t("lastUsed")}
                 </span>
               )}
             </button>
@@ -563,7 +559,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
           </div>
           <div className="relative flex justify-center text-xs">
             <span className="bg-background px-2 text-primary">
-              or continue with email
+              {t("orContinueWithEmail")}
             </span>
           </div>
         </div>
@@ -574,7 +570,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
           <Input
             type="text"
             id="firstName"
-            placeholder="First name"
+            placeholder={t("placeholders.firstName")}
             className="h-12 bg-transparent"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
@@ -584,7 +580,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
           <Input
             type="text"
             id="lastName"
-            placeholder="Last name"
+            placeholder={t("placeholders.lastName")}
             className="h-12 bg-transparent"
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
@@ -596,7 +592,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
           <Input
             type="text"
             id="nickname"
-            placeholder="Nickname"
+            placeholder={t("placeholders.nickname")}
             className="h-12 bg-transparent"
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
@@ -608,7 +604,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
           <Input
             type="email"
             id="email"
-            placeholder="Email address"
+            placeholder={t("placeholders.email")}
             className="h-12 bg-transparent"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -621,7 +617,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
               className="absolute -top-1.5 -right-1.5 bg-gray-700 text-white text-[10px] px-1.5 py-0.5 rounded-full z-10 shadow-sm"
               style={{ minWidth: "44px", textAlign: "center" }}
             >
-              Last used
+              {t("lastUsed")}
             </span>
           )}
         </div>
@@ -631,7 +627,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
             <Input
               type={showPassword ? "text" : "password"}
               id="password"
-              placeholder="Password"
+              placeholder={t("placeholders.password")}
               className="h-12 bg-transparent pr-10"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -643,7 +639,9 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
               className="absolute cursor-pointer right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setShowPassword(!showPassword)}
               disabled={loading}
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-label={
+                showPassword ? t("aria.hidePassword") : t("aria.showPassword")
+              }
             >
               {showPassword ? (
                 <EyeOff className="h-4 w-4" />
@@ -659,7 +657,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
             <Input
               type={showConfirmPassword ? "text" : "password"}
               id="confirmPassword"
-              placeholder="Confirm password"
+              placeholder={t("placeholders.confirmPassword")}
               className="h-12 bg-transparent pr-10"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
@@ -673,8 +671,8 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
               disabled={loading}
               aria-label={
                 showConfirmPassword
-                  ? "Hide confirm password"
-                  : "Show confirm password"
+                  ? t("aria.hideConfirmPassword")
+                  : t("aria.showConfirmPassword")
               }
             >
               {showConfirmPassword ? (
@@ -693,7 +691,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
             id="mobileNumber"
             inputMode="numeric"
             pattern="[0-9]*"
-            placeholder="Mobile Number (digits only, e.g., 01071069189)"
+            placeholder={t("placeholders.mobileNumber")}
             className="h-12 bg-transparent"
             value={mobileNumber}
             onChange={(e) => {
@@ -709,7 +707,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
             id="mobileNumberHelp"
             className="text-xs text-muted-foreground mt-1"
           >
-            Enter 10–11 digits without dashes
+            {t("help.mobileNumber")}
           </p>
         </div>
 
@@ -718,7 +716,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
           <Input
             type="text"
             id="referralCode"
-            placeholder="Referral Code (optional)"
+            placeholder={t("placeholders.referralCode")}
             className="h-12 bg-transparent"
             value={referralCodeState}
             onChange={handleReferralCodeChange}
@@ -739,7 +737,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
                   d="M5 13l4 4L19 7"
                 />
               </svg>
-              Referred by:{" "}
+              {t("referral.referredBy")} {""}
               <span className="font-semibold">
                 {referrer.first_name} {referrer.last_name}
               </span>
@@ -773,21 +771,21 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
             disabled={loading}
           />
           <Label className="text-xs text-muted-foreground" htmlFor="agree">
-            I agree to the
+            {t("terms.prefix")} {""}
             <Link
               href="/terms"
               target="_blank"
               className="text-xs text-primary hover:text-primary/80 transition-colors duration-200 ease-in-out"
             >
-              Terms of Service
-            </Link>
-            and
+              {t("terms.terms")}
+            </Link>{" "}
+            {t("terms.connector")} {""}
             <Link
               href="/privacy"
               target="_blank"
               className="text-xs text-primary hover:text-primary/80 transition-colors duration-200 ease-in-out"
             >
-              Privacy Policy
+              {t("terms.privacy")}
             </Link>
           </Label>
         </div>
@@ -796,7 +794,7 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
         <IdentityVerificationButton
           isFormValid={isFormValid}
           mobileNumber={mobileNumber}
-          text="Verify Identity"
+          text={t("verifyIdentity")}
           className="bg-primary hover:bg-primary/90 text-primary-foreground"
           storeInDatabase={false} // Don't store in database during registration
           onVerificationSuccess={(verificationData, userData) => {
@@ -825,15 +823,15 @@ export function RegisterForm({ referralCode = "" }: { referralCode?: string }) {
           className="w-full h-12"
           disabled={loading || !agree || !isIdentityVerified}
         >
-          {loading ? "Registering..." : "Register"}
+          {loading ? t("buttons.registering") : t("buttons.register")}
         </Button>
         <p className="text-sm text-muted-foreground text-center">
-          Already have an account?{" "}
+          {t("haveAccountPrompt")} {""}
           <Link
             href="/login"
             className="text-sm text-primary hover:text-primary/80 transition-colors duration-200 ease-in-out"
           >
-            Login
+            {t("buttons.login")}
           </Link>
         </p>
       </form>

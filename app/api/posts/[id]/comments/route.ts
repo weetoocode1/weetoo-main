@@ -39,7 +39,9 @@ export async function POST(
   // Fetch the new comment with user info
   const { data: comment, error: commentError } = await supabase
     .from("post_comments")
-    .select("*, user:users(id, first_name, last_name, nickname, avatar_url)")
+    .select(
+      "*, user:users!user_id(id, first_name, last_name, nickname, avatar_url)"
+    )
     .eq("id", newCommentId)
     .single();
   if (commentError)
@@ -83,13 +85,19 @@ export async function GET(
   const { id } = await params;
   const postId = id;
 
-  // Fetch all comments for the post, with user info
+  // Fetch all comments for the post, with user info (including admin-deleted ones)
   const { data: comments, error } = await supabase
     .from("post_comments")
-    .select("*, user:users(id, first_name, last_name, nickname, avatar_url)")
+    .select(
+      `
+      *, 
+      user:users!user_id(id, first_name, last_name, nickname, avatar_url),
+      deleted_by:users!deleted_by_user_id(id, first_name, last_name, nickname)
+    `
+    )
     .eq("post_id", postId)
     .order("is_pinned", { ascending: false })
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false }); // Newest first
 
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -104,12 +112,21 @@ export async function GET(
     created_at: string;
     updated_at: string;
     is_pinned?: boolean;
+    deleted_by_admin?: boolean;
+    deleted_at?: string;
+    deleted_by_user_id?: string;
     user: {
       id: string;
       first_name?: string;
       last_name?: string;
       nickname?: string;
       avatar_url?: string;
+    };
+    deleted_by?: {
+      id: string;
+      first_name?: string;
+      last_name?: string;
+      nickname?: string;
     };
     replies?: PostComment[];
   }
@@ -126,6 +143,16 @@ export async function GET(
       commentMap[c.parent_id].replies!.push(c);
     } else {
       rootComments.push(c);
+    }
+  }
+
+  // Sort replies within each comment by newest first
+  for (const comment of rootComments) {
+    if (comment.replies && comment.replies.length > 0) {
+      comment.replies.sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
     }
   }
 

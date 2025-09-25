@@ -430,7 +430,7 @@ export function RewardTable() {
                     <span className="text-muted-foreground">
                       {t("mobile.type")}:
                     </span>{" "}
-                    {r.type.replace(/_/g, " ")}
+                    {t(`filters.typeNames.${r.type}`)}
                   </div>
                   <div>
                     <span className="text-muted-foreground">
@@ -604,7 +604,7 @@ function RewardActions({ row }: { row: RewardRow }) {
                     }
                   })()}`}
                 >
-                  {row.type.replace(/_/g, " ")}
+                  {t(`filters.typeNames.${row.type}`)}
                 </span>
               </div>
             </div>

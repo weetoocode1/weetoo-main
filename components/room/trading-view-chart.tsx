@@ -1,22 +1,23 @@
 "use client";
 
+import { useChartStreaming } from "@/hooks/use-chart-streaming";
 import {
-  ResolutionString,
-  LanguageCode,
   ChartingLibraryWidgetOptions,
+  LanguageCode,
+  ResolutionString,
 } from "@/public/static/charting_library";
+import { Video, VideoOff } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
 import Script from "next/script";
 import React, {
   useCallback,
-  useMemo,
-  useState,
-  useRef,
   useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
-import { useChartStreaming } from "@/hooks/use-chart-streaming";
-import { Video, VideoOff } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
 
 // Dynamic import for TradingView chart
 const TradingViewChart = dynamic(
@@ -33,6 +34,12 @@ interface TradingViewChartProps {
 
 export const TradingViewChartComponent = React.memo(
   ({ symbol, isHost = false, roomId, hostId }: TradingViewChartProps) => {
+    const searchParams = useSearchParams();
+    // Guard against Suspense fallback by also checking window.location directly
+    const isScreenshot =
+      searchParams?.get("screenshot") === "1" ||
+      (typeof window !== "undefined" &&
+        new URLSearchParams(window.location.search).get("screenshot") === "1");
     const [isScriptReady, setIsScriptReady] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
     const locale = useLocale();
@@ -315,7 +322,7 @@ export const TradingViewChartComponent = React.memo(
     // Helper: compute min size for container to encourage correct layer
     const minSizeClass = useMemo(() => {
       // Use high quality sizing since participants can't control quality
-      return "min-w-[1280px] min-h-[850px]";
+      return "min-h-[850px]";
     }, []);
 
     // Show video stream for participants when host is streaming
@@ -332,7 +339,6 @@ export const TradingViewChartComponent = React.memo(
             muted
             className={`w-full h-full object-contain absolute inset-0 ${minSizeClass}`}
             onError={(e) => {
-              // Suppress LiveKit client disconnect errors as they are expected
               const errorMessage =
                 (e.nativeEvent as ErrorEvent)?.message ||
                 ((e.nativeEvent as ErrorEvent)?.error as Error)?.message ||
@@ -365,7 +371,7 @@ export const TradingViewChartComponent = React.memo(
     }
 
     // Show "Host not streaming" message for participants
-    if (!isHost && !isHostStreaming) {
+    if (!isHost && !isHostStreaming && !isScreenshot) {
       return (
         <div
           data-testid="trading-view-chart-waiting"

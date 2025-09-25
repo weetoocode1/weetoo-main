@@ -43,6 +43,9 @@ export function ParticipantsList({
     typeof supabaseRef.current.channel
   > | null>(null);
   const revalidateThrottleRef = useRef<number>(0);
+  const presenceRevalidateTimerRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
   const attemptedAutoJoinRef = useRef<boolean>(false);
   const [presentUserIds, setPresentUserIds] = useState<Set<string>>(new Set());
 
@@ -98,7 +101,7 @@ export function ParticipantsList({
         return 0;
       });
 
-      console.log("Fetched participants:", mapped.length);
+      // no-op
       return mapped;
     } catch (error) {
       console.error("Error in fetchParticipants:", error);
@@ -111,7 +114,7 @@ export function ParticipantsList({
     fetchParticipants,
     {
       revalidateOnFocus: false,
-      revalidateOnReconnect: false,
+      revalidateOnReconnect: true,
       dedupingInterval: 1000, // Reduced from default
       keepPreviousData: true,
       fallbackData: [], // Prevent empty state
@@ -132,7 +135,6 @@ export function ParticipantsList({
     if (currentUserId && roomId && participants.length > 0) {
       const timer = setTimeout(() => {
         if (presentUserIds.size === 0) {
-          console.log("Presence fallback: showing all participants");
           // Force a re-render by updating a dummy state
           setPresentUserIds(new Set(participants.map((p) => p.id)));
         }
@@ -158,8 +160,15 @@ export function ParticipantsList({
       try {
         const state = channel.presenceState() as Record<string, unknown[]>;
         const ids = new Set<string>(Object.keys(state));
-        console.log("Presence sync - present users:", Array.from(ids));
         setPresentUserIds(ids);
+
+        // Debounced revalidation to align DB list with presence immediately
+        if (presenceRevalidateTimerRef.current) {
+          clearTimeout(presenceRevalidateTimerRef.current);
+        }
+        presenceRevalidateTimerRef.current = setTimeout(() => {
+          mutate(["participants", roomId], undefined, { revalidate: true });
+        }, 300);
       } catch (e) {
         console.error("Failed to read presence state:", e);
       }
@@ -169,7 +178,6 @@ export function ParticipantsList({
 
     // Subscribe and then track this client's presence
     channel.subscribe(async (status) => {
-      console.log("Presence channel status:", status);
       if (status === "SUBSCRIBED") {
         try {
           await channel.track({
@@ -177,7 +185,8 @@ export function ParticipantsList({
             room_id: roomId,
             joined_at: new Date().toISOString(),
           });
-          console.log("Started presence tracking for user:", currentUserId);
+          // Ensure initial state is synced with DB
+          mutate(["participants", roomId], undefined, { revalidate: true });
         } catch (e) {
           console.error("Failed to start presence tracking:", e);
         }
@@ -199,6 +208,44 @@ export function ParticipantsList({
     };
   }, [currentUserId, roomId]);
 
+  // Aggressive refresh on tab visibility/online regain
+  useEffect(() => {
+    const handleWake = async () => {
+      try {
+        // Rehydrate presence from current channel state
+        const ch = presenceChannelRef.current;
+        if (ch) {
+          try {
+            const state = ch.presenceState() as Record<string, unknown[]>;
+            setPresentUserIds(new Set<string>(Object.keys(state)));
+            // retrack to refresh presence TTL
+            if (currentUserId) {
+              await ch.track({
+                user_id: currentUserId,
+                room_id: roomId,
+                ping_at: Date.now(),
+              });
+            }
+          } catch {}
+        }
+      } finally {
+        // Force DB refresh
+        mutate(["participants", roomId], undefined, { revalidate: true });
+      }
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") handleWake();
+    };
+    const onOnline = () => handleWake();
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("online", onOnline);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("online", onOnline);
+    };
+  }, [currentUserId, roomId]);
+
   // Realtime subscription: on any event, call mutate to refetch
   useEffect(() => {
     const channel = supabaseRef.current
@@ -211,8 +258,7 @@ export function ParticipantsList({
           table: "trading_room_participants",
           filter: `room_id=eq.${roomId}`,
         },
-        async (payload) => {
-          console.log("Participant change detected:", payload);
+        async (_payload) => {
           // Throttle revalidation to at most once per 1500ms
           const now = Date.now();
           if (now - revalidateThrottleRef.current < 1500) {
@@ -369,7 +415,7 @@ export function ParticipantsList({
       </div>
       <ScrollArea className="flex-1 overflow-y-auto select-none">
         <div className="p-2">
-          {isLoading ? (
+          {isLoading && (participants?.length ?? 0) === 0 ? (
             <div className="text-center text-muted-foreground py-8">
               {t("loading")}
             </div>

@@ -132,7 +132,8 @@ export function UserDropdown() {
             const parts: string[] = [];
             if (expDelta > 0) parts.push(`+${expDelta} XP`);
             if (korDelta > 0) parts.push(`+${korDelta} KOR`);
-            const label = newReward?.title || newReward?.type || "Reward";
+            const label =
+              newReward?.title || newReward?.type || t("rewards.defaultLabel");
             toast.success(`${label}: ${parts.join(", ")}`);
           }
           // Trigger UI refresh
@@ -157,13 +158,13 @@ export function UserDropdown() {
     const { error } = await supabase.auth.signOut();
     setLoggingOut(false);
     if (error) {
-      toast.error("Failed to log out. Please try again.");
+      toast.error(t("toasts.logoutFailed"));
     } else {
-      toast.success("Logged out successfully.");
+      toast.success(t("toasts.logoutSuccess"));
       router.refresh();
       router.push("/");
     }
-  }, [router]);
+  }, [router, t]);
 
   // Helper to mask email
   const maskEmail = (email: string) => {
@@ -208,7 +209,7 @@ export function UserDropdown() {
             <button
               type="button"
               className="relative h-9 w-9 rounded-full p-0 overflow-hidden flex items-center justify-center bg-transparent border-none focus:outline-none cursor-pointer"
-              aria-label="Open user menu"
+              aria-label={t("aria.openMenu")}
             >
               <Avatar className="w-8 h-8 border border-border">
                 {loading ? (
@@ -233,7 +234,7 @@ export function UserDropdown() {
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Unverified</p>
+                    <p>{t("badges.unverified")}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -274,7 +275,7 @@ export function UserDropdown() {
                               <BadgeCheckIcon className="w-4 h-4 text-blue-500" />
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Your identity has been verified.</p>
+                              <p>{t("badges.verifiedTooltip")}</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -292,7 +293,9 @@ export function UserDropdown() {
                         type="button"
                         className="ml-1 p-0.5 rounded hover:bg-accent/50 transition-colors cursor-pointer"
                         onClick={() => setShowEmail((v) => !v)}
-                        aria-label={showEmail ? "Hide email" : "Show email"}
+                        aria-label={
+                          showEmail ? t("aria.hideEmail") : t("aria.showEmail")
+                        }
                         tabIndex={0}
                       >
                         {showEmail ? (

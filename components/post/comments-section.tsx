@@ -19,32 +19,14 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
-import { User } from "@/types/post";
+import { User, PostComment } from "@/types/post";
 import { MoreVertical } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { useRealtimeUpdates } from "@/hooks/use-realtime-updates";
-
-export interface PostComment {
-  id: string;
-  post_id: string;
-  user_id: string;
-  content: string;
-  parent_id?: string | null;
-  created_at: string;
-  updated_at: string;
-  is_pinned?: boolean;
-  user: {
-    id: string;
-    first_name?: string;
-    last_name?: string;
-    nickname?: string;
-    avatar_url?: string;
-  };
-  replies?: PostComment[];
-}
+import { useAuth } from "@/hooks/use-auth";
 
 interface CommentsSectionProps {
   postId: string;
@@ -68,6 +50,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   setCommentCount,
 }) => {
   const t = useTranslations("post");
+  const { isAdmin } = useAuth();
   const [comments, setComments] = useState<PostComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -110,6 +93,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
       const res = await fetch(`/api/posts/${postId}/comments`);
       if (!res.ok) throw new Error(t("failedAddComment"));
       const data = await res.json();
+      // Comments are now sorted by the API (newest first)
       setComments(data);
       // Update the parent component's comment count
       updateCommentCount(data.length);
@@ -130,6 +114,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
     postId,
     onCommentUpdate: () => {
       console.log("🔄 Realtime comment update triggered");
+      // Use fetchComments which now includes proper sorting
       fetchComments();
     },
   });
@@ -137,27 +122,119 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   // Add comment or reply
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!commentInput.trim()) return;
+    if (!commentInput.trim() || !currentUser) return;
     setSubmitting(true);
+
+    const newComment: PostComment = {
+      id: `temp-${Date.now()}`, // Temporary ID for optimistic update
+      post_id: postId,
+      user_id: currentUser.id,
+      content: commentInput.trim(),
+      parent_id: replyTo,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      user: {
+        id: currentUser.id,
+        first_name: currentUser.first_name,
+        last_name: currentUser.last_name,
+        nickname: currentUser.nickname,
+        avatar_url: currentUser.avatar_url,
+      },
+      replies: [],
+    };
+
+    // Optimistically add comment to local state
+    if (replyTo) {
+      // Add as reply to parent comment
+      setComments((prevComments) =>
+        prevComments.map((comment) =>
+          comment.id === replyTo
+            ? { ...comment, replies: [...(comment.replies || []), newComment] }
+            : comment
+        )
+      );
+    } else {
+      // Add as top-level comment
+      setComments((prevComments) => [newComment, ...prevComments]);
+    }
+
+    // Update comment count immediately
+    updateCommentCount((commentCount || comments.length) + 1);
+
+    const commentText = commentInput.trim();
+    setCommentInput("");
+    setReplyTo(null);
+
     try {
       const res = await fetch(`/api/posts/${postId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          content: commentInput,
+          content: commentText,
           parent_id: replyTo,
         }),
       });
+
       if (!res.ok) {
         const { error } = await res.json();
         throw new Error(error || "Failed to add comment");
       }
-      setCommentInput("");
-      setReplyTo(null);
-      // Fetch comments will update the count automatically
-      await fetchComments();
+
+      const { comment: savedComment } = await res.json();
+
+      // Replace temporary comment with real comment from server
+      if (replyTo) {
+        setComments((prevComments) =>
+          prevComments.map((comment) =>
+            comment.id === replyTo
+              ? {
+                  ...comment,
+                  replies:
+                    comment.replies?.map((reply) =>
+                      reply.id === newComment.id ? savedComment : reply
+                    ) || [],
+                }
+              : comment
+          )
+        );
+      } else {
+        setComments((prevComments) =>
+          prevComments.map((comment) =>
+            comment.id === newComment.id ? savedComment : comment
+          )
+        );
+      }
+
       toast.success(t("commentAdded"));
     } catch (err: unknown) {
+      // Revert optimistic update on error
+      if (replyTo) {
+        setComments((prevComments) =>
+          prevComments.map((comment) =>
+            comment.id === replyTo
+              ? {
+                  ...comment,
+                  replies:
+                    comment.replies?.filter(
+                      (reply) => reply.id !== newComment.id
+                    ) || [],
+                }
+              : comment
+          )
+        );
+      } else {
+        setComments((prevComments) =>
+          prevComments.filter((comment) => comment.id !== newComment.id)
+        );
+      }
+
+      // Revert comment count
+      updateCommentCount((commentCount || comments.length) - 1);
+
+      // Restore the comment text
+      setCommentInput(commentText);
+      if (replyTo) setReplyTo(replyTo);
+
       toast.error(err instanceof Error ? err.message : t("failedAddComment"));
     } finally {
       setSubmitting(false);
@@ -166,18 +243,166 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 
   // Delete comment
   const handleDelete = async (commentId: string) => {
+    setDeleting(commentId);
+
+    // Find the comment to delete and count total comments (including replies)
+    const findCommentAndCount = (
+      comments: PostComment[],
+      targetId: string
+    ): { comment: PostComment | null; totalCount: number } => {
+      for (const comment of comments) {
+        if (comment.id === targetId) {
+          return { comment, totalCount: 1 + (comment.replies?.length || 0) };
+        }
+        if (comment.replies) {
+          const found = findCommentAndCount(comment.replies, targetId);
+          if (found.comment) {
+            return { comment: found.comment, totalCount: found.totalCount };
+          }
+        }
+      }
+      return { comment: null, totalCount: 0 };
+    };
+
+    const { comment: commentToDelete, totalCount } = findCommentAndCount(
+      comments,
+      commentId
+    );
+
+    if (!commentToDelete) {
+      setDeleting(null);
+      return;
+    }
+
+    // Optimistically remove comment from local state
+    const removeCommentFromState = (
+      comments: PostComment[],
+      targetId: string
+    ): PostComment[] => {
+      return comments
+        .filter((comment) => comment.id !== targetId)
+        .map((comment) => ({
+          ...comment,
+          replies: comment.replies
+            ? removeCommentFromState(comment.replies, targetId)
+            : [],
+        }));
+    };
+
+    setComments((prevComments) =>
+      removeCommentFromState(prevComments, commentId)
+    );
+    updateCommentCount((commentCount || comments.length) - totalCount);
+
     try {
       const res = await fetch(`/api/posts/${postId}/comments/${commentId}`, {
         method: "DELETE",
       });
+
       if (!res.ok) {
         const { error } = await res.json();
         throw new Error(error || "Failed to delete comment");
       }
-      // Fetch comments will update the count automatically
-      await fetchComments();
+
       toast.success(t("commentDeleted"));
     } catch (err: unknown) {
+      // Revert optimistic update on error by refetching comments
+      await fetchComments();
+
+      toast.error(
+        err instanceof Error ? err.message : t("failedDeleteComment")
+      );
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  // Admin delete comment
+  const handleAdminDelete = async (commentId: string) => {
+    setDeleting(commentId);
+
+    // Find the comment to delete and count total comments (including replies)
+    const findCommentAndCount = (
+      comments: PostComment[],
+      targetId: string
+    ): { comment: PostComment | null; totalCount: number } => {
+      for (const comment of comments) {
+        if (comment.id === targetId) {
+          return { comment, totalCount: 1 + (comment.replies?.length || 0) };
+        }
+        if (comment.replies) {
+          const found = findCommentAndCount(comment.replies, targetId);
+          if (found.comment) {
+            return { comment: found.comment, totalCount: found.totalCount };
+          }
+        }
+      }
+      return { comment: null, totalCount: 0 };
+    };
+
+    const { comment: commentToDelete } = findCommentAndCount(
+      comments,
+      commentId
+    );
+
+    if (!commentToDelete) {
+      setDeleting(null);
+      return;
+    }
+
+    // Optimistically mark comment as deleted by admin
+    const markCommentAsAdminDeleted = (
+      comments: PostComment[],
+      targetId: string
+    ): PostComment[] => {
+      return comments.map((comment) => {
+        if (comment.id === targetId) {
+          return {
+            ...comment,
+            content: t("adminDeleted"),
+            deleted_by_admin: true,
+            deleted_at: new Date().toISOString(),
+            deleted_by_user_id: currentUser?.id || "",
+            user: {
+              ...comment.user,
+              first_name: "Admin",
+              last_name: "",
+              nickname: "Administrator",
+            },
+          };
+        }
+        if (comment.replies) {
+          return {
+            ...comment,
+            replies: markCommentAsAdminDeleted(comment.replies, targetId),
+          };
+        }
+        return comment;
+      });
+    };
+
+    setComments((prevComments) =>
+      markCommentAsAdminDeleted(prevComments, commentId)
+    );
+
+    try {
+      const res = await fetch(
+        `/api/posts/${postId}/comments/${commentId}/admin`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!res.ok) {
+        const { error } = await res.json();
+        throw new Error(error || "Failed to delete comment as admin");
+      }
+
+      toast.success(t("commentDeleted"));
+    } catch (err: unknown) {
+      // Revert optimistic update on error by refetching comments
+      await fetchComments();
+
       toast.error(
         err instanceof Error ? err.message : t("failedDeleteComment")
       );
@@ -210,8 +435,11 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   // Render a single comment (and its replies)
   const renderComment = (comment: PostComment, depth = 0): React.ReactNode => {
     const isOwn = currentUser && comment.user_id === currentUser.id;
-    const canReply = !!currentUser && depth < 1;
+    const canReply = !!currentUser && depth < 1 && !comment.deleted_by_admin;
+    const isAdminDeleted = comment.deleted_by_admin;
     const formattedDate = formatDateString(comment.created_at);
+    const canAdminDelete = isAdmin && !isOwn && !isAdminDeleted;
+
     return (
       <div
         key={comment.id}
@@ -241,7 +469,12 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
               <span className="text-xs text-muted-foreground">
                 {formattedDate}
               </span>
-              {isOwn && (
+              {isAdminDeleted && (
+                <span className="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
+                  {t("moderatedByAdmin")}
+                </span>
+              )}
+              {(isOwn || canAdminDelete) && (
                 <div className="ml-auto flex items-center">
                   <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
@@ -254,46 +487,89 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <button
-                              className="w-full text-left text-red-600 hover:bg-muted px-3 py-1 rounded-md cursor-pointer"
-                              type="button"
-                            >
-                              {t("delete")}
-                            </button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                {t("deleteCommentQ")}
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                {t("deleteCommentDesc")}
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>
-                                {t("cancel")}
-                              </AlertDialogCancel>
-                              <AlertDialogAction
-                                className="bg-red-600 hover:bg-red-700 text-white"
-                                onClick={() => handleDelete(comment.id)}
+                      {isOwn && !isAdminDeleted && (
+                        <DropdownMenuItem asChild>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <button
+                                className="w-full text-left text-red-600 hover:bg-muted px-3 py-1 rounded-md cursor-pointer"
+                                type="button"
                               >
                                 {t("delete")}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </DropdownMenuItem>
+                              </button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  {t("deleteCommentQ")}
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  {t("deleteCommentDesc")}
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>
+                                  {t("cancel")}
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-red-600 hover:bg-red-700 text-white"
+                                  onClick={() => handleDelete(comment.id)}
+                                >
+                                  {t("delete")}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </DropdownMenuItem>
+                      )}
+                      {canAdminDelete && (
+                        <DropdownMenuItem asChild>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <button
+                                className="w-full text-left text-orange-600 hover:bg-muted px-3 py-1 rounded-md cursor-pointer"
+                                type="button"
+                              >
+                                {t("adminDelete")}
+                              </button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  {t("adminDeleteCommentQ")}
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  {t("adminDeleteCommentDesc")}
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>
+                                  {t("cancel")}
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-orange-600 hover:bg-orange-700 text-white"
+                                  onClick={() => handleAdminDelete(comment.id)}
+                                >
+                                  {t("adminDelete")}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
               )}
             </div>
-            <div className="text-base text-foreground whitespace-pre-line break-words">
-              {comment.content}
+            <div
+              className={`whitespace-pre-line break-words ${
+                isAdminDeleted
+                  ? "text-muted-foreground italic text-sm py-2"
+                  : "text-foreground"
+              }`}
+            >
+              {isAdminDeleted ? t("adminDeleted") : comment.content}
             </div>
             {canReply && (
               <Button

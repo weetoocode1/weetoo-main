@@ -3,10 +3,12 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 function NaverCallbackInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations("auth.naver");
   const [status, setStatus] = useState<"loading" | "error" | "success">(
     "loading"
   );
@@ -19,7 +21,7 @@ function NaverCallbackInner() {
 
       if (!code || !state || state !== storedState) {
         setStatus("error");
-        toast.error("Invalid Naver OAuth state or code.");
+        toast.error(t("toast.invalidStateOrCode"));
         return;
       }
 
@@ -32,7 +34,7 @@ function NaverCallbackInner() {
       const tokenData = await tokenRes.json();
       if (!tokenRes.ok) {
         setStatus("error");
-        toast.error(tokenData.error || "Naver login failed.");
+        toast.error(tokenData.error || t("toast.naverFailed"));
         return;
       }
 
@@ -45,7 +47,7 @@ function NaverCallbackInner() {
       const naverUserData = await naverUserRes.json();
       if (!naverUserData.success) {
         setStatus("error");
-        toast.error(naverUserData.error || "Naver login failed.");
+        toast.error(naverUserData.error || t("toast.naverFailed"));
         return;
       }
 
@@ -57,12 +59,12 @@ function NaverCallbackInner() {
       });
       if (error) {
         setStatus("error");
-        toast.error(error.message || "Supabase login failed.");
+        toast.error(error.message || t("toast.supabaseFailed"));
         return;
       }
 
       setStatus("success");
-      toast.success("Logged in with Naver!");
+      toast.success(t("toast.success"));
       router.push("/");
     }
 
@@ -71,14 +73,12 @@ function NaverCallbackInner() {
 
   return (
     <div className="w-full h-screen flex flex-col items-center justify-center">
-      {status === "loading" && <div>Logging in with Naver...</div>}
+      {status === "loading" && <div>{t("status.loading")}</div>}
       {status === "error" && (
-        <div className="text-red-600">
-          Naver login failed. Please try again.
-        </div>
+        <div className="text-red-600">{t("status.error")}</div>
       )}
       {status === "success" && (
-        <div className="text-green-600">Login successful! Redirecting...</div>
+        <div className="text-green-600">{t("status.success")}</div>
       )}
     </div>
   );

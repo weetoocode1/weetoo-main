@@ -22,6 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Shield, Send, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface AccountVerificationDialogProps {
   open: boolean;
@@ -42,6 +43,7 @@ export function AccountVerificationDialog({
   open,
   onOpenChange,
 }: AccountVerificationDialogProps) {
+  const t = useTranslations("admin.withdrawManagement.accountVerification");
   const [selectedUser, setSelectedUser] = useState<string>("");
   const [testAmount, setTestAmount] = useState<string>("0.002");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -92,7 +94,7 @@ export function AccountVerificationDialog({
 
   const handleSendTestAmount = async () => {
     if (!selectedUser || !testAmount) {
-      toast.error("Please select a user and enter test amount");
+      toast.error(t("toast.selectUserAndAmount"));
       return;
     }
 
@@ -103,7 +105,7 @@ export function AccountVerificationDialog({
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
       const user = mockUsers.find((u) => u.id === selectedUser);
-      if (!user) throw new Error("User not found");
+      if (!user) throw new Error("USER_NOT_FOUND");
 
       const newRequest: VerificationRequest = {
         id: selectedUser,
@@ -115,13 +117,13 @@ export function AccountVerificationDialog({
       };
 
       setVerificationRequests((prev) => [...prev, newRequest]);
-      toast.success(`Test amount of ${testAmount} KOR sent to ${user.name}`);
+      toast.success(t("toast.sent", { amount: testAmount, name: user.name }));
 
       // Reset form
       setSelectedUser("");
       setTestAmount("0.002");
     } catch (_error) {
-      toast.error("Failed to send test amount. Please try again.");
+      toast.error(t("toast.sendFailed"));
     } finally {
       setIsProcessing(false);
     }
@@ -133,32 +135,32 @@ export function AccountVerificationDialog({
         return (
           <Badge variant="secondary" className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
-            Pending
+            {t("status.pending")}
           </Badge>
         );
       case "sent":
         return (
           <Badge variant="outline" className="flex items-center gap-1">
             <Send className="h-3 w-3" />
-            Sent
+            {t("status.sent")}
           </Badge>
         );
       case "verified":
         return (
           <Badge variant="default" className="flex items-center gap-1">
             <CheckCircle className="h-3 w-3" />
-            Verified
+            {t("status.verified")}
           </Badge>
         );
       case "failed":
         return (
           <Badge variant="destructive" className="flex items-center gap-1">
             <AlertTriangle className="h-3 w-3" />
-            Failed
+            {t("status.failed")}
           </Badge>
         );
       default:
-        return <Badge variant="secondary">Unknown</Badge>;
+        return <Badge variant="secondary">{t("status.unknown")}</Badge>;
     }
   };
 
@@ -177,12 +179,9 @@ export function AccountVerificationDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-primary" />
-            Account Verification
+            {t("title")}
           </DialogTitle>
-          <DialogDescription>
-            Send small test amounts (0.002 - 0.009 KOR) to verify withdrawal
-            accounts
-          </DialogDescription>
+          <DialogDescription>{t("description")}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -190,10 +189,10 @@ export function AccountVerificationDialog({
           <div className="p-4 bg-muted/30 rounded-lg border border-border">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="user">Select User</Label>
+                <Label htmlFor="user">{t("fields.selectUser")}</Label>
                 <Select value={selectedUser} onValueChange={setSelectedUser}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Choose user to verify" />
+                    <SelectValue placeholder={t("placeholders.chooseUser")} />
                   </SelectTrigger>
                   <SelectContent>
                     {mockUsers.map((user) => (
@@ -206,7 +205,7 @@ export function AccountVerificationDialog({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="amount">Test Amount (KOR)</Label>
+                <Label htmlFor="amount">{t("fields.testAmount")}</Label>
                 <div className="flex gap-2">
                   <Input
                     id="amount"
@@ -226,11 +225,11 @@ export function AccountVerificationDialog({
                     }
                     className="whitespace-nowrap"
                   >
-                    Random
+                    {t("buttons.random")}
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Range: 0.002 - 0.009 KOR
+                  {t("hints.range")}
                 </p>
               </div>
 
@@ -243,12 +242,12 @@ export function AccountVerificationDialog({
                   {isProcessing ? (
                     <>
                       <Clock className="h-4 w-4 mr-2 animate-spin" />
-                      Sending...
+                      {t("buttons.sending")}
                     </>
                   ) : (
                     <>
                       <Send className="h-4 w-4 mr-2" />
-                      Send Test Amount
+                      {t("buttons.sendTestAmount")}
                     </>
                   )}
                 </Button>
@@ -269,25 +268,25 @@ export function AccountVerificationDialog({
                 <thead>
                   <tr className="border-b border-border/50 bg-muted/20">
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      ID
+                      {t("table.id")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Account Holder Name
+                      {t("table.accountHolderName")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Account Number
+                      {t("table.accountNumber")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Random Amount
+                      {t("table.randomAmount")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Status
+                      {t("table.status")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Sent At
+                      {t("table.sentAt")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      Verified At
+                      {t("table.verifiedAt")}
                     </th>
                   </tr>
                 </thead>
@@ -338,7 +337,7 @@ export function AccountVerificationDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
+            {t("buttons.close")}
           </Button>
         </DialogFooter>
       </DialogContent>

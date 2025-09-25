@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 // PortOne SDK types
 interface PortOneSDK {
@@ -137,6 +138,7 @@ export function IdentityVerificationButton({
   onVerificationSuccess,
   onVerificationFailure,
 }: IdentityVerificationButtonProps) {
+  const t = useTranslations("identityVerification");
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState<string>("");
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
@@ -163,19 +165,17 @@ export function IdentityVerificationButton({
 
   const handleIdentityVerification = async () => {
     if (!isSDKLoaded) {
-      toast.error(
-        "PortOne SDK is still loading. Please wait a moment and try again."
-      );
+      toast.error(t("errors.sdkLoading"));
       return;
     }
 
     setIsLoading(true);
-    setLoadingStep("Initializing verification...");
+    setLoadingStep(t("steps.initializing"));
 
     try {
       // Generate identity verification ID
       const identityVerificationId = `identity-verification-${crypto.randomUUID()}`;
-      setLoadingStep("Requesting verification...");
+      setLoadingStep(t("steps.requesting"));
 
       // Request PortOne identity verification
       const response = await window.PortOne.requestIdentityVerification({
@@ -192,16 +192,15 @@ export function IdentityVerificationButton({
 
       // Error code exists if the process is not completed properly
       if (response.code !== undefined) {
-        let errorMessage = "Identity verification failed. Please try again.";
+        let errorMessage = t("errors.generic");
 
         // Add more specific error handling for user-friendly messages
         if (response.code === "USER_CANCEL") {
-          errorMessage = "Identity verification was cancelled by the user.";
+          errorMessage = t("errors.userCancel");
         } else if (response.code === "TIMEOUT") {
-          errorMessage = "Identity verification timed out. Please try again.";
+          errorMessage = t("errors.timeout");
         } else if (response.code === "NETWORK_ERROR") {
-          errorMessage =
-            "Network error occurred. Please check your connection and try again.";
+          errorMessage = t("errors.network");
         }
 
         console.error("Identity verification error:", {
@@ -224,7 +223,7 @@ export function IdentityVerificationButton({
         identityVerificationTxId: response.identityVerificationTxId,
       });
 
-      setLoadingStep("Verifying result...");
+      setLoadingStep(t("steps.verifying"));
 
       // Verify verification result on server
       const verificationResult = await fetch("/api/identity-verification", {
@@ -240,9 +239,7 @@ export function IdentityVerificationButton({
       if (!contentType || !contentType.includes("application/json")) {
         const errorText = await verificationResult.text();
         console.error("Non-JSON response received:", errorText);
-        toast.error(
-          "Server returned invalid response format. Please try again."
-        );
+        toast.error(t("errors.invalidResponse"));
         setIsVerified(false);
         onVerificationFailure();
         return;
@@ -389,12 +386,10 @@ export function IdentityVerificationButton({
             // Pass verification data and user data to parent component
             onVerificationSuccess(verificationData, extractedUserData);
 
-            toast.success("Identity verification completed successfully!");
+            toast.success(t("toast.success"));
           } catch (storeError) {
             console.error("Failed to store verification status:", storeError);
-            toast.error(
-              "Verification completed but failed to save status. Please refresh the page."
-            );
+            toast.error(t("errors.saveFailed"));
             setIsVerified(false);
             onVerificationFailure();
             return;
@@ -402,7 +397,7 @@ export function IdentityVerificationButton({
         } else {
           // Just pass the data to parent component without storing in database
           onVerificationSuccess(verificationData, extractedUserData);
-          toast.success("Identity verification completed successfully!");
+          toast.success(t("toast.success"));
         }
       } else {
         // Only show error if verification failed, don't duplicate error messages
@@ -434,17 +429,19 @@ export function IdentityVerificationButton({
       )}
     >
       {!isSDKLoaded ? (
-        "Loading SDK..."
+        t("button.loadingSdk")
       ) : !isFormValid ? (
-        "Fill form to verify identity"
+        t("button.fillForm")
       ) : isLoading ? (
         loadingStep
       ) : isVerified ? (
-        "Identity Verified ✓"
+        t("button.verified")
       ) : text === "Verification Needed" ? (
         <div className="flex items-center justify-center gap-2">
           <AlertTriangle className="w-4 h-4" />
-          <span className="text-sm font-medium">Verification Needed</span>
+          <span className="text-sm font-medium">
+            {t("button.verificationNeeded")}
+          </span>
         </div>
       ) : (
         text

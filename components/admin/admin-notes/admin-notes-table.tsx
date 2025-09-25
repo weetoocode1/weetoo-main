@@ -211,11 +211,11 @@ export function AdminNotesTable() {
       // Invalidate both queries for real-time updates
       queryClient.invalidateQueries({ queryKey: ["admin-notes"] });
       queryClient.invalidateQueries({ queryKey: ["admin-notes-stats"] });
-      toast.success("Note deleted successfully");
+      toast.success(t("messages.noteDeleted"));
     },
     onError: (error) => {
       console.error("Error deleting note:", error);
-      toast.error("Failed to delete note");
+      toast.error(t("messages.deleteFailed"));
     },
   });
 

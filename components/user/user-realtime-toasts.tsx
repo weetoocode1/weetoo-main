@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useTranslations } from "next-intl";
 
 interface UserNotificationPayload {
   id: string;
@@ -23,138 +24,7 @@ interface NotificationConfig {
   dismissible?: boolean;
 }
 
-// Generic fallback config for unknown types
-const getGenericConfig = (
-  type: string,
-  title?: string,
-  body?: string
-): NotificationConfig => ({
-  toastType: "info",
-  title: title || "New Notification",
-  description: () => body || "You have a new notification",
-  duration: 5000,
-});
-
-// Notification configurations for user notifications
-const userNotificationConfigs: Record<string, NotificationConfig> = {
-  user_banned: {
-    toastType: "error",
-    title: (metadata) => metadata?.title?.toString?.() || "Account Banned",
-    description: (metadata) =>
-      `Your account has been banned${
-        metadata?.reason ? `: ${metadata.reason}` : "."
-      }`,
-    duration: 6000,
-  },
-  deposit_failed: {
-    toastType: "error",
-    title: "Deposit Failed",
-    description: (metadata) => {
-      const amount = metadata?.kor_coins_amount;
-      const reason = metadata?.reason;
-      const display =
-        typeof amount === "number"
-          ? `${amount.toLocaleString()} KOR`
-          : "Your deposit";
-      return `${display} was rejected${reason ? `: ${reason}` : "."}`;
-    },
-    duration: 6000,
-  },
-  deposit_success: {
-    toastType: "success",
-    title: "Deposit Successful",
-    description: (metadata) => {
-      const amount = metadata?.kor_coins_amount;
-      const display =
-        typeof amount === "number"
-          ? `${amount.toLocaleString()} KOR`
-          : "Your deposit";
-      return `${display} has been successfully processed!`;
-    },
-    duration: 5000,
-  },
-  withdrawal_success: {
-    toastType: "success",
-    title: "Withdrawal Successful",
-    description: (metadata) => {
-      const amount = metadata?.kor_coins_amount;
-      const display =
-        typeof amount === "number"
-          ? `${amount.toLocaleString()} KOR`
-          : "Your withdrawal";
-      return `${display} has been successfully processed!`;
-    },
-    duration: 5000,
-  },
-  withdrawal_failed: {
-    toastType: "error",
-    title: "Withdrawal Failed",
-    description: (metadata) => {
-      const amount = metadata?.kor_coins_amount;
-      const reason = metadata?.reason;
-      const display =
-        typeof amount === "number"
-          ? `${amount.toLocaleString()} KOR`
-          : "Your withdrawal";
-      return `${display} was rejected${reason ? `: ${reason}` : "."}`;
-    },
-    duration: 6000,
-  },
-  deposit_completed: {
-    toastType: "success",
-    title: "Deposit Completed!",
-    description: (metadata) => {
-      const amount = metadata?.kor_coins_amount;
-      const display =
-        typeof amount === "number"
-          ? `${amount.toLocaleString()} KOR`
-          : "Your deposit";
-      return `${display} has been successfully credited to your account!`;
-    },
-    duration: 5000,
-  },
-  account_verified: {
-    toastType: "success",
-    title: "Account Verified",
-    description: () => "Your account has been successfully verified!",
-    duration: 5000,
-  },
-  level_up: {
-    toastType: "success",
-    title: "Level Up!",
-    description: (metadata) => {
-      const newLevel = metadata?.new_level;
-      return `Congratulations! You've reached level ${newLevel || "up"}!`;
-    },
-    duration: 4000,
-  },
-  kor_coins_credited: {
-    toastType: "success",
-    title: "KOR Coins Credited!",
-    description: (metadata) => {
-      const amount = metadata?.kor_coins_amount;
-      const display =
-        typeof amount === "number"
-          ? `${amount.toLocaleString()} KOR`
-          : "KOR coins";
-      return `${display} have been credited to your account!`;
-    },
-    duration: 5000,
-  },
-  payment_confirmed: {
-    toastType: "success",
-    title: "Payment Confirmed!",
-    description: (metadata) => {
-      const amount = metadata?.kor_coins_amount;
-      const display =
-        typeof amount === "number"
-          ? `${amount.toLocaleString()} KOR`
-          : "Your payment";
-      return `${display} has been confirmed and processed!`;
-    },
-    duration: 5000,
-  },
-};
+// Note: translation-aware config builders are defined inside the component
 
 // Simple, clean toast function
 const showToast = (
@@ -189,7 +59,147 @@ const showToast = (
 
 export function UserRealtimeToasts() {
   const { user } = useAuth();
+  const t = useTranslations("user.realtimeToasts");
   const userRef = useRef(user);
+  // Translation-aware generic fallback
+  const getGenericConfig = (
+    type: string,
+    title?: string,
+    body?: string
+  ): NotificationConfig => ({
+    toastType: "info",
+    title: title || t("generic.title"),
+    description: () => body || t("generic.description"),
+    duration: 5000,
+  });
+
+  // Translation-aware notification configurations
+  const userNotificationConfigs: Record<string, NotificationConfig> = {
+    user_banned: {
+      toastType: "error",
+      title: (metadata) =>
+        metadata?.title?.toString?.() || t("userBanned.title"),
+      description: (metadata) => {
+        const reason = (metadata?.reason as string) || "";
+        return reason
+          ? t("userBanned.descriptionWithReason", { reason })
+          : t("userBanned.description");
+      },
+      duration: 6000,
+    },
+    deposit_failed: {
+      toastType: "error",
+      title: t("depositFailed.title"),
+      description: (metadata) => {
+        const amount = metadata?.kor_coins_amount as number | undefined;
+        const display =
+          typeof amount === "number"
+            ? `${amount.toLocaleString()} KOR`
+            : t("depositFailed.defaultDisplay");
+        const reason = (metadata?.reason as string) || "";
+        return reason
+          ? t("depositFailed.descriptionWithReason", { display, reason })
+          : t("depositFailed.description", { display });
+      },
+      duration: 6000,
+    },
+    deposit_success: {
+      toastType: "success",
+      title: t("depositSuccess.title"),
+      description: (metadata) => {
+        const amount = metadata?.kor_coins_amount as number | undefined;
+        const display =
+          typeof amount === "number"
+            ? `${amount.toLocaleString()} KOR`
+            : t("depositSuccess.defaultDisplay");
+        return t("depositSuccess.description", { display });
+      },
+      duration: 5000,
+    },
+    withdrawal_success: {
+      toastType: "success",
+      title: t("withdrawalSuccess.title"),
+      description: (metadata) => {
+        const amount = metadata?.kor_coins_amount as number | undefined;
+        const display =
+          typeof amount === "number"
+            ? `${amount.toLocaleString()} KOR`
+            : t("withdrawalSuccess.defaultDisplay");
+        return t("withdrawalSuccess.description", { display });
+      },
+      duration: 5000,
+    },
+    withdrawal_failed: {
+      toastType: "error",
+      title: t("withdrawalFailed.title"),
+      description: (metadata) => {
+        const amount = metadata?.kor_coins_amount as number | undefined;
+        const display =
+          typeof amount === "number"
+            ? `${amount.toLocaleString()} KOR`
+            : t("withdrawalFailed.defaultDisplay");
+        const reason = (metadata?.reason as string) || "";
+        return reason
+          ? t("withdrawalFailed.descriptionWithReason", { display, reason })
+          : t("withdrawalFailed.description", { display });
+      },
+      duration: 6000,
+    },
+    deposit_completed: {
+      toastType: "success",
+      title: t("depositCompleted.title"),
+      description: (metadata) => {
+        const amount = metadata?.kor_coins_amount as number | undefined;
+        const display =
+          typeof amount === "number"
+            ? `${amount.toLocaleString()} KOR`
+            : t("depositCompleted.defaultDisplay");
+        return t("depositCompleted.description", { display });
+      },
+      duration: 5000,
+    },
+    account_verified: {
+      toastType: "success",
+      title: t("accountVerified.title"),
+      description: () => t("accountVerified.description"),
+      duration: 5000,
+    },
+    level_up: {
+      toastType: "success",
+      title: t("levelUp.title"),
+      description: (metadata) => {
+        const newLevel = (metadata?.new_level as number | string) ?? "";
+        return t("levelUp.description", { level: newLevel });
+      },
+      duration: 4000,
+    },
+    kor_coins_credited: {
+      toastType: "success",
+      title: t("korCoinsCredited.title"),
+      description: (metadata) => {
+        const amount = metadata?.kor_coins_amount as number | undefined;
+        const display =
+          typeof amount === "number"
+            ? `${amount.toLocaleString()} KOR`
+            : t("korCoinsCredited.defaultDisplay");
+        return t("korCoinsCredited.description", { display });
+      },
+      duration: 5000,
+    },
+    payment_confirmed: {
+      toastType: "success",
+      title: t("paymentConfirmed.title"),
+      description: (metadata) => {
+        const amount = metadata?.kor_coins_amount as number | undefined;
+        const display =
+          typeof amount === "number"
+            ? `${amount.toLocaleString()} KOR`
+            : t("paymentConfirmed.defaultDisplay");
+        return t("paymentConfirmed.description", { display });
+      },
+      duration: 5000,
+    },
+  };
   const connectionRef = useRef<{
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     channel: any;
@@ -617,7 +627,7 @@ export function UserRealtimeToasts() {
       //     Test User Toast
       //   </button>
       // </div>
-      <div></div>
+      <></>
     );
   }
 

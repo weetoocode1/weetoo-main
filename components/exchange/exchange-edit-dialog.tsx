@@ -53,10 +53,10 @@ export function ExchangeEditDialog({
     try {
       // Here you would typically save to your backend/database
       await onSave(editedExchange);
-      toast.success(`Updated ${editedExchange.name} successfully`);
+      toast.success(t("toast.updated", { name: editedExchange.name }));
       onOpenChange(false);
     } catch (_error) {
-      toast.error("Failed to update exchange");
+      toast.error(t("toast.updateFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -146,7 +146,8 @@ export function ExchangeEditDialog({
                           <div className="text-xs space-y-1">
                             <div className="flex justify-between">
                               <span>
-                                Payback Rate ({editedExchange.paybackRate}%):
+                                {t("paybackRate")} ({editedExchange.paybackRate}
+                                %):
                               </span>
                               <span className="font-mono">
                                 +{scoreBreakdown.paybackPoints} pts
@@ -160,7 +161,7 @@ export function ExchangeEditDialog({
                             </div>
                             <div className="flex justify-between">
                               <span>
-                                Fees (
+                                {t("fees")} (
                                 {(
                                   parseFloat(
                                     editedExchange.limitOrderFee.replace(
