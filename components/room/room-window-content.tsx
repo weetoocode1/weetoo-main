@@ -12,6 +12,7 @@ import React, { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 // TradingViewChartComponent will be lazy loaded
 import dynamic from "next/dynamic";
+import { MockInvestmentNotice } from "./mock-investment-notice";
 
 // Lazy load heavy components
 const Chat = dynamic(
@@ -232,6 +233,7 @@ export function RoomWindowContent({
   return (
     <LiveKitErrorBoundary>
       <div className="h-[calc(100%-0rem)] bg-background flex flex-col gap-2 px-3 py-2">
+        <MockInvestmentNotice roomId={roomId} />
         <RoomJoiner roomId={roomId} />
         {/* LiveKit participant audio playback */}
         {roomType === "voice" && (

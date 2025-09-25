@@ -3,7 +3,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { createClient } from "@/lib/supabase/client";
 import { Crown, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import useSWR, { mutate } from "swr";
 
@@ -37,6 +38,30 @@ export function ParticipantsList({
   hostId: string;
 }) {
   const t = useTranslations("room.participants");
+  // Grace period to allow data to arrive in screenshot mode (avoid premature empty state)
+  const [screenshotGrace, setScreenshotGrace] = useState<boolean>(
+    () =>
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("screenshot") === "1"
+  );
+  const [isScreenshot, setIsScreenshot] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return (
+        new URLSearchParams(window.location.search).get("screenshot") === "1"
+      );
+    }
+    return false;
+  });
+
+  const ScreenshotFlagReader: React.FC<{ onValue: (v: boolean) => void }> = ({
+    onValue,
+  }) => {
+    const sp = useSearchParams();
+    useEffect(() => {
+      onValue(sp?.get("screenshot") === "1");
+    }, [sp, onValue]);
+    return null;
+  };
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const supabaseRef = useRef(createClient());
   const presenceChannelRef = useRef<ReturnType<
@@ -50,11 +75,15 @@ export function ParticipantsList({
   const [presentUserIds, setPresentUserIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    if (screenshotGrace) {
+      const timer = setTimeout(() => setScreenshotGrace(false), 3000);
+      return () => clearTimeout(timer);
+    }
     const supabase = supabaseRef.current;
     supabase.auth.getUser().then(({ data }) => {
       setCurrentUserId(data.user?.id || null);
     });
-  }, []);
+  }, [screenshotGrace]);
 
   // SWR fetcher for participants
   const fetchParticipants = async () => {
@@ -124,11 +153,14 @@ export function ParticipantsList({
   // Derive the list actually shown, applying presence filtering like the UI
   const visibleParticipants = useMemo(() => {
     const list = (participants as Participant[]) || [];
+    if (isScreenshot) {
+      return list;
+    }
     // If presence hasn't synced yet (first 3 seconds), show all participants
     // This prevents the list from being empty while presence is initializing
     if (presentUserIds.size === 0) return list;
     return list.filter((p) => presentUserIds.has(p.id));
-  }, [participants, presentUserIds]);
+  }, [participants, presentUserIds, isScreenshot]);
 
   // Fallback: if presence fails to sync after 5 seconds, show all participants
   useEffect(() => {
@@ -406,6 +438,10 @@ export function ParticipantsList({
 
   return (
     <div className="flex flex-col h-full">
+      {/* Suspense-safe screenshot flag reader */}
+      <Suspense fallback={<></>}>
+        <ScreenshotFlagReader onValue={setIsScreenshot} />
+      </Suspense>
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-background sticky top-0 z-10 select-none">
         <Users className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm font-medium">{t("title")}</span>
@@ -415,14 +451,18 @@ export function ParticipantsList({
       </div>
       <ScrollArea className="flex-1 overflow-y-auto select-none">
         <div className="p-2">
-          {isLoading && (participants?.length ?? 0) === 0 ? (
+          {isLoading && (participants?.length ?? 0) === 0 && !isScreenshot ? (
             <div className="text-center text-muted-foreground py-8">
               {t("loading")}
             </div>
           ) : visibleParticipants.length === 0 ? (
-            <div className="text-center text-muted-foreground py-8">
-              {t("empty.noParticipants")}
-            </div>
+            screenshotGrace ? (
+              <></>
+            ) : (
+              <div className="text-center text-muted-foreground py-8">
+                {t("empty.noParticipants")}
+              </div>
+            )
           ) : (
             visibleParticipants.map((participant) => (
               <div
@@ -459,7 +499,7 @@ export function ParticipantsList({
             ))
           )}
           {/* Show join button for not-logged-in users */}
-          {!currentUserId && (
+          {!currentUserId && !isScreenshot && (
             <div className="flex justify-center mt-4">
               <button
                 className="px-4 py-2 rounded bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition"

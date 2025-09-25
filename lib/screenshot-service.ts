@@ -174,6 +174,26 @@ export class ScreenshotService {
       // Small grace period to avoid catching transient UI just after ready
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
+      // Ensure participants list has at least one rendered row if available
+      try {
+        await page.waitForFunction(
+          () => {
+            const container = document.querySelector(
+              '[data-testid="participants-list"]'
+            ) as HTMLElement | null;
+            if (!container) return true; // no container, don't block
+            // Find rendered participant rows
+            const rows = container.querySelectorAll(
+              'div[class*="flex"][class*="items-center"][class*="gap-2"][class*="p-2"]'
+            );
+            return rows.length > 0;
+          },
+          { timeout: 5000 }
+        );
+      } catch (_e) {
+        // best-effort; continue
+      }
+
       // Take screenshot of the full room window, not just the chart/loading state
       let screenshot: Buffer | string;
       try {

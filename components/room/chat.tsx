@@ -151,7 +151,7 @@ export function Chat({ roomId, creatorId }: ChatProps) {
 
       let result;
       if (!res.ok) {
-        console.error("Perspective API error:", res.status, res.statusText);
+        console.warn("Perspective API degraded:", res.status, res.statusText);
         result = { isProfane: false, severity: "low" as const };
       } else {
         const data = await res.json();
@@ -170,7 +170,7 @@ export function Chat({ roomId, creatorId }: ChatProps) {
 
       return result;
     } catch (error) {
-      console.error("Perspective API request failed:", error);
+      console.warn("Perspective API request failed (network/server):", error);
       const result = { isProfane: false, severity: "low" as const };
       // Cache even errors to prevent repeated failed requests
       perspectiveCache.current.set(cacheKey, {
@@ -207,7 +207,7 @@ export function Chat({ roomId, creatorId }: ChatProps) {
   // SWR fetcher for messages with role-based masking
   const fetcher = useCallback(
     async (url: string) => {
-      const supabase = createClient();
+    const supabase = createClient();
       const { data: msgs, error } = await supabase
         .from("trading_room_messages")
         .select(
@@ -344,13 +344,13 @@ export function Chat({ roomId, creatorId }: ChatProps) {
   // Send message (optimistic UI with SWR)
   const handleSendMessage = useCallback(
     async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!message.trim() || !user || !isParticipant) return;
+    e.preventDefault();
+    if (!message.trim() || !user || !isParticipant) return;
 
       // Moderate and mask if needed (do not block sending)
       const detection = await detectWithPerspective(message.trim());
 
-      const tempId = "temp-" + uuidv4();
+    const tempId = "temp-" + uuidv4();
       const originalText = message.trim();
       const canModerate = isAdmin || isSuperAdmin;
 
@@ -373,21 +373,21 @@ export function Chat({ roomId, creatorId }: ChatProps) {
         perspectiveCache.current.has(originalText.toLowerCase().trim())
       );
 
-      const optimisticMsg: ChatMessage = {
-        id: tempId,
-        room_id: roomId,
-        user_id: user.id,
+    const optimisticMsg: ChatMessage = {
+      id: tempId,
+      room_id: roomId,
+      user_id: user.id,
         message: messageText,
         masked_message: detection.isProfane ? detection.maskedText : undefined,
-        created_at: new Date().toISOString(),
-        user: {
-          id: user.id,
-          first_name: user.user_metadata?.first_name || "",
-          last_name: user.user_metadata?.last_name || "",
-          avatar_url: user.user_metadata?.avatar_url || "",
-        },
-        pending: true,
-      };
+      created_at: new Date().toISOString(),
+      user: {
+        id: user.id,
+        first_name: user.user_metadata?.first_name || "",
+        last_name: user.user_metadata?.last_name || "",
+        avatar_url: user.user_metadata?.avatar_url || "",
+      },
+      pending: true,
+    };
 
       // Optimistic update with SWR - remove any existing pending messages from this user first
       mutateMessages((prev = []) => {
@@ -406,20 +406,20 @@ export function Chat({ roomId, creatorId }: ChatProps) {
       } else {
         setProfanityWarning(null);
       }
-      setMessage("");
+    setMessage("");
       // Debounce scroll to prevent flashing
       setTimeout(() => scrollToBottom(), 100);
 
       try {
-        const supabase = createClient();
-        const { error } = await supabase.from("trading_room_messages").insert({
-          room_id: roomId,
-          user_id: user.id,
+    const supabase = createClient();
+    const { error } = await supabase.from("trading_room_messages").insert({
+      room_id: roomId,
+      user_id: user.id,
           message: dbText,
           masked_message: detection.isProfane ? detection.maskedText : null,
-        });
+    });
 
-        if (error) {
+    if (error) {
           // Mark as failed and remove from list
           mutateMessages(
             (prev = []) => prev.filter((m) => m.id !== tempId),
@@ -764,45 +764,45 @@ export function Chat({ roomId, creatorId }: ChatProps) {
         [msg.created_at]
       );
 
-      return (
-        <div
-          key={msg.id}
+  return (
+            <div
+              key={msg.id}
           className={`flex gap-3 items-center group ${
-            msg.pending ? "opacity-50" : ""
+                msg.pending ? "opacity-50" : ""
           } ${msg.failed ? "text-red-500" : ""} ${
             isDeleted ? "opacity-60" : ""
           }`}
-        >
-          <Avatar className="h-8 w-8 relative overflow-visible">
+            >
+              <Avatar className="h-8 w-8 relative overflow-visible">
             {avatarUrl ? (
-              <AvatarImage
-                className="rounded-full"
+                <AvatarImage
+                  className="rounded-full"
                 src={avatarUrl}
                 alt={userDisplayName || t("labels.user")}
               />
             ) : null}
-            <AvatarFallback className="bg-muted text-muted-foreground">
-              {msg.user?.first_name?.charAt(0) || "?"}
-            </AvatarFallback>
-            {msg.user_id === creatorId && (
-              <span className="absolute -top-1 -right-0.5 z-10">
-                <Crown className="h-3 w-3 text-amber-400 drop-shadow" />
-              </span>
-            )}
-          </Avatar>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
+                <AvatarFallback className="bg-muted text-muted-foreground">
+                  {msg.user?.first_name?.charAt(0) || "?"}
+                </AvatarFallback>
+                {msg.user_id === creatorId && (
+                  <span className="absolute -top-1 -right-0.5 z-10">
+                    <Crown className="h-3 w-3 text-amber-400 drop-shadow" />
+                  </span>
+                )}
+              </Avatar>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
               <span className="text-sm font-medium">{userDisplayName}</span>
-              <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                 {formattedTime}
-              </span>
-            </div>
+                  </span>
+                </div>
             {isDeleted ? (
               <p className="text-[0.8rem] text-muted-foreground italic">
                 {deletionMessage}
               </p>
             ) : (
-              <p className="text-[0.8rem] text-muted-foreground">
+                <p className="text-[0.8rem] text-muted-foreground">
                 <MessageContent
                   message={msg.message || ""}
                   maskedMessage={msg.masked_message}
@@ -838,7 +838,7 @@ export function Chat({ roomId, creatorId }: ChatProps) {
                       {t("menu.deleteMessage")}
                     </Button>
                   </div>
-                </div>
+              </div>
               )}
             </div>
           )}
@@ -904,24 +904,24 @@ export function Chat({ roomId, creatorId }: ChatProps) {
             </div>
           )}
           <form onSubmit={handleSendMessage} className="p-3 flex gap-2">
-            <Input
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder={t("input.placeholder")}
+          <Input
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder={t("input.placeholder")}
               className={`flex-1 rounded-none ${
                 profanityWarning ? "border-red-300 focus:border-red-500" : ""
               }`}
-              disabled={isParticipantLoading}
-            />
-            <Button
-              type="submit"
-              size="icon"
-              className="rounded-none"
-              disabled={!message.trim() || isParticipantLoading}
-            >
-              <Send className="h-4 w-4" />
-            </Button>
-          </form>
+            disabled={isParticipantLoading}
+          />
+          <Button
+            type="submit"
+            size="icon"
+            className="rounded-none"
+            disabled={!message.trim() || isParticipantLoading}
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </form>
         </div>
       )}
     </div>
