@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
+import { getProfanityFilter } from "@/lib/moderation/profanity";
 
 // Map Perspective attribute scores to a single isProfane + severity + matches
 const DEFAULT_REQUESTED_ATTRIBUTES = {
@@ -153,6 +154,58 @@ function normalizeKorean(text: string): string {
 function jamoNormalize(text: string): string {
   return decomposeHangulToJamo(text).toLowerCase().normalize("NFD");
 }
+function isJamoVowel(ch: string): boolean {
+  return /[\u1161-\u1175]/u.test(ch); // Jungseong block
+}
+function isChoseongIeung(ch: string): boolean {
+  return ch === "\u110B"; // choseong ㅇ
+}
+function jamoEquivalent(a: string, b: string): boolean {
+  if (a === b) return true;
+  // allow double<->single equivalence for common obfuscations
+  const pairs: Array<[string, string]> = [
+    ["\u1109", "\u110A"], // ㅅ ~ ㅆ (choseong)
+    ["\u110C", "\u110D"], // ㅈ ~ ㅉ
+    ["\u1100", "\u1101"], // ㄱ ~ ㄲ
+    ["\u1103", "\u1104"], // ㄷ ~ ㄸ
+    ["\u1107", "\u1108"], // ㅂ ~ ㅃ
+  ];
+  for (const [x, y] of pairs) {
+    if ((a === x && b === y) || (a === y && b === x)) return true;
+  }
+  return false;
+}
+function looseJamoSubsequenceMatch(text: string, token: string): boolean {
+  // Allow skipping vowels and ㅇ in text; require order of token jamo
+  let i = 0;
+  let j = 0;
+  const t = Array.from(text);
+  const p = Array.from(token);
+  while (i < t.length && j < p.length) {
+    // Skip ignorable token chars (vowels / ieung) to be more tolerant
+    if (isJamoVowel(p[j]) || isChoseongIeung(p[j])) {
+      j++;
+      continue;
+    }
+    if (t[i] === p[j] || jamoEquivalent(t[i], p[j])) {
+      i++;
+      j++;
+      continue;
+    }
+    // Skip fillers/obfuscators: vowels and ㅇ
+    if (isJamoVowel(t[i]) || isChoseongIeung(t[i])) {
+      i++;
+      continue;
+    }
+    // Also allow repeating same jamo in text (elongation)
+    if (i + 1 < t.length && t[i + 1] === t[i]) {
+      i++;
+      continue;
+    }
+    i++;
+  }
+  return j === p.length;
+}
 function buildKoJamoRegex(words: string[]) {
   const sep = "[\\W_0-9]*";
   const parts = words
@@ -170,6 +223,7 @@ function buildKoJamoRegex(words: string[]) {
 
 export async function POST(req: NextRequest) {
   try {
+    const profanityFilter = await getProfanityFilter();
     const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
@@ -193,6 +247,20 @@ export async function POST(req: NextRequest) {
     }
 
     const url = `https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze?key=${apiKey}`;
+
+    // Run CTO profanity filter first (Jamo-aware, obfuscation tolerant).
+    // If it flags content, return masked immediately (avoids Perspective call and 429s).
+    if (profanityFilter.isProfane(text)) {
+      const masked =
+        profanityFilter.maskProfanity(text, { mode: "base" }) ?? "***";
+      return NextResponse.json({
+        isProfane: true,
+        severity: "low",
+        matches: ["CTO_LOCAL_FILTER"],
+        scores: {},
+        maskedText: masked,
+      });
+    }
 
     // Early keyword policy check (short-circuit): if match, return masked response without calling Perspective
     const earlyNormalized = text
@@ -404,6 +472,30 @@ export async function POST(req: NextRequest) {
           maskedText: "***",
         });
       }
+      // Loose subsequence fallback: try to catch obfuscated variants like "죠오오옷까"
+      try {
+        const p = path.join(
+          process.cwd(),
+          "public",
+          "profinity",
+          "profinity.json"
+        );
+        const buf = await fs.readFile(p, "utf-8");
+        const arr = JSON.parse(buf) as string[];
+        const tokens = Array.isArray(arr) ? arr : [];
+        for (const tok of tokens) {
+          const tokJam = jamoNormalize(tok);
+          if (looseJamoSubsequenceMatch(jam, tokJam)) {
+            return NextResponse.json({
+              isProfane: true,
+              severity: "low",
+              matches: ["KO_JAMO_LOOSE"],
+              scores: {},
+              maskedText: "***",
+            });
+          }
+        }
+      } catch {}
     }
 
     // Attempt with languages
@@ -562,10 +654,14 @@ export async function POST(req: NextRequest) {
         }
       }
       // For 5xx, return 502 with provider details
-      return NextResponse.json(
-        { error: "Perspective API error", detail: json ?? textBody },
-        { status: 502 }
-      );
+      // Provider degraded: return safe non-blocking response and let local filter handle
+      return NextResponse.json({
+        isProfane: false,
+        severity: "low",
+        matches: ["PROVIDER_5XX"],
+        scores: {},
+        maskedText: undefined,
+      });
     }
 
     const data = json && json.attributeScores ? json : json ?? {};

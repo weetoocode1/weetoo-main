@@ -133,14 +133,17 @@ export function Footer() {
               {t("investmentRiskNotice")}
             </h3>
             <div className="prose prose-sm text-muted-foreground max-w-none">
-              <p className="mb-3 text-sm leading-relaxed">
+              <p className="mb-3 text-sm leading-relaxed whitespace-pre-line">
                 {t("riskNoticeParagraph1")}
               </p>
-              <p className="mb-3 text-sm leading-relaxed">
+              <p className="mb-3 text-sm leading-relaxed whitespace-pre-line">
                 {t("riskNoticeParagraph2")}
               </p>
-              <p className="text-sm leading-relaxed">
+              <p className="mb-3 text-sm leading-relaxed whitespace-pre-line">
                 {t("riskNoticeParagraph3")}
+              </p>
+              <p className="text-sm leading-relaxed whitespace-pre-line">
+                {t("riskNoticeParagraph4")}
               </p>
             </div>
           </div>

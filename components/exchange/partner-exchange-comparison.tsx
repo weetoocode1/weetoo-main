@@ -69,27 +69,15 @@ export const PartnerExchangeComparison = () => {
     lbank: "https://lbank.one/ref/5DJS5",
   };
   const descriptionOverrides: Record<string, string> = {
-    bybit:
-      "Bybit is a leading crypto derivatives exchange known for deep liquidity and fast execution. It offers advanced tools, competitive fees, and robust risk controls for active traders.",
-    okx: "OKX is a world-class exchange supporting spot, futures, and options. It focuses on reliability, rich tooling, and an ecosystem of yield and DeFi products.",
-    bitget:
-      "Bitget is a global exchange offering futures and copy trading. It emphasizes social features, campaign rewards, and a straightforward experience for newcomers.",
-    bingx:
-      "BingX is an innovative exchange with social and copy-trading capabilities. It blends community insights with approachable tools and steady campaigns.",
-    deepcoin:
-      "DeepCoin is a global digital asset exchange focused on professional trading. It provides steady liquidity, core derivatives, and essential risk management tools.",
-    orangex:
-      "OrangeX is a cryptocurrency exchange highlighting modern UX and innovative features. It targets ease of use with steady promotions and accessible markets.",
-    blofin:
-      "Blofin is a derivatives-focused exchange offering a professional toolkit. It caters to active traders with analytics, margin products, and solid execution.",
-    lbank:
-      "LBank is a global exchange with comprehensive spot and derivatives markets. It supports a wide range of assets and aims for consistent availability.",
-    gateio:
-      "Gate.io is known for a broad range of altcoins and steady market depth. It provides diversified products and a stable core trading experience.",
-    xt: "XT is a global digital asset platform with broad asset coverage. It offers familiar trading flows and regular campaigns for engaged users.",
-    tapbit:
-      "Tapbit is a user-friendly exchange providing core spot and derivatives markets. It focuses on accessibility, clear UI, and frequent promotional events.",
-    mexc: "MEXC is a global exchange offering spot and futures with broad token listings. It emphasizes liquidity, responsive execution, and competitive campaigns.",
+    bybit: t("descriptions.bybit"),
+    okx: t("descriptions.okx"),
+    bitget: t("descriptions.bitget"),
+    bingx: t("descriptions.bingx"),
+    deepcoin: t("descriptions.deepcoin"),
+    orangex: t("descriptions.orangex"),
+    lbank: t("descriptions.lbank"),
+    gateio: t("descriptions.gateio"),
+    binance: t("descriptions.binance"),
   };
   const [expandedExchangeId, setExpandedExchangeId] = useState<
     string | number | null

@@ -766,10 +766,15 @@
     "phone": "Phone",
     "address": "Address",
     "addressDetails": "3012-53, 30th floor, Building A,\n323 Incheon Tower-daero, Yeonsu-gu,\nIncheon (Songdo-dong, Songdo Cent Road)",
-    "investmentRiskNotice": "Investment Risk Notice",
-    "riskNoticeParagraph1": "Solomon Partners (WEETOO_We are investors) is a margin trading/overseas futures information site for the general public, so it does not provide services such as 'investment brokerage' or 'investment consulting and agency', and the trading history provided by our company is simulated investment content. Please note that actual CFD trading is a high-risk, high-return financial derivative product, and all losses are attributed to the trader.",
-    "riskNoticeParagraph2": "Risk Disclaimer: Solomon Partners (WEETOO_We are Investors) is not responsible for any loss or damage caused by reliance on the information contained in this website, including market news, analysis, trading signals and Forex broker reviews. The data contained in this website is not necessarily real-time or accurate and the analysis is the opinion of the author and does not represent a recommendation by Solomon Partners (WEETOO_We are Investors) or its staff.",
-    "riskNoticeParagraph3": "Trading currency on margin carries a high level of risk and is not suitable for all investors. Leveraged products can result in losses exceeding the initial deposit and your capital is at risk. Before deciding to trade Forex or any other financial product, you should carefully consider your investment objectives, level of experience and risk appetite. We work hard to provide valuable information on all the brokers we review. In order to provide this free service, we receive advertising fees from overseas brokers, including some of those listed on this page and in our rankings. While we do our best to ensure that all data is up to date, we recommend that you verify the information directly with the overseas broker.",
+    "investmentRiskNotice": "Investment Risk and Disclaimer",
+    "riskNoticeParagraph1": "■ Nature of the Service \n - Solomon Partners (WEE TOO – “We Are Investors”) is a content service aimed at investment education and information provision. Our company is a “similar investment advisory business” under the Capital Markets Act. We do not engage in financial investment business under the Capital Markets Act (such as investment brokerage, investment advisory, or discretionary investment business), and we do not conduct actual brokerage, solicitation, or discretionary trading. \n - We only provide information services related to virtual assets. We are not a virtual asset service provider under the Virtual Asset User Protection Act and do not engage in the buying, selling, exchanging, or safekeeping of virtual assets. All information provided is for reference only and does not constitute investment advice or trading instructions.",
+
+    "riskNoticeParagraph2": "■ Investor Suitability \n - Margin trading and overseas futures trading are high-risk, high-return financial derivatives, suitable only for investors with sufficient experience and risk tolerance. Due to the nature of leveraged products, losses can exceed the initial investment amount. Before deciding to trade Forex or any other financial products, you should carefully consider your investment objectives, level of experience, and risk appetite. All losses from investment are solely borne by the investor.",
+
+    "riskNoticeParagraph3": "■ Investment Risk Disclosure \n - All trade records, signals, and investment information we provide are educational and informational mock-investment content and are not actual investment advice or trading instructions. Investors should use this information for reference only, and all investment decisions must be made based on their own independent judgment. \n - Please note that all losses resulting from investments are solely borne by the investor. \n The use of undisclosed material information, market manipulation, and unfair trading practices are strictly prohibited under relevant laws. Investors must comply with applicable regulations when trading.",
+
+    "riskNoticeParagraph4": "■ Risk Disclaimer \n - We do not guarantee the accuracy or completeness of the information we provide (including market news, analysis, trading signals, and Forex broker reviews) or the information contained on our website, and we are not responsible for any losses or damages arising from reliance on such information. \n - The information or data we provide may not be real-time or may be inaccurate, and any investment or trading analysis represents the personal opinion of the author and does not constitute a recommendation from our company or its employees. \n - We strive to provide valuable information and, to offer our free service, we receive advertising fees from some foreign brokerage firms listed on our rankings and web pages. While we make every effort to ensure that all information and data are up to date, it is recommended that you confirm the accuracy of important details directly with the relevant companies.",
+
     "copyrightText": "Solomon Partners (WEETOO_We are investors). All rights reserved."
   },
   "chat": {
@@ -792,6 +797,14 @@
     "tradingRoomsDescription": "Join a trading room to collaborate, share strategies, and trade"
   },
   "room": {
+    "mockNotice": {
+      "title": "Mock Investment Content Notice",
+      "line1": "WEE TOO _ We Are Investors content is a mock investment service where no actual trades or contracts are executed.",
+      "line2": "If you found the mock investment information helpful, you can support us with [KOR_COIN].",
+      "line3": "You can earn [KOR_COIN] through the Weetoo community market and various events provided by Weetoo.",
+      "understood": "I understand",
+      "suppress24h": "Do not show again for 24 hours"
+    },
     "chat": {
       "title": "Chat",
       "labels": { "user": "User" },
