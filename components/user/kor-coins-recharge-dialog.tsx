@@ -201,6 +201,7 @@ const secureDepositApi = {
 
 export function KorCoinsRechargeDialog() {
   const t = useTranslations("korCoinsRecharge");
+  const tIV = useTranslations("identityVerification");
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [mounted, setMounted] = useState(false);
@@ -344,21 +345,18 @@ export function KorCoinsRechargeDialog() {
           String(serverMsg).includes("Rate limit exceeded") &&
           dailyLimit !== undefined
         ) {
-          toast.error(
-            `Daily limit reached (${dailyLimit}). Please try again later.`,
-            {
-              description: resetTime
-                ? `Resets at ${new Date(resetTime).toLocaleString()}`
-                : undefined,
-            }
-          );
+          toast.error(t("toasts.dailyLimitReached", { dailyLimit }), {
+            description: resetTime
+              ? t("toasts.resetsAt", {
+                  time: new Date(resetTime).toLocaleString(),
+                })
+              : undefined,
+          });
         } else {
           toast.error(serverMsg);
         }
       } catch {
-        toast.error(
-          "Failed to submit deposit request. Please try again later."
-        );
+        toast.error(t("toasts.submitFailedLater"));
       }
     },
   });
@@ -448,7 +446,7 @@ export function KorCoinsRechargeDialog() {
       !bankAccountNumber.trim() ||
       !depositorName.trim()
     ) {
-      toast.error("Please fill in all required fields.");
+      toast.error(t("toasts.fillRequiredFields"));
       return;
     }
 
@@ -483,14 +481,14 @@ export function KorCoinsRechargeDialog() {
         },
         {
           onError: (error: Error) => {
-            toast.error("Failed to submit deposit request. Please try again.");
+            toast.error(t("toasts.submitFailed"));
             console.error("Deposit creation error:", error);
             setSubmitting(false);
           },
         }
       );
     } catch (_error) {
-      toast.error("Failed to submit deposit request. Please try again.");
+      toast.error(t("toasts.submitFailed"));
       setSubmitting(false);
     }
   };
@@ -500,12 +498,12 @@ export function KorCoinsRechargeDialog() {
     e.preventDefault();
 
     if (!selectedBankAccount || selectedBankAccount === "new") {
-      toast.error("Please select a bank account.");
+      toast.error(t("toasts.selectBankAccount"));
       return;
     }
 
     if (!korCoinsAmount || Number(korCoinsAmount) < 100) {
-      toast.error("Please enter a valid amount (minimum 100 KOR).");
+      toast.error(t("toasts.minAmount", { amount: 100 }));
       return;
     }
 
@@ -524,14 +522,14 @@ export function KorCoinsRechargeDialog() {
         },
         {
           onError: (error: Error) => {
-            toast.error("Failed to submit deposit request. Please try again.");
+            toast.error(t("toasts.submitFailed"));
             console.error("Deposit creation error:", error);
             setSubmitting(false);
           },
         }
       );
     } catch (_error) {
-      toast.error("Failed to submit deposit request. Please try again.");
+      toast.error(t("toasts.submitFailed"));
       setSubmitting(false);
     }
   };
@@ -556,10 +554,10 @@ export function KorCoinsRechargeDialog() {
           currentDepositRequest.payment_reference
         );
         setCopiedReference(true);
-        toast.success("Payment reference copied to clipboard!");
+        toast.success(t("toasts.copiedReference"));
         setTimeout(() => setCopiedReference(false), 2000);
       } catch (_err) {
-        toast.error("Failed to copy payment reference");
+        toast.error(t("toasts.copyFailed"));
       }
     }
   };
@@ -601,7 +599,7 @@ export function KorCoinsRechargeDialog() {
     verificationData: VerificationData,
     userData: UserData
   ) => {
-    toast.success("Identity verification completed successfully!");
+    toast.success(tIV("toast.success"));
 
     try {
       // Optimistically update the user's verification status
@@ -640,7 +638,7 @@ export function KorCoinsRechargeDialog() {
 
   // Handle verification failure
   const handleVerificationFailure = () => {
-    toast.error("Identity verification failed. Please try again.");
+    toast.error(tIV("errors.generic"));
   };
 
   // Define threshold for low balance (easy to change in the future)
@@ -1128,10 +1126,10 @@ export function KorCoinsRechargeDialog() {
                                 <CommandItem
                                   key={account.id}
                                   value={`${
-                                    account.bank_name || "Unknown Bank"
+                                    account.bank_name || t("unknownBank")
                                   } ${
                                     account.account_number ||
-                                    "No Account Number"
+                                    t("noAccountNumber")
                                   }`}
                                   onSelect={() => {
                                     handleBankAccountSelect(account.id);
@@ -1147,9 +1145,9 @@ export function KorCoinsRechargeDialog() {
                                         : "opacity-0"
                                     )}
                                   />
-                                  {account.bank_name || "Unknown Bank"} -{" "}
+                                  {account.bank_name || t("unknownBank")} -{" "}
                                   {account.account_number ||
-                                    "No Account Number"}
+                                    t("noAccountNumber")}
                                 </CommandItem>
                               ))}
                           </CommandGroup>

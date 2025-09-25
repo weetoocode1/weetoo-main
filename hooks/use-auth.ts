@@ -50,7 +50,7 @@ async function fetchUserData(userId: string): Promise<UserData> {
       "id, first_name, last_name, nickname, email, avatar_url, level, exp, kor_coins, role, mobile_number, identity_verified, banned, ban_reason, banned_at"
     )
     .eq("id", userId)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error("Failed to fetch user data:", error);
@@ -63,6 +63,29 @@ async function fetchUserData(userId: string): Promise<UserData> {
     throw error;
   }
 
+  // If no row yet, return a minimal fallback immediately (avoid throwing & retries)
+  if (!data) {
+    return {
+      id: userId,
+      first_name: undefined,
+      last_name: undefined,
+      nickname: undefined,
+      email: undefined,
+      avatar_url: undefined,
+      level: undefined,
+      exp: undefined,
+      kor_coins: undefined,
+      role: undefined,
+      mobile_number: undefined,
+      identity_verified: undefined,
+      identity_verified_at: undefined,
+      identity_verification_id: undefined,
+      banned: undefined,
+      ban_reason: undefined,
+      banned_at: undefined,
+    } as UserData;
+  }
+
   return data;
 }
 
@@ -70,6 +93,20 @@ export function useAuth() {
   const queryClient = useQueryClient();
   const lastSessionId = useRef<string | null>(null);
   const openBan = useBanStore((s) => s.openBan);
+
+  // ===== Global guards to prevent duplicated work across many consumers =====
+  // Run profile sync only once per session (module-level cache)
+  // and avoid setting up multiple realtime listeners for the same user.
+  // These variables are shared across hook instances via module scope.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const __module = globalThis as unknown as {
+    __authSyncRanFor?: Set<string>;
+    __authListenerReady?: boolean;
+    __userChannelUserId?: string | null;
+    __userChannelRef?: any;
+    __bansChannelRef?: any;
+  };
+  if (!__module.__authSyncRanFor) __module.__authSyncRanFor = new Set();
 
   // Get current session
   const { data: session, isLoading: sessionLoading } = useQuery({
@@ -92,6 +129,8 @@ export function useAuth() {
   useEffect(() => {
     const syncProfile = async () => {
       if (!session?.user?.id) return;
+      // Guard: only run once per session globally
+      if (__module.__authSyncRanFor?.has(session.user.id)) return;
 
       const supabase = createClient();
       const authUser = session.user as unknown as MinimalAuthUser;
@@ -185,7 +224,11 @@ export function useAuth() {
     };
 
     // Run once when session becomes available
-    syncProfile().catch(() => {});
+    syncProfile()
+      .then(() => {
+        if (session?.user?.id) __module.__authSyncRanFor?.add(session.user.id);
+      })
+      .catch(() => {});
   }, [session?.user?.id]);
 
   // Fetch user data when userId changes
@@ -248,182 +291,202 @@ export function useAuth() {
   // Set up auth state change listener and real-time subscriptions
   useEffect(() => {
     const supabase = createClient();
+    // Set up the global auth listener only once
+    const authListener = !__module.__authListenerReady
+      ? supabase.auth.onAuthStateChange(async (event, session) => {
+          const sessionId = session?.user?.id || null;
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        const sessionId = session?.user?.id || null;
+          if (lastSessionId.current === sessionId) {
+            return;
+          }
 
-        if (lastSessionId.current === sessionId) {
-          return;
-        }
+          lastSessionId.current = sessionId;
 
-        lastSessionId.current = sessionId;
+          if (!sessionId) {
+            // Clear user data when logged out
+            queryClient.setQueryData([...USER_QUERY_KEY, sessionId], null);
+            queryClient.setQueryData(USER_QUERY_KEY, null);
+            return;
+          }
 
-        if (!sessionId) {
-          // Clear user data when logged out
-          queryClient.setQueryData([...USER_QUERY_KEY, sessionId], null);
-          queryClient.setQueryData(USER_QUERY_KEY, null);
-          return;
-        }
-
-        // Invalidate and refetch user data when auth state changes
-        await queryClient.invalidateQueries({
-          queryKey: [...USER_QUERY_KEY, sessionId],
-        });
-      }
-    );
+          // Invalidate and refetch user data when auth state changes
+          await queryClient.invalidateQueries({
+            queryKey: [...USER_QUERY_KEY, sessionId],
+          });
+        })
+      : null;
+    if (!__module.__authListenerReady && authListener) {
+      __module.__authListenerReady = true;
+    }
 
     // Set up real-time subscriptions for user and user_bans changes
     let userSubscription: any = null;
     let bansSubscription: any = null;
     if (userId) {
-      userSubscription = supabase
-        .channel(`user-${userId}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "users",
-            filter: `id=eq.${userId}`,
-          },
-          (payload) => {
-            const newData = payload.new as UserData;
+      // Reuse an existing channel if already created for this user
+      const reuseUser =
+        __module.__userChannelUserId === userId && __module.__userChannelRef;
+      const reuseBans =
+        __module.__userChannelUserId === userId && __module.__bansChannelRef;
 
-            // Optimistically update the user data in the cache
-            queryClient.setQueryData(
-              [...USER_QUERY_KEY, userId],
-              (oldData: UserData | undefined) => {
-                if (oldData) {
-                  return {
-                    ...oldData,
-                    ...newData,
-                  };
+      userSubscription = reuseUser
+        ? __module.__userChannelRef
+        : supabase
+            .channel(`user-${userId}`)
+            .on(
+              "postgres_changes",
+              {
+                event: "UPDATE",
+                schema: "public",
+                table: "users",
+                filter: `id=eq.${userId}`,
+              },
+              (payload) => {
+                const newData = payload.new as UserData;
+
+                // Optimistically update the user data in the cache
+                queryClient.setQueryData(
+                  [...USER_QUERY_KEY, userId],
+                  (oldData: UserData | undefined) => {
+                    if (oldData) {
+                      return {
+                        ...oldData,
+                        ...newData,
+                      };
+                    }
+                    return newData;
+                  }
+                );
+
+                // Also update the general user query data
+                queryClient.setQueryData(
+                  USER_QUERY_KEY,
+                  (oldData: UserData | undefined) => {
+                    if (oldData && oldData.id === userId) {
+                      return {
+                        ...oldData,
+                        ...newData,
+                      };
+                    }
+                    return oldData;
+                  }
+                );
+
+                // If user is banned, show modal, sign out, keep on "/"
+                if (newData?.banned) {
+                  try {
+                    openBan({
+                      reason: newData.ban_reason || "",
+                      bannedAt: newData.banned_at || new Date().toISOString(),
+                    });
+                  } catch {}
+                  try {
+                    createClient().auth.signOut();
+                  } catch {}
+                  try {
+                    if (window.location.pathname !== "/") {
+                      window.location.href = "/";
+                    }
+                  } catch {}
                 }
-                return newData;
+
+                // Dispatch custom event for KOR coins changes
+                const oldData = queryClient.getQueryData([
+                  ...USER_QUERY_KEY,
+                  userId,
+                ]) as UserData | undefined;
+                if (oldData?.kor_coins !== newData.kor_coins) {
+                  window.dispatchEvent(
+                    new CustomEvent("kor-coins-updated", {
+                      detail: {
+                        userId,
+                        oldAmount: oldData?.kor_coins || 0,
+                        newAmount: newData.kor_coins || 0,
+                      },
+                    })
+                  );
+                }
               }
-            );
-
-            // Also update the general user query data
-            queryClient.setQueryData(
-              USER_QUERY_KEY,
-              (oldData: UserData | undefined) => {
-                if (oldData && oldData.id === userId) {
-                  return {
-                    ...oldData,
-                    ...newData,
-                  };
-                }
-                return oldData;
-              }
-            );
-
-            // If user is banned, show modal, sign out, keep on "/"
-            if (newData?.banned) {
-              try {
-                openBan({
-                  reason: newData.ban_reason || "",
-                  bannedAt: newData.banned_at || new Date().toISOString(),
-                });
-              } catch {}
-              try {
-                createClient().auth.signOut();
-              } catch {}
-              try {
-                if (window.location.pathname !== "/") {
-                  window.location.href = "/";
-                }
-              } catch {}
-            }
-
-            // Dispatch custom event for KOR coins changes
-            const oldData = queryClient.getQueryData([
-              ...USER_QUERY_KEY,
-              userId,
-            ]) as UserData | undefined;
-            if (oldData?.kor_coins !== newData.kor_coins) {
-              window.dispatchEvent(
-                new CustomEvent("kor-coins-updated", {
-                  detail: {
-                    userId,
-                    oldAmount: oldData?.kor_coins || 0,
-                    newAmount: newData.kor_coins || 0,
-                  },
-                })
-              );
-            }
-          }
-        )
-        .subscribe();
+            )
+            .subscribe();
 
       // Realtime: react to admin bans immediately via user_bans table
-      bansSubscription = supabase
-        .channel(`user-bans-${userId}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "user_bans",
-            filter: `user_id=eq.${userId}`,
-          },
-          (payload) => {
-            const row = payload.new as {
-              active?: boolean;
-              reason?: string;
-              banned_at?: string;
-            };
-            if (row?.active) {
-              try {
-                openBan({
-                  reason: (row as any)?.reason || "",
-                  bannedAt: (row as any)?.banned_at || new Date().toISOString(),
-                });
-              } catch {}
-              try {
-                createClient().auth.signOut();
-              } catch {}
-              try {
-                if (window.location.pathname !== "/") {
-                  window.location.href = "/";
+      bansSubscription = reuseBans
+        ? __module.__bansChannelRef
+        : supabase
+            .channel(`user-bans-${userId}`)
+            .on(
+              "postgres_changes",
+              {
+                event: "INSERT",
+                schema: "public",
+                table: "user_bans",
+                filter: `user_id=eq.${userId}`,
+              },
+              (payload) => {
+                const row = payload.new as {
+                  active?: boolean;
+                  reason?: string;
+                  banned_at?: string;
+                };
+                if (row?.active) {
+                  try {
+                    openBan({
+                      reason: (row as any)?.reason || "",
+                      bannedAt:
+                        (row as any)?.banned_at || new Date().toISOString(),
+                    });
+                  } catch {}
+                  try {
+                    createClient().auth.signOut();
+                  } catch {}
+                  try {
+                    if (window.location.pathname !== "/") {
+                      window.location.href = "/";
+                    }
+                  } catch {}
                 }
-              } catch {}
-            }
-          }
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "user_bans",
-            filter: `user_id=eq.${userId}`,
-          },
-          (payload) => {
-            const row = payload.new as {
-              active?: boolean;
-              reason?: string;
-              banned_at?: string;
-            };
-            if (row?.active) {
-              try {
-                openBan({
-                  reason: (row as any)?.reason || "",
-                  bannedAt: (row as any)?.banned_at || new Date().toISOString(),
-                });
-              } catch {}
-              try {
-                createClient().auth.signOut();
-              } catch {}
-              try {
-                if (window.location.pathname !== "/") {
-                  window.location.href = "/";
+              }
+            )
+            .on(
+              "postgres_changes",
+              {
+                event: "UPDATE",
+                schema: "public",
+                table: "user_bans",
+                filter: `user_id=eq.${userId}`,
+              },
+              (payload) => {
+                const row = payload.new as {
+                  active?: boolean;
+                  reason?: string;
+                  banned_at?: string;
+                };
+                if (row?.active) {
+                  try {
+                    openBan({
+                      reason: (row as any)?.reason || "",
+                      bannedAt:
+                        (row as any)?.banned_at || new Date().toISOString(),
+                    });
+                  } catch {}
+                  try {
+                    createClient().auth.signOut();
+                  } catch {}
+                  try {
+                    if (window.location.pathname !== "/") {
+                      window.location.href = "/";
+                    }
+                  } catch {}
                 }
-              } catch {}
-            }
-          }
-        )
-        .subscribe();
+              }
+            )
+            .subscribe();
+
+      // Save global refs for reuse
+      __module.__userChannelUserId = userId;
+      __module.__userChannelRef = userSubscription;
+      __module.__bansChannelRef = bansSubscription;
     }
 
     // Listen for identity verification completion
@@ -476,10 +539,10 @@ export function useAuth() {
     window.addEventListener("identity-verified", handleIdentityVerified);
 
     return () => {
-      listener?.subscription.unsubscribe();
-      if (userSubscription) userSubscription.unsubscribe();
-      if (bansSubscription) bansSubscription.unsubscribe();
+      // Do not tear down global auth listener (shared across hook instances)
+      // Only remove per-instance event listener
       window.removeEventListener("identity-verified", handleIdentityVerified);
+      // Keep shared channels alive for other consumers; do not unsubscribe here
     };
   }, [queryClient, userId]);
 

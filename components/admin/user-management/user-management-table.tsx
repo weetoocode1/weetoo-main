@@ -424,10 +424,10 @@ export function UserManagementTable() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      toast.success(`Successfully exported ${exportData.length} users to CSV!`);
+      toast.success(t("messages.exportSuccess", { count: exportData.length }));
     } catch (_error) {
       console.error("Export failed:", _error);
-      toast.error("Failed to export users. Please try again.");
+      toast.error(t("messages.exportError"));
     } finally {
       setIsExporting(false);
     }
@@ -453,7 +453,9 @@ export function UserManagementTable() {
         }
 
         toast.success(
-          `Successfully unverified identity for ${user.first_name} ${user.last_name}`
+          t("messages.identityUnverified", {
+            name: `${user.first_name} ${user.last_name}`,
+          })
         );
 
         // Dispatch event to instantly update all restrictions across the app
@@ -489,7 +491,9 @@ export function UserManagementTable() {
         }
 
         toast.success(
-          `Successfully verified identity for ${user.first_name} ${user.last_name}`
+          t("messages.identityVerified", {
+            name: `${user.first_name} ${user.last_name}`,
+          })
         );
 
         // Dispatch event to instantly update all restrictions across the app
@@ -511,9 +515,7 @@ export function UserManagementTable() {
       });
     } catch (_error) {
       console.error("Failed to update identity verification:", _error);
-      toast.error(
-        "Failed to update user identity verification. Please try again."
-      );
+      toast.error(t("messages.identityUpdateFailed"));
     }
   };
 
@@ -969,12 +971,14 @@ export function UserManagementTable() {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
+                              <span className="sr-only">{t("menu.open")}</span>
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuLabel>User Actions</DropdownMenuLabel>
+                            <DropdownMenuLabel>
+                              {t("menu.title")}
+                            </DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => {
@@ -983,7 +987,7 @@ export function UserManagementTable() {
                               }}
                             >
                               <Eye className="mr-2 h-4 w-4" />
-                              View Details
+                              {t("menu.viewDetails")}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => {
@@ -993,7 +997,7 @@ export function UserManagementTable() {
                               }}
                             >
                               <Edit className="mr-2 h-4 w-4" />
-                              Edit User
+                              {t("menu.editUser")}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             {/** Issue Warning - temporarily disabled */}
@@ -1018,7 +1022,9 @@ export function UserManagementTable() {
                                 className="text-red-600 focus:text-red-600"
                               >
                                 <Ban className="mr-2 h-4 w-4" />
-                                {user.banned ? "Unban User" : "Ban User"}
+                                {user.banned
+                                  ? t("menu.unbanUser")
+                                  : t("menu.banUser")}
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuItem
@@ -1027,8 +1033,8 @@ export function UserManagementTable() {
                             >
                               <Shield className="mr-2 h-4 w-4" />
                               {user.identity_verified
-                                ? "Unverify Identity"
-                                : "Verify Identity"}
+                                ? t("menu.unverifyIdentity")
+                                : t("menu.verifyIdentity")}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -1061,12 +1067,14 @@ export function UserManagementTable() {
                             user.banned ? "text-red-600" : "text-green-600"
                           }`}
                         >
-                          {user.banned ? "Banned" : "Active"}
+                          {user.banned
+                            ? t("status.banned")
+                            : t("status.active")}
                         </span>
                       </div>
                       {user.banned && user.ban_reason && (
                         <div className="text-xs text-red-600 mt-1">
-                          Reason: {user.ban_reason}
+                          {t("labels.reason")}: {user.ban_reason}
                         </div>
                       )}
                       <div className="flex items-center gap-2">
@@ -1090,7 +1098,9 @@ export function UserManagementTable() {
                               : "bg-red-100 text-red-800 border border-red-300"
                           }`}
                         >
-                          {user.identity_verified ? "Verified" : "Unverified"}
+                          {user.identity_verified
+                            ? t("badges.verified")
+                            : t("badges.unverified")}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">

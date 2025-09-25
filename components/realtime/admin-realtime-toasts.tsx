@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useTranslations } from "next-intl";
 
 interface AdminNotificationPayload {
   id: string;
@@ -23,84 +24,7 @@ interface NotificationConfig {
   dismissible?: boolean;
 }
 
-// Generic fallback config for unknown types
-const getGenericConfig = (
-  type: string,
-  title?: string,
-  body?: string
-): NotificationConfig => ({
-  toastType: "info",
-  title: title || "New Notification",
-  description: () => body || "You have a new notification",
-  duration: 5000,
-});
-
-// Notification configurations for admin notifications
-const adminNotificationConfigs: Record<string, NotificationConfig> = {
-  withdrawal_request_created: {
-    toastType: "info",
-    title: "New Withdrawal Request",
-    description: (metadata) => {
-      const userName = metadata?.user_name || "User";
-      const korAmount = metadata?.kor_coins_amount;
-      const display =
-        typeof korAmount === "number"
-          ? `${korAmount.toLocaleString()} KOR`
-          : "withdrawal";
-      return `${userName} requested ${display}`;
-    },
-    duration: 6000,
-  },
-  deposit_request_created: {
-    toastType: "info",
-    title: "New Deposit Request",
-    description: (metadata) => {
-      const userName = metadata?.user_name || "User";
-      const korAmount = metadata?.kor_coins_amount;
-      const display =
-        typeof korAmount === "number"
-          ? `${korAmount.toLocaleString()} KOR`
-          : "deposit";
-      return `${userName} requested ${display}`;
-    },
-    duration: 6000,
-  },
-  user_registered: {
-    toastType: "info",
-    title: "New User Registration",
-    description: () => "A new user has registered",
-    duration: 5000,
-  },
-  // Add more admin notification types here easily
-  identity_verification_completed: {
-    toastType: "success",
-    title: "Identity Verification Completed",
-    description: (metadata) => {
-      const userName = metadata?.user_name || "User";
-      return `${userName} has completed identity verification`;
-    },
-    duration: 5000,
-  },
-  suspicious_activity_detected: {
-    toastType: "warning",
-    title: "Suspicious Activity Detected",
-    description: (metadata) => {
-      const userName = metadata?.user_name || "User";
-      const activity = metadata?.activity_type || "activity";
-      return `Suspicious ${activity} detected for user ${userName}`;
-    },
-    duration: 8000,
-  },
-  system_maintenance: {
-    toastType: "info",
-    title: "System Maintenance",
-    description: (metadata) => {
-      const message = metadata?.message || "System maintenance is scheduled";
-      return String(message);
-    },
-    duration: 10000,
-  },
-};
+// Note: translation-aware config builders are defined inside the component
 
 // Simple, clean toast function
 const showToast = (
@@ -135,7 +59,94 @@ const showToast = (
 
 export function AdminRealtimeToasts() {
   const { isAdmin, user, computed } = useAuth();
+  const t = useTranslations("admin.realtimeToasts");
   const isAdminRef = useRef(isAdmin);
+  // Translation-aware generic fallback
+  const getGenericConfig = (
+    type: string,
+    title?: string,
+    body?: string
+  ): NotificationConfig => ({
+    toastType: "info",
+    title: title || t("generic.title"),
+    description: () => body || t("generic.description"),
+    duration: 5000,
+  });
+
+  // Translation-aware notification configurations
+  const adminNotificationConfigs: Record<string, NotificationConfig> = {
+    withdrawal_request_created: {
+      toastType: "info",
+      title: t("withdrawalRequest.title"),
+      description: (metadata) => {
+        const userName = (metadata?.user_name as string) || t("common.user");
+        const korAmount = metadata?.kor_coins_amount as number | undefined;
+        const display =
+          typeof korAmount === "number"
+            ? `${korAmount.toLocaleString()} KOR`
+            : t("withdrawalRequest.fallback");
+        return t("withdrawalRequest.description", {
+          userName,
+          amount: display,
+        });
+      },
+      duration: 6000,
+    },
+    deposit_request_created: {
+      toastType: "info",
+      title: t("depositRequest.title"),
+      description: (metadata) => {
+        const userName = (metadata?.user_name as string) || t("common.user");
+        const korAmount = metadata?.kor_coins_amount as number | undefined;
+        const display =
+          typeof korAmount === "number"
+            ? `${korAmount.toLocaleString()} KOR`
+            : t("depositRequest.fallback");
+        return t("depositRequest.description", { userName, amount: display });
+      },
+      duration: 6000,
+    },
+    user_registered: {
+      toastType: "info",
+      title: t("userRegistered.title"),
+      description: () => t("userRegistered.description"),
+      duration: 5000,
+    },
+    identity_verification_completed: {
+      toastType: "success",
+      title: t("identityVerificationCompleted.title"),
+      description: (metadata) => {
+        const userName = (metadata?.user_name as string) || t("common.user");
+        return t("identityVerificationCompleted.description", { userName });
+      },
+      duration: 5000,
+    },
+    suspicious_activity_detected: {
+      toastType: "warning",
+      title: t("suspiciousActivityDetected.title"),
+      description: (metadata) => {
+        const userName = (metadata?.user_name as string) || t("common.user");
+        const activity =
+          (metadata?.activity_type as string) || t("common.activity");
+        return t("suspiciousActivityDetected.description", {
+          activity,
+          userName,
+        });
+      },
+      duration: 8000,
+    },
+    system_maintenance: {
+      toastType: "info",
+      title: t("systemMaintenance.title"),
+      description: (metadata) => {
+        const message =
+          (metadata?.message as string) || t("systemMaintenance.description");
+        return String(message);
+      },
+      duration: 10000,
+    },
+  };
+
   const connectionRef = useRef<{
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     channel: any;
@@ -572,7 +583,7 @@ export function AdminRealtimeToasts() {
       //     Test Admin Toast
       //   </button>
       // </div>
-      <div></div>
+      <></>
     );
   }
 

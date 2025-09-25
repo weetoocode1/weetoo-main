@@ -103,10 +103,10 @@ export const PartnerExchangeComparison = () => {
   const handleUIDAdded = async (uid: string, brokerId: string) => {
     try {
       await addUidMutation.mutateAsync({ uid, exchange_id: brokerId });
-      toast.success("UID added successfully");
+      toast.success(t("toast.uidAdded"));
       setUidDialogOpen(false);
     } catch (_err) {
-      toast.error("Failed to add UID. Please try again.");
+      toast.error(t("toast.uidAddFailed"));
     }
   };
 
@@ -621,7 +621,7 @@ export const PartnerExchangeComparison = () => {
                                         target="_blank"
                                         rel="noopener noreferrer"
                                       >
-                                        backup
+                                        {t("alternateLink")}
                                       </Link>
                                     </Button>
                                   )}
@@ -862,13 +862,13 @@ export const PartnerExchangeComparison = () => {
                         size="sm"
                         className="w-full rounded-none hover:shadow-sm"
                       >
-                        UID Registration Coming Soon
+                        {t("uidRegistrationComingSoon")}
                       </Button>
                       <Button
                         size="sm"
                         className="w-full rounded-none hover:shadow-sm"
                       >
-                        Sign Up Coming Soon
+                        {t("signUpComingSoon")}
                       </Button>
                     </>
                   )}

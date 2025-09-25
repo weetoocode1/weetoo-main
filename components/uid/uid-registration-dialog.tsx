@@ -2,9 +2,10 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Resolver, useForm } from "react-hook-form";
 import { z } from "zod";
+import { useTranslations } from "next-intl";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -64,57 +65,61 @@ const BROKERS = [
   },
 ];
 
-const uidFormSchema = z
-  .object({
-    brokerId: z.string().min(1, "Please select a broker"),
-    uid: z.string().min(1, "UID is required"),
-  })
-  .superRefine((val, ctx) => {
-    const { brokerId, uid } = val;
-    if (brokerId === "lbank") {
-      // LBank openId: allow 1-64 length, alphanumeric plus _ and -
-      if (!/^[A-Za-z0-9_-]{1,64}$/.test(uid)) {
+const createUidFormSchema = (t: (key: string) => string) =>
+  z
+    .object({
+      brokerId: z.string().min(1, t("dialog.validation.selectBroker")),
+      uid: z.string().min(1, t("dialog.validation.uidRequired")),
+    })
+    .superRefine((val, ctx) => {
+      const { brokerId, uid } = val;
+      if (brokerId === "lbank") {
+        // LBank openId: allow 1-64 length, alphanumeric plus _ and -
+        if (!/^[A-Za-z0-9_-]{1,64}$/.test(uid)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["uid"],
+            message: t("dialog.validation.lbankOpenId"),
+          });
+        }
+        return;
+      }
+
+      // Default (DeepCoin/OrangeX/BingX): numeric-only 3-20 and not all same digit
+      if (uid.length < 3) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["uid"],
-          message: "OpenID must be 1-64 chars (letters, numbers, _ or -)",
+          message: t("dialog.validation.uidMin3"),
         });
       }
-      return;
-    }
+      if (uid.length > 20) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["uid"],
+          message: t("dialog.validation.uidMax20"),
+        });
+      }
+      if (!/^\d+$/.test(uid)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["uid"],
+          message: t("dialog.validation.uidDigitsOnly"),
+        });
+      }
+      if (/^(\d)\1+$/.test(uid)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["uid"],
+          message: t("dialog.validation.uidNoSameDigits"),
+        });
+      }
+    });
 
-    // Default (DeepCoin/OrangeX/BingX): numeric-only 3-20 and not all same digit
-    if (uid.length < 3) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["uid"],
-        message: "UID must be at least 3 characters",
-      });
-    }
-    if (uid.length > 20) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["uid"],
-        message: "UID cannot exceed 20 characters",
-      });
-    }
-    if (!/^\d+$/.test(uid)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["uid"],
-        message: "UID must contain only digits",
-      });
-    }
-    if (/^(\d)\1+$/.test(uid)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["uid"],
-        message: "UID cannot be all the same digits",
-      });
-    }
-  });
-
-type UidFormData = z.infer<typeof uidFormSchema>;
+type UidFormData = {
+  brokerId: string;
+  uid: string;
+};
 
 interface UidRegistrationDialogProps {
   title: string;
@@ -141,12 +146,14 @@ export function UidRegistrationDialog({
   onOpenChange,
   defaultBrokerId,
 }: UidRegistrationDialogProps) {
+  const t = useTranslations("profile.uidRegistration");
   const [internalIsOpen, setInternalIsOpen] = useState(false);
 
   // Use external state if provided, otherwise use internal state
   const dialogIsOpen = isOpen !== undefined ? isOpen : internalIsOpen;
   const setDialogIsOpen = onOpenChange || setInternalIsOpen;
 
+  const uidFormSchema = useMemo(() => createUidFormSchema(t), [t]);
   const form = useForm<UidFormData>({
     resolver: zodResolver(uidFormSchema) as unknown as Resolver<UidFormData>,
     defaultValues: { brokerId: "", uid: "" },
@@ -196,11 +203,13 @@ export function UidRegistrationDialog({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="rounded-none">
         <DialogHeader className="gap-0">
-          <DialogTitle>{editingRecord ? "Edit UID" : title}</DialogTitle>
+          <DialogTitle>
+            {editingRecord ? t("dialog.editTitle") : title}
+          </DialogTitle>
           <DialogDescription>
             {editingRecord
-              ? "Update your broker UID information"
-              : "Add a new UID to your account."}
+              ? t("dialog.descriptionEdit")
+              : t("dialog.descriptionAdd")}
           </DialogDescription>
         </DialogHeader>
 
@@ -211,13 +220,15 @@ export function UidRegistrationDialog({
           className="flex flex-col gap-4"
         >
           <div className="flex flex-col gap-2">
-            <Label htmlFor="broker">Broker</Label>
+            <Label htmlFor="broker">{t("dialog.labels.broker")}</Label>
             <Select
               value={form.watch("brokerId")}
               onValueChange={(value) => form.setValue("brokerId", value)}
             >
               <SelectTrigger id="broker" className="h-10 rounded-none">
-                <SelectValue placeholder="Select Broker" />
+                <SelectValue
+                  placeholder={t("dialog.placeholders.selectBroker")}
+                />
               </SelectTrigger>
               <SelectContent className="rounded-none">
                 {BROKERS.map((broker) => (
@@ -247,10 +258,10 @@ export function UidRegistrationDialog({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="uid">UID</Label>
+            <Label htmlFor="uid">{t("dialog.labels.uid")}</Label>
             <Input
               id="uid"
-              placeholder="Enter UID"
+              placeholder={t("dialog.placeholders.enterUid")}
               className="h-10 rounded-none"
               {...form.register("uid")}
             />
@@ -263,7 +274,9 @@ export function UidRegistrationDialog({
 
           <div className="flex gap-2 pt-2 justify-end">
             <Button type="submit" className="rounded-none">
-              {editingRecord ? "Update" : "Add UID"}
+              {editingRecord
+                ? t("dialog.buttons.update")
+                : t("dialog.buttons.addUid")}
             </Button>
             <Button
               type="button"
@@ -271,7 +284,7 @@ export function UidRegistrationDialog({
               onClick={() => handleOpenChange(false)}
               className="rounded-none"
             >
-              Cancel
+              {t("dialog.buttons.cancel")}
             </Button>
           </div>
         </form>

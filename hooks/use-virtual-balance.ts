@@ -17,7 +17,8 @@ const fetchBalance = async (roomId: string) => {
 
   if (error) {
     console.error("Error fetching virtual balance:", error);
-    return 0;
+    // Throw to let SWR keep previous data instead of replacing with 0
+    throw error;
   }
 
   const balance = data?.virtual_balance ?? 0;
@@ -30,10 +31,14 @@ export function useVirtualBalance(roomId: string) {
     roomId ? VIRTUAL_BALANCE_KEY(roomId) : null,
     () => fetchBalance(roomId),
     {
-      revalidateOnFocus: true,
+      revalidateOnFocus: false, // Disable to prevent unnecessary revalidation
       revalidateOnReconnect: true,
-      dedupingInterval: 1000, // Reduce caching to 1 second
-      refreshInterval: 5000, // Refresh every 5 seconds as fallback
+      dedupingInterval: 0, // No deduping for instant updates
+      refreshInterval: 0, // Disable automatic refresh
+      // Keep showing the previous value while revalidating
+      revalidateIfStale: false,
+      // Add fallback data to prevent loading states
+      fallbackData: 0,
     }
   );
 

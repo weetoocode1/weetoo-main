@@ -228,7 +228,10 @@ const TraderCard = memo(
                     : "ring-amber-500/20"
                 }`}
               >
-                <AvatarImage src={``} alt={data.name} />
+                <AvatarImage
+                  src={exchange?.logoImage ?? ""}
+                  alt={`${exchange?.name ?? data.name} logo`}
+                />
                 <AvatarFallback
                   className={
                     data.color === "gold"
@@ -237,11 +240,17 @@ const TraderCard = memo(
                       ? "bg-slate-500/20 text-slate-300 font-semibold text-lg"
                       : "bg-amber-600/20 text-amber-300 font-semibold text-lg"
                   }
+                  style={{
+                    backgroundColor: exchange?.logoImage
+                      ? undefined
+                      : exchange?.logoColor,
+                  }}
                 >
-                  {data.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
+                  {exchange?.logo ??
+                    data.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
@@ -250,9 +259,11 @@ const TraderCard = memo(
                     data.rank === 1 ? "text-2xl" : "text-xl"
                   } font-bold text-foreground`}
                 >
-                  {data.name}
+                  {exchange?.name ?? data.name}
                 </h3>
-                <p className="text-sm text-muted-foreground">{data.username}</p>
+                <p className="text-sm text-muted-foreground">
+                  {exchange?.website ?? data.username}
+                </p>
               </div>
             </div>
 
@@ -386,11 +397,35 @@ const MobileCard = memo(
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
             {getRankingBadge(data.rank)}
-            <div>
-              <h3 className="font-bold text-xl text-card-foreground">
-                {data.name}
-              </h3>
-              <p className="text-sm text-muted-foreground">{data.username}</p>
+            <div className="flex items-center gap-3">
+              <Avatar className="w-12 h-12 ring-2 ring-border/40">
+                <AvatarImage
+                  src={exchange?.logoImage ?? ""}
+                  alt={`${exchange?.name ?? data.name} logo`}
+                />
+                <AvatarFallback
+                  className="bg-muted/50 text-foreground font-semibold"
+                  style={{
+                    backgroundColor: exchange?.logoImage
+                      ? undefined
+                      : exchange?.logoColor,
+                  }}
+                >
+                  {exchange?.logo ??
+                    data.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h3 className="font-bold text-xl text-card-foreground">
+                  {exchange?.name ?? data.name}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {exchange?.website ?? data.username}
+                </p>
+              </div>
             </div>
           </div>
           <div className="text-right">

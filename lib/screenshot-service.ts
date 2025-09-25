@@ -116,8 +116,8 @@ export class ScreenshotService {
       // Set viewport
       await page.setViewport({ width, height });
 
-      // Navigate to the room page
-      const roomUrl = `${baseUrl}/room/${roomId}`;
+      // Navigate to the room page with flags so UI can render a screenshot-friendly host view
+      const roomUrl = `${baseUrl}/room/${roomId}?screenshot=1&hostView=1`;
 
       await page.goto(roomUrl, {
         waitUntil: "domcontentloaded",
@@ -132,102 +132,103 @@ export class ScreenshotService {
         // Continue if not found
       }
 
-      // Wait for TradingView chart to load
+      // Ensure we capture after loading screens are gone and actual content is rendered
       try {
-        await page.waitForSelector('[data-testid="trading-view-chart"]', {
-          timeout: 20000,
-        });
-
-        // Wait for the chart to actually render
         await page.waitForFunction(
           () => {
+            const waiting = document.querySelector(
+              '[data-testid="trading-view-chart-waiting"]'
+            );
+
             const chartContainer = document.querySelector(
               '[data-testid="trading-view-chart"]'
-            );
-            const canvas = chartContainer?.querySelector("canvas");
-            return canvas && canvas.width > 0 && canvas.height > 0;
+            ) as HTMLElement | null;
+            const chartCanvas = chartContainer?.querySelector(
+              "canvas"
+            ) as HTMLCanvasElement | null;
+            const chartReady =
+              !!chartCanvas && chartCanvas.width > 0 && chartCanvas.height > 0;
+
+            const streamContainer = document.querySelector(
+              '[data-testid="trading-view-chart-stream"]'
+            ) as HTMLElement | null;
+            const video = streamContainer?.querySelector(
+              "video"
+            ) as HTMLVideoElement | null;
+            const videoReady =
+              !!video &&
+              video.readyState >= 2 &&
+              video.videoWidth > 0 &&
+              video.videoHeight > 0 &&
+              !video.paused;
+
+            // Proceed only when the waiting state is not present and either chart or stream is really ready
+            return !waiting && (chartReady || videoReady);
           },
-          { timeout: 30000 }
+          { timeout: 45000 }
         );
       } catch (_error) {
-        // Continue if not found
+        // If readiness isn't achieved within timeout, we proceed with best-effort capture
       }
 
-      // Wait for participants to load
-      try {
-        await page.waitForSelector('[data-testid="participants-list"]', {
-          timeout: 10000,
-        });
-      } catch (_error) {
-        // Continue if not found
-      }
+      // Small grace period to avoid catching transient UI just after ready
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // Wait for market data to load
+      // Take screenshot of the full room window, not just the chart/loading state
+      let screenshot: Buffer | string;
       try {
-        await page.waitForFunction(
-          () => {
-            const priceElement = document.querySelector(
-              '[data-testid="current-price"]'
-            );
-            return (
-              priceElement &&
-              priceElement.textContent &&
-              priceElement.textContent !== "-" &&
-              priceElement.textContent !== "0.00"
-            );
-          },
-          { timeout: 15000 }
+        const roomContainer = await page.$(
+          '[data-testid="trading-room-window"]'
         );
-      } catch (_error) {
-        // Continue if not found
+        if (roomContainer) {
+          // Ensure the viewport is large enough to contain the full room container
+          try {
+            const elementSize = await page.evaluate((el) => {
+              const rect = el.getBoundingClientRect();
+              const width = Math.max(
+                rect.width,
+                el.scrollWidth,
+                el.clientWidth
+              );
+              const height = Math.max(
+                rect.height,
+                el.scrollHeight,
+                el.clientHeight
+              );
+              return { width: Math.ceil(width), height: Math.ceil(height) };
+            }, roomContainer);
+
+            const targetWidth = Math.max(width, elementSize.width);
+            const targetHeight = Math.max(height, elementSize.height);
+            if (width !== targetWidth || height !== targetHeight) {
+              await page.setViewport({
+                width: targetWidth,
+                height: targetHeight,
+              });
+              await new Promise((r) => setTimeout(r, 300));
+            }
+          } catch (_e) {
+            // proceed even if sizing fails
+          }
+
+          // Capture only the main room container element
+          screenshot = (await roomContainer.screenshot({
+            type: "png",
+          })) as Buffer;
+        } else {
+          // Fallback to full page if container not found
+          screenshot = (await page.screenshot({
+            type: "png",
+            fullPage: true,
+          })) as Buffer;
+        }
+      } catch (_err) {
+        // Final fallback to full page
+        screenshot = (await page.screenshot({
+          type: "png",
+          fullPage: true,
+        })) as Buffer;
       }
-
-      // Wait longer for all dynamic content to load
-      await new Promise((resolve) => setTimeout(resolve, 10000));
-
-      // Final check - wait for any remaining dynamic content
-      try {
-        await page.waitForFunction(
-          () => {
-            // Check if TradingView chart has content
-            const chartContainer = document.querySelector(
-              '[data-testid="trading-view-chart"]'
-            );
-            const hasChartContent =
-              chartContainer && chartContainer.children.length > 0;
-
-            // Check if participants are loaded
-            const participantsContainer = document.querySelector(
-              '[data-testid="participants-list"]'
-            );
-            const hasParticipants =
-              participantsContainer &&
-              participantsContainer.textContent &&
-              !participantsContainer.textContent.includes("Loading...");
-
-            // Check if market data is loaded
-            const priceElement = document.querySelector(
-              '[data-testid="current-price"]'
-            );
-            const hasMarketData =
-              priceElement &&
-              priceElement.textContent &&
-              priceElement.textContent !== "-" &&
-              priceElement.textContent !== "0.00";
-
-            return hasChartContent && hasParticipants && hasMarketData;
-          },
-          { timeout: 20000 }
-        );
-      } catch (_error) {
-        // Continue anyway
-      }
-
-      // Take screenshot
-      const screenshot = await page.screenshot({
-        type: "png",
-        fullPage: true,
-      });
 
       // Upload to Supabase Storage
       const supabase = await createServiceClient();

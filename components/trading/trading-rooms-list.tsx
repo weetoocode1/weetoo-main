@@ -189,6 +189,9 @@ export function TradingRoomsList() {
   const [selectedAccess, setSelectedAccess] = useState<string[]>([]);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   const [streamingRooms, setStreamingRooms] = useState<Set<string>>(new Set());
+  const [presenceCounts, setPresenceCounts] = useState<Map<string, number>>(
+    new Map()
+  );
 
   // React Query client for cache management
   const queryClient = useQueryClient();
@@ -365,6 +368,9 @@ export function TradingRoomsList() {
   const supabaseChannelRef = useRef<ReturnType<
     ReturnType<typeof createClient>["channel"]
   > | null>(null);
+  const presenceChannelsRef = useRef<
+    Map<string, ReturnType<ReturnType<typeof createClient>["channel"]>>
+  >(new Map());
 
   const [passwordDialog, setPasswordDialog] = useState<{
     open: boolean;
@@ -377,6 +383,50 @@ export function TradingRoomsList() {
   useEffect(() => {
     // Initial fetch is handled by SWR
   }, []);
+
+  // Presence counts per visible room (observe-only; do not track self)
+  useEffect(() => {
+    const supabase = createClient();
+    const channels = new Map<string, ReturnType<typeof supabase.channel>>();
+
+    const roomsToObserve = (roomsWithHostStatus || []).slice(0, 24); // limit to first 24 visible
+    roomsToObserve.forEach((room) => {
+      if (!room?.id) return;
+      const channel = supabase.channel(`room-presence-${room.id}`, {
+        config: { presence: { key: `observer-${room.id}` } },
+      });
+      channel.on("presence", { event: "sync" }, () => {
+        try {
+          const state = channel.presenceState() as Record<string, unknown[]>;
+          const count = Object.keys(state).length;
+          setPresenceCounts((prev) => {
+            const next = new Map(prev);
+            next.set(room.id, count);
+            return next;
+          });
+        } catch {}
+      });
+      channel.subscribe();
+      channels.set(room.id, channel);
+    });
+
+    // cleanup previous subscriptions
+    const previous = presenceChannelsRef.current;
+    previous.forEach((ch) => {
+      try {
+        supabase.removeChannel(ch);
+      } catch {}
+    });
+    presenceChannelsRef.current = channels;
+
+    return () => {
+      channels.forEach((ch) => {
+        try {
+          supabase.removeChannel(ch);
+        } catch {}
+      });
+    };
+  }, [roomsWithHostStatus]);
 
   // Real-time subscription for trading room participants - More responsive
   useEffect(() => {
@@ -1240,6 +1290,7 @@ export function TradingRoomsList() {
                       src={room.thumbnail_url}
                       alt={room.name}
                       fill
+                      unoptimized
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
                       onError={() =>
@@ -1268,10 +1319,10 @@ export function TradingRoomsList() {
                   )}
 
                   {/* Participants count */}
-                  {room.participants > 0 && (
+                  {(presenceCounts.get(room.id) ?? room.participants) > 0 && (
                     <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
-                      {room.participants}{" "}
-                      {room.participants === 1
+                      {presenceCounts.get(room.id) ?? room.participants}{" "}
+                      {(presenceCounts.get(room.id) ?? room.participants) === 1
                         ? t("participant")
                         : t("participants")}
                     </div>

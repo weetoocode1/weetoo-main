@@ -27,6 +27,7 @@ import type { UserProfileData } from "./profile-types";
 import { toast } from "sonner";
 import { Separator } from "../ui/separator";
 import { LockIcon, UserCogIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const profileFormSchema = z.object({
   fullName: z
@@ -55,6 +56,7 @@ interface ProfileSettingsFormProps {
 }
 
 export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
+  const t = useTranslations("profile.settings");
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(
       profileFormSchema
@@ -69,8 +71,8 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
 
   function onSubmit(values: ProfileFormValues) {
     console.log("Profile updated:", values);
-    toast.success("Profile Updated", {
-      description: "Your profile information has been successfully updated.",
+    toast.success(t("toast.updated.title"), {
+      description: t("toast.updated.description"),
     });
   }
 
@@ -81,12 +83,9 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
           <CardHeader>
             <CardTitle className="flex items-center text-xl">
               <UserCogIcon className="w-6 h-6 mr-2.5 text-primary" />
-              Edit Profile Information
+              {t("title")}
             </CardTitle>
-            <CardDescription>
-              Update your personal details. Changes will be reflected across the
-              platform.
-            </CardDescription>
+            <CardDescription>{t("description")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 pt-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
@@ -95,10 +94,10 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
                 name="fullName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name</FormLabel>
+                    <FormLabel>{t("fields.fullName")}</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="e.g., Jane Doe"
+                        placeholder={t("placeholders.fullName")}
                         {...field}
                         className="h-10"
                       />
@@ -112,10 +111,10 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
                 name="nickname"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nickname</FormLabel>
+                    <FormLabel>{t("fields.nickname")}</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="e.g., janedoe99"
+                        placeholder={t("placeholders.nickname")}
                         {...field}
                         className="h-10"
                       />
@@ -131,19 +130,17 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email Address</FormLabel>
+                  <FormLabel>{t("fields.email")}</FormLabel>
                   <FormControl>
                     <Input
                       type="email"
-                      placeholder="your.email@example.com"
+                      placeholder={t("placeholders.email")}
                       {...field}
                       readOnly
                       className="focus-visible:ring-0 cursor-not-allowed opacity-70 h-10"
                     />
                   </FormControl>
-                  <FormDescription>
-                    Your email is not changeable for security reasons.
-                  </FormDescription>
+                  <FormDescription>{t("emailNote")}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -153,17 +150,15 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
               name="bio"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Bio</FormLabel>
+                  <FormLabel>{t("fields.bio")}</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Tell us a little about yourself..."
+                      placeholder={t("placeholders.bio")}
                       className="resize-none min-h-[100px]"
                       {...field}
                     />
                   </FormControl>
-                  <FormDescription>
-                    A brief description about you (max 200 characters).
-                  </FormDescription>
+                  <FormDescription>{t("bioHelp")}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -175,13 +170,13 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
           <CardContent>
             <h3 className="text-lg font-medium mb-1 flex items-center">
               <LockIcon className="w-5 h-5 mr-2 text-primary" />
-              Account Security
+              {t("security.title")}
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Manage your account security settings.
+              {t("security.description")}
             </p>
             <Button variant="outline" type="button">
-              Change Password
+              {t("security.changePassword")}
             </Button>
           </CardContent>
 
@@ -191,7 +186,9 @@ export function ProfileSettingsForm({ user }: ProfileSettingsFormProps) {
               disabled={form.formState.isSubmitting || !form.formState.isDirty}
               className="min-w-[120px]"
             >
-              {form.formState.isSubmitting ? "Saving..." : "Save Changes"}
+              {form.formState.isSubmitting
+                ? t("actions.saving")
+                : t("actions.saveChanges")}
             </Button>
           </CardFooter>
         </form>

@@ -8,7 +8,8 @@ import { LivektParticipantAudio } from "@/components/room/livekit-participant-au
 import { useBinanceFutures } from "@/hooks/use-binance-futures";
 import { useRoomParticipant } from "@/hooks/use-room-participant";
 import { createClient } from "@/lib/supabase/client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 // TradingViewChartComponent will be lazy loaded
 import dynamic from "next/dynamic";
 
@@ -189,11 +190,17 @@ export function RoomWindowContent({
   roomType: "regular" | "voice";
   onCurrentPrice?: (price: number | undefined) => void;
 }) {
-  // Check if current user is the host
-  const [isHost, setIsHost] = useState(false);
+  const searchParams = useSearchParams();
+  const forceHostView = searchParams?.get("hostView") === "1";
+  // Check if current user is the host (or force host view for screenshots)
+  const [isHost, setIsHost] = useState(forceHostView);
 
   useEffect(() => {
     const checkIfHost = async () => {
+      if (forceHostView) {
+        setIsHost(true);
+        return;
+      }
       const supabase = createClient();
       const {
         data: { user },
@@ -204,7 +211,7 @@ export function RoomWindowContent({
       }
     };
     checkIfHost();
-  }, [hostId]);
+  }, [hostId, forceHostView]);
 
   // Fetch all market data using the enhanced hook
   const marketData = useBinanceFutures(symbol);
@@ -258,12 +265,14 @@ export function RoomWindowContent({
                     ref={chartOuterRef}
                     className="flex-1 max-w-full border-border border w-full bg-background md:h-full h-[320px]"
                   >
-                    <TradingViewChartComponent
-                      symbol={symbol}
-                      isHost={isHost}
-                      roomId={roomId}
-                      hostId={hostId}
-                    />
+                    <Suspense fallback={<div />}>
+                      <TradingViewChartComponent
+                        symbol={symbol}
+                        isHost={isHost}
+                        roomId={roomId}
+                        hostId={hostId}
+                      />
+                    </Suspense>
                   </div>
                   <div className="w-[300px] border border-border bg-background p-2 md:h-full h-[280px]">
                     <OrderBook symbol={symbol} data={marketData} />
@@ -298,12 +307,14 @@ export function RoomWindowContent({
               // Participant: show only the stream area and let it fill available space
               <div className="w-full h-full">
                 <div className="w-full border border-border bg-background md:h-full h-[360px]">
-                  <TradingViewChartComponent
-                    symbol={symbol}
-                    isHost={false}
-                    roomId={roomId}
-                    hostId={hostId}
-                  />
+                  <Suspense fallback={<div />}>
+                    <TradingViewChartComponent
+                      symbol={symbol}
+                      isHost={false}
+                      roomId={roomId}
+                      hostId={hostId}
+                    />
+                  </Suspense>
                 </div>
               </div>
             )}

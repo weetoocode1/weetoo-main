@@ -17,11 +17,29 @@ export function useRoomParticipant(roomId: string, user: User | null) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const isJoiningRef = useRef(false);
+  const hasCheckedRef = useRef(false);
+  const lastUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!user || !roomId) {
       setIsParticipant(false);
       setIsLoading(false);
+      hasCheckedRef.current = false;
+      lastUserIdRef.current = null;
+      return;
+    }
+
+    // Check if user ID changed (user loaded or changed)
+    const userIdChanged = lastUserIdRef.current !== user.id;
+
+    // Reset check status if user changed
+    if (userIdChanged) {
+      hasCheckedRef.current = false;
+      lastUserIdRef.current = user.id;
+    }
+
+    // Prevent re-checking on every tab focus if we already know the status and user hasn't changed
+    if (hasCheckedRef.current && isParticipant && !userIdChanged) {
       return;
     }
 
@@ -45,7 +63,15 @@ export function useRoomParticipant(roomId: string, user: User | null) {
           console.error("Error checking participant status:", queryError);
           setError(queryError.message);
         } else if (isMounted) {
-          setIsParticipant(!!data);
+          const isParticipantNow = !!data;
+          console.log("Participant status check:", {
+            userId: user.id,
+            roomId,
+            isParticipant: isParticipantNow,
+            data,
+          });
+          setIsParticipant(isParticipantNow);
+          hasCheckedRef.current = true;
         }
       } catch (err) {
         console.error("Error in checkParticipantStatus:", err);
@@ -93,9 +119,11 @@ export function useRoomParticipant(roomId: string, user: User | null) {
             // If left_at is set, user left the room
             if (payload.new.left_at) {
               setIsParticipant(false);
+              hasCheckedRef.current = false;
             } else {
               setIsParticipant(true);
               setError(null);
+              hasCheckedRef.current = true;
             }
           }
         }
@@ -130,6 +158,7 @@ export function useRoomParticipant(roomId: string, user: User | null) {
 
       if (existing) {
         setIsParticipant(true);
+        hasCheckedRef.current = true;
         return true;
       }
 
@@ -145,6 +174,7 @@ export function useRoomParticipant(roomId: string, user: User | null) {
         if (error.code === "23505") {
           // User already in room (race condition)
           setIsParticipant(true);
+          hasCheckedRef.current = true;
           return true;
         } else {
           setError(error.message);
@@ -152,6 +182,7 @@ export function useRoomParticipant(roomId: string, user: User | null) {
         }
       } else {
         setIsParticipant(true);
+        hasCheckedRef.current = true;
         return true;
       }
     } catch (err) {

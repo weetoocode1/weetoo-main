@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
@@ -33,6 +34,7 @@ function getNaverOAuthUrl() {
 }
 
 export function LoginForm() {
+  const t = useTranslations("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -71,7 +73,7 @@ export function LoginForm() {
         });
         console.log("[Login] Email/Password result:", { data: null, error });
         if (error) {
-          toast.error(error.message || "Login failed");
+          toast.error(error.message || t("toast.loginFailed"));
         } else {
           // Immediately verify ban status and prevent session if banned
           const {
@@ -93,13 +95,13 @@ export function LoginForm() {
               try {
                 await supabase.auth.signOut();
               } catch {}
-              toast.error("Your account is banned.");
+              toast.error(t("toast.accountBanned"));
               // Stay on login page but show modal; do not navigate
               return;
             }
           }
           localStorage.setItem("weetoo-last-sign-in-method", "email");
-          toast.success("Logged in successfully");
+          toast.success(t("toast.loginSuccess"));
           router.refresh();
           router.push("/");
         }
@@ -123,13 +125,16 @@ export function LoginForm() {
           error,
         });
         if (error) {
-          toast.error(error.message || `Login with ${provider} failed`, {
-            position: "top-center",
-          });
+          toast.error(
+            error.message || t("toast.loginWithProviderFailed", { provider }),
+            {
+              position: "top-center",
+            }
+          );
         } else {
           // Note: final ban check will occur after OAuth redirect, in useAuth
           localStorage.setItem("weetoo-last-sign-in-method", provider);
-          toast.success(`Redirecting to ${provider}...`, {
+          toast.success(t("toast.redirecting", { provider }), {
             position: "top-center",
           });
         }
@@ -149,10 +154,8 @@ export function LoginForm() {
     <div className="w-full h-full flex items-center justify-center flex-col">
       <div className="flex flex-col w-full max-w-md gap-4">
         <div className="flex gap-0.5 flex-col items-center select-none">
-          <h3 className="text-[1.3rem] font-semibold">Welcome Back</h3>
-          <p className="text-muted-foreground text-sm">
-            Login to access your weetoo account and start trading
-          </p>
+          <h3 className="text-[1.3rem] font-semibold">{t("welcomeBack")}</h3>
+          <p className="text-muted-foreground text-sm">{t("subtitle")}</p>
         </div>
 
         <div className="max-w-md w-full mx-auto">
@@ -162,7 +165,7 @@ export function LoginForm() {
               className="border w-full h-12 flex items-center justify-center rounded-lg cursor-pointer hover:bg-accent relative"
               onClick={() => handleSocialLogin("google")}
               disabled={loading}
-              aria-label="Login with Google"
+              aria-label={t("aria.loginWithGoogle")}
             >
               <svg
                 className="w-5 h-5 "
@@ -192,7 +195,7 @@ export function LoginForm() {
                   className="absolute -top-1.5 -right-1.5 bg-gray-700 text-white text-[10px] px-1.5 py-0.5 rounded-full z-10 shadow-sm"
                   style={{ minWidth: "44px", textAlign: "center" }}
                 >
-                  Last used
+                  {t("lastUsed")}
                 </span>
               )}
             </button>
@@ -201,7 +204,7 @@ export function LoginForm() {
               className="border w-full h-12 flex items-center justify-center rounded-lg bg-[#FFCD00] cursor-pointer hover:bg-[#FFB900] relative"
               onClick={() => handleSocialLogin("kakao")}
               disabled={loading}
-              aria-label="Login with Kakao"
+              aria-label={t("aria.loginWithKakao")}
             >
               <svg
                 width="20"
@@ -223,7 +226,7 @@ export function LoginForm() {
                   className="absolute -top-1.5 -right-1.5 bg-gray-700 text-white text-[10px] px-1.5 py-0.5 rounded-full z-10 shadow-sm"
                   style={{ minWidth: "44px", textAlign: "center" }}
                 >
-                  Last used
+                  {t("lastUsed")}
                 </span>
               )}
             </button>
@@ -232,7 +235,7 @@ export function LoginForm() {
               className="border w-full h-12 flex items-center justify-center rounded-lg bg-[#03C75A] cursor-pointer hover:bg-[#03B94D] relative"
               onClick={handleNaverLogin}
               disabled={loading}
-              aria-label="Login with Naver"
+              aria-label={t("aria.loginWithNaver")}
             >
               <svg
                 role="img"
@@ -248,7 +251,7 @@ export function LoginForm() {
                   className="absolute -top-1.5 -right-1.5 bg-gray-700 text-white text-[10px] px-1.5 py-0.5 rounded-full z-10 shadow-sm"
                   style={{ minWidth: "44px", textAlign: "center" }}
                 >
-                  Last used
+                  {t("lastUsed")}
                 </span>
               )}
             </button>
@@ -264,7 +267,7 @@ export function LoginForm() {
           </div>
           <div className="relative flex justify-center text-xs">
             <span className="bg-background px-2 text-primary">
-              or continue with email
+              {t("orContinueWithEmail")}
             </span>
           </div>
         </div>
@@ -275,7 +278,7 @@ export function LoginForm() {
           <Input
             type="email"
             id="email"
-            placeholder="Email address"
+            placeholder={t("placeholders.email")}
             className="h-12 bg-transparent"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -288,7 +291,7 @@ export function LoginForm() {
               className="absolute -top-1.5 -right-1.5 bg-gray-700 text-white text-[10px] px-1.5 py-0.5 rounded-full z-10 shadow-sm"
               style={{ minWidth: "44px", textAlign: "center" }}
             >
-              Last used
+              {t("lastUsed")}
             </span>
           )}
         </div>
@@ -298,7 +301,7 @@ export function LoginForm() {
             <Input
               type={showPassword ? "text" : "password"}
               id="password"
-              placeholder="Password"
+              placeholder={t("placeholders.password")}
               autoComplete="current-password"
               className="h-12 bg-transparent pr-10"
               value={password}
@@ -311,7 +314,9 @@ export function LoginForm() {
               className="absolute cursor-pointer right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setShowPassword(!showPassword)}
               disabled={loading}
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-label={
+                showPassword ? t("aria.hidePassword") : t("aria.showPassword")
+              }
             >
               {showPassword ? (
                 <EyeOff className="h-4 w-4" />
@@ -330,27 +335,27 @@ export function LoginForm() {
               onCheckedChange={(v) => setRemember(!!v)}
               disabled={loading}
             />
-            <Label htmlFor="remember">Remember Me</Label>
+            <Label htmlFor="remember">{t("rememberMe")}</Label>
           </div>
 
           <Link
             href="#"
             className="text-sm text-muted-foreground hover:text-primary hover:underline transition-colors duration-200 ease-in-out"
           >
-            Forgot password?
+            {t("forgotPassword")}
           </Link>
         </div>
 
         <Button type="submit" className="w-full h-12" disabled={loading}>
-          {loading ? "Logging in..." : "Login"}
+          {loading ? t("buttons.loggingIn") : t("buttons.login")}
         </Button>
         <p className="text-sm text-muted-foreground text-center">
-          Don&apos;t have an account?{" "}
+          {t("noAccountPrompt")} {""}
           <Link
             href="/register"
             className="text-sm text-primary hover:text-primary/80 transition-colors duration-200 ease-in-out"
           >
-            Sign up
+            {t("buttons.signUp")}
           </Link>
         </p>
       </form>

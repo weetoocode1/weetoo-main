@@ -3,7 +3,7 @@
 import { useVirtualBalance } from "@/hooks/use-virtual-balance";
 import { RoomWindowContent } from "./room-window-content";
 import { WindowTitleBar } from "./window-title-bar";
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRoomRealtimeSync } from "@/hooks/use-room-realtime-sync";
 import { useAutoThumbnail } from "@/hooks/use-auto-thumbnail";
 
@@ -29,6 +29,17 @@ export function TradingRoomWindow({
   initialUpdatedAt,
 }: TradingRoomWindowProps) {
   const virtualBalance = useVirtualBalance(roomId);
+  // Preserve last known non-null balance to avoid flicker to 0 during revalidation
+  const lastBalanceRef = useRef<number>(_virtualBalance || 0); // Use initial balance as fallback
+  useEffect(() => {
+    if (typeof virtualBalance === "number" && !isNaN(virtualBalance)) {
+      lastBalanceRef.current = Math.max(0, virtualBalance);
+    }
+  }, [virtualBalance]);
+  const stableVirtualBalance = useMemo(
+    () => lastBalanceRef.current,
+    [virtualBalance]
+  );
   const [currentPrice, setCurrentPrice] = useState<number | undefined>(
     undefined
   );
@@ -57,7 +68,7 @@ export function TradingRoomWindow({
         roomType={roomType}
         onCloseRoom={() => {}}
         onTitleBarMouseDown={() => {}}
-        virtualBalance={virtualBalance ?? 0}
+        virtualBalance={stableVirtualBalance}
         hostId={hostId}
         roomId={roomId}
         symbol={symbol}
@@ -70,7 +81,7 @@ export function TradingRoomWindow({
           symbol={symbol}
           roomId={roomId}
           hostId={hostId}
-          virtualBalance={virtualBalance ?? 0}
+          virtualBalance={stableVirtualBalance}
           roomType={roomType}
           onCurrentPrice={setCurrentPrice}
         />
