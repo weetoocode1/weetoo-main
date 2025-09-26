@@ -902,7 +902,7 @@ export function RankingsSection({ data }: RankingsSectionProps) {
           <h2 className="text-4xl sm:text-5xl font-bold text-foreground">
             {t("leaderboards")}
           </h2>
-          <p className="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto mt-2">
+          <p className="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto mt-2 whitespace-pre-line">
             {t("trackTopTraders")}
           </p>
         </motion.div>
