@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { updateExchanges, useExchangeStore } from "@/hooks/use-exchange-store";
+import { useAddUserUid } from "@/hooks/use-user-uids";
 import {
   ArrowUpDown,
   Award,
@@ -17,13 +18,12 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
+import Link from "next/link";
 import { Fragment, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { UidRegistrationDialog } from "../uid/uid-registration-dialog";
 import { ExchangeEditDialog } from "./exchange-edit-dialog";
 import { type Exchange } from "./exchanges-data";
-import { UidRegistrationDialog } from "../uid/uid-registration-dialog";
-import Link from "next/link";
-import { useAddUserUid } from "@/hooks/use-user-uids";
 
 // Calculate score based on objective metrics
 const calculateScore = (exchange: Exchange): number => {
@@ -216,6 +216,63 @@ export const PartnerExchangeComparison = () => {
 
     return filtered;
   }, [activeFilter, exchanges]);
+
+  const tagPalette = [
+    "px-3 py-1.5 text-xs font-medium text-amber-700 bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-200 dark:text-amber-300 dark:from-amber-950/30 dark:to-amber-900/20 dark:border-amber-800/30 rounded-none shadow-sm",
+    "px-3 py-1.5 text-xs font-medium text-red-700 bg-gradient-to-r from-red-50 to-red-100 border border-red-200 dark:text-red-300 dark:from-red-950/30 dark:to-red-900/20 dark:border-red-800/30 rounded-none shadow-sm",
+    "px-3 py-1.5 text-xs font-medium text-blue-700 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 dark:text-blue-300 dark:from-blue-950/30 dark:to-blue-900/20 dark:border-blue-800/30 rounded-none shadow-sm",
+    "px-3 py-1.5 text-xs font-medium text-purple-700 bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 dark:text-purple-300 dark:from-purple-950/30 dark:to-purple-900/20 dark:border-purple-800/30 rounded-none shadow-sm",
+    "px-3 py-1.5 text-xs font-medium text-green-700 bg-gradient-to-r from-green-50 to-green-100 border border-green-200 dark:text-green-300 dark:from-green-950/30 dark:to-green-900/20 dark:border-green-800/30 rounded-none shadow-sm",
+    "px-3 py-1.5 text-xs font-medium text-cyan-700 bg-gradient-to-r from-cyan-50 to-cyan-100 border border-cyan-200 dark:text-cyan-300 dark:from-cyan-950/30 dark:to-cyan-900/20 dark:border-cyan-800/30 rounded-none shadow-sm",
+    "px-3 py-1.5 text-xs font-medium text-muted-foreground bg-gradient-to-r dark:from-muted/60 dark:to-muted/40 border border-border/50 rounded-none shadow-sm",
+  ];
+
+  const getTagClass = (tag: string) => {
+    const known: Record<string, string> = {
+      TOP: tagPalette[0],
+      HIGH: tagPalette[1],
+      PREMIUM: tagPalette[2],
+      LEADER: tagPalette[3],
+      TRENDING: tagPalette[4],
+      FAST: tagPalette[5],
+      BASIC: tagPalette[6],
+    };
+    if (known[tag]) return known[tag];
+    // Deterministic pick from palette for custom tags
+    let hash = 0;
+    for (let i = 0; i < tag.length; i++) {
+      hash = (hash * 31 + tag.charCodeAt(i)) >>> 0;
+    }
+    const idx = hash % (tagPalette.length - 1); // avoid BASIC slot unless explicitly BASIC
+    return tagPalette[idx];
+  };
+
+  const tagLabel = (raw: string) => {
+    const knownMap: Record<string, string> = {
+      TOP: "customTags.top",
+      HIGH: "customTags.high",
+      PREMIUM: "customTags.premium",
+      LEADER: "customTags.leader",
+      TRENDING: "customTags.trending",
+      FAST: "customTags.fast",
+      BASIC: "customTags.basic",
+      FEATURED: "customTags.featured",
+      NEW: "customTags.new",
+      POPULAR: "customTags.popular",
+      LIMITED_OFFER: "customTags.limited_offer",
+      EXCLUSIVE: "customTags.exclusive",
+      RECOMMENDED: "customTags.recommended",
+      BEST_SELLER: "customTags.best_seller",
+    };
+    const key = knownMap[raw];
+    if (!key) return raw;
+    try {
+      const label = t(key as string);
+      return label;
+    } catch {
+      return raw;
+    }
+  };
 
   const filterOptions = [
     { id: "all", label: t("allExchanges"), icon: ArrowUpDown },
@@ -464,34 +521,19 @@ export const PartnerExchangeComparison = () => {
                       </td>
                       <td className="p-5">
                         <div className="flex flex-wrap gap-2">
-                          {exchange.tags.map((tag, tagIndex) => {
-                            const tagConfig = {
-                              TOP: "px-3 py-1.5 text-xs font-medium text-amber-700 bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-200 dark:text-amber-300 dark:bg-gradient-to-r dark:from-amber-950/30 dark:to-amber-900/20 dark:border-amber-800/30 rounded-none shadow-sm",
-                              HIGH: "px-3 py-1.5 text-xs font-medium text-red-700 bg-gradient-to-r from-red-50 to-red-100 border border-red-200 dark:text-red-300 dark:bg-gradient-to-r dark:from-red-950/30 dark:to-red-900/20 dark:border-red-800/30 rounded-none shadow-sm",
-                              PREMIUM:
-                                "px-3 py-1.5 text-xs font-medium text-blue-700 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 dark:text-blue-300 dark:bg-gradient-to-r dark:from-blue-950/30 dark:to-blue-900/20 dark:border-blue-800/30 rounded-none shadow-sm",
-                              LEADER:
-                                "px-3 py-1.5 text-xs font-medium text-purple-700 bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 dark:text-purple-300 dark:bg-gradient-to-r dark:from-purple-950/30 dark:to-purple-900/20 dark:border-purple-800/30 rounded-none shadow-sm",
-                              TRENDING:
-                                "px-3 py-1.5 text-xs font-medium text-green-700 bg-gradient-to-r from-green-50 to-green-100 border border-green-200 dark:text-green-300 dark:bg-gradient-to-r dark:from-green-950/30 dark:to-green-900/20 dark:border-green-800/30 rounded-none shadow-sm",
-                              FAST: "px-3 py-1.5 text-xs font-medium text-cyan-700 bg-gradient-to-r from-cyan-50 to-cyan-100 border border-cyan-200 dark:text-cyan-300 dark:bg-gradient-to-r dark:from-cyan-950/30 dark:to-cyan-900/20 dark:border-cyan-800/30 rounded-none shadow-sm",
-                              BASIC:
-                                "px-3 py-1.5 text-xs font-medium text-muted-foreground bg-gradient-to-r dark:from-muted/60 dark:to-muted/40 border border-border/50 rounded-none shadow-sm",
-                            };
-
-                            const tagStyle =
-                              tagConfig[tag as keyof typeof tagConfig] ||
-                              tagConfig.BASIC;
-
-                            return (
-                              <span
-                                key={tagIndex}
-                                className={`${tagStyle} hover:scale-105 transition-transform duration-200`}
-                              >
-                                {tag}
-                              </span>
-                            );
-                          })}
+                          {(exchange.tags && exchange.tags.length > 0
+                            ? exchange.tags
+                            : ["BASIC"]
+                          ).map((tag, tagIndex) => (
+                            <span
+                              key={tagIndex}
+                              className={`${getTagClass(
+                                tag
+                              )} hover:scale-105 transition-transform duration-200`}
+                            >
+                              {tagLabel(tag)}
+                            </span>
+                          ))}
                         </div>
                       </td>
                       {isSuperAdmin && (
@@ -549,12 +591,15 @@ export const PartnerExchangeComparison = () => {
                               </div>
                             </div>
                             <div className="flex flex-wrap gap-2">
-                              {exchange.tags.map((tag, tagIndex) => (
+                              {(exchange.tags && exchange.tags.length > 0
+                                ? exchange.tags
+                                : ["BASIC"]
+                              ).map((tag, tagIndex) => (
                                 <span
                                   key={tagIndex}
-                                  className="px-2 py-1 text-xs rounded bg-muted/40 text-muted-foreground border border-border/40"
+                                  className={`${getTagClass(tag)}`}
                                 >
-                                  {tag}
+                                  {tagLabel(tag)}
                                 </span>
                               ))}
                             </div>
@@ -755,31 +800,14 @@ export const PartnerExchangeComparison = () => {
 
                   {/* Tags */}
                   <div className="flex flex-wrap gap-1 pt-3 border-t border-border">
-                    {exchange.tags.map((tag, tagIndex) => {
-                      const tagConfig = {
-                        TOP: "px-2 py-0.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 dark:text-amber-300 dark:bg-amber-950/20 dark:border-amber-800/30 rounded",
-                        HIGH: "px-2 py-0.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 dark:text-red-300 dark:bg-red-950/20 dark:border-red-800/30 rounded",
-                        PREMIUM:
-                          "px-2 py-0.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 dark:text-blue-300 dark:bg-blue-950/20 dark:border-blue-800/30 rounded",
-                        LEADER:
-                          "px-2 py-0.5 text-xs font-medium text-purple-700 bg-purple-50 border border-purple-200 dark:text-purple-300 dark:bg-purple-950/20 dark:border-purple-800/30 rounded",
-                        TRENDING:
-                          "px-2 py-0.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 dark:text-green-300 dark:bg-green-950/20 dark:border-green-800/30 rounded",
-                        FAST: "px-2 py-0.5 text-xs font-medium text-cyan-700 bg-cyan-50 border border-cyan-200 dark:text-cyan-300 dark:bg-cyan-950/20 dark:border-cyan-800/30 rounded",
-                        BASIC:
-                          "px-2 py-0.5 text-xs font-medium text-muted-foreground bg-muted border border-border rounded",
-                      };
-
-                      const tagStyle =
-                        tagConfig[tag as keyof typeof tagConfig] ||
-                        tagConfig.BASIC;
-
-                      return (
-                        <span key={tagIndex} className={tagStyle}>
-                          {tag}
-                        </span>
-                      );
-                    })}
+                    {(exchange.tags && exchange.tags.length > 0
+                      ? exchange.tags
+                      : ["BASIC"]
+                    ).map((tag, tagIndex) => (
+                      <span key={tagIndex} className={getTagClass(tag)}>
+                        {tagLabel(tag)}
+                      </span>
+                    ))}
                   </div>
                 </div>
 
