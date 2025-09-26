@@ -317,6 +317,19 @@
     "badges": {
       "unverified": "미인증",
       "verifiedTooltip": "귀하의 신원이 인증되었습니다."
+    },
+    "rewards": {
+      "defaultLabel": "보상",
+      "postShared": "게시물 공유",
+      "postCreated": "게시물 작성",
+      "postCommented": "댓글 작성",
+      "postLiked": "게시물 좋아요",
+      "dailyLogin": "일일 로그인",
+      "roomCreated": "방 생성"
+    },
+    "likes": {
+      "liked": "게시물을 좋아요했습니다!",
+      "unliked": "게시물 좋아요를 취소했습니다"
     }
   },
   "user": {

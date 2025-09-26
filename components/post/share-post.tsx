@@ -56,7 +56,7 @@ export function SharePost({ post, className }: SharePostProps) {
           const exp = data.reward.exp_delta ?? 0;
           const kor = data.reward.kor_delta ?? 0;
           if (exp > 0 || kor > 0) {
-            toast.success(t("rewardEarned", { exp, kor }));
+            // toast.success(t("rewardEarned", { exp, kor }));
           }
         } else if (data?.error) {
           toast.error(data.error);
@@ -188,9 +188,9 @@ export function SharePost({ post, className }: SharePostProps) {
                           const exp = data.reward.exp_delta ?? 0;
                           const kor = data.reward.kor_delta ?? 0;
                           if (exp > 0 || kor > 0) {
-                            toast.success(
-                              `Reward earned: +${exp} EXP, +${kor} KOR`
-                            );
+                            // toast.success(
+                            //   `Reward earned: +${exp} EXP, +${kor} KOR`
+                            // );
                           }
                         } else if (data?.error) {
                           toast.error(data.error);

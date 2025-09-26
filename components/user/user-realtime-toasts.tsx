@@ -199,6 +199,42 @@ export function UserRealtimeToasts() {
       },
       duration: 5000,
     },
+    post_shared: {
+      toastType: "info",
+      title: () => "", // Empty title to suppress toast
+      description: () => "", // Empty description to suppress toast
+      duration: 0, // Immediate dismissal
+    },
+    post_created: {
+      toastType: "info",
+      title: () => "", // Empty title to suppress toast
+      description: () => "", // Empty description to suppress toast
+      duration: 0, // Immediate dismissal
+    },
+    post_commented: {
+      toastType: "info",
+      title: () => "", // Empty title to suppress toast
+      description: () => "", // Empty description to suppress toast
+      duration: 0, // Immediate dismissal
+    },
+    post_liked: {
+      toastType: "info",
+      title: () => "", // Empty title to suppress toast
+      description: () => "", // Empty description to suppress toast
+      duration: 0, // Immediate dismissal
+    },
+    daily_login: {
+      toastType: "info",
+      title: () => "", // Empty title to suppress toast
+      description: () => "", // Empty description to suppress toast
+      duration: 0, // Immediate dismissal
+    },
+    room_created: {
+      toastType: "info",
+      title: () => "", // Empty title to suppress toast
+      description: () => "", // Empty description to suppress toast
+      duration: 0, // Immediate dismissal
+    },
   };
   const connectionRef = useRef<{
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -444,6 +480,19 @@ export function UserRealtimeToasts() {
 
           // Update heartbeat on any activity
           connectionRef.current.lastHeartbeat = Date.now();
+
+          // Skip showing toast for reward types (they're handled by user-dropdown.tsx)
+          const rewardTypes = [
+            "post_shared",
+            "post_created",
+            "post_commented",
+            "post_liked",
+            "daily_login",
+            "room_created",
+          ];
+          if (rewardTypes.includes(row.type)) {
+            return; // Skip showing toast for reward notifications
+          }
 
           // Get config for this notification type
           const config =
