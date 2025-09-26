@@ -116,7 +116,7 @@ export function Chat({ roomId, creatorId }: ChatProps) {
   >(new Map());
   const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes - longer cache to reduce API calls
   const lastApiCall = useRef<number>(0);
-  const MIN_API_INTERVAL = 100; // Much faster - 100ms between calls
+  const MIN_API_INTERVAL = 50; // Ultra-fast - 50ms between calls
 
   // Server-backed profanity detection via Perspective API proxy with smart caching
   const detectWithPerspective = useCallback(async (text: string) => {
@@ -128,28 +128,75 @@ export function Chat({ roomId, creatorId }: ChatProps) {
       return cached.result;
     }
 
-    // Smart partial word caching - check if any substring is already cached
+    // Advanced fuzzy matching - check words, substrings, and character patterns
     const words = cacheKey.split(/\s+/);
     for (const word of words) {
-      if (word.length > 3) {
-        // Only check words longer than 3 chars
+      if (word.length > 2) {
+        // Reduced threshold for more aggressive matching
+        // Check exact word match
         const wordCached = perspectiveCache.current.get(word);
         if (
           wordCached &&
           wordCached.result.isProfane &&
           Date.now() - wordCached.timestamp < CACHE_DURATION
         ) {
-          // If any word is profane, likely the whole text is too
           const result = {
             isProfane: true,
             severity: wordCached.result.severity,
-            maskedText: undefined, // Will be filled by API if needed
+            maskedText: undefined,
           };
           perspectiveCache.current.set(cacheKey, {
             result,
             timestamp: Date.now(),
           });
           return result;
+        }
+
+        // Check character-level patterns for obfuscated words
+        if (word.length > 3) {
+          // Check 3-character substrings (catches obfuscated patterns)
+          for (let i = 0; i <= word.length - 3; i++) {
+            const substring = word.substring(i, i + 3);
+            const subCached = perspectiveCache.current.get(substring);
+            if (
+              subCached &&
+              subCached.result.isProfane &&
+              Date.now() - subCached.timestamp < CACHE_DURATION
+            ) {
+              const result = {
+                isProfane: true,
+                severity: subCached.result.severity,
+                maskedText: undefined,
+              };
+              perspectiveCache.current.set(cacheKey, {
+                result,
+                timestamp: Date.now(),
+              });
+              return result;
+            }
+          }
+
+          // Check character frequency patterns (catches repeated chars like "fuuuuck")
+          const charPattern = word.replace(/(.)\1+/g, "$1"); // Remove repeated chars
+          if (charPattern !== word) {
+            const patternCached = perspectiveCache.current.get(charPattern);
+            if (
+              patternCached &&
+              patternCached.result.isProfane &&
+              Date.now() - patternCached.timestamp < CACHE_DURATION
+            ) {
+              const result = {
+                isProfane: true,
+                severity: patternCached.result.severity,
+                maskedText: undefined,
+              };
+              perspectiveCache.current.set(cacheKey, {
+                result,
+                timestamp: Date.now(),
+              });
+              return result;
+            }
+          }
         }
       }
     }
@@ -194,14 +241,35 @@ export function Chat({ roomId, creatorId }: ChatProps) {
         timestamp: Date.now(),
       });
 
-      // Also cache individual words for smart partial matching
+      // Advanced caching - store words, substrings, and patterns
       const words = cacheKey.split(/\s+/);
       for (const word of words) {
-        if (word.length > 3) {
+        if (word.length > 2) {
+          // Cache the full word
           perspectiveCache.current.set(word, {
             result,
             timestamp: Date.now(),
           });
+
+          // Cache substrings for longer words
+          if (word.length > 3) {
+            for (let i = 0; i <= word.length - 3; i++) {
+              const substring = word.substring(i, i + 3);
+              perspectiveCache.current.set(substring, {
+                result,
+                timestamp: Date.now(),
+              });
+            }
+
+            // Cache character pattern (removes repeated chars)
+            const charPattern = word.replace(/(.)\1+/g, "$1");
+            if (charPattern !== word) {
+              perspectiveCache.current.set(charPattern, {
+                result,
+                timestamp: Date.now(),
+              });
+            }
+          }
         }
       }
 
@@ -226,11 +294,13 @@ export function Chat({ roomId, creatorId }: ChatProps) {
       return;
     }
 
-    // Immediate optimistic check using cached words
+    // Advanced optimistic check using all cached patterns
     const words = message.toLowerCase().trim().split(/\s+/);
     let optimisticProfane = false;
+
     for (const word of words) {
-      if (word.length > 3) {
+      if (word.length > 2) {
+        // Check exact word
         const wordCached = perspectiveCache.current.get(word);
         if (
           wordCached &&
@@ -239,6 +309,39 @@ export function Chat({ roomId, creatorId }: ChatProps) {
         ) {
           optimisticProfane = true;
           break;
+        }
+
+        // Check substrings and patterns
+        if (word.length > 3) {
+          // Check 3-char substrings
+          for (let i = 0; i <= word.length - 3; i++) {
+            const substring = word.substring(i, i + 3);
+            const subCached = perspectiveCache.current.get(substring);
+            if (
+              subCached &&
+              subCached.result.isProfane &&
+              Date.now() - subCached.timestamp < CACHE_DURATION
+            ) {
+              optimisticProfane = true;
+              break;
+            }
+          }
+
+          if (optimisticProfane) break;
+
+          // Check character pattern
+          const charPattern = word.replace(/(.)\1+/g, "$1");
+          if (charPattern !== word) {
+            const patternCached = perspectiveCache.current.get(charPattern);
+            if (
+              patternCached &&
+              patternCached.result.isProfane &&
+              Date.now() - patternCached.timestamp < CACHE_DURATION
+            ) {
+              optimisticProfane = true;
+              break;
+            }
+          }
         }
       }
     }
@@ -263,7 +366,7 @@ export function Chat({ roomId, creatorId }: ChatProps) {
           setProfanityWarning(null);
         }
       }
-    }, 100); // Very fast debounce - 100ms
+    }, 50); // Ultra-fast debounce - 50ms
 
     return () => {
       cancelled = true;
