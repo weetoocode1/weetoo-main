@@ -218,7 +218,17 @@
       "verifiedTooltip": "Your identity has been verified."
     },
     "rewards": {
-      "defaultLabel": "Reward"
+      "defaultLabel": "Reward",
+      "postShared": "Post Shared",
+      "postCreated": "Post Created",
+      "postCommented": "Post Commented",
+      "postLiked": "Post Liked",
+      "dailyLogin": "Daily Login",
+      "roomCreated": "Room Created"
+    },
+    "likes": {
+      "liked": "Post liked!",
+      "unliked": "Post unliked"
     },
     "toasts": {
       "logoutFailed": "Failed to log out. Please try again.",
@@ -579,7 +589,17 @@
       "verifiedTooltip": "Your identity has been verified."
     },
     "rewards": {
-      "defaultLabel": "Reward"
+      "defaultLabel": "Reward",
+      "postShared": "Post Shared",
+      "postCreated": "Post Created",
+      "postCommented": "Post Commented",
+      "postLiked": "Post Liked",
+      "dailyLogin": "Daily Login",
+      "roomCreated": "Room Created"
+    },
+    "likes": {
+      "liked": "Post liked!",
+      "unliked": "Post unliked"
     },
     "toasts": {
       "logoutFailed": "Failed to log out. Please try again.",

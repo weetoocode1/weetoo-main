@@ -132,8 +132,30 @@ export function UserDropdown() {
             const parts: string[] = [];
             if (expDelta > 0) parts.push(`+${expDelta} XP`);
             if (korDelta > 0) parts.push(`+${korDelta} KOR`);
-            const label =
-              newReward?.title || newReward?.type || t("rewards.defaultLabel");
+            // Translate the label based on the reward type
+            const rewardTypeTranslations = {
+              post_shared: "rewards.postShared",
+              post_created: "rewards.postCreated",
+              post_commented: "rewards.postCommented",
+              post_liked: "rewards.postLiked",
+              daily_login: "rewards.dailyLogin",
+              room_created: "rewards.roomCreated",
+            } as const;
+
+            const getTranslatedLabel = (rewardType: string, title?: string) => {
+              const translationKey =
+                rewardTypeTranslations[
+                  rewardType as keyof typeof rewardTypeTranslations
+                ];
+              return translationKey
+                ? t(translationKey)
+                : title || t("rewards.defaultLabel");
+            };
+
+            const label = getTranslatedLabel(
+              newReward?.type || "",
+              newReward?.title
+            );
             toast.success(`${label}: ${parts.join(", ")}`);
           }
           // Trigger UI refresh

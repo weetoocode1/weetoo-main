@@ -12,28 +12,28 @@ import {
   CarouselItem,
   type CarouselApi,
 } from "@/components/ui/carousel";
+import { useAuth } from "@/hooks/use-auth";
+import { useRealtimeUpdates } from "@/hooks/use-realtime-updates";
 import { useTrackPostView } from "@/hooks/use-track-post-view";
+import { sanitizeHtml } from "@/lib/sanitize-html";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Post, User } from "@/types/post";
-import { useTranslations } from "next-intl";
-import { sanitizeHtml } from "@/lib/sanitize-html";
 import {
+  AlertTriangle,
   Calendar,
   ChevronLeftIcon,
   Clock,
   Eye,
-  MessageSquare,
-  AlertTriangle,
   HeartIcon,
+  MessageSquare,
   Share2,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { useRealtimeUpdates } from "@/hooks/use-realtime-updates";
 
 // Type for the global Next.js internationalization object
 interface NextIntlGlobal {
