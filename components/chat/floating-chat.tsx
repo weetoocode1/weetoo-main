@@ -21,10 +21,11 @@ import {
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { ChatMessage } from "./chat-message";
 import { useTranslations } from "next-intl";
+import { useAuth } from "@/hooks/use-auth";
 
 // Add UserData interface for user state
 interface UserData {
@@ -48,6 +49,7 @@ interface Message {
     avatar: string;
   };
   content: string;
+  masked_content?: string;
   timestamp: string;
   isCurrentUser: boolean;
   pending?: boolean;
@@ -96,6 +98,7 @@ function useTimeUntilReset() {
 
 export function FloatingChat() {
   const t = useTranslations("chat");
+  const { isAdmin, isSuperAdmin } = useAuth();
   const isRoomOpen = useRoomStore(
     (state: { isRoomOpen: boolean }) => state.isRoomOpen
   );
@@ -129,6 +132,266 @@ export function FloatingChat() {
   useEffect(() => {
     lastSeenMessageIdRef.current = lastSeenMessageId;
   }, [lastSeenMessageId]);
+
+  // Profanity detection state and cache (same approach as room chat)
+  const [profanityWarning, setProfanityWarning] = useState<string | null>(null);
+  const perspectiveCache = useRef<
+    Map<
+      string,
+      {
+        result: {
+          isProfane: boolean;
+          severity: "low" | "medium" | "high";
+          maskedText?: string;
+        };
+        timestamp: number;
+      }
+    >
+  >(new Map());
+  const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+  const lastApiCall = useRef<number>(0);
+  const MIN_API_INTERVAL = 50; // 50ms between calls
+
+  // Server-backed profanity detection via Perspective API proxy with smart caching
+  const detectWithPerspective = useCallback(async (text: string) => {
+    const cacheKey = text.toLowerCase().trim();
+    const cached = perspectiveCache.current.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      return cached.result;
+    }
+
+    // Advanced fuzzy matching - words, substrings, character patterns
+    const words = cacheKey.split(/\s+/);
+    for (const word of words) {
+      if (word.length > 2) {
+        const wordCached = perspectiveCache.current.get(word);
+        if (
+          wordCached &&
+          wordCached.result.isProfane &&
+          Date.now() - wordCached.timestamp < CACHE_DURATION
+        ) {
+          const result = {
+            isProfane: true,
+            severity: wordCached.result.severity,
+            maskedText: undefined,
+          } as const;
+          perspectiveCache.current.set(cacheKey, {
+            result,
+            timestamp: Date.now(),
+          });
+          return result;
+        }
+
+        if (word.length > 3) {
+          // Check 3-char substrings
+          for (let i = 0; i <= word.length - 3; i++) {
+            const substring = word.substring(i, i + 3);
+            const subCached = perspectiveCache.current.get(substring);
+            if (
+              subCached &&
+              subCached.result.isProfane &&
+              Date.now() - subCached.timestamp < CACHE_DURATION
+            ) {
+              const result = {
+                isProfane: true,
+                severity: subCached.result.severity,
+                maskedText: undefined,
+              } as const;
+              perspectiveCache.current.set(cacheKey, {
+                result,
+                timestamp: Date.now(),
+              });
+              return result;
+            }
+          }
+
+          // Character repeat collapse pattern (fuuuuck -> fuck)
+          const charPattern = word.replace(/(.)\1+/g, "$1");
+          if (charPattern !== word) {
+            const patternCached = perspectiveCache.current.get(charPattern);
+            if (
+              patternCached &&
+              patternCached.result.isProfane &&
+              Date.now() - patternCached.timestamp < CACHE_DURATION
+            ) {
+              const result = {
+                isProfane: true,
+                severity: patternCached.result.severity,
+                maskedText: undefined,
+              } as const;
+              perspectiveCache.current.set(cacheKey, {
+                result,
+                timestamp: Date.now(),
+              });
+              return result;
+            }
+          }
+        }
+      }
+    }
+
+    try {
+      // Rate limiting: ensure minimum interval between API calls
+      const now = Date.now();
+      const timeSinceLastCall = now - lastApiCall.current;
+      if (timeSinceLastCall < MIN_API_INTERVAL) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, MIN_API_INTERVAL - timeSinceLastCall)
+        );
+      }
+      lastApiCall.current = Date.now();
+
+      const body: Record<string, unknown> = { text };
+      // Avoid language hint on very short inputs to prevent LA auto-detect issues
+      if (text.trim().length >= 4) {
+        body.languages = ["en", "ko", "es", "fr", "ja", "zh"];
+      }
+      const res = await fetch("/api/moderate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      let result:
+        | {
+            isProfane: boolean;
+            severity: "low" | "medium" | "high";
+            maskedText?: string;
+          }
+        | { isProfane: boolean; severity: "low" | "medium" | "high" };
+      if (!res.ok) {
+        console.warn("Perspective API degraded:", res.status, res.statusText);
+        result = { isProfane: false, severity: "low" as const };
+      } else {
+        const data = await res.json();
+        result = {
+          isProfane: !!data.isProfane,
+          severity: (data.severity as "low" | "medium" | "high") || "low",
+          maskedText: (data.maskedText as string) || undefined,
+        };
+      }
+
+      // Cache full text
+      perspectiveCache.current.set(cacheKey, { result, timestamp: Date.now() });
+      // Also cache words, substrings, and pattern
+      for (const word of words) {
+        if (word.length > 2) {
+          perspectiveCache.current.set(word, { result, timestamp: Date.now() });
+          if (word.length > 3) {
+            for (let i = 0; i <= word.length - 3; i++) {
+              const substring = word.substring(i, i + 3);
+              perspectiveCache.current.set(substring, {
+                result,
+                timestamp: Date.now(),
+              });
+            }
+            const charPattern = word.replace(/(.)\1+/g, "$1");
+            if (charPattern !== word) {
+              perspectiveCache.current.set(charPattern, {
+                result,
+                timestamp: Date.now(),
+              });
+            }
+          }
+        }
+      }
+      return result;
+    } catch (error) {
+      console.warn("Perspective API request failed (network/server):", error);
+      const result = { isProfane: false, severity: "low" as const };
+      perspectiveCache.current.set(cacheKey, { result, timestamp: Date.now() });
+      return result;
+    }
+  }, []);
+
+  // Optimized typing detection with optimistic updates
+  useEffect(() => {
+    let cancelled = false;
+    if (!newMessage.trim()) {
+      setProfanityWarning(null);
+      return;
+    }
+
+    // Advanced optimistic check using cached patterns
+    const words = newMessage.toLowerCase().trim().split(/\s+/);
+    let optimisticProfane = false;
+    for (const word of words) {
+      if (word.length > 2) {
+        const wordCached = perspectiveCache.current.get(word);
+        if (
+          wordCached &&
+          wordCached.result.isProfane &&
+          Date.now() - wordCached.timestamp < CACHE_DURATION
+        ) {
+          optimisticProfane = true;
+          break;
+        }
+
+        if (word.length > 3) {
+          // 3-char substrings
+          for (let i = 0; i <= word.length - 3; i++) {
+            const substring = word.substring(i, i + 3);
+            const subCached = perspectiveCache.current.get(substring);
+            if (
+              subCached &&
+              subCached.result.isProfane &&
+              Date.now() - subCached.timestamp < CACHE_DURATION
+            ) {
+              optimisticProfane = true;
+              break;
+            }
+          }
+          if (optimisticProfane) break;
+
+          // char pattern
+          const charPattern = word.replace(/(.)\1+/g, "$1");
+          if (charPattern !== word) {
+            const patternCached = perspectiveCache.current.get(charPattern);
+            if (
+              patternCached &&
+              patternCached.result.isProfane &&
+              Date.now() - patternCached.timestamp < CACHE_DURATION
+            ) {
+              optimisticProfane = true;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // Show optimistic result immediately
+    if (optimisticProfane) {
+      try {
+        setProfanityWarning(t("profanity.inappropriateDetected"));
+      } catch {
+        setProfanityWarning("Inappropriate language detected");
+      }
+    } else {
+      setProfanityWarning(null);
+    }
+
+    const handle = setTimeout(async () => {
+      const detection = await detectWithPerspective(newMessage);
+      if (cancelled) return;
+      if (detection.isProfane !== optimisticProfane) {
+        if (detection.isProfane) {
+          try {
+            setProfanityWarning(t("profanity.inappropriateDetected"));
+          } catch {
+            setProfanityWarning("Inappropriate language detected");
+          }
+        } else {
+          setProfanityWarning(null);
+        }
+      }
+    }, 50);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [newMessage, detectWithPerspective, t]);
 
   const EXP_PER_LEVEL = 10000;
   const exp = user?.exp ?? 0;
@@ -215,6 +478,7 @@ export function FloatingChat() {
               avatar: msg.user?.avatar_url || "",
             },
             content: msg.content,
+            masked_content: msg.masked_content || undefined,
             timestamp: msg.created_at,
             isCurrentUser: !!(user && msg.user_id === user.id),
           })
@@ -242,7 +506,13 @@ export function FloatingChat() {
             "Subscription handler fired for message:",
             payload.new.id
           );
-          const newMsg = payload.new;
+          const newMsg = payload.new as {
+            id: string;
+            user_id: string;
+            content: string;
+            masked_content?: string;
+            created_at: string;
+          };
           // GUARD: Only process if not already handled (move to top, before async)
           if (handledMessageIds.has(newMsg.id)) {
             console.log("Already handled message:", newMsg.id);
@@ -274,6 +544,22 @@ export function FloatingChat() {
                     userRef.current && newMsg.user_id === userRef.current.id
                   );
                 }
+                const canModerateNow = isAdmin || isSuperAdmin;
+                let displayContent = newMsg.content as string;
+                if (!canModerateNow && newMsg.masked_content) {
+                  displayContent = newMsg.masked_content as string;
+                } else if (!canModerateNow) {
+                  const cacheKey = (newMsg.content as string)
+                    .toLowerCase()
+                    .trim();
+                  const cached = perspectiveCache.current.get(cacheKey);
+                  if (
+                    cached &&
+                    Date.now() - cached.timestamp < CACHE_DURATION
+                  ) {
+                    displayContent = cached.result.maskedText || newMsg.content;
+                  }
+                }
                 const msgObj: Message = {
                   id: newMsg.id,
                   sender: {
@@ -284,7 +570,8 @@ export function FloatingChat() {
                       }`.trim() || "User",
                     avatar: userData?.avatar_url || "",
                   },
-                  content: newMsg.content,
+                  content: displayContent,
+                  masked_content: newMsg.masked_content || undefined,
                   timestamp: newMsg.created_at,
                   isCurrentUser,
                   pending: false, // real message is never pending
@@ -413,7 +700,12 @@ export function FloatingChat() {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !user) return;
+    // Moderate first (do not block UI)
+    const detection = await detectWithPerspective(newMessage.trim());
     const tempId = "temp-" + uuidv4();
+    const originalText = newMessage.trim();
+    // Keep original content in state; use masked_content for user display
+
     const optimisticMsg = {
       id: tempId,
       sender: {
@@ -422,7 +714,10 @@ export function FloatingChat() {
           `${user.first_name || ""} ${user.last_name || ""}`.trim() || "User",
         avatar: user.avatar_url || "",
       },
-      content: newMessage.trim(),
+      content: originalText,
+      masked_content: detection.isProfane
+        ? (detection as { maskedText?: string }).maskedText
+        : undefined,
       timestamp: new Date().toISOString(),
       isCurrentUser: true,
       pending: true,
@@ -434,9 +729,13 @@ export function FloatingChat() {
       100
     );
     const supabase = createClient();
+    // Store content: moderators keep original; users store masked content
     const { error } = await supabase.from("global_chat_messages").insert({
       user_id: user.id,
-      content: optimisticMsg.content,
+      content: originalText,
+      masked_content: detection.isProfane
+        ? (detection as { maskedText?: string }).maskedText
+        : null,
     });
     if (error) {
       setMessages((prev) =>
@@ -681,15 +980,32 @@ export function FloatingChat() {
                 {/* Chat Body with Messages */}
                 <div className="relative flex-1 min-h-0 min-w-0">
                   <div className="absolute inset-0 overflow-y-auto p-2 space-y-2 scrollbar-thin min-w-0 sm:p-3 sm:space-y-3">
-                    {messages.map((message) => (
-                      <ChatMessage key={message.id} message={message} />
-                    ))}
+                    {messages.map((message) => {
+                      const canModerate = isAdmin || isSuperAdmin;
+                      const effective = canModerate
+                        ? message
+                        : {
+                            ...message,
+                            content: message.masked_content || message.content,
+                          };
+                      return (
+                        <ChatMessage key={effective.id} message={effective} />
+                      );
+                    })}
                     <div ref={messagesEndRef} />
                   </div>
                 </div>
 
                 {/* Chat Input */}
                 <div className="p-2 border-t border-border bg-background/80 backdrop-blur-sm sm:p-4">
+                  {profanityWarning && (
+                    <div className="mb-2 px-2 py-1.5 bg-red-50 border border-red-200 text-red-700 text-[11px] rounded sm:mb-3 sm:px-3 sm:py-2 sm:text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                        <span>{profanityWarning}</span>
+                      </div>
+                    </div>
+                  )}
                   <form
                     onSubmit={handleSendMessage}
                     className="flex items-center gap-2 min-w-0 sm:gap-3"

@@ -577,7 +577,10 @@
     "percentComplete": "{percent}% 완료",
     "expProgress": "{current} / {total} 경험치",
     "xp": "{value} XP",
-    "kor": "{value} KOR"
+    "kor": "{value} KOR",
+    "profanity": {
+      "inappropriateDetected": "부적절한 언어가 감지되었습니다."
+    }
   },
   "trading": {
     "tradingRooms": "트레이딩",
@@ -1068,6 +1071,12 @@
     "topPerformer": "TOP 퍼포머",
     "level": "레벨"
   },
+  "rewards": {
+    "commentPosted": {
+      "title": "댓글 작성: +{{exp}} 경험치, +{{kor}} KOR 코인",
+      "description": "댓글 작성에 대한 보상"
+    }
+  },
   "sponsoredRanking": {
     "fullLeaderboard": "전체 리더보드",
     "fullLeaderboardSubtitle": "모든 활동 사용자 전체 순위 • {timeframe} 순위",
@@ -1183,6 +1192,9 @@
     "deleteCommentQ": "댓글을 삭제할까요?",
     "deleteCommentDesc": "이 작업은 되돌릴 수 없습니다. 댓글이 영구적으로 삭제됩니다.",
     "commentAdded": "댓글이 추가되었습니다",
+    "reward": {
+      "comment": "댓글 보상"
+    },
     "failedAddComment": "댓글 추가에 실패했습니다",
     "commentDeleted": "댓글이 삭제되었습니다",
     "failedDeleteComment": "댓글 삭제에 실패했습니다",
