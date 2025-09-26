@@ -193,7 +193,7 @@ export function Chat({ roomId, creatorId }: ChatProps) {
       const detection = await detectWithPerspective(message);
       if (cancelled) return;
       if (detection.isProfane) {
-        setProfanityWarning("Inappropriate language detected.");
+        setProfanityWarning(t("profanity.inappropriateDetected"));
       } else {
         setProfanityWarning(null);
       }
