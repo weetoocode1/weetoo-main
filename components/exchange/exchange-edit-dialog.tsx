@@ -16,10 +16,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Edit3, Info, Save, X } from "lucide-react";
+import { Check, Edit3, Info, Save, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useTranslations } from "next-intl";
 import { type Exchange } from "./exchanges-data";
 
 interface ExchangeEditDialogProps {
@@ -38,6 +38,7 @@ export function ExchangeEditDialog({
   const t = useTranslations("exchange");
   const [editedExchange, setEditedExchange] = useState<Exchange | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  // const [newTag, setNewTag] = useState("");
 
   // Initialize edited exchange when dialog opens
   useEffect(() => {
@@ -51,8 +52,18 @@ export function ExchangeEditDialog({
 
     setIsLoading(true);
     try {
-      // Here you would typically save to your backend/database
-      await onSave(editedExchange);
+      // Ensure at least BASIC tag if tags are empty or not set
+      const tags = (editedExchange.tags || [])
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
+      const deduped = Array.from(new Set(tags));
+
+      const payload: Exchange = {
+        ...editedExchange,
+        tags: deduped.length === 0 ? ["BASIC"] : deduped,
+      };
+
+      await onSave(payload);
       toast.success(t("toast.updated", { name: editedExchange.name }));
       onOpenChange(false);
     } catch (_error) {
@@ -99,6 +110,70 @@ export function ExchangeEditDialog({
       eventPoints,
       totalScore,
     };
+  };
+
+  // const addTag = () => {};
+  // const removeTag = (_tag: string) => {};
+
+  const predefinedTagOptions: { id: string; i18nKey: string }[] = [
+    { id: "TOP", i18nKey: "customTags.top" },
+    { id: "HIGH", i18nKey: "customTags.high" },
+    { id: "PREMIUM", i18nKey: "customTags.premium" },
+    { id: "LEADER", i18nKey: "customTags.leader" },
+    { id: "TRENDING", i18nKey: "customTags.trending" },
+    { id: "FAST", i18nKey: "customTags.fast" },
+    { id: "BASIC", i18nKey: "customTags.basic" },
+    { id: "FEATURED", i18nKey: "customTags.featured" },
+    { id: "NEW", i18nKey: "customTags.new" },
+    { id: "POPULAR", i18nKey: "customTags.popular" },
+    { id: "LIMITED_OFFER", i18nKey: "customTags.limited_offer" },
+    { id: "EXCLUSIVE", i18nKey: "customTags.exclusive" },
+    { id: "RECOMMENDED", i18nKey: "customTags.recommended" },
+    { id: "BEST_SELLER", i18nKey: "customTags.best_seller" },
+  ];
+
+  const togglePredefinedTag = (tagId: string) => {
+    setEditedExchange((prev) => {
+      if (!prev) return prev;
+      const current = prev.tags || [];
+      const has = current.includes(tagId);
+      const nextTags = has
+        ? current.filter((t) => t !== tagId)
+        : current.length >= 4
+        ? current
+        : [...current, tagId];
+      const next: Exchange = { ...prev, tags: nextTags };
+      return next;
+    });
+  };
+
+  const getTagSelectedClasses = (tagId: string) => {
+    const map: Record<string, string> = {
+      TOP: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700/40",
+      HIGH: "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700/40",
+      PREMIUM:
+        "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700/40",
+      LEADER:
+        "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700/40",
+      TRENDING:
+        "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700/40",
+      FAST: "bg-cyan-100 text-cyan-800 border-cyan-300 dark:bg-cyan-900/20 dark:text-cyan-300 dark:border-cyan-700/40",
+      BASIC: "bg-muted/30 text-foreground border-border/50",
+      FEATURED:
+        "bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900/20 dark:text-indigo-300 dark:border-indigo-700/40",
+      NEW: "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-700/40",
+      POPULAR:
+        "bg-pink-100 text-pink-800 border-pink-300 dark:bg-pink-900/20 dark:text-pink-300 dark:border-pink-700/40",
+      LIMITED_OFFER:
+        "bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-700/40",
+      EXCLUSIVE:
+        "bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-900/20 dark:text-slate-300 dark:border-slate-700/40",
+      RECOMMENDED:
+        "bg-violet-100 text-violet-800 border-violet-300 dark:bg-violet-900/20 dark:text-violet-300 dark:border-violet-700/40",
+      BEST_SELLER:
+        "bg-yellow-100 text-yellow-900 border-yellow-300 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700/40",
+    };
+    return map[tagId] || "bg-primary/10 text-primary border-primary/40";
   };
 
   if (!exchange || !editedExchange) return null;
@@ -211,6 +286,8 @@ export function ExchangeEditDialog({
               </div>
             </div>
 
+            {/* Tags moved below main fields */}
+
             {/* Trading Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold border-b pb-2">
@@ -285,6 +362,44 @@ export function ExchangeEditDialog({
                   placeholder="e.g., $2,450"
                 />
               </div>
+            </div>
+
+            {/* Tags Management (bottom) */}
+            <div className="space-y-3 pt-2">
+              <h3 className="text-lg font-semibold border-b pb-2">
+                {t("tags")}
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {predefinedTagOptions.map((opt) => {
+                  const selected = (editedExchange.tags || []).includes(opt.id);
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => togglePredefinedTag(opt.id)}
+                      className={`group relative inline-flex items-center justify-between px-3.5 py-1.5 text-xs font-medium border rounded-none transition-all h-10 focus:outline-none focus:ring-2 focus:ring-primary/50 whitespace-nowrap ${
+                        selected
+                          ? getTagSelectedClasses(opt.id)
+                          : "bg-transparent text-muted-foreground border-border/40 hover:bg-muted/20 hover:text-foreground hover:border-border/60"
+                      }`}
+                      aria-pressed={selected}
+                    >
+                      <span>{t(opt.i18nKey as string)}</span>
+                      <span
+                        className={`ml-2 inline-flex h-4 w-4 items-center justify-center border transition-colors ${
+                          selected
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-transparent text-transparent border-border/60 group-hover:text-muted-foreground"
+                        }`}
+                        aria-hidden="true"
+                      >
+                        <Check className="h-3 w-3" />
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">{t("tagsHelp")}</p>
             </div>
           </div>
         </ScrollArea>
