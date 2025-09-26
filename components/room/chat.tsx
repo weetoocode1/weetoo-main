@@ -116,9 +116,9 @@ export function Chat({ roomId, creatorId }: ChatProps) {
   >(new Map());
   const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes - longer cache to reduce API calls
   const lastApiCall = useRef<number>(0);
-  const MIN_API_INTERVAL = 2000; // Minimum 2 seconds between API calls
+  const MIN_API_INTERVAL = 100; // Much faster - 100ms between calls
 
-  // Server-backed profanity detection via Perspective API proxy with caching
+  // Server-backed profanity detection via Perspective API proxy with smart caching
   const detectWithPerspective = useCallback(async (text: string) => {
     const cacheKey = text.toLowerCase().trim();
     const cached = perspectiveCache.current.get(cacheKey);
@@ -126,6 +126,32 @@ export function Chat({ roomId, creatorId }: ChatProps) {
     // Return cached result if available and not expired
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       return cached.result;
+    }
+
+    // Smart partial word caching - check if any substring is already cached
+    const words = cacheKey.split(/\s+/);
+    for (const word of words) {
+      if (word.length > 3) {
+        // Only check words longer than 3 chars
+        const wordCached = perspectiveCache.current.get(word);
+        if (
+          wordCached &&
+          wordCached.result.isProfane &&
+          Date.now() - wordCached.timestamp < CACHE_DURATION
+        ) {
+          // If any word is profane, likely the whole text is too
+          const result = {
+            isProfane: true,
+            severity: wordCached.result.severity,
+            maskedText: undefined, // Will be filled by API if needed
+          };
+          perspectiveCache.current.set(cacheKey, {
+            result,
+            timestamp: Date.now(),
+          });
+          return result;
+        }
+      }
     }
 
     try {
@@ -162,11 +188,22 @@ export function Chat({ roomId, creatorId }: ChatProps) {
         };
       }
 
-      // Cache the result
+      // Cache the result for the full text
       perspectiveCache.current.set(cacheKey, {
         result,
         timestamp: Date.now(),
       });
+
+      // Also cache individual words for smart partial matching
+      const words = cacheKey.split(/\s+/);
+      for (const word of words) {
+        if (word.length > 3) {
+          perspectiveCache.current.set(word, {
+            result,
+            timestamp: Date.now(),
+          });
+        }
+      }
 
       return result;
     } catch (error) {
@@ -181,23 +218,53 @@ export function Chat({ roomId, creatorId }: ChatProps) {
     }
   }, []);
 
-  // Typing detection with server-side API (cached to prevent rate limiting)
+  // Optimized typing detection with optimistic updates
   useEffect(() => {
     let cancelled = false;
     if (!message.trim()) {
       setProfanityWarning(null);
       return;
     }
+
+    // Immediate optimistic check using cached words
+    const words = message.toLowerCase().trim().split(/\s+/);
+    let optimisticProfane = false;
+    for (const word of words) {
+      if (word.length > 3) {
+        const wordCached = perspectiveCache.current.get(word);
+        if (
+          wordCached &&
+          wordCached.result.isProfane &&
+          Date.now() - wordCached.timestamp < CACHE_DURATION
+        ) {
+          optimisticProfane = true;
+          break;
+        }
+      }
+    }
+
+    // Show optimistic result immediately
+    if (optimisticProfane) {
+      setProfanityWarning(t("profanity.inappropriateDetected"));
+    } else {
+      setProfanityWarning(null);
+    }
+
+    // Fast API call for accurate detection
     const handle = setTimeout(async () => {
-      // Use server-side API with caching to avoid rate limits
       const detection = await detectWithPerspective(message);
       if (cancelled) return;
-      if (detection.isProfane) {
-        setProfanityWarning(t("profanity.inappropriateDetected"));
-      } else {
-        setProfanityWarning(null);
+
+      // Only update if result differs from optimistic
+      if (detection.isProfane !== optimisticProfane) {
+        if (detection.isProfane) {
+          setProfanityWarning(t("profanity.inappropriateDetected"));
+        } else {
+          setProfanityWarning(null);
+        }
       }
-    }, 1000); // Increased debounce to reduce API calls
+    }, 100); // Very fast debounce - 100ms
+
     return () => {
       cancelled = true;
       clearTimeout(handle);

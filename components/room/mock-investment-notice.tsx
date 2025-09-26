@@ -77,7 +77,7 @@ export function MockInvestmentNotice({ roomId }: MockInvestmentNoticeProps) {
       }}
     >
       <DialogContent
-        className="max-w-xl w-full rounded-none p-0 border border-border bg-card"
+        className="max-w-xl w-full rounded-none p-0 border border-border bg-card whitespace-pre-line"
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
@@ -96,7 +96,7 @@ export function MockInvestmentNotice({ roomId }: MockInvestmentNoticeProps) {
         </div>
 
         {/* Body */}
-        <div className="px-5 py-4 text-sm leading-6 text-muted-foreground space-y-3">
+        <div className="px-5 py-4 text-sm text-center leading-6 text-muted-foreground space-y-3 whitespace-pre-line">
           <p>{t("line1")}</p>
           <p>{t("line2")}</p>
           <p>{t("line3")}</p>
