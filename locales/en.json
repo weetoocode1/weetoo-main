@@ -818,7 +818,8 @@
           "high": "high"
         },
         "shortWarn": "Inappropriate language detected.",
-        "maskedNotice": "Message was sent with sensitive words masked."
+        "maskedNotice": "Message was sent with sensitive words masked.",
+        "inappropriateDetected": "Inappropriate language detected."
       },
       "join": {
         "joining": "Joining...",
@@ -1582,6 +1583,17 @@
     "toast": {
       "updated": "Updated {name} successfully",
       "updateFailed": "Failed to update exchange"
+    },
+    "descriptions": {
+      "bybit": "Bybit is a global futures exchange chosen by millions of users worldwide. It offers a powerful order matching engine, a variety of derivatives, options, and copy trading features. It supports the Travel Rule, providing a secure trading environment.",
+      "okx": "OKX is one of the top global exchanges, offering spot, futures, and options trading, as well as DeFi, NFT, and other crypto ecosystem services. It supports the Travel Rule, providing a secure trading environment.",
+      "bitget": "Bitget is a leading copy trading exchange, popular for allowing beginners to follow expert strategies. It supports the Travel Rule, providing a secure trading environment.",
+      "bingx": "BingX is a community-driven global exchange known for its intuitive interface and strong copy trading features. It supports the Travel Rule, providing a secure trading environment.",
+      "deepcoin": "DeepCoin is a global derivatives-focused exchange offering a wide range of leverage and derivative products. It supports the Travel Rule, providing a secure trading environment.",
+      "orangex": "OrangeX is a rapidly growing next-generation exchange that supports spot, futures, and copy trading, and operates globally in over 20 languages. It supports the Travel Rule, providing a secure trading environment.",
+      "lbank": "LBank is a platform that lists a wide variety of altcoins from around the world, offering opportunities to trade rare coins. It supports the Travel Rule, providing a secure trading environment.",
+      "gateio": "Gate.io is a long-established exchange in the global crypto market, known for its stability and high liquidity, supporting a wide variety of coins. It supports the Travel Rule, providing a secure trading environment.",
+      "binance": "Binance is the world's largest exchange, boasting billions of dollars in daily trading volume and the largest global user base. In addition to spot, futures, and options trading, it offers Launchpad, Earn, NFT, and other services, leading the crypto ecosystem. It supports the Travel Rule, providing a secure trading environment."
     }
   },
   "admin": {
