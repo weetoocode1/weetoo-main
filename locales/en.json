@@ -790,7 +790,10 @@
     "percentComplete": "{percent}% Complete",
     "expProgress": "{current} / {total} EXP",
     "xp": "{value} XP",
-    "kor": "{value} KOR"
+    "kor": "{value} KOR",
+    "profanity": {
+      "inappropriateDetected": "Inappropriate language detected."
+    }
   },
   "trading": {
     "tradingRooms": "Trading Rooms",
@@ -1287,6 +1290,13 @@
     "topPerformer": "Top Performer",
     "level": "Level"
   },
+
+  "rewards": {
+    "commentPosted": {
+      "title": "Comment Posted: +{{exp}} XP, +{{kor}} KOR",
+      "description": "Reward for writing a comment"
+    }
+  },
   "sponsoredRanking": {
     "fullLeaderboard": "Full Leaderboard",
     "fullLeaderboardSubtitle": "Complete ranking of all active users • {timeframe} Rankings",
@@ -1402,6 +1412,9 @@
     "deleteCommentQ": "Delete comment?",
     "deleteCommentDesc": "This action cannot be undone. This will permanently delete your comment.",
     "commentAdded": "Comment added",
+    "reward": {
+      "comment": "Comment reward"
+    },
     "failedAddComment": "Failed to add comment",
     "commentDeleted": "Comment deleted",
     "failedDeleteComment": "Failed to delete comment",
