@@ -36,21 +36,20 @@ import * as React from "react";
 import { toast } from "sonner";
 
 // Type for the global Next.js internationalization object
-interface NextIntlGlobal {
-  NEXT_INTL_DO_NOT_USE?: (namespace: string) => {
-    (key: string): string;
-    (key: string, values?: Record<string, unknown>): string;
-  };
-}
+// interface NextIntlGlobal {
+//   NEXT_INTL_DO_NOT_USE?: (namespace: string) => {
+//     (key: string): string;
+//     (key: string, values?: Record<string, unknown>): string;
+//   };
+// }
 
 const calculateReadingTime = (
   text: string,
-  wordsPerMinute: number = 238
+  wordsPerMinute: number = 238,
+  t?: (key: string, values?: Record<string, string | number | Date>) => string
 ): string => {
-  const t =
-    (globalThis as NextIntlGlobal).NEXT_INTL_DO_NOT_USE?.("post") || undefined;
   if (!text?.trim()) {
-    return t ? t("readingTimeLessThan") : "Less than 1 min read";
+    return t ? t("lessThan") : "Less than 1 min read";
   }
   // Remove HTML tags and count words
   const words = text
@@ -59,8 +58,8 @@ const calculateReadingTime = (
     .filter((word) => word.length > 0).length;
   // Calculate reading time and round up
   const minutes = Math.ceil(words / wordsPerMinute);
-  if (minutes === 1) return t ? t("readingTimeOne") : "1 min read";
-  return t ? t("readingTimeMany", { minutes }) : `${minutes} min read`;
+  if (minutes === 1) return t ? t("one") : "1 min read";
+  return t ? t("many", { minutes }) : `${minutes} min read`;
 };
 
 interface PostDetailClientProps {
@@ -75,6 +74,7 @@ export default function PostDetailClient({
   const router = useRouter();
   const { user: authUser } = useAuth();
   const t = useTranslations("post");
+  const readingTimeT = useTranslations("readingTime");
   const [api, setApi] = React.useState<CarouselApi>();
   const [current, setCurrent] = React.useState(0);
   const [currentUser, setCurrentUser] = React.useState<User | null>(null);
@@ -171,7 +171,7 @@ export default function PostDetailClient({
   if (!post)
     return <div className="text-center py-20">{t("postNotFound")}</div>;
 
-  const readingTime = calculateReadingTime(post.content);
+  const readingTime = calculateReadingTime(post.content, 238, readingTimeT);
 
   // Determine if the current user is the author
   const isAuthor = currentUser && currentUser.id === post.author.id;

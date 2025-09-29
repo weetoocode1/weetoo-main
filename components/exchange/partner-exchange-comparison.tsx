@@ -361,35 +361,35 @@ export const PartnerExchangeComparison = () => {
           <table className="w-full">
             <thead>
               <tr className="border-b border-border/50 bg-gradient-to-r from-muted/40 to-muted/20">
-                <th className="text-left p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
+                <th className="text-center p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
                   #
                 </th>
-                <th className="text-left p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
+                <th className="text-center p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
                   {t("exchange")}
                 </th>
-                <th className="text-left p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
+                <th className="text-center p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
                   {t("score")}
                 </th>
-                <th className="text-left p-5 font-semibold text-foreground text-sm uppercase tracking-wide min-w-[140px]">
+                <th className="text-center p-5 font-semibold text-foreground text-sm uppercase tracking-wide min-w-[140px]">
                   {t("cashbackRate")}
                 </th>
-                <th className="text-left p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
+                <th className="text-center p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
                   {t("tradingDiscount")}
                 </th>
-                <th className="text-left p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
+                <th className="text-center p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
                   {t("limitPrice")}
                 </th>
-                <th className="text-left p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
+                <th className="text-center p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
                   {t("marketPrice")}
                 </th>
-                <th className="text-left p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
+                <th className="text-center p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
                   {t("avgRebatePerUser")}
                 </th>
-                <th className="text-left p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
+                <th className="text-center p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
                   {t("tags")}
                 </th>
                 {isSuperAdmin && (
-                  <th className="text-left p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
+                  <th className="text-center p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
                     {t("actions")}
                   </th>
                 )}
@@ -407,7 +407,7 @@ export const PartnerExchangeComparison = () => {
                       className="group cursor-pointer hover:bg-muted/10 transition-all duration-300 hover:shadow-sm"
                       aria-expanded={expandedExchangeId === exchange.id}
                     >
-                      <td className="p-5">
+                      <td className="text-center p-5">
                         <div className="relative flex items-center justify-center">
                           <span className="text-3xl font-bold text-foreground">
                             {String(index + 1).padStart(2, "0")}
@@ -432,8 +432,8 @@ export const PartnerExchangeComparison = () => {
                           )}
                         </div>
                       </td>
-                      <td className="p-5">
-                        <div className="flex items-center gap-4">
+                      <td className="text-center p-5">
+                        <div className="flex items-center justify-center gap-4">
                           {exchange.logoImage ? (
                             <div className="w-14 h-14 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden bg-muted/20 shadow-sm ring-1 ring-border/20">
                               <Image
@@ -453,7 +453,7 @@ export const PartnerExchangeComparison = () => {
                               {exchange.logo}
                             </div>
                           )}
-                          <div>
+                          <div className="text-center">
                             <div className="font-semibold text-foreground text-lg">
                               {exchange.name}
                             </div>
@@ -461,10 +461,9 @@ export const PartnerExchangeComparison = () => {
                               {exchange.website}
                             </div>
                           </div>
-                          <div className="flex-1" />
                         </div>
                       </td>
-                      <td className="p-5">
+                      <td className="text-center p-5">
                         <div className="text-center">
                           <div className="text-2xl font-bold text-foreground bg-muted/30 px-4 py-2 rounded-none">
                             {score}
@@ -474,8 +473,8 @@ export const PartnerExchangeComparison = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="p-5 min-w-[140px]">
-                        <div className="flex items-center gap-2 mb-3">
+                      <td className="text-center p-5 min-w-[140px]">
+                        <div className="flex items-center justify-center gap-2 mb-3">
                           <div className="w-2.5 h-2.5 bg-green-500 rounded-full shadow-sm"></div>
                           <span className="font-medium text-sm text-foreground">
                             {exchange.paybackRate}%
@@ -488,23 +487,23 @@ export const PartnerExchangeComparison = () => {
                           ></div>
                         </div>
                       </td>
-                      <td className="p-5">
+                      <td className="text-center p-5">
                         <span className="font-medium text-foreground bg-muted/20 px-3 py-1.5 rounded-none">
                           {exchange.tradingDiscount}
                         </span>
                       </td>
-                      <td className="p-5">
+                      <td className="text-center p-5">
                         <span className="font-medium text-foreground bg-muted/20 px-3 py-1.5 rounded-none">
                           {exchange.limitOrderFee}
                         </span>
                       </td>
-                      <td className="p-5">
+                      <td className="text-center p-5">
                         <span className="font-medium text-foreground bg-muted/20 px-3 py-1.5 rounded-none">
                           {exchange.marketOrderFee}
                         </span>
                       </td>
-                      <td className="p-5">
-                        <div className="flex items-center">
+                      <td className="text-center p-5">
+                        <div className="flex items-center justify-center">
                           <span className="font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/20 px-3 py-1.5 rounded-none flex items-center gap-1.5">
                             <div className="w-4 h-4 text-green-500">
                               <svg fill="currentColor" viewBox="0 0 20 20">
@@ -519,8 +518,8 @@ export const PartnerExchangeComparison = () => {
                           </span>
                         </div>
                       </td>
-                      <td className="p-5">
-                        <div className="flex flex-wrap gap-2">
+                      <td className="text-center p-5">
+                        <div className="flex flex-wrap justify-center gap-2">
                           {(exchange.tags && exchange.tags.length > 0
                             ? exchange.tags
                             : ["BASIC"]
@@ -537,7 +536,7 @@ export const PartnerExchangeComparison = () => {
                         </div>
                       </td>
                       {isSuperAdmin && (
-                        <td className="p-5">
+                        <td className="text-center p-5">
                           <Button
                             size="sm"
                             variant="ghost"
@@ -554,7 +553,10 @@ export const PartnerExchangeComparison = () => {
                     </tr>
                     {expandedExchangeId === exchange.id && (
                       <tr className="bg-muted/10">
-                        <td colSpan={isSuperAdmin ? 10 : 9} className="p-5">
+                        <td
+                          colSpan={isSuperAdmin ? 10 : 9}
+                          className="text-center p-5"
+                        >
                           <div className="flex flex-col gap-4 rounded-lg border border-border/40 bg-gradient-to-r from-muted/40 to-muted/20 p-4">
                             {(descriptionOverrides[exchange.id] ||
                               exchange.description) && (

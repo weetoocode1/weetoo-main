@@ -1,4 +1,9 @@
 {
+  "readingTime": {
+    "lessThan": "Less than 1 min read",
+    "one": "1 min read",
+    "many": "{minutes} min read"
+  },
   "hero": {
     "tradeSmarter": "TRADE SMARTER, TOGETHER",
     "experienceNextGen": "Experience Next-Gen Trading with Weetoo",
@@ -175,22 +180,6 @@
         }
       }
     }
-  },
-  "createRoom": {
-    "toasts": {
-      "failedCheckExistingRooms": "Failed to check existing rooms. Please try again.",
-      "insufficientKorCoins": "Insufficient KOR coins. You need {needed} KOR coins to create a {category} room. You currently have {current} KOR coins.",
-      "errorCheckingRooms": "Error checking existing rooms. Please try again.",
-      "alreadyHaveActive": "You already have an active room: \"{name}\". Please close your existing room before creating a new one.",
-      "created": "Room created successfully!"
-    },
-    "verify": {
-      "requiredForRooms": "Identity verification is required to create trading rooms.",
-      "tooltipBody": "You need to verify your identity before creating trading rooms.",
-      "dialogBody": "You need to verify your identity to create trading rooms. This helps ensure security and compliance."
-    },
-    "badges": { "new": "NEW" },
-    "button": { "insufficientKor": "Insufficient KOR Coins" }
   },
   "korCoinsRecharge": {
     "toasts": {
@@ -860,16 +849,25 @@
       }
     },
     "tradeHistory": {
-      "common": { "cancel": "Cancel" },
+      "common": {
+        "cancel": "Cancel",
+        "confirm": "Confirm",
+        "saving": "Saving..."
+      },
+      "labels": { "active": "Active" },
       "tabs": { "positions": "Positions", "tradeHistory": "Trade History" },
       "headers": {
+        "contracts": "Contracts",
         "symbol": "Symbol",
         "side": "Side",
         "quantity": "Quantity",
-        "size": "Size",
-        "entry": "Entry",
+        "size": "Value",
+        "entry": "Entry Price",
+        "markPrice": "Mark Price",
+        "liqPrice": "Liq. Price",
+        "tpSl": "TP/SL",
         "exit": "Exit",
-        "initialMargin": "Initial Margin",
+        "initialMargin": "Position Margin",
         "pnl": "PNL",
         "actions": "Actions"
       },
@@ -898,6 +896,35 @@
       "empty": {
         "noOpenPositions": "No open positions.",
         "noTradeHistory": "No trade history yet."
+      },
+      "dialog": {
+        "tpSl": "TP/SL",
+        "entryPrice": "Entry Price",
+        "lastMarkPrice": "Last/Mark Price",
+        "takeProfit": "Take Profit",
+        "stopLoss": "Stop Loss"
+      },
+      "fields": {
+        "order": "Order",
+        "marketOrder": "Market Order",
+        "limitOrder": "Limit Order",
+        "takeProfitPrice": "Take Profit Price",
+        "stopLossPrice": "Stop Loss Price",
+        "basis": "Basis",
+        "last": "Last",
+        "mark": "Mark",
+        "gainPercent": "Gain %",
+        "lossPercent": "Loss %"
+      },
+      "errors": {
+        "tpMustBeHigherForLong": "Take Profit price must be higher than Last/Mark for Long",
+        "tpMustBeLowerForShort": "Take Profit price must be lower than Last/Mark for Short",
+        "slMustBeLowerForLong": "Stop Loss price must be lower than Last/Mark for Long",
+        "slMustBeHigherForShort": "Stop Loss price must be higher than Last/Mark for Short"
+      },
+      "hints": {
+        "serverManaged": "TP/SL is managed by the server monitor.",
+        "slTooCloseToLiq": "The stop loss price should not be too close to the liquidation price."
       },
       "reset": {
         "button": "Reset Trading History",
@@ -2548,7 +2575,8 @@
           "open": "Open menu",
           "title": "UID Actions",
           "viewDetails": "View Details",
-          "viewUser": "View User"
+          "viewUser": "View User",
+          "deleteUid": "Delete UID"
         },
         "empty": {
           "title": "No UID records found",
@@ -2564,6 +2592,15 @@
         "exportSuccess": "Successfully exported {count} UID records to CSV!",
         "exportError": "Failed to export UID records. Please try again."
       },
+      "deleteDialog": {
+        "title": "Delete UID",
+        "description": "Are you sure you want to delete this UID? This action cannot be undone.",
+        "cancel": "Cancel",
+        "confirm": "Delete",
+        "exchange": "Exchange"
+      },
+      "deleteSuccess": "UID deleted successfully",
+      "deleteError": "Failed to delete UID",
       "uidDetailsDialog": {
         "title": "UID Details",
         "description": "Detailed information about this UID record",
