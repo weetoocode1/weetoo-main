@@ -12,12 +12,25 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
+  DialogClose,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { Table, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
@@ -30,12 +43,15 @@ import {
 } from "@/hooks/use-room-reset";
 import { VIRTUAL_BALANCE_KEY } from "@/hooks/use-virtual-balance";
 import { createClient } from "@/lib/supabase/client";
-import { Info, Minus, Plus } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { mutate } from "swr";
 import { Icons } from "../icons";
 import { TRADER_PNL_KEY } from "./trading-overview-container";
+
+// Server-side TP/SL monitor feature flag: client monitoring removed
+// (Edge Function handles monitoring and closures)
 
 interface OpenPosition {
   id: string;
@@ -45,6 +61,14 @@ interface OpenPosition {
   size: number;
   entry_price: number;
   initial_margin: number;
+  liquidation_price?: number;
+  tp_price?: number | null;
+  tp_percent?: number | null;
+  sl_price?: number | null;
+  sl_percent?: number | null;
+  tp_order_type?: "market" | "limit" | null;
+  sl_order_type?: "market" | "limit" | null;
+  tp_sl_active?: boolean;
 }
 
 interface ClosedPosition {
@@ -77,6 +101,138 @@ function PositionRow({
   const currentPositionPrice = marketData?.ticker?.lastPrice
     ? parseFloat(marketData.ticker.lastPrice)
     : undefined;
+
+  const format2 = (value: unknown) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n.toFixed(2) : "-";
+  };
+
+  // TP/SL dialog state
+  const [, setTpSlOpen] = useState(false);
+  // Prevent immediate re-open after confirm
+  const [, setTpSlRecentlyClosedAt] = useState<number>(0);
+  const [enableTp, setEnableTp] = useState(true);
+  const [tpOrderType, setTpOrderType] = useState<"market" | "limit">(
+    (position.tp_order_type as "market" | "limit") || "market"
+  );
+  const [tpBasis, setTpBasis] = useState<"last" | "mark">("last");
+  const [tpPrice, setTpPrice] = useState<string>(
+    position.tp_price != null ? String(position.tp_price) : ""
+  );
+  const [tpPercent, setTpPercent] = useState<string>(
+    position.tp_percent != null ? String(position.tp_percent) : ""
+  );
+  const [tpPercentSlider, setTpPercentSlider] = useState<number[]>([
+    Number(position.tp_percent ?? 0),
+  ]);
+  const [enableSl, setEnableSl] = useState(true);
+  const [slOrderType, setSlOrderType] = useState<"market" | "limit">(
+    (position.sl_order_type as "market" | "limit") || "market"
+  );
+  const [slBasis, setSlBasis] = useState<"last" | "mark">("mark");
+  const [slPrice, setSlPrice] = useState<string>(
+    position.sl_price != null ? String(position.sl_price) : ""
+  );
+  const [slPercent, setSlPercent] = useState<string>(
+    position.sl_percent != null ? String(position.sl_percent) : ""
+  );
+  const [slPercentSlider, setSlPercentSlider] = useState<number[]>([
+    Number(position.sl_percent ?? 0),
+  ]);
+  const [savingTpSl, setSavingTpSl] = useState(false);
+
+  // Helpers to sync price/% with sliders using selected basis
+  const basisPriceFor = (basis: "last" | "mark") => {
+    const last = Number(currentPositionPrice) || 0;
+    if (basis === "mark") return last; // same source in our app
+    return last;
+  };
+
+  const sideLower = (position.side || "").toLowerCase();
+
+  // Sync TP slider -> inputs
+  useEffect(() => {
+    if (!enableTp) return;
+    const basis = basisPriceFor(tpBasis);
+    const pct = tpPercentSlider[0];
+    if (!Number.isFinite(basis)) return;
+    let price = basis;
+    if (sideLower === "long") price = basis * (1 + pct / 100);
+    else price = basis * (1 - pct / 100);
+    setTpPrice(price ? String(price.toFixed(2)) : "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tpPercentSlider, tpBasis, enableTp, sideLower]);
+
+  // Sync SL slider -> inputs
+  useEffect(() => {
+    if (!enableSl) return;
+    const basis = basisPriceFor(slBasis);
+    const pct = slPercentSlider[0];
+    if (!Number.isFinite(basis)) return;
+    let price = basis;
+    if (sideLower === "long") price = basis * (1 - pct / 100);
+    else price = basis * (1 + pct / 100);
+    setSlPrice(price ? String(price.toFixed(2)) : "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slPercentSlider, slBasis, enableSl, sideLower]);
+
+  // Inline validation
+  const lastOrMarkForTp = basisPriceFor(tpBasis);
+  const lastOrMarkForSl = basisPriceFor(slBasis);
+  const tpError = (() => {
+    if (!enableTp) return "";
+    const p = Number(tpPrice);
+    if (!p || !Number.isFinite(lastOrMarkForTp)) return "";
+    if (sideLower === "long" && p <= lastOrMarkForTp)
+      return "Take Profit price must be higher than Last Price";
+    if (sideLower === "short" && p >= lastOrMarkForTp)
+      return "Take Profit price must be lower than Last Price";
+    return "";
+  })();
+  const slError = (() => {
+    if (!enableSl) return "";
+    const p = Number(slPrice);
+    if (!p || !Number.isFinite(lastOrMarkForSl)) return "";
+    if (sideLower === "long" && p >= lastOrMarkForSl)
+      return "Stop Loss price must be lower than Last Price";
+    if (sideLower === "short" && p <= lastOrMarkForSl)
+      return "Stop Loss price must be higher than Last Price";
+    return "";
+  })();
+
+  const saveTpSl = async () => {
+    if (!isHost) return;
+    setSavingTpSl(true);
+    try {
+      const supabase = createClient();
+      const anyActive =
+        (enableTp && (tpPrice || tpPercent)) ||
+        (enableSl && (slPrice || slPercent))
+          ? true
+          : false;
+      const { error } = await supabase
+        .from("trading_room_positions")
+        .update({
+          tp_price: enableTp && tpPrice ? Number(tpPrice) : null,
+          tp_percent: enableTp && tpPercent ? Number(tpPercent) : null,
+          tp_order_type: enableTp ? tpOrderType : null,
+          sl_price: enableSl && slPrice ? Number(slPrice) : null,
+          sl_percent: enableSl && slPercent ? Number(slPercent) : null,
+          sl_order_type: enableSl ? slOrderType : null,
+          tp_sl_active: anyActive,
+        })
+        .eq("id", position.id);
+      if (!error) {
+        setTpSlOpen(false);
+        setTpSlRecentlyClosedAt(Date.now());
+        mutate(["open-positions", roomId]);
+      }
+    } finally {
+      setSavingTpSl(false);
+    }
+  };
+
+  // Client-side monitoring removed (server-side monitor is authoritative)
 
   // Helper to calculate live PNL with percent for this position
   const unrealizedPnlWithPercent = () => {
@@ -115,9 +271,55 @@ function PositionRow({
     >
       <td
         className="text-foreground text-xs p-2 text-left"
-        style={{ width: "12%" }}
+        style={{ width: "10%" }}
       >
         {position.symbol ?? "-"}
+      </td>
+      <td
+        className="text-foreground text-xs p-2 text-left"
+        style={{ width: "10%" }}
+      >
+        {position.quantity ?? "-"}
+      </td>
+      <td
+        className="text-foreground text-xs p-2 text-left"
+        style={{ width: "12%" }}
+      >
+        {format2(position.size)}
+      </td>
+      <td
+        className="text-foreground text-xs p-2 text-left"
+        style={{ width: "12%" }}
+      >
+        {format2(position.entry_price)}
+      </td>
+      <td
+        className="text-foreground text-xs p-2 text-left"
+        style={{ width: "10%" }}
+      >
+        {format2(currentPositionPrice)}
+      </td>
+      <td
+        className="text-foreground text-xs p-2 text-left"
+        style={{ width: "10%" }}
+      >
+        {format2(position.liquidation_price)}
+      </td>
+      <td
+        className="text-foreground text-xs p-2 text-left"
+        style={{ width: "12%" }}
+      >
+        {format2(position.initial_margin)}
+      </td>
+      <td
+        className={`text-xs p-2 text-left ${
+          unrealizedPnlWithPercent().includes("-")
+            ? "text-red-500"
+            : "text-green-500"
+        }`}
+        style={{ width: "10%" }}
+      >
+        {unrealizedPnlWithPercent()}
       </td>
       <td
         className={`text-xs p-2 text-left ${
@@ -125,7 +327,7 @@ function PositionRow({
             ? "text-green-500"
             : "text-red-500"
         }`}
-        style={{ width: "10%" }}
+        style={{ width: "6%" }}
       >
         {(() => {
           const s = (position.side ?? "").toLowerCase();
@@ -134,47 +336,365 @@ function PositionRow({
           return position.side ?? "-";
         })()}
       </td>
-      <td
-        className="text-foreground text-xs p-2 text-left"
-        style={{ width: "16%" }}
-      >
-        {position.quantity ?? "-"}
-      </td>
-      <td
-        className="text-foreground text-xs p-2 text-left"
-        style={{ width: "14%" }}
-      >
-        {position.size ?? "-"}
-      </td>
-      <td
-        className="text-foreground text-xs p-2 text-left"
-        style={{ width: "14%" }}
-      >
-        {position.entry_price ?? "-"}
-      </td>
-      <td
-        className="text-foreground text-xs p-2 text-left"
-        style={{ width: "14%" }}
-      >
-        {position.initial_margin ?? "-"}
-      </td>
-      <td
-        className={`text-xs p-2 text-left ${
-          unrealizedPnlWithPercent().includes("-")
-            ? "text-red-500"
-            : "text-green-500"
-        }`}
-        style={{ width: "12%" }}
-      >
-        {unrealizedPnlWithPercent()}
-      </td>
+      {/* TP/SL column */}
       <td className="p-2 text-left" style={{ width: "8%" }}>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="px-2 py-1 text-xs h-auto rounded-sm"
+              disabled={!isHost || savingTpSl}
+            >
+              {tr("dialog.tpSl")}
+              {position.tp_sl_active ? (
+                <span
+                  className="ml-2 inline-flex items-center gap-1 text-[10px] font-medium text-green-600"
+                  title={tr("labels.active")}
+                >
+                  <span className="h-2 w-2 rounded-full bg-green-500" />
+                  {tr("labels.active")}
+                </span>
+              ) : null}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-sm p-0">
+            <DialogHeader className="px-5 pt-5 pb-3">
+              <DialogTitle className="text-sm">{tr("dialog.tpSl")}</DialogTitle>
+            </DialogHeader>
+            <div className="px-5 pb-5 space-y-2 text-xs">
+              {/* Entry / Mark */}
+              <div className="rounded-md bg-muted/40 border border-border p-3 grid grid-cols-2 gap-3">
+                <div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {tr("dialog.entryPrice")}
+                  </div>
+                  <div className="font-semibold">
+                    {format2(position.entry_price)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {tr("dialog.lastMarkPrice")}
+                  </div>
+                  <div className="font-semibold">
+                    {format2(currentPositionPrice)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Take Profit */}
+              <div className="space-y-4 rounded-md border border-border p-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id={`tp-${position.id}`}
+                      checked={enableTp}
+                      onCheckedChange={(checked: boolean | "indeterminate") =>
+                        setEnableTp(checked === true)
+                      }
+                    />
+                    <Label htmlFor={`tp-${position.id}`}>
+                      {tr("dialog.takeProfit")}
+                    </Label>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[11px] text-muted-foreground">
+                      {tr("fields.order")}
+                    </span>
+                    <Select
+                      value={tpOrderType}
+                      onValueChange={(value: string) =>
+                        setTpOrderType(value as "market" | "limit")
+                      }
+                    >
+                      <SelectTrigger className="h-10 w-40 text-xs">
+                        <SelectValue placeholder={tr("fields.marketOrder")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="market">
+                          {tr("fields.marketOrder")}
+                        </SelectItem>
+                        <SelectItem value="limit">
+                          {tr("fields.limitOrder")}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-12 gap-4">
+                  <div className="col-span-5">
+                    <Label className="text-[11px]">
+                      {tr("fields.takeProfitPrice")}
+                    </Label>
+                    <Input
+                      disabled={!enableTp}
+                      value={tpPrice}
+                      onChange={(e) => setTpPrice(e.target.value)}
+                      className="h-10 mt-1"
+                      placeholder="e.g. 112000"
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <Label className="text-[11px]">{tr("fields.basis")}</Label>
+                    <Select
+                      value={tpBasis}
+                      onValueChange={(value: string) =>
+                        setTpBasis(value as "last" | "mark")
+                      }
+                    >
+                      <SelectTrigger className="h-10 mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="last">
+                          {tr("fields.last")}
+                        </SelectItem>
+                        <SelectItem value="mark">
+                          {tr("fields.mark")}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-4">
+                    <Label className="text-[11px]">
+                      {tr("fields.gainPercent")}
+                    </Label>
+                    <Input
+                      disabled={!enableTp}
+                      value={tpPercent}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        setTpPercent(raw);
+                        const v = parseFloat(raw);
+                        if (!Number.isNaN(v)) {
+                          const clamped = Math.max(0, Math.min(500, v));
+                          const rounded = Math.round(clamped * 10) / 10;
+                          setTpPercentSlider([rounded]);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const v = parseFloat(e.target.value);
+                        const clamped = Math.max(
+                          0,
+                          Math.min(500, Number.isNaN(v) ? 0 : v)
+                        );
+                        const rounded = Math.round(clamped * 10) / 10;
+                        setTpPercent(rounded.toFixed(1));
+                        setTpPercentSlider([rounded]);
+                      }}
+                      className="h-10 mt-1"
+                      placeholder="e.g. 5.0"
+                    />
+                  </div>
+                </div>
+                <div className="px-1 pt-2">
+                  <Slider
+                    value={tpPercentSlider}
+                    onValueChange={(vals) => {
+                      const v = Array.isArray(vals) ? Number(vals[0]) : 0;
+                      const clamped = Math.max(
+                        0,
+                        Math.min(500, Number.isNaN(v) ? 0 : v)
+                      );
+                      const rounded = Math.round(clamped * 10) / 10;
+                      setTpPercentSlider([rounded]);
+                      setTpPercent(rounded.toFixed(1));
+                    }}
+                    min={0}
+                    max={500}
+                    step={0.1}
+                    className="h-2"
+                    disabled={!enableTp}
+                  />
+                  <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                    <span>0%</span>
+                    <span>20%</span>
+                    <span>500%</span>
+                  </div>
+                </div>
+                {!!tpError && (
+                  <div className="text-[11px] text-amber-500">
+                    {sideLower === "long"
+                      ? tr("errors.tpMustBeHigherForLong")
+                      : tr("errors.tpMustBeLowerForShort")}
+                  </div>
+                )}
+              </div>
+
+              {/* Stop Loss */}
+              <div className="space-y-4 rounded-md border border-border p-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id={`sl-${position.id}`}
+                      checked={enableSl}
+                      onCheckedChange={(checked: boolean | "indeterminate") =>
+                        setEnableSl(checked === true)
+                      }
+                    />
+                    <Label htmlFor={`sl-${position.id}`}>
+                      {tr("dialog.stopLoss")}
+                    </Label>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[11px] text-muted-foreground">
+                      {tr("fields.order")}
+                    </span>
+                    <Select
+                      value={slOrderType}
+                      onValueChange={(value: string) =>
+                        setSlOrderType(value as "market" | "limit")
+                      }
+                    >
+                      <SelectTrigger className="h-10 w-40 text-xs">
+                        <SelectValue placeholder={tr("fields.marketOrder")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="market">
+                          {tr("fields.marketOrder")}
+                        </SelectItem>
+                        <SelectItem value="limit">
+                          {tr("fields.limitOrder")}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-12 gap-4">
+                  <div className="col-span-5">
+                    <Label className="text-[11px]">
+                      {tr("fields.stopLossPrice")}
+                    </Label>
+                    <Input
+                      disabled={!enableSl}
+                      value={slPrice}
+                      onChange={(e) => setSlPrice(e.target.value)}
+                      className="h-10 mt-1"
+                      placeholder="e.g. 99000"
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <Label className="text-[11px]">{tr("fields.basis")}</Label>
+                    <Select
+                      value={slBasis}
+                      onValueChange={(value: string) =>
+                        setSlBasis(value as "last" | "mark")
+                      }
+                    >
+                      <SelectTrigger className="h-10 mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="mark">
+                          {tr("fields.mark")}
+                        </SelectItem>
+                        <SelectItem value="last">
+                          {tr("fields.last")}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-4">
+                    <Label className="text-[11px]">
+                      {tr("fields.lossPercent")}
+                    </Label>
+                    <Input
+                      disabled={!enableSl}
+                      value={slPercent}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        setSlPercent(raw);
+                        const v = parseFloat(raw);
+                        if (!Number.isNaN(v)) {
+                          const clamped = Math.max(0, Math.min(500, v));
+                          const rounded = Math.round(clamped * 10) / 10;
+                          setSlPercentSlider([rounded]);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const v = parseFloat(e.target.value);
+                        const clamped = Math.max(
+                          0,
+                          Math.min(500, Number.isNaN(v) ? 0 : v)
+                        );
+                        const rounded = Math.round(clamped * 10) / 10;
+                        setSlPercent(rounded.toFixed(1));
+                        setSlPercentSlider([rounded]);
+                      }}
+                      className="h-10 mt-1"
+                      placeholder="e.g. 3.0"
+                    />
+                  </div>
+                </div>
+                <div className="px-1 pt-2">
+                  <Slider
+                    value={slPercentSlider}
+                    onValueChange={(vals) => {
+                      const v = Array.isArray(vals) ? Number(vals[0]) : 0;
+                      const clamped = Math.max(
+                        0,
+                        Math.min(500, Number.isNaN(v) ? 0 : v)
+                      );
+                      const rounded = Math.round(clamped * 10) / 10;
+                      setSlPercentSlider([rounded]);
+                      setSlPercent(rounded.toFixed(1));
+                    }}
+                    min={0}
+                    max={500}
+                    step={0.1}
+                    className="h-2"
+                    disabled={!enableSl}
+                  />
+                  <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                    <span>0%</span>
+                    <span>20%</span>
+                    <span>500%</span>
+                  </div>
+                </div>
+                {!!slError && (
+                  <div className="text-[11px] text-amber-500">
+                    {sideLower == "long"
+                      ? tr("errors.slMustBeLowerForLong")
+                      : tr("errors.slMustBeHigherForShort")}
+                  </div>
+                )}
+                <div className="text-[11px] text-amber-600">
+                  {tr("hints.slTooCloseToLiq")}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-1">
+                <div className="mr-auto text-[11px] text-muted-foreground">
+                  {tr("hints.serverManaged")}
+                </div>
+                <DialogClose asChild>
+                  <Button variant="secondary" size="sm">
+                    {tr("common.cancel")}
+                  </Button>
+                </DialogClose>
+                <DialogClose asChild>
+                  <Button
+                    size="sm"
+                    onClick={saveTpSl}
+                    disabled={savingTpSl || !!tpError || !!slError}
+                  >
+                    {savingTpSl ? tr("common.saving") : tr("common.confirm")}
+                  </Button>
+                </DialogClose>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </td>
+      {/* Actions column */}
+      <td className="p-2 text-left" style={{ width: "6%" }}>
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button
               variant="destructive"
               size="sm"
-              className="px-3 py-1 text-xs h-auto rounded-sm"
+              className="px-2 py-1 text-xs h-auto rounded-sm"
               disabled={!isHost}
               title={!isHost ? tr("tooltips.onlyHostClose") : undefined}
             >
@@ -196,8 +716,8 @@ function PositionRow({
                     position.id,
                     currentPositionPrice || position.entry_price
                   );
-                  mutate(VIRTUAL_BALANCE_KEY(roomId)); // Refetch balance after closing
-                  mutate(TRADER_PNL_KEY(roomId)); // Refetch P&L stats after closing
+                  mutate(VIRTUAL_BALANCE_KEY(roomId));
+                  mutate(TRADER_PNL_KEY(roomId));
                   if (sinceResetAt) {
                     mutate(
                       `${TRADER_PNL_KEY(roomId)}?since=${encodeURIComponent(
@@ -560,45 +1080,45 @@ export function TradeHistoryTabs({
                     >
                       <TableRow className="border-b border-border">
                         <TableHead
-                          style={{ width: "12%" }}
+                          style={{ width: "10%" }}
                           className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
                         >
-                          {tr("headers.symbol")}
+                          {tr("headers.contracts")}
                         </TableHead>
                         <TableHead
                           style={{ width: "10%" }}
                           className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
                         >
-                          {tr("headers.side")}
-                        </TableHead>
-                        <TableHead
-                          style={{ width: "16%" }}
-                          className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
-                        >
                           {tr("headers.quantity")}
                         </TableHead>
                         <TableHead
-                          style={{ width: "14%" }}
+                          style={{ width: "12%" }}
                           className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
                         >
                           {tr("headers.size")}
                         </TableHead>
                         <TableHead
-                          style={{ width: "14%" }}
+                          style={{ width: "12%" }}
                           className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
                         >
                           <div className="flex items-center gap-1">
                             {tr("headers.entry")} {""}
-                            <Info className="h-3 w-3 text-muted-foreground" />
                           </div>
                         </TableHead>
                         <TableHead
-                          style={{ width: "14%" }}
+                          style={{ width: "10%" }}
                           className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
                         >
                           <div className="flex items-center gap-1">
-                            {tr("headers.initialMargin")}
-                            <Info className="h-3 w-3 text-muted-foreground" />
+                            {tr("headers.markPrice")} {""}
+                          </div>
+                        </TableHead>
+                        <TableHead
+                          style={{ width: "10%" }}
+                          className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
+                        >
+                          <div className="flex items-center gap-1">
+                            {tr("headers.liqPrice")} {""}
                           </div>
                         </TableHead>
                         <TableHead
@@ -606,12 +1126,31 @@ export function TradeHistoryTabs({
                           className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
                         >
                           <div className="flex items-center gap-1">
-                            {tr("headers.pnl")} {""}
-                            <Info className="h-3 w-3 text-muted-foreground" />
+                            {tr("headers.initialMargin")}
                           </div>
                         </TableHead>
                         <TableHead
+                          style={{ width: "10%" }}
+                          className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
+                        >
+                          <div className="flex items-center gap-1">
+                            {tr("headers.pnl")} {""}
+                          </div>
+                        </TableHead>
+                        <TableHead
+                          style={{ width: "6%" }}
+                          className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
+                        >
+                          {tr("headers.side")}
+                        </TableHead>
+                        <TableHead
                           style={{ width: "8%" }}
+                          className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
+                        >
+                          {tr("headers.tpSl")}
+                        </TableHead>
+                        <TableHead
+                          style={{ width: "6%" }}
                           className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
                         >
                           {tr("headers.actions")}

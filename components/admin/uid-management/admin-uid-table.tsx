@@ -40,12 +40,18 @@ import {
   MoreHorizontal,
   Search,
   Shield,
+  Trash,
   User,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { UidStatusIndicator } from "./uid-status-indicator";
+import {
+  useBrokerAPIActive,
+  useBrokerReferrals,
+  useBrokerUIDVerification,
+} from "@/hooks/broker/use-broker-api";
 
 interface UidRecord {
   id: string;
@@ -69,6 +75,95 @@ interface UidRecord {
   };
 }
 
+// Component to check UID status for filtering
+function UidStatusChecker({
+  brokerId,
+  uid,
+  uidId,
+  onStatusChange,
+}: {
+  brokerId: string;
+  uid: string;
+  uidId: string;
+  onStatusChange: (uidId: string, isActive: boolean) => void;
+}) {
+  const isBrokerActive = useBrokerAPIActive(brokerId);
+  const lastStatusRef = useRef<boolean | null>(null);
+
+  const uidVerification = useBrokerUIDVerification(
+    brokerId,
+    uid,
+    isBrokerActive.data === true && brokerId !== "deepcoin"
+  );
+
+  const referrals = useBrokerReferrals(brokerId, isBrokerActive.data === true);
+
+  // Safely handle the referral data structure
+  const referralData = referrals.data;
+  const referralList = Array.isArray(referralData)
+    ? referralData
+    : referralData?.referrals?.list
+    ? referralData.referrals.list
+    : referralData?.list
+    ? referralData.list
+    : referralData?.data
+    ? referralData.data
+    : [];
+
+  const isReferralItem = (value: unknown): value is { uid: string | number } =>
+    typeof value === "object" &&
+    value !== null &&
+    "uid" in value &&
+    (typeof (value as { uid: unknown }).uid === "string" ||
+      typeof (value as { uid: unknown }).uid === "number");
+
+  // Check if this UID is a referral
+  const isReferral =
+    (referrals.isSuccess &&
+      referralList.some((ref: unknown) => {
+        if (!isReferralItem(ref)) return false;
+        const refUid = ref.uid;
+        const recordUid = uid;
+        const isMatch = String(refUid) === String(recordUid);
+        return isMatch;
+      })) ||
+    (brokerId === "deepcoin" &&
+      uidVerification.isSuccess &&
+      uidVerification.data?.data?.list?.[0]?.uidUpLevel) ||
+    (brokerId === "orangex" &&
+      uidVerification.isSuccess &&
+      uidVerification.data?.isReferral === true);
+
+  // For DeepCoin: If referrals work, use that to determine verification status
+  const isDeepCoinVerified =
+    brokerId === "deepcoin" &&
+    referrals.isSuccess &&
+    referralList.some(
+      (ref: unknown) => isReferralItem(ref) && String(ref.uid) === String(uid)
+    );
+
+  // Determine verified status
+  const isVerified =
+    (uidVerification.isSuccess && uidVerification.data?.verified) ||
+    isDeepCoinVerified;
+
+  // UID is considered "active" if it's both verified AND a referral
+  const isActive = isVerified && isReferral;
+
+  // Notify parent component when status changes
+  useEffect(() => {
+    if (!uidVerification.isLoading && !referrals.isLoading) {
+      // Only call onStatusChange if the status has actually changed
+      if (lastStatusRef.current !== isActive) {
+        lastStatusRef.current = isActive;
+        onStatusChange(uidId, isActive);
+      }
+    }
+  }, [isActive, uidId, uidVerification.isLoading, referrals.isLoading]);
+
+  return null; // This component doesn't render anything
+}
+
 export function AdminUidTable() {
   const t = useTranslations("admin.uidManagement.table");
   const tUidDetails = useTranslations("admin.uidManagement.uidDetailsDialog");
@@ -89,15 +184,30 @@ export function AdminUidTable() {
   // Lightweight UI busy indicator for client-side interactions
   const [isUiBusy, setIsUiBusy] = useState(false);
 
+  // Track actual UID statuses (verified + referral)
+  const [uidStatuses, setUidStatuses] = useState<Record<string, boolean>>({});
+
   // Modal states
   const [selectedUid, setSelectedUid] = useState<UidRecord | null>(null);
   const [selectedUser, setSelectedUser] = useState<UidRecord | null>(null);
   const [isUidModalOpen, setIsUidModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [uidPendingDelete, setUidPendingDelete] = useState<UidRecord | null>(
+    null
+  );
 
   // Refs for keyboard shortcuts
   const searchInputRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
+
+  // Handle status updates from UidStatusChecker components
+  const handleStatusChange = useCallback((uidId: string, isActive: boolean) => {
+    setUidStatuses((prev) => ({
+      ...prev,
+      [uidId]: isActive,
+    }));
+  }, []);
 
   // Helper function to check if a date falls within the selected range
   const isDateInRange = (dateString: string, range: string): boolean => {
@@ -476,10 +586,14 @@ export function AdminUidTable() {
 
       const matchesExchange =
         exchangeFilter === "all" || record.exchange_id === exchangeFilter;
+
+      // Use actual status based on verification and referral status
+      const actualStatus = uidStatuses[record.id] ?? false;
       const matchesStatus =
         statusFilter === "all" ||
-        (statusFilter === "active" && record.is_active) ||
-        (statusFilter === "inactive" && !record.is_active);
+        (statusFilter === "active" && actualStatus) ||
+        (statusFilter === "inactive" && !actualStatus);
+
       const matchesDate = isDateInRange(record.created_at, dateFilter);
 
       return matchesSearch && matchesExchange && matchesStatus && matchesDate;
@@ -531,6 +645,45 @@ export function AdminUidTable() {
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast.success(tUidDetails("copyToClipboard", { label }));
+  };
+
+  const handleDeleteRequest = (record: UidRecord) => {
+    setUidPendingDelete(record);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!uidPendingDelete) return;
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("user_broker_uids")
+        .delete()
+        .eq("id", uidPendingDelete.id);
+
+      if (error) {
+        console.error("Failed to delete UID:", error);
+        toast.error(t("deleteError"));
+        return;
+      }
+
+      // Optimistically remove from cache
+      queryClient.setQueryData(
+        ["admin", "all-uids"],
+        (oldData: UidRecord[] | undefined) => {
+          if (!oldData) return oldData;
+          return oldData.filter((u) => u.id !== uidPendingDelete.id);
+        }
+      );
+
+      toast.success(t("deleteSuccess"));
+    } catch (e) {
+      console.error("Delete failed:", e);
+      toast.error(t("deleteError"));
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setUidPendingDelete(null);
+    }
   };
 
   // Format date as text for CSV to avoid Excel showing ####
@@ -705,6 +858,56 @@ export function AdminUidTable() {
 
   return (
     <div className="space-y-3 mt-10">
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="rounded-none max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("deleteDialog.title")}</DialogTitle>
+            <DialogDescription>
+              {t("deleteDialog.description")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="border border-border p-4 text-sm">
+            <div className="flex flex-col gap-1">
+              <div>
+                <span className="text-muted-foreground">UID:</span>{" "}
+                <span className="font-mono">{uidPendingDelete?.uid}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">
+                  {t("deleteDialog.exchange")}
+                </span>{" "}
+                <span>
+                  {uidPendingDelete?.exchange?.name ||
+                    uidPendingDelete?.exchange_id}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
+              {t("deleteDialog.cancel")}
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete}>
+              {t("deleteDialog.confirm")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Hidden status checkers for all UID records */}
+      {uidRecords?.map((record) => (
+        <UidStatusChecker
+          key={record.id}
+          brokerId={record.exchange_id}
+          uid={record.uid}
+          uidId={record.id}
+          onStatusChange={handleStatusChange}
+        />
+      ))}
+
       {/* Search and Filters */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative">
@@ -981,6 +1184,14 @@ export function AdminUidTable() {
                                 >
                                   <User className="mr-2 h-4 w-4" />
                                   {t("menu.viewUser")}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteRequest(record)}
+                                  className="text-red-600"
+                                >
+                                  <Trash className="mr-2 h-4 w-4" />
+                                  {t("menu.deleteUid")}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>

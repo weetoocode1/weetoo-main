@@ -62,11 +62,11 @@ export function TradingForm({
   const fee = positionSize * FEE_RATE;
   const initialMargin = leverage > 0 ? positionSize / leverage : 0;
   const leverageValue = initialMargin > 0 ? positionSize / initialMargin : 0;
-  // Liquidation price formulas (Binance style)
+  // Liquidation price formulas (CTO-approved)
   const lev = leverage;
   const mmr = MAINTENANCE_MARGIN_RATE;
-  const liqPriceLong = lev > 0 ? price * (lev / (lev + 1 - mmr * lev)) : 0;
-  const liqPriceShort = lev > 1 ? price * (lev / (lev - 1 + mmr * lev)) : 0;
+  const liqPriceLong = lev > 0 ? price * (1 - lev * (1 - mmr)) : 0;
+  const liqPriceShort = lev > 0 ? price * (1 + lev * (1 - mmr)) : 0;
 
   // Fetch default virtual balance from app-settings
   const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -175,11 +175,9 @@ export function TradingForm({
       const mmr = MAINTENANCE_MARGIN_RATE;
       let liquidation_price = 0;
       if (orderSide === "long") {
-        liquidation_price =
-          entry_price * (leverage / (leverage + 1 - mmr * leverage));
+        liquidation_price = entry_price * (1 - leverage * (1 - mmr));
       } else {
-        liquidation_price =
-          entry_price * (leverage / (leverage - 1 + mmr * leverage));
+        liquidation_price = entry_price * (1 + leverage * (1 - mmr));
       }
       // Use the new RPC for atomic insert and balance update
       const { error: rpcError } = await supabase.rpc(

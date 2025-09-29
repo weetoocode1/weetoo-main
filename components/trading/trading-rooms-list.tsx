@@ -50,6 +50,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { CreateRoom } from "./create-room";
+import type { QueryFunctionContext, InfiniteData } from "@tanstack/react-query";
 
 interface TradingRoom {
   id: string;
@@ -69,6 +70,12 @@ interface TradingRoom {
   pnlPercentage: number | null;
   thumbnail_url: string | null;
   isHostStreaming?: boolean; // New field to track if host is streaming
+}
+
+// Type for paginated rooms API response
+interface TradingRoomsPage {
+  data: TradingRoom[];
+  total?: number;
 }
 
 const multiColumnFilterFn = (room: TradingRoom, searchTerm: string) => {
@@ -258,7 +265,11 @@ export function TradingRoomsList() {
   });
 
   // Optimized React Query fetcher
-  const fetchTradingRooms = async ({ pageParam = 1 }) => {
+  const fetchTradingRooms = async (
+    ctx: QueryFunctionContext<[string, string, string[], string[]], number>
+  ): Promise<TradingRoomsPage> => {
+    const pageParamUnknown = ctx.pageParam;
+    const pageParam = (pageParamUnknown as number) ?? 1;
     const response = await fetch(
       `/api/trading-rooms?page=${pageParam}&pageSize=20`,
       {
@@ -270,7 +281,8 @@ export function TradingRoomsList() {
     if (!response.ok) {
       throw new Error("Failed to fetch trading rooms");
     }
-    return response.json();
+    const json: TradingRoomsPage = await response.json();
+    return json;
   };
 
   // React Query for infinite rooms with more responsive caching
@@ -283,11 +295,17 @@ export function TradingRoomsList() {
     fetchNextPage,
     isFetchingNextPage,
     // refetch,
-  } = useInfiniteQuery({
+  } = useInfiniteQuery<
+    TradingRoomsPage,
+    Error,
+    InfiniteData<TradingRoomsPage, number>,
+    [string, string, string[], string[]],
+    number
+  >({
     queryKey: ["trading-rooms", searchTerm, selectedCategories, selectedAccess],
     queryFn: fetchTradingRooms,
     initialPageParam: 1,
-    getNextPageParam: (lastPage, allPages) => {
+    getNextPageParam: (lastPage: TradingRoomsPage, allPages) => {
       const hasMore = lastPage.data.length === 20;
       return hasMore ? allPages.length + 1 : undefined;
     },
@@ -300,8 +318,8 @@ export function TradingRoomsList() {
 
   // Flatten all pages into a single array of rooms
   const rooms = useMemo(() => {
-    if (!roomsData?.pages) return [];
-    return roomsData.pages.flatMap((page) => page.data);
+    if (!roomsData?.pages) return [] as TradingRoom[];
+    return roomsData.pages.flatMap((page: TradingRoomsPage) => page.data);
   }, [roomsData?.pages]);
 
   // const totalCount = roomsData?.pages?.[0]?.total || 0;
@@ -534,13 +552,61 @@ export function TradingRoomsList() {
           schema: "public",
           table: "trading_rooms",
         },
-        async (payload) => {
+        async (payload: {
+          new?: { id?: string; room_status?: string };
+          record?: { id?: string; room_status?: string };
+        }) => {
           console.log("Room change detected:", payload);
 
-          // Invalidate and refetch React Query cache
-          await queryClient.invalidateQueries({
-            queryKey: ["trading-rooms"],
-          });
+          try {
+            const newRow = (payload && (payload.new || payload.record)) || {};
+            const roomId = newRow?.id;
+            const status = newRow?.room_status;
+
+            if (roomId && status === "ended") {
+              // Optimistically remove ended room from all cached lists immediately
+              queryClient.setQueriesData(
+                { queryKey: ["trading-rooms"] },
+                (oldData: unknown) => {
+                  if (
+                    !oldData ||
+                    typeof oldData !== "object" ||
+                    !("pages" in oldData)
+                  ) {
+                    return oldData;
+                  }
+                  const pages = (oldData as { pages: Array<{ data: unknown }> })
+                    .pages;
+                  const nextPages = pages.map((page) => {
+                    const data = Array.isArray(page.data)
+                      ? (page.data as TradingRoom[]).filter(
+                          (room) => room.id !== roomId
+                        )
+                      : page.data;
+                    return { ...page, data };
+                  });
+                  return {
+                    ...(oldData as object),
+                    pages: nextPages,
+                  } as unknown;
+                }
+              );
+            }
+
+            // Invalidate and refetch active queries to ensure consistency
+            await queryClient.invalidateQueries({
+              queryKey: ["trading-rooms"],
+            });
+            await queryClient.refetchQueries({
+              queryKey: ["trading-rooms"],
+              type: "active",
+            });
+          } catch (error) {
+            console.error(
+              "Error handling trading_rooms realtime update:",
+              error
+            );
+          }
         }
       )
       .subscribe();
@@ -560,7 +626,7 @@ export function TradingRoomsList() {
         {
           event: "streaming-status",
         },
-        (payload) => {
+        (payload: { payload: { roomId: string; isStreaming: boolean } }) => {
           const { roomId, isStreaming } = payload.payload;
           console.log("Streaming status update:", { roomId, isStreaming });
 

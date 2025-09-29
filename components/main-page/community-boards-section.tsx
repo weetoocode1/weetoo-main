@@ -16,7 +16,7 @@ interface PostData {
   author: string;
   authorAvatar: string;
   publishDate: string;
-  readTime: string;
+  views: number;
   likes: number;
   comments: number;
   category: "Free Board" | "Education Board" | "Profit Board";
@@ -44,7 +44,7 @@ const demoPostsData: PostData[] = [
     authorAvatar:
       "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
     publishDate: "2024-01-15",
-    readTime: "5 min read",
+    views: 2156,
     likes: 1247,
     comments: 89,
     category: "Free Board",
@@ -60,7 +60,7 @@ const demoPostsData: PostData[] = [
     authorAvatar:
       "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
     publishDate: "2024-01-14",
-    readTime: "7 min read",
+    views: 1834,
     likes: 892,
     comments: 56,
     category: "Free Board",
@@ -76,7 +76,7 @@ const demoPostsData: PostData[] = [
     authorAvatar:
       "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
     publishDate: "2024-01-13",
-    readTime: "6 min read",
+    views: 1956,
     likes: 1156,
     comments: 73,
     category: "Free Board",
@@ -93,7 +93,7 @@ const demoPostsData: PostData[] = [
     authorAvatar:
       "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
     publishDate: "2024-01-15",
-    readTime: "12 min read",
+    views: 3256,
     likes: 2156,
     comments: 134,
     category: "Education Board",
@@ -109,7 +109,7 @@ const demoPostsData: PostData[] = [
     authorAvatar:
       "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face",
     publishDate: "2024-01-14",
-    readTime: "9 min read",
+    views: 2834,
     likes: 1834,
     comments: 98,
     category: "Education Board",
@@ -125,7 +125,7 @@ const demoPostsData: PostData[] = [
     authorAvatar:
       "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face",
     publishDate: "2024-01-13",
-    readTime: "10 min read",
+    views: 2678,
     likes: 1678,
     comments: 87,
     category: "Education Board",
@@ -142,7 +142,7 @@ const demoPostsData: PostData[] = [
     authorAvatar:
       "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=face",
     publishDate: "2024-01-15",
-    readTime: "8 min read",
+    views: 4245,
     likes: 3245,
     comments: 156,
     category: "Profit Board",
@@ -158,7 +158,7 @@ const demoPostsData: PostData[] = [
     authorAvatar:
       "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&h=150&fit=crop&crop=face",
     publishDate: "2024-01-14",
-    readTime: "11 min read",
+    views: 3891,
     likes: 2891,
     comments: 203,
     category: "Profit Board",
@@ -174,7 +174,7 @@ const demoPostsData: PostData[] = [
     authorAvatar:
       "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face",
     publishDate: "2024-01-13",
-    readTime: "13 min read",
+    views: 3567,
     likes: 2567,
     comments: 178,
     category: "Profit Board",
@@ -259,7 +259,7 @@ const convertToPostData = (
       (post as MaybeCreatedAt).created_at ||
       post.createdAt ||
       new Date().toISOString().split("T")[0],
-    readTime: "5 min read", // Default read time
+    views: post.views || 0, // Use actual database value
     likes: post.likes || 0, // Use actual database value
     comments: post.comments || 0, // Use actual database value
     category,
@@ -270,6 +270,9 @@ const convertToPostData = (
 
 // Post Card Component
 const PostCard = ({ post, index }: { post: PostData; index: number }) => {
+  const menuT = useTranslations("menu");
+  const communityT = useTranslations("communityBoards");
+
   // Fixed: Use deterministic date formatting to prevent hydration mismatch
   const formattedDate = new Date(post.publishDate).toLocaleDateString("en-US", {
     year: "numeric",
@@ -306,7 +309,7 @@ const PostCard = ({ post, index }: { post: PostData; index: number }) => {
         {/* Category indicator with better styling */}
         <div className="absolute top-4 right-4 z-10">
           <div
-            className={`px-3 py-1 rounded-full text-xs font-semibold ${
+            className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
               post.category === "Free Board"
                 ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
                 : post.category === "Education Board"
@@ -314,12 +317,16 @@ const PostCard = ({ post, index }: { post: PostData; index: number }) => {
                 : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
             }`}
           >
-            {post.category.replace(" Board", "")}
+            {post.category === "Free Board"
+              ? menuT("freeBulletinBoard")
+              : post.category === "Education Board"
+              ? menuT("educationBulletinBoard")
+              : menuT("profitBulletinBoard")}
           </div>
         </div>
 
         <div className="p-6 flex-1 flex flex-col relative z-10">
-          <h3 className="text-lg font-bold text-foreground truncate mb-3 leading-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 pr-20">
+          <h3 className="text-lg font-bold text-foreground mb-3 leading-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 pr-32 truncate">
             {post.title}
           </h3>
 
@@ -355,7 +362,8 @@ const PostCard = ({ post, index }: { post: PostData; index: number }) => {
                   {post.author}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {formattedDate || "Loading..."} • {post.readTime}
+                  {formattedDate || "Loading..."} •{" "}
+                  {post.views.toLocaleString()} {communityT("views")}
                 </p>
               </div>
             </div>
@@ -383,6 +391,7 @@ export function CommunityBoardsSection({
   boardData,
 }: CommunityBoardsSectionProps) {
   const t = useTranslations("communityBoards");
+  // const menuT = useTranslations("menu");
 
   // Mix real data with demo data to always show 3 posts per board
   const mixedBoardData = useMemo(() => {

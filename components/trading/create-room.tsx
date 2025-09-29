@@ -66,6 +66,8 @@ export function CreateRoom() {
   const [showPassword, setShowPassword] = useState(false);
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [, setHasLoaded] = useState(false);
+  const hasLoadedRef = useRef(false);
   const [existingRoom, setExistingRoom] = useState<ExistingRoom | null>(null);
   const [, setCheckingExistingRoom] = useState(false);
   const lastSessionId = useRef<string | null>(null);
@@ -277,7 +279,7 @@ export function CreateRoom() {
         if (mounted) setLoading(false);
         return;
       }
-      setLoading(true);
+      if (!hasLoadedRef.current) setLoading(true);
 
       supabase
         .from("users")
@@ -291,6 +293,10 @@ export function CreateRoom() {
             }
             setUser(error ? null : data);
             setLoading(false);
+            if (!hasLoadedRef.current) {
+              hasLoadedRef.current = true;
+              setHasLoaded(true);
+            }
 
             // Load existing room from storage and verify with server
             if (data) {
@@ -316,7 +322,7 @@ export function CreateRoom() {
           setLoading(false);
           return;
         }
-        setLoading(true);
+        if (!hasLoadedRef.current) setLoading(true);
         supabase
           .from("users")
           .select("id, kor_coins")
@@ -328,6 +334,10 @@ export function CreateRoom() {
             }
             setUser(error ? null : data);
             setLoading(false);
+            if (!hasLoadedRef.current) {
+              hasLoadedRef.current = true;
+              setHasLoaded(true);
+            }
 
             // Load existing room from storage and verify with server
             if (data) {
@@ -349,12 +359,9 @@ export function CreateRoom() {
     return user?.kor_coins ?? 0;
   }, [user?.kor_coins]);
 
-  const formatNumber = (num: number) => {
-    if (num >= 1000) {
-      return `${(num / 1000).toFixed(1)}K`;
-    }
-    return num.toString();
-  };
+  // const formatNumber = (num: number) => {
+  //   return num.toLocaleString();
+  // };
 
   const getRoomCost = (category: string) => {
     switch (category) {
@@ -728,7 +735,7 @@ export function CreateRoom() {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <p className="text-lg font-bold text-foreground cursor-help">
-                                {formatNumber(userKorCoins)} KOR
+                                {userKorCoins.toLocaleString()} KOR
                               </p>
                             </TooltipTrigger>
                             <TooltipContent side="bottom" align="center">

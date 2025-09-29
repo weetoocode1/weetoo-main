@@ -511,6 +511,12 @@ export function Chat({ roomId, creatorId }: ChatProps) {
     });
   }, []);
 
+  // Auto-scroll when messages list changes (initial load and updates)
+  useEffect(() => {
+    if (!messages || messages.length === 0) return;
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
+
   // Send message (optimistic UI with SWR)
   const handleSendMessage = useCallback(
     async (e: React.FormEvent) => {

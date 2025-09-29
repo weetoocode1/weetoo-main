@@ -58,16 +58,9 @@ export function KorCoinsTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Format number for display (Indian numbering system)
+  // Format number for display (standard comma formatting)
   const formatNumberForDisplay = (num: number) => {
-    const str = num.toString();
-    if (str.length <= 3) {
-      return str;
-    }
-    const lastThree = str.slice(-3);
-    const remaining = str.slice(0, -3);
-    const formattedRemaining = remaining.replace(/\B(?=(\d{2})+(?!\d))/g, ",");
-    return formattedRemaining + "," + lastThree;
+    return num.toLocaleString("en-US");
   };
 
   // Dialog state
@@ -346,10 +339,10 @@ export function KorCoinsTable() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border/50 bg-muted/20">
-                    <th className="px-6 py-4 text-left">
+                    <th className="px-6 py-4 text-center">
                       <button
                         onClick={() => handleSort("name")}
-                        className="flex items-center gap-2 font-medium text-xs uppercase tracking-wider hover:text-primary transition-colors"
+                        className="flex items-center justify-center gap-2 font-medium text-xs uppercase tracking-wider hover:text-primary transition-colors"
                       >
                         {t("columns.user")}
                         <span className="text-muted-foreground">
@@ -361,10 +354,10 @@ export function KorCoinsTable() {
                         </span>
                       </button>
                     </th>
-                    <th className="px-6 py-4 text-left">
+                    <th className="px-6 py-4 text-center">
                       <button
                         onClick={() => handleSort("kor_coins")}
-                        className="flex items-center gap-2 font-medium text-xs uppercase tracking-wider hover:text-primary transition-colors"
+                        className="flex items-center justify-center gap-2 font-medium text-xs uppercase tracking-wider hover:text-primary transition-colors"
                       >
                         {t("columns.balance")}
                         <span className="text-muted-foreground">
@@ -376,13 +369,13 @@ export function KorCoinsTable() {
                         </span>
                       </button>
                     </th>
-                    <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
+                    <th className="px-6 py-4 text-center font-medium text-xs uppercase tracking-wider">
                       {t("columns.status")}
                     </th>
-                    <th className="px-6 py-4 text-left">
+                    <th className="px-6 py-4 text-center">
                       <button
                         onClick={() => handleSort("created_at")}
-                        className="flex items-center gap-2 font-medium text-xs uppercase tracking-wider hover:text-primary transition-colors"
+                        className="flex items-center justify-center gap-2 font-medium text-xs uppercase tracking-wider hover:text-primary transition-colors"
                       >
                         {t("columns.joined")}
                         <span className="text-muted-foreground">
@@ -394,7 +387,7 @@ export function KorCoinsTable() {
                         </span>
                       </button>
                     </th>
-                    <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
+                    <th className="px-6 py-4 text-center font-medium text-xs uppercase tracking-wider">
                       {t("columns.actions")}
                     </th>
                   </tr>
@@ -413,8 +406,8 @@ export function KorCoinsTable() {
                         key={user.id}
                         className="border-b border-border/30 hover:bg-muted/20 transition-colors"
                       >
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex items-center justify-center gap-3">
                             <Avatar className="h-10 w-10 ring-2 ring-muted/20">
                               <AvatarImage
                                 src={user.avatar_url}
@@ -436,8 +429,8 @@ export function KorCoinsTable() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex items-center justify-center gap-2">
                             <Coins
                               className={`h-4 w-4 ${
                                 isHighBalance
@@ -450,7 +443,7 @@ export function KorCoinsTable() {
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 text-center">
                           <Badge
                             variant="outline"
                             className={`${balanceStatus.color} border`}
@@ -458,8 +451,8 @@ export function KorCoinsTable() {
                             {balanceStatus.label}
                           </Badge>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex items-center justify-center gap-2">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm text-muted-foreground">
                               {new Date(user.created_at).toLocaleDateString(
@@ -473,8 +466,8 @@ export function KorCoinsTable() {
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex items-center justify-center gap-2">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="h-8 w-8 p-0">

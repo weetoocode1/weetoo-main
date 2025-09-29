@@ -59,18 +59,15 @@ export function BalanceAdjustmentDialog({
   const [reason, setReason] = useState("");
   const [isAdjusting, setIsAdjusting] = useState(false);
 
-  // Format number with commas (Indian numbering system)
+  // Format number with commas (standard comma formatting)
   const formatNumberWithCommas = (value: string) => {
     // Remove all non-digit characters
     const numbers = value.replace(/\D/g, "");
-    // Indian numbering system: first 3 digits, then groups of 2
+    // Standard comma formatting: every 3 digits
     if (numbers.length <= 3) {
       return numbers;
     }
-    const lastThree = numbers.slice(-3);
-    const remaining = numbers.slice(0, -3);
-    const formattedRemaining = remaining.replace(/\B(?=(\d{2})+(?!\d))/g, ",");
-    return formattedRemaining + "," + lastThree;
+    return parseInt(numbers).toLocaleString("en-US");
   };
 
   // Parse formatted number back to integer
@@ -78,16 +75,9 @@ export function BalanceAdjustmentDialog({
     return parseInt(value.replace(/,/g, "")) || 0;
   };
 
-  // Format number for display (Indian numbering system)
+  // Format number for display (standard comma formatting)
   const formatNumberForDisplay = (num: number) => {
-    const str = num.toString();
-    if (str.length <= 3) {
-      return str;
-    }
-    const lastThree = str.slice(-3);
-    const remaining = str.slice(0, -3);
-    const formattedRemaining = remaining.replace(/\B(?=(\d{2})+(?!\d))/g, ",");
-    return formattedRemaining + "," + lastThree;
+    return num.toLocaleString("en-US");
   };
 
   const handleBalanceAdjustment = async () => {
