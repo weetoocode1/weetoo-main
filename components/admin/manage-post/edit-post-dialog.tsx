@@ -55,6 +55,7 @@ export function EditPostDialog({
   onPostUpdated,
 }: EditPostDialogProps) {
   const t = useTranslations("admin.managePosts.editDialog");
+  const menuT = useTranslations("menu");
   const [editFormData, setEditFormData] = useState({
     title: post.title || "",
     excerpt: post.excerpt || "",
@@ -67,17 +68,17 @@ export function EditPostDialog({
   const getBoardConfig = (board: string) => {
     const configs = {
       free: {
-        label: "Free Board",
+        label: menuT("freeBulletinBoard"),
         color: "bg-blue-50/80 text-blue-700 border border-blue-200/60",
         icon: FileText,
       },
       education: {
-        label: "Education Board",
+        label: menuT("educationBulletinBoard"),
         color: "bg-green-50/80 text-green-700 border border-green-200/60",
         icon: Book,
       },
       profit: {
-        label: "Profit Board",
+        label: menuT("profitBulletinBoard"),
         color: "bg-purple-50/80 text-purple-700 border border-purple-200/60",
         icon: TrendingUp,
       },

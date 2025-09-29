@@ -330,6 +330,10 @@
     "likes": {
       "liked": "게시물을 좋아요했습니다!",
       "unliked": "게시물 좋아요를 취소했습니다"
+    },
+    "toasts": {
+      "logoutFailed": "로그아웃에 실패했습니다. 다시 시도해 주세요.",
+      "logoutSuccess": "성공적으로 로그아웃되었습니다."
     }
   },
   "user": {
@@ -2067,7 +2071,9 @@
           "allCategories": "전체 카테고리",
           "allStatus": "전체 상태",
           "read": "읽음",
-          "unread": "읽지 않음"
+          "unread": "읽지 않음",
+          "deposit": "입금",
+          "withdrawal": "출금"
         },
         "columns": {
           "notification": "알림",
@@ -2111,6 +2117,35 @@
           "deposit_request_created": "새 입금 요청",
           "withdrawal_status_updated": "출금 상태 업데이트",
           "deposit_status_updated": "입금 상태 업데이트"
+        },
+        "typeValues": {
+          "success": "성공",
+          "info": "정보"
+        },
+        "categoryValues": {
+          "deposit": "입금",
+          "withdrawal": "출금",
+          "other": "기타"
+        },
+        "details": {
+          "title": "알림 상세",
+          "id": "ID",
+          "type": "유형",
+          "audience": "대상",
+          "status": "상태",
+          "created": "생성일",
+          "titleLabel": "제목",
+          "body": "내용",
+          "metadata": "메타데이터",
+          "basicInfo": "기본 정보",
+          "timingInfo": "시간 정보",
+          "content": "알림 내용",
+          "transactionInfo": "거래 정보",
+          "user": "사용자",
+          "amount": "금액",
+          "transactionStatus": "거래 상태",
+          "method": "방법",
+          "category": "카테고리"
         }
       }
     },
@@ -3401,7 +3436,9 @@
         "allCategories": "전체 카테고리",
         "allStatus": "전체 상태",
         "read": "읽음",
-        "unread": "읽지 않음"
+        "unread": "읽지 않음",
+        "deposit": "입금",
+        "withdrawal": "출금"
       },
       "columns": {
         "notification": "알림",
@@ -3445,6 +3482,35 @@
         "deposit_request_created": "새 입금 요청",
         "withdrawal_status_updated": "출금 상태 업데이트",
         "deposit_status_updated": "입금 상태 업데이트"
+      },
+      "typeValues": {
+        "success": "성공",
+        "info": "정보"
+      },
+      "categoryValues": {
+        "deposit": "입금",
+        "withdrawal": "출금",
+        "other": "기타"
+      },
+      "details": {
+        "title": "알림 상세",
+        "id": "ID",
+        "type": "유형",
+        "audience": "대상",
+        "status": "상태",
+        "created": "생성일",
+        "titleLabel": "제목",
+        "body": "내용",
+        "metadata": "메타데이터",
+        "basicInfo": "기본 정보",
+        "timingInfo": "시간 정보",
+        "content": "알림 내용",
+        "transactionInfo": "거래 정보",
+        "user": "사용자",
+        "amount": "금액",
+        "transactionStatus": "거래 상태",
+        "method": "방법",
+        "category": "카테고리"
       }
     }
   },
