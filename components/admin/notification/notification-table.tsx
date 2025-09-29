@@ -2,6 +2,12 @@
 
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -43,7 +49,6 @@ interface Notification {
 
 interface NotificationTableProps {
   notifications: Notification[];
-  onViewDetails: (notification: Notification) => void;
 }
 
 // Notification configuration - easily extensible for future categories
@@ -74,11 +79,11 @@ const NOTIFICATION_CONFIG = {
   },
 } as const;
 
-export function NotificationTable({
-  notifications,
-  onViewDetails,
-}: NotificationTableProps) {
+export function NotificationTable({ notifications }: NotificationTableProps) {
   const t = useTranslations("admin.notifications.table");
+  const [selectedNotification, setSelectedNotification] =
+    useState<Notification | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   // Limit to only withdrawal and deposit notification types
   const ALLOWED_TYPES = new Set(
     Object.keys(NOTIFICATION_CONFIG) as Array<keyof typeof NOTIFICATION_CONFIG>
@@ -112,6 +117,11 @@ export function NotificationTable({
     } catch (error) {
       console.error("Error marking notification as read:", error);
     }
+  };
+
+  const handleViewDetails = (notification: Notification) => {
+    setSelectedNotification(notification);
+    setIsDetailsOpen(true);
   };
 
   // Get notification configuration - fallback to defaults if not found
@@ -251,7 +261,7 @@ export function NotificationTable({
               <SelectItem value="all">{t("filters.allCategories")}</SelectItem>
               {getAvailableCategories().map((category) => (
                 <SelectItem key={category} value={category}>
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
+                  {t(`filters.${category}`)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -341,16 +351,14 @@ export function NotificationTable({
                             <div
                               className={`inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-medium ${config.color}`}
                             >
-                              {config.type.charAt(0).toUpperCase() +
-                                config.type.slice(1)}
+                              {t(`typeValues.${config.type}`)}
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
                             <div className="inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-medium bg-muted/50 text-muted-foreground border border-border/50">
-                              {config.category.charAt(0).toUpperCase() +
-                                config.category.slice(1)}
+                              {t(`categoryValues.${config.category}`)}
                             </div>
                           </div>
                         </td>
@@ -405,7 +413,7 @@ export function NotificationTable({
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   onClick={() => {
-                                    onViewDetails(notification);
+                                    handleViewDetails(notification);
                                   }}
                                 >
                                   <Eye className="mr-2 h-4 w-4" />
@@ -491,7 +499,7 @@ export function NotificationTable({
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => {
-                                onViewDetails(notification);
+                                handleViewDetails(notification);
                               }}
                             >
                               <Eye className="mr-2 h-4 w-4" />
@@ -517,8 +525,7 @@ export function NotificationTable({
                         <div
                           className={`inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-medium ${config.color}`}
                         >
-                          {config.type.charAt(0).toUpperCase() +
-                            config.type.slice(1)}
+                          {t(`typeValues.${config.type}`)}
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -541,8 +548,7 @@ export function NotificationTable({
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-medium bg-muted/50 text-muted-foreground border border-border/50">
-                          {config.category.charAt(0).toUpperCase() +
-                            config.category.slice(1)}
+                          {t(`categoryValues.${config.category}`)}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -642,6 +648,203 @@ export function NotificationTable({
           </div>
         </div>
       )}
+
+      {/* Notification Details Dialog */}
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className="!max-w-4xl rounded-none">
+          <DialogHeader className="border-b border-border pb-6">
+            <DialogTitle className="text-xl font-bold text-primary">
+              {t("details.title")}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedNotification && (
+            <div className="space-y-2">
+              {/* Main Information Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div className="space-y-4">
+                  <div className="bg-muted/30 p-4 rounded-none border border-border">
+                    <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
+                      {t("details.basicInfo")}
+                    </h3>
+                    <div className="space-y-3">
+                      <div>
+                        <span className="font-medium text-sm">
+                          {t("details.type")}:
+                        </span>
+                        <p className="text-sm mt-1">
+                          {
+                            getNotificationConfig(selectedNotification.type)
+                              .title
+                          }
+                        </p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-sm">
+                          {t("details.category")}:
+                        </span>
+                        <p className="text-sm mt-1">
+                          {t(
+                            `categoryValues.${
+                              getNotificationConfig(selectedNotification.type)
+                                .category
+                            }`
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-sm">
+                          {t("details.status")}:
+                        </span>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div
+                            className={`w-2 h-2 rounded-full ${
+                              selectedNotification.read
+                                ? "bg-green-500"
+                                : "bg-yellow-500"
+                            }`}
+                          />
+                          <span
+                            className={`text-sm font-medium ${
+                              selectedNotification.read
+                                ? "text-green-600"
+                                : "text-yellow-600"
+                            }`}
+                          >
+                            {selectedNotification.read
+                              ? t("status.read")
+                              : t("status.unread")}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="bg-muted/30 p-4 rounded-none border border-border">
+                    <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
+                      {t("details.timingInfo")}
+                    </h3>
+                    <div className="space-y-3">
+                      <div>
+                        <span className="font-medium text-sm">
+                          {t("details.created")}:
+                        </span>
+                        <p className="text-sm mt-1">
+                          {new Date(
+                            selectedNotification.created_at
+                          ).toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-sm">
+                          {t("details.audience")}:
+                        </span>
+                        <p className="text-sm mt-1 capitalize">
+                          {selectedNotification.audience}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-sm">
+                          {t("details.id")}:
+                        </span>
+                        <p className="text-xs font-mono text-muted-foreground mt-1 break-all">
+                          {selectedNotification.id}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notification Content */}
+              {(selectedNotification.title || selectedNotification.body) && (
+                <div className="bg-muted/30 p-4 rounded-none border border-border">
+                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-4">
+                    {t("details.content")}
+                  </h3>
+                  <div className="space-y-4">
+                    {selectedNotification.title && (
+                      <div>
+                        <span className="font-medium text-sm">
+                          {t("details.titleLabel")}:
+                        </span>
+                        <p className="text-sm mt-1 font-medium">
+                          {selectedNotification.title}
+                        </p>
+                      </div>
+                    )}
+                    {selectedNotification.body && (
+                      <div>
+                        <span className="font-medium text-sm">
+                          {t("details.body")}:
+                        </span>
+                        <p className="text-sm mt-1 leading-relaxed">
+                          {selectedNotification.body}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Transaction Details */}
+              {selectedNotification.metadata && (
+                <div className="bg-muted/30 p-4 rounded-none border border-border">
+                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-4">
+                    {t("details.transactionInfo")}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {selectedNotification.metadata?.user_name ? (
+                      <div>
+                        <span className="font-medium text-sm">
+                          {t("details.user")}:
+                        </span>
+                        <p className="text-sm mt-1 font-medium">
+                          {String(selectedNotification.metadata.user_name)}
+                        </p>
+                      </div>
+                    ) : null}
+                    {selectedNotification.metadata?.kor_coins_amount ? (
+                      <div>
+                        <span className="font-medium text-sm">
+                          {t("details.amount")}:
+                        </span>
+                        <p className="text-sm mt-1 font-bold text-primary">
+                          {Number(
+                            selectedNotification.metadata.kor_coins_amount
+                          ).toLocaleString()}{" "}
+                          KOR
+                        </p>
+                      </div>
+                    ) : null}
+                    {selectedNotification.metadata?.status ? (
+                      <div>
+                        <span className="font-medium text-sm">
+                          {t("details.transactionStatus")}:
+                        </span>
+                        <p className="text-sm mt-1">
+                          {String(selectedNotification.metadata.status)}
+                        </p>
+                      </div>
+                    ) : null}
+                    {selectedNotification.metadata?.method ? (
+                      <div>
+                        <span className="font-medium text-sm">
+                          {t("details.method")}:
+                        </span>
+                        <p className="text-sm mt-1">
+                          {String(selectedNotification.metadata.method)}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

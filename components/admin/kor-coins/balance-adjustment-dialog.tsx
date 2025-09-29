@@ -59,13 +59,44 @@ export function BalanceAdjustmentDialog({
   const [reason, setReason] = useState("");
   const [isAdjusting, setIsAdjusting] = useState(false);
 
+  // Format number with commas (Indian numbering system)
+  const formatNumberWithCommas = (value: string) => {
+    // Remove all non-digit characters
+    const numbers = value.replace(/\D/g, "");
+    // Indian numbering system: first 3 digits, then groups of 2
+    if (numbers.length <= 3) {
+      return numbers;
+    }
+    const lastThree = numbers.slice(-3);
+    const remaining = numbers.slice(0, -3);
+    const formattedRemaining = remaining.replace(/\B(?=(\d{2})+(?!\d))/g, ",");
+    return formattedRemaining + "," + lastThree;
+  };
+
+  // Parse formatted number back to integer
+  const parseFormattedNumber = (value: string) => {
+    return parseInt(value.replace(/,/g, "")) || 0;
+  };
+
+  // Format number for display (Indian numbering system)
+  const formatNumberForDisplay = (num: number) => {
+    const str = num.toString();
+    if (str.length <= 3) {
+      return str;
+    }
+    const lastThree = str.slice(-3);
+    const remaining = str.slice(0, -3);
+    const formattedRemaining = remaining.replace(/\B(?=(\d{2})+(?!\d))/g, ",");
+    return formattedRemaining + "," + lastThree;
+  };
+
   const handleBalanceAdjustment = async () => {
     if (!user || !amount) {
       toast.error(t("validation.amountRequired"));
       return;
     }
 
-    const amountValue = parseInt(amount);
+    const amountValue = parseFormattedNumber(amount);
     if (isNaN(amountValue) || amountValue <= 0) {
       toast.error(t("validation.amountInvalid"));
       return;
@@ -206,7 +237,7 @@ export function BalanceAdjustmentDialog({
                 <Coins className="h-6 w-6" />
               </div>
               <span className="font-mono">
-                {user.kor_coins.toLocaleString()} KOR Coins
+                {formatNumberForDisplay(user.kor_coins)} KOR Coins
               </span>
             </div>
           </div>
@@ -222,12 +253,14 @@ export function BalanceAdjustmentDialog({
               <Coins className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 id="amount"
-                type="number"
+                type="text"
                 placeholder={t("amountPlaceholder", {
                   action: action === "add" ? "add" : "subtract",
                 })}
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) =>
+                  setAmount(formatNumberWithCommas(e.target.value))
+                }
                 className="pl-10 h-12 text-lg font-mono rounded-none"
               />
             </div>

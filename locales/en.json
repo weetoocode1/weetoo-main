@@ -1849,7 +1849,9 @@
           "allCategories": "All Categories",
           "allStatus": "All Status",
           "read": "Read",
-          "unread": "Unread"
+          "unread": "Unread",
+          "deposit": "Deposit",
+          "withdrawal": "Withdrawal"
         },
         "columns": {
           "notification": "Notification",
@@ -1893,6 +1895,35 @@
           "deposit_request_created": "New Deposit Request",
           "withdrawal_status_updated": "Withdrawal Status Updated",
           "deposit_status_updated": "Deposit Status Updated"
+        },
+        "typeValues": {
+          "success": "Success",
+          "info": "Info"
+        },
+        "categoryValues": {
+          "deposit": "Deposit",
+          "withdrawal": "Withdrawal",
+          "other": "Other"
+        },
+        "details": {
+          "title": "Notification Details",
+          "id": "ID",
+          "type": "Type",
+          "audience": "Audience",
+          "status": "Status",
+          "created": "Created",
+          "titleLabel": "Title",
+          "body": "Body",
+          "metadata": "Metadata",
+          "basicInfo": "Basic Information",
+          "timingInfo": "Timing Information",
+          "content": "Notification Content",
+          "transactionInfo": "Transaction Information",
+          "user": "User",
+          "amount": "Amount",
+          "transactionStatus": "Transaction Status",
+          "method": "Method",
+          "category": "Category"
         }
       }
     },

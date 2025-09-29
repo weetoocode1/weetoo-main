@@ -58,6 +58,18 @@ export function KorCoinsTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
+  // Format number for display (Indian numbering system)
+  const formatNumberForDisplay = (num: number) => {
+    const str = num.toString();
+    if (str.length <= 3) {
+      return str;
+    }
+    const lastThree = str.slice(-3);
+    const remaining = str.slice(0, -3);
+    const formattedRemaining = remaining.replace(/\B(?=(\d{2})+(?!\d))/g, ",");
+    return formattedRemaining + "," + lastThree;
+  };
+
   // Dialog state
   const [selectedUser, setSelectedUser] = useState<UserKorCoins | null>(null);
   const [adjustmentDialog, setAdjustmentDialog] = useState(false);
@@ -434,7 +446,7 @@ export function KorCoinsTable() {
                               }`}
                             />
                             <span className="font-mono font-medium text-sm">
-                              {user.kor_coins.toLocaleString()}
+                              {formatNumberForDisplay(user.kor_coins)}
                             </span>
                           </div>
                         </td>
@@ -605,7 +617,7 @@ export function KorCoinsTable() {
                           }`}
                         />
                         <span className="font-mono font-medium">
-                          {user.kor_coins.toLocaleString()}
+                          {formatNumberForDisplay(user.kor_coins)}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">

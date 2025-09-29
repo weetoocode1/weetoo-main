@@ -13,9 +13,20 @@ export default function AuthCallback() {
     "loading"
   );
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [translationsReady, setTranslationsReady] = useState(false);
+
+  // Wait for translations to be ready
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setTranslationsReady(true);
+    }, 100); // Small delay to ensure translations are loaded
+    return () => clearTimeout(timer);
+  }, []);
 
   // Memoized session check function
   const checkSession = useCallback(() => {
+    if (!translationsReady) return; // Don't proceed until translations are ready
+
     const supabase = createClient();
     supabase.auth.getUser().then(({ data, error }) => {
       if (error || !data.user) {
@@ -34,9 +45,9 @@ export default function AuthCallback() {
         }, 1500);
       }
     });
-  }, [router]);
+  }, [router, t, translationsReady]);
 
-  // Only check session once on mount
+  // Only check session once on mount and when translations are ready
   useEffect(() => {
     checkSession();
   }, [checkSession]);
