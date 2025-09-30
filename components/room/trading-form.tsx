@@ -732,9 +732,15 @@ export function TradingForm({
                 orderType === "market"
                   ? Number(currentPrice) || 0
                   : Number(orderPrice) || 0;
-              const quantity = Number(orderQuantity) || 0;
-              const orderAmount = (quantity * price) / leverage;
-              positionSizeSnapshotRef.current = orderAmount;
+              const qtyNum = Number(orderQuantity);
+              const amtNum = Number(orderAmount);
+              if (price > 0 && Number.isFinite(qtyNum) && qtyNum > 0) {
+                positionSizeSnapshotRef.current = (qtyNum * price) / leverage;
+              } else if (Number.isFinite(amtNum) && amtNum > 0) {
+                positionSizeSnapshotRef.current = amtNum;
+              } else {
+                positionSizeSnapshotRef.current = null; // nothing to recompute
+              }
             }}
             className="flex items-center justify-between gap-1 py-1.5 px-3 w-full text-xs font-medium"
             disabled={!isHost}
@@ -1247,9 +1253,39 @@ export function TradingForm({
                 <Button
                   onClick={() => {
                     setLeverage(pendingLeverage);
+                    // Only trigger recompute if there is existing qty or amount
+                    const hasInputs =
+                      (Number(orderAmount) || 0) > 0 ||
+                      (Number(orderQuantity) || 0) > 0;
                     // If advisor applied quantity, do not overwrite it on confirm
-                    setShouldUpdateQuantityAfterLeverage(!advisorApplied);
+                    setShouldUpdateQuantityAfterLeverage(
+                      !advisorApplied && hasInputs
+                    );
                     setAdvisorApplied(false);
+
+                    // If user hasn't entered anything yet, prefill defaults from virtual balance
+                    if (!hasInputs) {
+                      const price =
+                        orderType === "market"
+                          ? Number(currentPrice) || 0
+                          : Number(orderPrice) || 0;
+                      if (
+                        price > 0 &&
+                        pendingLeverage > 0 &&
+                        safeVirtualBalance > 0
+                      ) {
+                        const defaultPercent = 5; // use 5% of available balance as default
+                        const amt = (safeVirtualBalance * defaultPercent) / 100;
+                        const rawQty = (amt * pendingLeverage) / price;
+                        const qtyRounded = roundToStep(rawQty, qtyStep);
+                        const qtyClamped = clamp(qtyRounded, minQty, maxQty);
+                        setOrderAmount(amt.toFixed(2));
+                        setOrderQuantity(qtyClamped.toFixed(6));
+                        if (orderType === "limit") {
+                          setOrderPrice(price.toFixed(2));
+                        }
+                      }
+                    }
                     setShowLeverageModal(false);
                   }}
                   disabled={!isHost}
