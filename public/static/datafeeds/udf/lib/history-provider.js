@@ -33,7 +33,7 @@ export class HistoryProvider {
             catch (e) {
                 if (e instanceof Error || typeof e === 'string') {
                     const reasonString = getErrorMessage(e);
-                    // tslint:disable-next-line:no-console
+                    // eslint-disable-next-line no-console
                     console.warn(`HistoryProvider: getBars() failed, error=${reasonString}`);
                     reject(reasonString);
                 }
@@ -86,7 +86,7 @@ export class HistoryProvider {
              */
             if (e instanceof Error || typeof e === 'string') {
                 const reasonString = getErrorMessage(e);
-                // tslint:disable-next-line:no-console
+                // eslint-disable-next-line no-console
                 console.warn(`HistoryProvider: getBars() warning during followup request, error=${reasonString}`);
             }
         }

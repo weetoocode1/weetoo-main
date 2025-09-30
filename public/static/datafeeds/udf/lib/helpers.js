@@ -5,7 +5,7 @@ const isLoggingEnabled = false;
 export function logMessage(message) {
     if (isLoggingEnabled) {
         const now = new Date();
-        // tslint:disable-next-line:no-console
+        // eslint-disable-next-line no-console
         console.log(`${now.toLocaleTimeString()}.${now.getMilliseconds()}> ${message}`);
     }
 }

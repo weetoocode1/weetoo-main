@@ -3,11 +3,13 @@
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,10 +17,17 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
 import { VIRTUAL_BALANCE_KEY } from "@/hooks/use-virtual-balance";
 import { createClient } from "@/lib/supabase/client";
-import { MinusIcon, PlusIcon } from "lucide-react";
+import { MinusIcon, PlusIcon, AlertTriangle } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import useSWR, { mutate } from "swr";
+import { usePositions } from "@/hooks/use-positions";
 
 export function TradingForm({
   currentPrice,
@@ -108,7 +117,13 @@ export function TradingForm({
 
   // When user changes quantity, update order amount
   const handleQuantityChange = (value: string) => {
-    setOrderQuantity(value);
+    // round & clamp to symbol precision
+    const raw = Number(value);
+    const rounded = Number.isFinite(raw) ? roundToStep(raw, qtyStep) : 0;
+    const clamped = Number.isFinite(rounded)
+      ? clamp(rounded, minQty, maxQty)
+      : 0;
+    setOrderQuantity(clamped ? clamped.toFixed(6) : "");
     const price =
       orderType === "market"
         ? Number(currentPrice) || 0
@@ -117,7 +132,7 @@ export function TradingForm({
       setOrderAmount("");
       return;
     }
-    const amount = ((Number(value) * price) / leverage).toFixed(2);
+    const amount = ((clamped * price) / leverage).toFixed(2);
     setOrderAmount(amount);
   };
 
@@ -134,16 +149,249 @@ export function TradingForm({
 
   // Add state for order amount (USDT)
   const [orderAmount, setOrderAmount] = useState("");
+  // Track if advisor explicitly set quantity to avoid auto-recalc after leverage confirm
+  const [advisorApplied, setAdvisorApplied] = useState(false);
 
-  // Add state for order confirmation dialog
-  const [showOrderDialog, setShowOrderDialog] = useState(false);
+  // Add state for order side
   const [orderSide, setOrderSide] = useState<"long" | "short">("long");
 
-  // Add a function to open the dialog with the correct side
-  const handleOpenOrderDialog = (side: "long" | "short") => {
-    setOrderSide(side);
-    setShowOrderDialog(true);
+  // Margin level indicator (for confirm dialogs)
+  const computeMarginLevel = () => {
+    const entry = Number(price);
+    const liq = orderSide === "long" ? liqPriceLong : liqPriceShort;
+    if (!Number.isFinite(entry) || !Number.isFinite(liq) || entry === liq) {
+      return null;
+    }
+    let ratio = 0;
+    if (orderSide === "long") {
+      const denom = entry - liq;
+      if (denom <= 0) return null;
+      ratio = (entry - liq) / denom;
+    } else {
+      const denom = liq - entry;
+      if (denom <= 0) return null;
+      ratio = (liq - entry) / denom;
+    }
+    ratio = Math.max(0, Math.min(1, ratio));
+    const percent = (ratio * 100).toFixed(0);
+    if (ratio >= 0.7) return { key: "safe" as const, percent };
+    if (ratio >= 0.3) return { key: "caution" as const, percent };
+    return { key: "atRisk" as const, percent };
   };
+
+  // TP/SL on entry (optional)
+  const [tpOnEntryPercent, setTpOnEntryPercent] = useState("");
+  const [slOnEntryPercent, setSlOnEntryPercent] = useState("");
+
+  // ===== TP/SL on entry safeguards =====
+  // const MIN_LIQ_DISTANCE_PCT = 0.5; // minimum safe distance from liquidation in % of (entry-liq)
+  // const slTooCloseToLiq = (() => {
+  //   const entry = Number(price);
+  //   const liq = orderSide === "long" ? liqPriceLong : liqPriceShort;
+  //   const slPct = Number(slOnEntryPercent);
+  //   if (
+  //     !slPct ||
+  //     !Number.isFinite(entry) ||
+  //     !Number.isFinite(liq) ||
+  //     entry === liq
+  //   )
+  //     return false;
+  //   if (orderSide === "long") {
+  //     const slPrice = entry * (1 - slPct / 100);
+  //     const denom = entry - liq;
+  //     if (denom <= 0) return false;
+  //     const distancePct = ((slPrice - liq) / denom) * 100;
+  //     return distancePct < MIN_LIQ_DISTANCE_PCT;
+  //   } else {
+  //     const slPrice = entry * (1 + slPct / 100);
+  //     const denom = liq - entry;
+  //     if (denom <= 0) return false;
+  //     const distancePct = ((liq - slPrice) / denom) * 100;
+  //     return distancePct < MIN_LIQ_DISTANCE_PCT;
+  //   }
+  // })();
+
+  // Helper function to format numbers
+  const format2 = (value: unknown) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n.toFixed(2) : "-";
+  };
+
+  // ===== Symbol precision (qty step / price tick) =====
+  type SymbolMeta = {
+    qtyStep: number;
+    minQty: number;
+    maxQty: number;
+    priceTick: number;
+  };
+  const getSymbolMeta = (sym: string): SymbolMeta => {
+    const s = (sym || "").toUpperCase();
+    // Basic defaults; refine per market as needed
+    if (s.includes("BTC"))
+      return {
+        qtyStep: 0.001,
+        minQty: 0.001,
+        maxQty: 1_000_000,
+        priceTick: 0.01,
+      };
+    if (s.includes("ETH"))
+      return {
+        qtyStep: 0.01,
+        minQty: 0.01,
+        maxQty: 1_000_000,
+        priceTick: 0.01,
+      };
+    return {
+      qtyStep: 0.001,
+      minQty: 0.001,
+      maxQty: 1_000_000,
+      priceTick: 0.01,
+    };
+  };
+  const { qtyStep, minQty, maxQty, priceTick } = getSymbolMeta(symbol);
+  const roundToStep = (value: number, step: number) =>
+    step > 0 ? Math.round(value / step) * step : value;
+  const clamp = (v: number, min: number, max: number) =>
+    Math.max(min, Math.min(max, v));
+
+  // ===== Position Size Advisor =====
+  const [riskPercent, setRiskPercent] = useState<number>(1.0); // default 1%
+  const [advisorSlPercent, setAdvisorSlPercent] = useState<number>(1.0); // default 1%
+  const symbolQtyStep = 0.000001; // basic step, can be refined per symbol
+
+  const advisor = (() => {
+    const entry = Number(price);
+    const riskPct = Number(riskPercent);
+    const slPct = Number(advisorSlPercent || slOnEntryPercent || 0);
+    const balance = safeVirtualBalance;
+    const effectiveLeverage = showLeverageModal ? pendingLeverage : leverage;
+    if (!entry || !riskPct || !balance || !effectiveLeverage) {
+      return null;
+    }
+    const stopPrice =
+      orderSide === "long"
+        ? roundToStep(entry * (1 - (slPct || 0) / 100), priceTick)
+        : roundToStep(entry * (1 + (slPct || 0) / 100), priceTick);
+    if (!Number.isFinite(stopPrice) || stopPrice <= 0 || stopPrice === entry)
+      return null;
+    const lossPerUnit = Math.abs(entry - stopPrice);
+    if (lossPerUnit <= 0) return null;
+    const riskBudget = balance * (riskPct / 100);
+    const rawQty = riskBudget / lossPerUnit;
+    const capacityQty = (balance * effectiveLeverage) / entry; // max notional / entry
+    const suggestedQty = Math.max(0, Math.min(rawQty, capacityQty));
+    const roundedQty = Math.floor(suggestedQty / symbolQtyStep) * symbolQtyStep;
+    const requiredMargin = (entry * roundedQty) / effectiveLeverage;
+    const estLoss = lossPerUnit * roundedQty;
+    const roeAtStop = (-estLoss / requiredMargin) * 100 || 0;
+    const capped = suggestedQty < rawQty - 1e-9; // margin capped
+    return {
+      stopPrice,
+      roundedQty,
+      requiredMargin,
+      estLoss,
+      roeAtStop,
+      capped,
+    };
+  })();
+
+  // ===== Positions context for exposure/warnings =====
+  type SimplePosition = { symbol: string; size: number };
+  const positionsCtx = usePositions(roomId) as unknown as {
+    openPositions?: unknown;
+  };
+  const toSimplePositions = (input: unknown): SimplePosition[] => {
+    if (Array.isArray(input)) {
+      return input.map((p) => {
+        const obj = p as Record<string, unknown>;
+        const sym = typeof obj.symbol === "string" ? obj.symbol : "";
+        const sizeVal = Number(obj.size);
+        return { symbol: sym, size: Number.isFinite(sizeVal) ? sizeVal : 0 };
+      });
+    }
+    return [];
+  };
+  const openPositions: SimplePosition[] = toSimplePositions(
+    positionsCtx?.openPositions
+  );
+  const baseFromSymbol = (sym: string) => sym.replace(/(USDT|USD|USDC)$/i, "");
+  const currentBase = baseFromSymbol(symbol || "");
+  const correlatedCount = openPositions.filter(
+    (p) => baseFromSymbol(p.symbol || "") === currentBase
+  ).length;
+  const totalExposure = openPositions.reduce(
+    (sum: number, p) => sum + Number(p.size || 0),
+    0
+  );
+  const afterExposure = totalExposure + (positionSize || 0);
+  const exposurePct =
+    safeVirtualBalance > 0 ? (totalExposure / safeVirtualBalance) * 100 : 0;
+  const afterExposurePct =
+    safeVirtualBalance > 0 ? (afterExposure / safeVirtualBalance) * 100 : 0;
+
+  const conservative = (() => {
+    // const saved = riskPercent;
+    const savedSl = advisorSlPercent;
+    const tmpRisk = 0.5;
+    const tmpSl = savedSl || 1.0;
+    const entry = Number(price);
+    const stop =
+      orderSide === "long"
+        ? entry * (1 - tmpSl / 100)
+        : entry * (1 + tmpSl / 100);
+    const lossPerUnit = Math.abs(entry - stop);
+    if (!entry || !lossPerUnit) return 0;
+    const raw = (safeVirtualBalance * (tmpRisk / 100)) / lossPerUnit;
+    const cap = (safeVirtualBalance * leverage) / entry;
+    const qty = Math.min(raw, cap);
+    const rounded = Math.floor(qty / qtyStep) * qtyStep;
+    return rounded;
+  })();
+  const moderate = (() => {
+    const entry = Number(price);
+    const tmpSl = advisorSlPercent || 1.0;
+    const stop =
+      orderSide === "long"
+        ? entry * (1 - tmpSl / 100)
+        : entry * (1 + tmpSl / 100);
+    const lossPerUnit = Math.abs(entry - stop);
+    if (!entry || !lossPerUnit) return 0;
+    const raw = (safeVirtualBalance * (1 / 100)) / lossPerUnit;
+    const cap = (safeVirtualBalance * leverage) / entry;
+    const qty = Math.min(raw, cap);
+    const rounded = Math.floor(qty / qtyStep) * qtyStep;
+    return rounded;
+  })();
+  const aggressive = (() => {
+    const entry = Number(price);
+    const tmpSl = advisorSlPercent || 1.0;
+    const stop =
+      orderSide === "long"
+        ? entry * (1 - tmpSl / 100)
+        : entry * (1 + tmpSl / 100);
+    const lossPerUnit = Math.abs(entry - stop);
+    if (!entry || !lossPerUnit) return 0;
+    const raw = (safeVirtualBalance * (2 / 100)) / lossPerUnit;
+    const cap = (safeVirtualBalance * leverage) / entry;
+    const qty = Math.min(raw, cap);
+    const rounded = Math.floor(qty / qtyStep) * qtyStep;
+    return rounded;
+  })();
+  const maximumSafe = (() => {
+    const entry = Number(price);
+    const tmpSl = advisorSlPercent || 1.0;
+    const stop =
+      orderSide === "long"
+        ? entry * (1 - tmpSl / 100)
+        : entry * (1 + tmpSl / 100);
+    const lossPerUnit = Math.abs(entry - stop);
+    if (!entry || !lossPerUnit) return 0;
+    const raw = (safeVirtualBalance * (3 / 100)) / lossPerUnit;
+    const cap = (safeVirtualBalance * leverage) / entry;
+    const qty = Math.min(raw, cap);
+    const rounded = Math.floor(qty / qtyStep) * qtyStep;
+    return rounded;
+  })();
 
   // Get current user id on mount
   useEffect(() => {
@@ -198,13 +446,75 @@ export function TradingForm({
       if (rpcError) {
         setError(rpcError.message);
       } else {
-        setShowOrderDialog(false);
+        // If TP/SL on entry provided, update latest open position for this user/room/symbol
+        const hasTpSlOnEntry =
+          (!!tpOnEntryPercent && Number(tpOnEntryPercent) > 0) ||
+          (!!slOnEntryPercent && Number(slOnEntryPercent) > 0);
+        if (hasTpSlOnEntry) {
+          const { data: latestPos } = await supabase
+            .from("trading_room_positions")
+            .select("id")
+            .eq("room_id", roomId)
+            .eq("user_id", currentUserId)
+            .eq("symbol", symbol)
+            .is("closed_at", null)
+            .order("opened_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (latestPos?.id) {
+            await supabase
+              .from("trading_room_positions")
+              .update({
+                tp_percent: tpOnEntryPercent ? Number(tpOnEntryPercent) : null,
+                sl_percent: slOnEntryPercent ? Number(slOnEntryPercent) : null,
+                tp_sl_active: true,
+              })
+              .eq("id", latestPos.id);
+
+            // Optimistically update local cache so TP/SL shows immediately
+            const openKey = ["open-positions", roomId] as const;
+            mutate(
+              openKey,
+              (prev: unknown) => {
+                if (!Array.isArray(prev)) return prev;
+                return prev.map((p) => {
+                  const rec = p as Record<string, unknown>;
+                  const id = (rec as { id?: string }).id;
+                  if (id === latestPos.id) {
+                    const updates: Record<string, unknown> = {
+                      tp_percent: tpOnEntryPercent
+                        ? Number(tpOnEntryPercent)
+                        : null,
+                      sl_percent: slOnEntryPercent
+                        ? Number(slOnEntryPercent)
+                        : null,
+                      tp_sl_active:
+                        (!!tpOnEntryPercent && Number(tpOnEntryPercent) > 0) ||
+                        (!!slOnEntryPercent && Number(slOnEntryPercent) > 0),
+                    };
+                    return { ...rec, ...updates } as typeof p;
+                  }
+                  return p;
+                });
+              },
+              false
+            );
+          }
+        }
+
+        // Clear form and TP/SL inputs
         setOrderQuantity("");
         setOrderAmount("");
+        setTpOnEntryPercent("");
+        setSlOnEntryPercent("");
+
         // Force SWR to re-fetch positions instantly
         mutate(["open-positions", roomId]);
         mutate(["closed-positions", roomId]);
         // Force SWR to re-fetch virtual balance instantly
+        console.log(
+          `Trading form: Invalidating balance cache for room ${roomId}`
+        );
         mutate(VIRTUAL_BALANCE_KEY(roomId));
       }
     } catch (e: unknown) {
@@ -289,7 +599,7 @@ export function TradingForm({
             <span className="text-muted-foreground">▼</span>
           </Button>
           <Dialog open={showMarginModal} onOpenChange={setShowMarginModal}>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="!sm:max-w-lg">
               <DialogHeader>
                 <DialogTitle>{t("margin.chooseTitle")}</DialogTitle>
                 <DialogDescription>{t("margin.chooseDesc")}</DialogDescription>
@@ -388,13 +698,13 @@ export function TradingForm({
             {leverage}x <span className="text-muted-foreground">▼</span>
           </Button>
           <Dialog open={showLeverageModal} onOpenChange={setShowLeverageModal}>
-            <DialogContent className="sm:max-w-lg">
-              <DialogHeader>
+            <DialogContent className="!max-w-[700px] !sm:!max-w-[700px] !w-[700px] max-h-[80vh] flex flex-col p-1">
+              <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
                 <DialogTitle>{t("leverage.title")}</DialogTitle>
                 <DialogDescription>{t("leverage.desc")}</DialogDescription>
               </DialogHeader>
-              <div className="flex flex-col gap-4 py-4">
-                <div className="flex items-center gap-2 mb-4">
+              <div className="flex-1 overflow-y-auto scrollbar-none px-6 pb-4">
+                <div className="flex items-center gap-2 mb-3">
                   <Button
                     variant="outline"
                     size="icon"
@@ -452,17 +762,437 @@ export function TradingForm({
                     )}
                   </div>
                 </div>
+                {/* Position Size Advisor */}
+                <div className="px-4 mt-4">
+                  <div className="rounded-md border border-border bg-muted/50 px-4 py-4 mb-3">
+                    <Accordion
+                      type="single"
+                      defaultValue="advisorInputs"
+                      className="w-full space-y-2 "
+                    >
+                      {/* 1a) Advisor Inputs & Metrics */}
+                      <AccordionItem
+                        value="advisorInputs"
+                        className="border border-border rounded-md px-2"
+                      >
+                        <AccordionTrigger className="text-sm">
+                          {t("positionSize.title", {
+                            default: "Position Size Advisor",
+                          })}{" "}
+                          —{" "}
+                          {t("advisor.fields", { default: "Inputs & Metrics" })}
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="grid md:grid-cols-2 gap-4 px-2 pb-2">
+                            {/* Inputs (left) */}
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between gap-3">
+                                <Label className="text-xs text-muted-foreground">
+                                  {t("positionSize.riskPercent", {
+                                    default: "Risk (%) of balance",
+                                  })}
+                                </Label>
+                                <div className="flex items-center gap-2 w-44">
+                                  <Input
+                                    type="number"
+                                    inputMode="decimal"
+                                    step="0.1"
+                                    min="0.1"
+                                    max="5"
+                                    value={riskPercent}
+                                    onChange={(e) =>
+                                      setRiskPercent(Number(e.target.value))
+                                    }
+                                    className="h-9 text-sm text-right"
+                                  />
+                                  <span className="text-xs text-muted-foreground">
+                                    %
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between gap-3">
+                                <Label className="text-xs text-muted-foreground">
+                                  {t("tpsl.stopLoss", {
+                                    default: "Stop Loss (%)",
+                                  })}
+                                </Label>
+                                <div className="flex items-center gap-2 w-44">
+                                  <Input
+                                    type="number"
+                                    inputMode="decimal"
+                                    step="0.1"
+                                    min="0"
+                                    value={advisorSlPercent}
+                                    onChange={(e) =>
+                                      setAdvisorSlPercent(
+                                        Number(e.target.value)
+                                      )
+                                    }
+                                    className="h-9 text-sm text-right"
+                                  />
+                                  <span className="text-xs text-muted-foreground">
+                                    %
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Metrics (right) */}
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <div className="text-xs text-muted-foreground">
+                                  {t("positionSize.stopPrice", {
+                                    default: "Stop Price",
+                                  })}
+                                </div>
+                                <div className="text-sm font-semibold">
+                                  {advisor ? format2(advisor.stopPrice) : "-"}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-xs text-muted-foreground">
+                                  {t("positionSize.suggestedQty", {
+                                    default: "Suggested Qty",
+                                  })}
+                                </div>
+                                <div className="text-sm font-semibold">
+                                  {advisor
+                                    ? advisor.roundedQty.toFixed(6)
+                                    : "-"}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-xs text-muted-foreground">
+                                  {t("positionSize.requiredMargin", {
+                                    default: "Required Margin (USDT)",
+                                  })}
+                                </div>
+                                <div className="text-sm font-semibold">
+                                  {advisor
+                                    ? format2(advisor.requiredMargin)
+                                    : "-"}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-xs text-muted-foreground">
+                                  {t("positionSize.estLoss", {
+                                    default: "Estimated Loss (USDT)",
+                                  })}
+                                </div>
+                                <div className="text-sm font-semibold text-red-500">
+                                  {advisor
+                                    ? `-${format2(advisor.estLoss)}`
+                                    : "-"}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-xs text-muted-foreground">
+                                  {t("positionSize.roeAtStop", {
+                                    default: "ROE at SL",
+                                  })}
+                                </div>
+                                <div className="text-sm font-semibold">
+                                  {advisor
+                                    ? `${advisor.roeAtStop.toFixed(2)}%`
+                                    : "-"}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      {/* 1b) Risk Scenarios & Apply */}
+                      <AccordionItem
+                        value="advisorScenarios"
+                        className="border border-border rounded-md px-2"
+                      >
+                        <AccordionTrigger className="text-sm">
+                          {t("positionSize.title", {
+                            default: "Position Size Advisor",
+                          })}{" "}
+                          — {t("advisor.results", { default: "Scenarios" })}
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="space-y-3 px-2 pb-2">
+                            <div className="grid gap-1 text-xs">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  {t("positionSize.conservative", {
+                                    default: "Conservative (0.5%)",
+                                  })}
+                                </span>
+                                <span className="font-medium">
+                                  {conservative ? conservative.toFixed(6) : "-"}{" "}
+                                  {currentBase}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  {t("positionSize.moderate", {
+                                    default: "Moderate (1%)",
+                                  })}
+                                </span>
+                                <span className="font-medium">
+                                  {moderate ? moderate.toFixed(6) : "-"}{" "}
+                                  {currentBase}{" "}
+                                  {riskPercent === 1 ? "\u2190" : ""}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  {t("positionSize.aggressive", {
+                                    default: "Aggressive (2%)",
+                                  })}
+                                </span>
+                                <span className="font-medium">
+                                  {aggressive ? aggressive.toFixed(6) : "-"}{" "}
+                                  {currentBase}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  {t("positionSize.maximumSafe", {
+                                    default: "Maximum Safe (3%)",
+                                  })}
+                                </span>
+                                <span className="font-medium">
+                                  {maximumSafe ? maximumSafe.toFixed(6) : "-"}{" "}
+                                  {currentBase}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex justify-end">
+                              <Button
+                                size="sm"
+                                disabled={!advisor || advisor.roundedQty <= 0}
+                                onClick={() => {
+                                  if (!advisor) return;
+                                  setOrderQuantity(
+                                    advisor.roundedQty.toFixed(6)
+                                  );
+                                  const updatedAmount = (
+                                    (advisor.roundedQty * price) /
+                                    leverage
+                                  ).toFixed(2);
+                                  setOrderAmount(updatedAmount);
+                                  setAdvisorApplied(true);
+                                }}
+                              >
+                                {t("positionSize.apply", { default: "Apply" })}
+                              </Button>
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      {/* 2) Account Balance Context */}
+                      <AccordionItem
+                        value="account"
+                        className="border border-border rounded-md px-2"
+                      >
+                        <AccordionTrigger className="text-sm">
+                          {t("positionSize.accountBalance", {
+                            default: "Account Balance",
+                          })}{" "}
+                          /{" "}
+                          {t("positionSize.availableBalance", {
+                            default: "Available Balance",
+                          })}
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="grid grid-cols-2 gap-3 text-xs px-2 pb-2">
+                            <div className="text-muted-foreground">
+                              {t("positionSize.accountBalance", {
+                                default: "Account Balance",
+                              })}
+                            </div>
+                            <div className="text-right font-medium">
+                              ${format2(safeVirtualBalance)}
+                            </div>
+                            <div className="text-muted-foreground">
+                              {t("positionSize.availableBalance", {
+                                default: "Available Balance",
+                              })}
+                            </div>
+                            <div className="text-right font-medium">
+                              ${format2(safeVirtualBalance)}
+                            </div>
+                            <div className="text-muted-foreground">
+                              {t("positionSize.openPositions", {
+                                default: "Current Open Positions",
+                              })}
+                            </div>
+                            <div className="text-right font-medium">
+                              {openPositions.length}
+                            </div>
+                            <div className="text-muted-foreground">
+                              {t("positionSize.totalExposure", {
+                                default: "Total Exposure",
+                              })}
+                            </div>
+                            <div className="text-right font-medium">
+                              ${format2(totalExposure)} ({format2(exposurePct)}
+                              %)
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      {/* 3) Risk Validation & Warnings */}
+                      <AccordionItem
+                        value="warnings"
+                        className="border border-border rounded-md px-2"
+                      >
+                        <AccordionTrigger className="text-sm">
+                          {t("marginLevel.title", {
+                            default: "Risk Validation & Warnings",
+                          })}
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="space-y-2 px-2 pb-2">
+                            {afterExposurePct > 300 && (
+                              <div className="flex items-center gap-2 text-amber-500 text-xs">
+                                <AlertTriangle className="h-3.5 w-3.5" />
+                                {t("positionSize.warnExposure", {
+                                  percent: afterExposurePct.toFixed(0),
+                                  default: `Total account exposure will be ${afterExposurePct.toFixed(
+                                    0
+                                  )}% after this position`,
+                                })}
+                              </div>
+                            )}
+                            {advisor &&
+                              advisor.requiredMargin >
+                                safeVirtualBalance * 0.45 && (
+                                <div className="flex items-center gap-2 text-amber-500 text-xs">
+                                  <AlertTriangle className="h-3.5 w-3.5" />
+                                  {t("positionSize.warnBalanceUse", {
+                                    percent: (
+                                      (advisor.requiredMargin /
+                                        safeVirtualBalance) *
+                                      100
+                                    ).toFixed(0),
+                                    default: `This position uses ${(
+                                      (advisor.requiredMargin /
+                                        safeVirtualBalance) *
+                                      100
+                                    ).toFixed(0)}% of available balance`,
+                                  })}
+                                </div>
+                              )}
+                            {correlatedCount >= 3 && (
+                              <div className="flex items-center gap-2 text-amber-500 text-xs">
+                                <AlertTriangle className="h-3.5 w-3.5" />
+                                {t("positionSize.warnCorrelated", {
+                                  count: correlatedCount,
+                                  base: currentBase,
+                                  default: `${correlatedCount} correlated positions already open (${currentBase})`,
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      {/* 4) Liquidation Analysis */}
+                      <AccordionItem
+                        value="liquidation"
+                        className="border border-border rounded-md px-2"
+                      >
+                        <AccordionTrigger className="text-sm">
+                          {t("positionSize.liqPrice", {
+                            default: "Liquidation Analysis",
+                          })}
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          {(() => {
+                            const entry = Number(price);
+                            if (!entry || !leverage) return null;
+                            const MMR = MAINTENANCE_MARGIN_RATE;
+                            const liqPrice =
+                              orderSide === "long"
+                                ? entry * (1 - leverage * (1 - MMR))
+                                : entry * (1 + leverage * (1 - MMR));
+                            const distancePct =
+                              ((orderSide === "long"
+                                ? entry - liqPrice
+                                : liqPrice - entry) /
+                                entry) *
+                              100;
+                            const stop = advisor
+                              ? advisor.stopPrice
+                              : orderSide === "long"
+                              ? entry * (1 - (advisorSlPercent || 1) / 100)
+                              : entry * (1 + (advisorSlPercent || 1) / 100);
+                            const buffer = Math.max(
+                              0,
+                              Math.abs(stop - liqPrice)
+                            );
+                            const tooClose = distancePct < 1;
+                            return (
+                              <div className="grid grid-cols-2 gap-3 text-xs px-2 pb-2">
+                                <div className="text-muted-foreground">
+                                  {t("positionSize.liqPrice", {
+                                    default: "Liquidation Price",
+                                  })}
+                                </div>
+                                <div className="text-right font-medium">
+                                  ${format2(liqPrice)}
+                                </div>
+                                <div className="text-muted-foreground">
+                                  {t("positionSize.distanceToLiq", {
+                                    default: "Distance to Liquidation",
+                                  })}
+                                </div>
+                                <div
+                                  className={
+                                    "text-right font-medium " +
+                                    (tooClose ? "text-amber-600" : "")
+                                  }
+                                >
+                                  {distancePct.toFixed(2)}%{" "}
+                                  {tooClose
+                                    ? t("positionSize.tooClose", {
+                                        default: "TOO CLOSE!",
+                                      })
+                                    : ""}
+                                </div>
+                                <div className="text-muted-foreground">
+                                  {t("positionSize.bufferFromSl", {
+                                    default: "Buffer from SL to Liq",
+                                  })}
+                                </div>
+                                <div className="text-right font-medium">
+                                  ${format2(buffer)}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      {/* 5) Notices */}
+                      <AccordionItem
+                        value="notices"
+                        className="border border-border rounded-md px-2"
+                      >
+                        <AccordionTrigger className="text-sm">
+                          {t("leverage.title", { default: "Notices" })}
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="text-muted-foreground text-sm space-y-2 px-2 pb-2">
+                            <p className="mb-0">{t("leverage.notice1")}</p>
+                            <p className="mb-0">{t("leverage.notice2")}</p>
+                            <p className="mb-0">{t("leverage.notice3")}</p>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </div>
+                </div>
               </div>
-              <p className="text-muted-foreground text-sm mb-4">
-                {t("leverage.notice1")}
-              </p>
-              <p className="text-muted-foreground text-sm mb-6">
-                {t("leverage.notice2")}
-              </p>
-              <p className="text-muted-foreground text-sm mb-6">
-                {t("leverage.notice3")}
-              </p>
-              <DialogFooter>
+              <DialogFooter className="px-6 py-4 border-t mt-0 shrink-0">
                 <Button
                   variant="secondary"
                   onClick={() => setShowLeverageModal(false)}
@@ -473,7 +1203,9 @@ export function TradingForm({
                 <Button
                   onClick={() => {
                     setLeverage(pendingLeverage);
-                    setShouldUpdateQuantityAfterLeverage(true);
+                    // If advisor applied quantity, do not overwrite it on confirm
+                    setShouldUpdateQuantityAfterLeverage(!advisorApplied);
+                    setAdvisorApplied(false);
                     setShowLeverageModal(false);
                   }}
                   disabled={!isHost}
@@ -584,8 +1316,11 @@ export function TradingForm({
                     setOrderQuantity("");
                     return;
                   }
-                  const quantity = (Number(e.target.value) * leverage) / price;
-                  setOrderQuantity(quantity.toFixed(6));
+                  // derive quantity, then round/clamp
+                  const qtyRaw = (Number(e.target.value) * leverage) / price;
+                  const qtyRounded = roundToStep(qtyRaw, qtyStep);
+                  const qtyClamped = clamp(qtyRounded, minQty, maxQty);
+                  setOrderQuantity(qtyClamped.toFixed(6));
                 }}
                 step="0.0001"
                 readOnly={!isHost}
@@ -665,150 +1400,409 @@ export function TradingForm({
       {/* Action Buttons - Fixed at bottom */}
       <div className="sticky bottom-0 left-0 right-0 bg-background pt-2 mt-auto border-t border-border">
         <div className="flex gap-2">
-          <Button
-            className="flex-1 bg-green-600 hover:bg-green-700 text-white h-9 text-xs font-medium"
-            onClick={() => handleOpenOrderDialog("long")}
-            disabled={!isHost || !hasEnoughBalance}
-            title={
-              !isHost
-                ? t("tooltips.onlyHost")
-                : !hasEnoughBalance
-                ? t("errors.insufficientBalance")
-                : undefined
-            }
-          >
-            {t("actions.buyLong")}
-          </Button>
-          <Button
-            className="flex-1 bg-red-600 hover:bg-red-700 text-white h-9 text-xs font-medium"
-            onClick={() => handleOpenOrderDialog("short")}
-            disabled={!isHost || !hasEnoughBalance}
-            title={
-              !isHost
-                ? t("tooltips.onlyHost")
-                : !hasEnoughBalance
-                ? t("errors.insufficientBalance")
-                : undefined
-            }
-          >
-            {t("actions.sellShort")}
-          </Button>
-        </div>
-      </div>
-
-      {/* Order Confirmation Dialog */}
-      <Dialog open={showOrderDialog} onOpenChange={setShowOrderDialog}>
-        <DialogContent className="sm:max-w-md rounded-xl border border-border bg-background p-0">
-          <div className="px-6 pt-5 pb-2">
-            <DialogTitle className="text-lg font-semibold mb-2">
-              {orderSide === "long"
-                ? t("confirm.titleBuy")
-                : t("confirm.titleSell")}
-            </DialogTitle>
-            <p className="text-muted-foreground text-sm mb-4">
-              {t("confirm.subtitle")}
-            </p>
-            <div className="rounded-md border border-border bg-muted/50 px-4 py-3 mb-2">
-              <div className="grid gap-2.5">
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground font-medium text-[15px]">
-                    {t("confirm.pair")}
-                  </span>
-                  <span className="font-semibold text-[15px]">{symbol}</span>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white h-9 text-xs font-medium"
+                disabled={!isHost || !hasEnoughBalance}
+                title={
+                  !isHost
+                    ? t("tooltips.onlyHost")
+                    : !hasEnoughBalance
+                    ? t("errors.insufficientBalance")
+                    : undefined
+                }
+                onClick={() => setOrderSide("long")}
+              >
+                {t("actions.buyLong")}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="!sm:max-w-md rounded-xl border border-border bg-background p-0">
+              <div className="px-6 pt-5 pb-2">
+                <DialogTitle className="text-lg font-semibold mb-2">
+                  {t("confirm.titleBuy")}
+                </DialogTitle>
+                <p className="text-muted-foreground text-sm mb-4">
+                  {t("confirm.subtitle")}
+                </p>
+                <div className="rounded-md border border-border bg-muted/50 px-4 py-3 mb-2">
+                  <div className="grid gap-2.5">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground font-medium text-[15px]">
+                        {t("confirm.pair")}
+                      </span>
+                      <span className="font-semibold text-[15px]">
+                        {symbol}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground font-medium text-[15px]">
+                        {t("confirm.direction")}
+                      </span>
+                      <span className="font-semibold text-[15px] text-green-500">
+                        {t("actions.buyLong")}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground font-medium text-[15px]">
+                        {t("confirm.orderType")}
+                      </span>
+                      <span className="font-semibold text-[15px]">
+                        {orderType === "market"
+                          ? t("tabs.market")
+                          : t("tabs.limit")}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground font-medium text-[15px]">
+                        {t("confirm.quantity")}
+                      </span>
+                      <span className="font-semibold text-[15px]">
+                        {orderQuantity || "0"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground font-medium text-[15px]">
+                        {t("confirm.price")}
+                      </span>
+                      <span className="font-semibold text-[15px]">
+                        {orderType === "market"
+                          ? `${t("confirm.marketPrice")} ${format2(
+                              currentPrice
+                            )}`
+                          : `${format2(orderPrice)} USDT`}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground font-medium text-[15px]">
+                        {t("confirm.leverage")}
+                      </span>
+                      <span className="font-semibold text-[15px]">
+                        {leverage}x
+                      </span>
+                    </div>
+                    {(() => {
+                      const m = computeMarginLevel();
+                      if (!m) return null;
+                      return (
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground font-medium text-[15px]">
+                            {t("marginLevel.title", {
+                              default: "Margin Level",
+                            })}
+                          </span>
+                          <span
+                            className={`font-semibold text-[15px] ${
+                              m.key === "safe"
+                                ? "text-green-500"
+                                : m.key === "caution"
+                                ? "text-amber-500"
+                                : "text-red-500"
+                            }`}
+                            title={t("marginLevel.distance", {
+                              percent: m.percent,
+                              default: `Distance to liquidation: ${m.percent}%`,
+                            })}
+                          >
+                            {t(`marginLevel.${m.key}`)}
+                          </span>
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground font-medium text-[15px]">
-                    {t("confirm.direction")}
-                  </span>
-                  <span
-                    className={`font-semibold text-[15px] ${
-                      orderSide === "long" ? "text-success" : "text-red-400"
-                    }`}
-                  >
-                    {orderSide === "long"
-                      ? t("actions.buyLong")
-                      : t("actions.sellShort")}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground font-medium text-[15px]">
-                    {t("confirm.orderType")}
-                  </span>
-                  <span className="font-semibold text-[15px]">
-                    {orderType === "market"
-                      ? t("tabs.market")
-                      : t("tabs.limit")}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground font-medium text-[15px]">
-                    {t("confirm.quantity")}
-                  </span>
-                  <span className="font-semibold text-[15px]">
-                    {orderQuantity || "0"}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground font-medium text-[15px]">
-                    {t("confirm.price")}
-                  </span>
-                  <span className="font-semibold text-[15px]">
-                    {orderType === "market"
-                      ? (currentPrice || 0).toLocaleString("en-US", {
-                          maximumFractionDigits: 2,
-                        })
-                      : orderPrice}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground font-medium text-[15px]">
-                    {t("confirm.leverage")}
-                  </span>
-                  <span className="font-semibold text-[15px]">{leverage}x</span>
+                <div className="rounded-md border border-border bg-muted/50 px-4 py-3 mb-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-foreground font-semibold text-[20px]">
+                      {t("confirm.total")}
+                    </span>
+                    <span className="font-bold text-[22px] text-green-500">
+                      ${format2(positionSize)}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="flex justify-between items-center mt-5 pt-4 border-t border-border bg-muted/30 rounded-md px-4 py-2">
-              <span className="text-base font-semibold text-muted-foreground">
-                {t("confirm.total")}
-              </span>
-              <span
-                className={`text-2xl font-bold tracking-tight ${
-                  orderSide === "long" ? "text-success" : "text-red-400"
-                }`}
+              <div className="px-6">
+                <div className="rounded-md border border-border bg-muted/50 px-4 py-4 mb-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-[13px] font-medium text-foreground">
+                      {t("tpsl.positionHeader", {
+                        default: "Position TP/SL (optional)",
+                      })}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {t("tpsl.hint", { default: "Set % to auto-close" })}
+                    </span>
+                  </div>
+                  <div className="grid gap-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <Label className="text-xs text-muted-foreground">
+                        {t("tpsl.takeProfit", { default: "Take Profit (%)" })}
+                      </Label>
+                      <div className="flex items-center gap-2 w-44">
+                        <Input
+                          type="number"
+                          inputMode="decimal"
+                          step="0.1"
+                          min="0"
+                          placeholder="1.5"
+                          value={tpOnEntryPercent}
+                          onChange={(e) => setTpOnEntryPercent(e.target.value)}
+                          className="h-9 text-sm text-right"
+                        />
+                        <span className="text-xs text-muted-foreground">%</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <Label className="text-xs text-muted-foreground">
+                        {t("tpsl.stopLoss", { default: "Stop Loss (%)" })}
+                      </Label>
+                      <div className="flex items-center gap-2 w-44">
+                        <Input
+                          type="number"
+                          inputMode="decimal"
+                          step="0.1"
+                          min="0"
+                          placeholder="1.0"
+                          value={slOnEntryPercent}
+                          onChange={(e) => setSlOnEntryPercent(e.target.value)}
+                          className="h-9 text-sm text-right"
+                        />
+                        <span className="text-xs text-muted-foreground">%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter className="px-6 pb-5 pt-5">
+                <DialogClose asChild>
+                  <Button variant="secondary" className="w-28 h-10">
+                    {t("common.cancel")}
+                  </Button>
+                </DialogClose>
+                <DialogClose asChild>
+                  <Button
+                    variant="success"
+                    className="w-28 h-10"
+                    onClick={handleConfirmOrder}
+                    disabled={loading}
+                  >
+                    {loading ? t("confirm.confirming") : t("common.confirm")}
+                  </Button>
+                </DialogClose>
+              </DialogFooter>
+              {error && (
+                <div className="px-6 pb-4">
+                  <div className="text-sm text-red-500 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-3">
+                    {error}
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white h-9 text-xs font-medium"
+                disabled={!isHost || !hasEnoughBalance}
+                title={
+                  !isHost
+                    ? t("tooltips.onlyHost")
+                    : !hasEnoughBalance
+                    ? t("errors.insufficientBalance")
+                    : undefined
+                }
+                onClick={() => setOrderSide("short")}
               >
-                $
-                {Number(orderAmount).toLocaleString("en-US", {
-                  maximumFractionDigits: 4,
-                  minimumFractionDigits: 4,
-                })}
-              </span>
-            </div>
-          </div>
-          <DialogFooter className="px-6 pb-5 pt-5">
-            <Button
-              variant="secondary"
-              className="w-28 h-10"
-              onClick={() => setShowOrderDialog(false)}
-            >
-              {t("common.cancel")}
-            </Button>
-            <Button
-              variant={orderSide === "long" ? "success" : "destructive"}
-              className="w-28 h-10"
-              onClick={handleConfirmOrder}
-              disabled={loading}
-            >
-              {loading ? t("confirm.confirming") : t("common.confirm")}
-            </Button>
-          </DialogFooter>
-          {error && (
-            <div className="text-xs text-red-500 mt-2 px-4 py-2 rounded-md bg-red-50">
-              {error}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+                {t("actions.sellShort")}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md rounded-xl border border-border bg-background p-0">
+              <div className="px-6 pt-5 pb-2">
+                <DialogTitle className="text-lg font-semibold mb-2">
+                  {t("confirm.titleSell")}
+                </DialogTitle>
+                <p className="text-muted-foreground text-sm mb-4">
+                  {t("confirm.subtitle")}
+                </p>
+                <div className="rounded-md border border-border bg-muted/50 px-4 py-3 mb-2">
+                  <div className="grid gap-2.5">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground font-medium text-[15px]">
+                        {t("confirm.pair")}
+                      </span>
+                      <span className="font-semibold text-[15px]">
+                        {symbol}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground font-medium text-[15px]">
+                        {t("confirm.direction")}
+                      </span>
+                      <span className="font-semibold text-[15px] text-red-500">
+                        {t("actions.sellShort")}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground font-medium text-[15px]">
+                        {t("confirm.orderType")}
+                      </span>
+                      <span className="font-semibold text-[15px]">
+                        {orderType === "market"
+                          ? t("tabs.market")
+                          : t("tabs.limit")}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground font-medium text-[15px]">
+                        {t("confirm.quantity")}
+                      </span>
+                      <span className="font-semibold text-[15px]">
+                        {orderQuantity || "0"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground font-medium text-[15px]">
+                        {t("confirm.price")}
+                      </span>
+                      <span className="font-semibold text-[15px]">
+                        {orderType === "market"
+                          ? `${t("confirm.marketPrice")} ${format2(
+                              currentPrice
+                            )}`
+                          : `${format2(orderPrice)} USDT`}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground font-medium text-[15px]">
+                        {t("confirm.leverage")}
+                      </span>
+                      <span className="font-semibold text-[15px]">
+                        {leverage}x
+                      </span>
+                    </div>
+                    {(() => {
+                      const m = computeMarginLevel();
+                      if (!m) return null;
+                      return (
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground font-medium text-[15px]">
+                            {t("marginLevel.title", {
+                              default: "Margin Level",
+                            })}
+                          </span>
+                          <span
+                            className={`font-semibold text-[15px] ${
+                              m.key === "safe"
+                                ? "text-green-500"
+                                : m.key === "caution"
+                                ? "text-amber-500"
+                                : "text-red-500"
+                            }`}
+                            title={t("marginLevel.distance", {
+                              percent: m.percent,
+                              default: `Distance to liquidation: ${m.percent}%`,
+                            })}
+                          >
+                            {t(`marginLevel.${m.key}`)}
+                          </span>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+                <div className="rounded-md border border-border bg-muted/50 px-4 py-3 mb-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-foreground font-semibold text-[20px]">
+                      {t("confirm.total")}
+                    </span>
+                    <span className="font-bold text-[22px] text-red-500">
+                      ${format2(positionSize)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="px-6">
+                <div className="rounded-md border border-border bg-muted/50 px-4 py-4 mb-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-[13px] font-medium text-foreground">
+                      {t("tpsl.positionHeader", {
+                        default: "Position TP/SL (optional)",
+                      })}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {t("tpsl.hint", { default: "Set % to auto-close" })}
+                    </span>
+                  </div>
+                  <div className="grid gap-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <Label className="text-xs text-muted-foreground">
+                        {t("tpsl.takeProfit", { default: "Take Profit (%)" })}
+                      </Label>
+                      <div className="flex items-center gap-2 w-44">
+                        <Input
+                          type="number"
+                          inputMode="decimal"
+                          step="0.1"
+                          min="0"
+                          placeholder="1.5"
+                          value={tpOnEntryPercent}
+                          onChange={(e) => setTpOnEntryPercent(e.target.value)}
+                          className="h-9 text-sm text-right"
+                        />
+                        <span className="text-xs text-muted-foreground">%</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <Label className="text-xs text-muted-foreground">
+                        {t("tpsl.stopLoss", { default: "Stop Loss (%)" })}
+                      </Label>
+                      <div className="flex items-center gap-2 w-44">
+                        <Input
+                          type="number"
+                          inputMode="decimal"
+                          step="0.1"
+                          min="0"
+                          placeholder="1.0"
+                          value={slOnEntryPercent}
+                          onChange={(e) => setSlOnEntryPercent(e.target.value)}
+                          className="h-9 text-sm text-right"
+                        />
+                        <span className="text-xs text-muted-foreground">%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter className="px-6 pb-5 pt-5">
+                <DialogClose asChild>
+                  <Button variant="secondary" className="w-28 h-10">
+                    {t("common.cancel")}
+                  </Button>
+                </DialogClose>
+                <DialogClose asChild>
+                  <Button
+                    variant="destructive"
+                    className="w-28 h-10"
+                    onClick={handleConfirmOrder}
+                    disabled={loading}
+                  >
+                    {loading ? t("confirm.confirming") : t("common.confirm")}
+                  </Button>
+                </DialogClose>
+              </DialogFooter>
+              {error && (
+                <div className="px-6 pb-4">
+                  <div className="text-sm text-red-500 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-3">
+                    {error}
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
     </div>
   );
 }

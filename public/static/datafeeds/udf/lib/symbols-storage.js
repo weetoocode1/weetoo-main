@@ -1,5 +1,10 @@
 import { getErrorMessage, logMessage, } from './helpers';
 function extractField(data, field, arrayIndex, valueIsArray) {
+    if (!(field in data)) {
+        // eslint-disable-next-line no-console
+        console.warn(`Field "${String(field)}" not present in response`);
+        return undefined;
+    }
     const value = data[field];
     if (Array.isArray(value) && (!valueIsArray || Array.isArray(value[0]))) {
         return value[arrayIndex];
@@ -21,7 +26,7 @@ export class SymbolsStorage {
         this._readyPromise = this._init();
         this._readyPromise.catch((error) => {
             // seems it is impossible
-            // tslint:disable-next-line:no-console
+            // eslint-disable-next-line no-console
             console.error(`SymbolsStorage: Cannot init, error=${error.toString()}`);
         });
     }
@@ -116,6 +121,7 @@ export class SymbolsStorage {
     }
     _onExchangeDataReceived(exchange, data) {
         let symbolIndex = 0;
+        let fullName;
         try {
             const symbolsCount = data.symbol.length;
             const tickerPresent = data.ticker !== undefined;
@@ -123,7 +129,19 @@ export class SymbolsStorage {
                 const symbolName = data.symbol[symbolIndex];
                 const listedExchange = extractField(data, 'exchange-listed', symbolIndex);
                 const tradedExchange = extractField(data, 'exchange-traded', symbolIndex);
-                const fullName = tradedExchange + ':' + symbolName;
+                if (listedExchange !== undefined || tradedExchange !== undefined) {
+                    // eslint-disable-next-line no-console
+                    console.warn('Starting from v30, both "exchange-listed" and "exchange-traded" fields are deprecated. Please use "exchange_listed_name" instead.');
+                    fullName = tradedExchange + ':' + symbolName;
+                }
+                const exchangeListedName = extractField(data, 'exchange_listed_name', symbolIndex);
+                if (exchangeListedName === undefined) {
+                    // eslint-disable-next-line no-console
+                    console.warn('Starting from v30, both "exchange-listed" and "exchange-traded" fields are deprecated. Please use "exchange_listed_name" instead.');
+                }
+                else {
+                    fullName = exchangeListedName + ':' + symbolName;
+                }
                 const currencyCode = extractField(data, 'currency-code', symbolIndex);
                 const unitId = extractField(data, 'unit-id', symbolIndex);
                 const ticker = tickerPresent ? extractField(data, 'ticker', symbolIndex) : symbolName;
@@ -132,7 +150,7 @@ export class SymbolsStorage {
                     name: symbolName,
                     base_name: [listedExchange + ':' + symbolName],
                     listed_exchange: listedExchange,
-                    exchange: tradedExchange,
+                    exchange: exchangeListedName || listedExchange,
                     currency_code: currencyCode,
                     original_currency_code: extractField(data, 'original-currency-code', symbolIndex),
                     unit_id: unitId,
@@ -160,11 +178,15 @@ export class SymbolsStorage {
                 };
                 this._symbolsInfo[ticker] = symbolInfo;
                 this._symbolsInfo[symbolName] = symbolInfo;
-                this._symbolsInfo[fullName] = symbolInfo;
+                if (fullName !== undefined) {
+                    this._symbolsInfo[fullName] = symbolInfo;
+                }
                 if (currencyCode !== undefined || unitId !== undefined) {
                     this._symbolsInfo[symbolKey(ticker, currencyCode, unitId)] = symbolInfo;
                     this._symbolsInfo[symbolKey(symbolName, currencyCode, unitId)] = symbolInfo;
-                    this._symbolsInfo[symbolKey(fullName, currencyCode, unitId)] = symbolInfo;
+                    if (fullName !== undefined) {
+                        this._symbolsInfo[symbolKey(fullName, currencyCode, unitId)] = symbolInfo;
+                    }
                 }
                 this._symbolsList.push(symbolName);
             }

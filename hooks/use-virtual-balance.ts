@@ -37,8 +37,7 @@ export function useVirtualBalance(roomId: string) {
       refreshInterval: 0, // Disable automatic refresh
       // Keep showing the previous value while revalidating
       revalidateIfStale: false,
-      // Add fallback data to prevent loading states
-      fallbackData: 0,
+      // Don't use fallback data - let it be undefined initially
     }
   );
 
@@ -66,7 +65,15 @@ export function useVirtualBalance(roomId: string) {
     };
   }, [roomId]);
 
-  return balance !== null && balance !== undefined
-    ? Math.max(0, balance)
-    : balance;
+  const result =
+    balance !== null && balance !== undefined ? Math.max(0, balance) : balance;
+
+  // Debug logging
+  console.log(`useVirtualBalance for room ${roomId}:`, {
+    balance,
+    result,
+    timestamp: new Date().toISOString(),
+  });
+
+  return result;
 }

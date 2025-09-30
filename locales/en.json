@@ -776,7 +776,7 @@
     "address": "Address",
     "addressDetails": "3012-53, 30th floor, Building A,\n323 Incheon Tower-daero, Yeonsu-gu,\nIncheon (Songdo-dong, Songdo Cent Road)",
     "investmentRiskNotice": "Investment Risk and Disclaimer",
-    "riskNoticeParagraph1": "■ Nature of the Service \n - Solomon Partners (WEE TOO – “We Are Investors”) is a content service aimed at investment education and information provision. Our company is a “similar investment advisory business” under the Capital Markets Act. We do not engage in financial investment business under the Capital Markets Act (such as investment brokerage, investment advisory, or discretionary investment business), and we do not conduct actual brokerage, solicitation, or discretionary trading. \n - We only provide information services related to virtual assets. We are not a virtual asset service provider under the Virtual Asset User Protection Act and do not engage in the buying, selling, exchanging, or safekeeping of virtual assets. All information provided is for reference only and does not constitute investment advice or trading instructions.",
+    "riskNoticeParagraph1": "■ Nature of the Service \n - Solomon Partners (WEE TOO – \"We Are Investors\") is a content service aimed at investment education and information provision. Our company is a \"similar investment advisory business\" under the Capital Markets Act. We do not engage in financial investment business under the Capital Markets Act (such as investment brokerage, investment advisory, or discretionary investment business), and we do not conduct actual brokerage, solicitation, or discretionary trading. \n - We only provide information services related to virtual assets. We are not a virtual asset service provider under the Virtual Asset User Protection Act and do not engage in the buying, selling, exchanging, or safekeeping of virtual assets. All information provided is for reference only and does not constitute investment advice or trading instructions.",
 
     "riskNoticeParagraph2": "■ Investor Suitability \n - Margin trading and overseas futures trading are high-risk, high-return financial derivatives, suitable only for investors with sufficient experience and risk tolerance. Due to the nature of leveraged products, losses can exceed the initial investment amount. Before deciding to trade Forex or any other financial products, you should carefully consider your investment objectives, level of experience, and risk appetite. All losses from investment are solely borne by the investor.",
 
@@ -870,6 +870,12 @@
         "initialMargin": "Position Margin",
         "pnl": "PNL",
         "actions": "Actions"
+      },
+      "margin": {
+        "safe": "Safe",
+        "caution": "Caution",
+        "atRisk": "At risk",
+        "distanceTooltip": "Distance to liquidation: {percent}%"
       },
       "sides": { "long": "Long", "short": "Short" },
       "actions": {
@@ -1073,6 +1079,10 @@
       },
       "buttons": { "currentPrice": "Current Price" },
       "errors": { "insufficientBalance": "Insufficient balance." },
+      "advisor": {
+        "fields": "Inputs & Metrics",
+        "results": "Scenarios"
+      },
       "info": {
         "fee": "Fee:",
         "leverage": "Leverage:",
@@ -1095,8 +1105,51 @@
         "quantity": "Quantity",
         "price": "Price",
         "leverage": "Leverage",
+        "margin": "Margin",
+        "fee": "Fee",
+        "marketPrice": "Market Price",
         "total": "Total",
         "confirming": "Confirming..."
+      },
+      "marginLevel": {
+        "title": "Margin Level",
+        "safe": "Safe",
+        "caution": "Caution",
+        "atRisk": "At risk",
+        "distance": "Distance to liquidation: {percent}%"
+      },
+      "positionSize": {
+        "title": "Position Size Advisor",
+        "riskPercent": "Risk (% of balance)",
+        "stopPrice": "Stop Price",
+        "suggestedQty": "Suggested Qty",
+        "requiredMargin": "Required Margin (USDT)",
+        "estLoss": "Estimated Loss (USDT)",
+        "roeAtStop": "ROE at SL",
+        "capped": "Capped by available margin.",
+        "apply": "Apply",
+        "accountBalance": "Account Balance",
+        "availableBalance": "Available Balance",
+        "openPositions": "Current Open Positions",
+        "totalExposure": "Total Exposure",
+        "conservative": "Conservative (0.5%)",
+        "moderate": "Moderate (1%)",
+        "aggressive": "Aggressive (2%)",
+        "maximumSafe": "Maximum Safe (3%)",
+        "warnExposure": "Total account exposure will be {percent}% after this position",
+        "warnBalanceUse": "This position uses {percent}% of available balance",
+        "warnCorrelated": "{count} correlated positions already open ({base})",
+        "liqPrice": "Liquidation Price",
+        "distanceToLiq": "Distance to Liquidation",
+        "tooClose": "TOO CLOSE!",
+        "bufferFromSl": "Buffer from SL to Liq"
+      },
+      "tpsl": {
+        "positionHeader": "Position TP/SL (optional)",
+        "hint": "Set % to auto-close",
+        "takeProfit": "Take Profit (%)",
+        "stopLoss": "Stop Loss (%)",
+        "tooCloseToLiq": "Stop Loss is too close to liquidation (min {min}%)."
       }
     },
     "donation": {
