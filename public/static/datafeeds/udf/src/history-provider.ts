@@ -14,7 +14,7 @@ import {
 } from './helpers';
 
 import { IRequester } from './irequester';
-// tslint:disable: no-any
+/* eslint-disable @typescript-eslint/no-explicit-any */
 interface HistoryPartialDataResponse extends UdfOkResponse {
 	t: any;
 	c: any;
@@ -32,7 +32,7 @@ interface HistoryFullDataResponse extends UdfOkResponse {
 	l: any;
 	v: any;
 }
-// tslint:enable: no-any
+/* eslint-enable @typescript-eslint/no-explicit-any */
 interface HistoryNoDataResponse extends UdfResponse {
 	s: 'no_data';
 	nextTime?: number;
@@ -122,7 +122,7 @@ export class HistoryProvider {
 				} catch (e: unknown) {
 					if (e instanceof Error || typeof e === 'string') {
 						const reasonString = getErrorMessage(e);
-						// tslint:disable-next-line:no-console
+						// eslint-disable-next-line no-console
 						console.warn(
 							`HistoryProvider: getBars() failed, error=${reasonString}`
 						);
@@ -183,7 +183,7 @@ export class HistoryProvider {
 			 */
 			if (e instanceof Error || typeof e === 'string') {
 				const reasonString = getErrorMessage(e);
-				// tslint:disable-next-line:no-console
+				// eslint-disable-next-line no-console
 				console.warn(
 					`HistoryProvider: getBars() warning during followup request, error=${reasonString}`
 				);

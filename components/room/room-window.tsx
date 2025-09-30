@@ -36,10 +36,23 @@ export function TradingRoomWindow({
       lastBalanceRef.current = Math.max(0, virtualBalance);
     }
   }, [virtualBalance]);
-  const stableVirtualBalance = useMemo(
-    () => lastBalanceRef.current,
-    [virtualBalance]
-  );
+
+  // Use the current virtualBalance directly, but fallback to last known balance if it's null/undefined
+  const stableVirtualBalance = useMemo(() => {
+    // If we have a valid virtualBalance, use it and update the ref
+    if (typeof virtualBalance === "number" && !isNaN(virtualBalance)) {
+      lastBalanceRef.current = Math.max(0, virtualBalance);
+      return Math.max(0, virtualBalance);
+    }
+
+    // If virtualBalance is undefined (still loading), use the last known balance
+    if (virtualBalance === undefined) {
+      return lastBalanceRef.current;
+    }
+
+    // If virtualBalance is null or invalid, use the last known balance
+    return lastBalanceRef.current;
+  }, [virtualBalance, roomId]);
   const [currentPrice, setCurrentPrice] = useState<number | undefined>(
     undefined
   );

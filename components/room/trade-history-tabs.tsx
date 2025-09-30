@@ -43,7 +43,13 @@ import {
 } from "@/hooks/use-room-reset";
 import { VIRTUAL_BALANCE_KEY } from "@/hooks/use-virtual-balance";
 import { createClient } from "@/lib/supabase/client";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, Info } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { mutate } from "swr";
@@ -69,6 +75,7 @@ interface OpenPosition {
   tp_order_type?: "market" | "limit" | null;
   sl_order_type?: "market" | "limit" | null;
   tp_sl_active?: boolean;
+  opened_at?: string;
 }
 
 interface ClosedPosition {
@@ -111,7 +118,11 @@ function PositionRow({
   const [, setTpSlOpen] = useState(false);
   // Prevent immediate re-open after confirm
   const [, setTpSlRecentlyClosedAt] = useState<number>(0);
-  const [enableTp, setEnableTp] = useState(true);
+  // Initialize enable flags based on existing data so only the set side is checked
+  const [enableTp, setEnableTp] = useState(
+    (position.tp_percent != null && position.tp_percent > 0) ||
+      (position.tp_price != null && Number(position.tp_price) > 0)
+  );
   const [tpOrderType, setTpOrderType] = useState<"market" | "limit">(
     (position.tp_order_type as "market" | "limit") || "market"
   );
@@ -125,7 +136,10 @@ function PositionRow({
   const [tpPercentSlider, setTpPercentSlider] = useState<number[]>([
     Number(position.tp_percent ?? 0),
   ]);
-  const [enableSl, setEnableSl] = useState(true);
+  const [enableSl, setEnableSl] = useState(
+    (position.sl_percent != null && position.sl_percent > 0) ||
+      (position.sl_price != null && Number(position.sl_price) > 0)
+  );
   const [slOrderType, setSlOrderType] = useState<"market" | "limit">(
     (position.sl_order_type as "market" | "limit") || "market"
   );
@@ -141,6 +155,47 @@ function PositionRow({
   ]);
   const [savingTpSl, setSavingTpSl] = useState(false);
 
+  // Re-sync dialog fields whenever the position updates so values show correctly
+  useEffect(() => {
+    const hasTp =
+      (position.tp_percent != null && Number(position.tp_percent) > 0) ||
+      (position.tp_price != null && Number(position.tp_price) > 0);
+    setEnableTp(hasTp);
+    setTpOrderType(
+      ((position.tp_order_type as "market" | "limit") || "market") as
+        | "market"
+        | "limit"
+    );
+    setTpPrice(position.tp_price != null ? String(position.tp_price) : "");
+    setTpPercent(
+      position.tp_percent != null ? String(position.tp_percent) : ""
+    );
+    setTpPercentSlider([Number(position.tp_percent ?? 0)]);
+
+    const hasSl =
+      (position.sl_percent != null && Number(position.sl_percent) > 0) ||
+      (position.sl_price != null && Number(position.sl_price) > 0);
+    setEnableSl(hasSl);
+    setSlOrderType(
+      ((position.sl_order_type as "market" | "limit") || "market") as
+        | "market"
+        | "limit"
+    );
+    setSlPrice(position.sl_price != null ? String(position.sl_price) : "");
+    setSlPercent(
+      position.sl_percent != null ? String(position.sl_percent) : ""
+    );
+    setSlPercentSlider([Number(position.sl_percent ?? 0)]);
+  }, [
+    position.id,
+    position.tp_percent,
+    position.tp_price,
+    position.tp_order_type,
+    position.sl_percent,
+    position.sl_price,
+    position.sl_order_type,
+  ]);
+
   // Helpers to sync price/% with sliders using selected basis
   const basisPriceFor = (basis: "last" | "mark") => {
     const last = Number(currentPositionPrice) || 0;
@@ -149,6 +204,50 @@ function PositionRow({
   };
 
   const sideLower = (position.side || "").toLowerCase();
+
+  // Compute margin level based on distance to liquidation
+  const marginLevel = () => {
+    const entry = Number(position.entry_price);
+    const liq = Number(position.liquidation_price);
+    const current = Number(currentPositionPrice);
+    if (
+      !Number.isFinite(entry) ||
+      !Number.isFinite(liq) ||
+      !Number.isFinite(current)
+    ) {
+      return null;
+    }
+    let ratio = 0;
+    if (sideLower === "long") {
+      const denom = entry - liq;
+      if (denom <= 0) return null;
+      ratio = (current - liq) / denom;
+    } else {
+      const denom = liq - entry;
+      if (denom <= 0) return null;
+      ratio = (liq - current) / denom;
+    }
+    // Clamp 0..1
+    ratio = Math.max(0, Math.min(1, ratio));
+    const percent = (ratio * 100).toFixed(0);
+    if (ratio >= 0.7)
+      return {
+        key: "safe" as const,
+        className: "bg-emerald-500/15 text-emerald-500",
+        percent,
+      };
+    if (ratio >= 0.3)
+      return {
+        key: "caution" as const,
+        className: "bg-amber-500/15 text-amber-500",
+        percent,
+      };
+    return {
+      key: "atRisk" as const,
+      className: "bg-red-500/15 text-red-500",
+      percent,
+    };
+  };
 
   // Sync TP slider -> inputs
   useEffect(() => {
@@ -311,15 +410,40 @@ function PositionRow({
       >
         {format2(position.initial_margin)}
       </td>
-      <td
-        className={`text-xs p-2 text-left ${
-          unrealizedPnlWithPercent().includes("-")
-            ? "text-red-500"
-            : "text-green-500"
-        }`}
-        style={{ width: "10%" }}
-      >
-        {unrealizedPnlWithPercent()}
+      <td className="text-xs p-2 text-left" style={{ width: "10%" }}>
+        <div className="flex items-center gap-2">
+          <span
+            className={
+              unrealizedPnlWithPercent().includes("-")
+                ? "text-red-500"
+                : "text-green-500"
+            }
+          >
+            {unrealizedPnlWithPercent()}
+          </span>
+          {(() => {
+            const m = marginLevel();
+            if (!m) return null;
+            return (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${m.className}`}
+                    >
+                      {tr(`margin.${m.key}`)}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <span className="text-xs">
+                      {tr("margin.distanceTooltip", { percent: m.percent })}
+                    </span>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            );
+          })()}
+        </div>
       </td>
       <td
         className={`text-xs p-2 text-left ${
@@ -712,18 +836,23 @@ function PositionRow({
               <AlertDialogCancel>{tr("common.cancel")}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={async () => {
-                  await closePosition(
-                    position.id,
-                    currentPositionPrice || position.entry_price
-                  );
-                  mutate(VIRTUAL_BALANCE_KEY(roomId));
-                  mutate(TRADER_PNL_KEY(roomId));
-                  if (sinceResetAt) {
-                    mutate(
-                      `${TRADER_PNL_KEY(roomId)}?since=${encodeURIComponent(
-                        sinceResetAt
-                      )}`
+                  try {
+                    await closePosition(
+                      position.id,
+                      currentPositionPrice || position.entry_price
                     );
+                    mutate(VIRTUAL_BALANCE_KEY(roomId));
+                    mutate(TRADER_PNL_KEY(roomId));
+                    if (sinceResetAt) {
+                      mutate(
+                        `${TRADER_PNL_KEY(roomId)}?since=${encodeURIComponent(
+                          sinceResetAt
+                        )}`
+                      );
+                    }
+                  } catch (error) {
+                    console.error("Failed to close position:", error);
+                    // You could add a toast notification here if you have one
                   }
                 }}
                 className="bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60"
@@ -1025,27 +1154,32 @@ export function TradeHistoryTabs({
                   <AlertDialogCancel>{tr("common.cancel")}</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={async () => {
-                      await closeAllPositions(
-                        async (position: OpenPosition) => {
-                          // Fetch current price for this position's symbol
-                          const response = await fetch(
-                            `https://api.binance.us/api/v3/ticker/24hr?symbol=${position.symbol}`
-                          );
-                          if (response.ok) {
-                            const data = await response.json();
-                            return parseFloat(data.lastPrice);
+                      try {
+                        await closeAllPositions(
+                          async (position: OpenPosition) => {
+                            // Fetch current price for this position's symbol
+                            const response = await fetch(
+                              `https://api.binance.us/api/v3/ticker/24hr?symbol=${position.symbol}`
+                            );
+                            if (response.ok) {
+                              const data = await response.json();
+                              return parseFloat(data.lastPrice);
+                            }
+                            return position.entry_price; // Fallback to entry price if API fails
                           }
-                          return position.entry_price; // Fallback to entry price if API fails
-                        }
-                      );
-                      mutate(VIRTUAL_BALANCE_KEY(roomId)); // Refetch balance after closing all
-                      mutate(TRADER_PNL_KEY(roomId)); // Refetch P&L stats after closing all
-                      if (sinceResetAt) {
-                        mutate(
-                          `${TRADER_PNL_KEY(roomId)}?since=${encodeURIComponent(
-                            sinceResetAt
-                          )}`
                         );
+                        mutate(VIRTUAL_BALANCE_KEY(roomId)); // Refetch balance after closing all
+                        mutate(TRADER_PNL_KEY(roomId)); // Refetch P&L stats after closing all
+                        if (sinceResetAt) {
+                          mutate(
+                            `${TRADER_PNL_KEY(
+                              roomId
+                            )}?since=${encodeURIComponent(sinceResetAt)}`
+                          );
+                        }
+                      } catch (error) {
+                        console.error("Failed to close all positions:", error);
+                        // You could add a toast notification here if you have one
                       }
                     }}
                     className="bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60"
@@ -1135,6 +1269,18 @@ export function TradeHistoryTabs({
                         >
                           <div className="flex items-center gap-1">
                             {tr("headers.pnl")} {""}
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent side="top">
+                                  <span className="text-xs">
+                                    Unrealized PnL
+                                  </span>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </div>
                         </TableHead>
                         <TableHead
@@ -1239,7 +1385,21 @@ export function TradeHistoryTabs({
                             style={{ width: "18%" }}
                             className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
                           >
-                            {tr("headers.pnl")}
+                            <div className="flex items-center gap-1">
+                              {tr("headers.pnl")}
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">
+                                    <span className="text-xs">
+                                      Realized PnL
+                                    </span>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
                           </TableHead>
                         </TableRow>
                       </TableHeader>
@@ -1307,7 +1467,35 @@ export function TradeHistoryTabs({
                               }`}
                               style={{ width: "18%" }}
                             >
-                              {item.pnl ?? "-"}
+                              {(() => {
+                                const entry = Number(item.entry_price);
+                                const close = Number(item.close_price);
+                                const side = (item.side ?? "").toLowerCase();
+                                const pnlValue = Number(item.pnl);
+                                if (
+                                  !Number.isFinite(entry) ||
+                                  !Number.isFinite(close) ||
+                                  !Number.isFinite(pnlValue)
+                                ) {
+                                  return item.pnl ?? "-";
+                                }
+                                const pnlPercent =
+                                  side === "long"
+                                    ? ((close - entry) / entry) * 100
+                                    : ((entry - close) / entry) * 100;
+                                const currency = pnlValue.toLocaleString(
+                                  "en-US",
+                                  {
+                                    style: "currency",
+                                    currency: "USD",
+                                    minimumFractionDigits: 2,
+                                  }
+                                );
+                                const percentStr = `${
+                                  pnlPercent >= 0 ? "" : "-"
+                                }${Math.abs(pnlPercent).toFixed(2)}%`;
+                                return `${currency} (${percentStr})`;
+                              })()}
                             </td>
                           </tr>
                         ))}

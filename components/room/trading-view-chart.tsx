@@ -1,6 +1,9 @@
 "use client";
 
 import { useChartStreaming } from "@/hooks/use-chart-streaming";
+import { usePositions } from "@/hooks/use-positions";
+import { useTradingViewLines } from "@/hooks/use-trading-view-lines";
+import { useBinanceFutures } from "@/hooks/use-binance-futures";
 import {
   ChartingLibraryWidgetOptions,
   LanguageCode,
@@ -25,6 +28,9 @@ const TradingViewChart = dynamic(
   { ssr: false }
 );
 
+// Import the ref type
+import type { TradingViewChartRef } from "@/components/trading-view";
+
 interface TradingViewChartProps {
   symbol: string;
   isHost?: boolean;
@@ -42,6 +48,7 @@ export const TradingViewChartComponent = React.memo(
         new URLSearchParams(window.location.search).get("screenshot") === "1");
     const [isScriptReady, setIsScriptReady] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
+    const tradingViewRef = useRef<TradingViewChartRef>(null);
     const locale = useLocale();
     const t = useTranslations("room.windowTitleBar");
 
@@ -51,6 +58,92 @@ export const TradingViewChartComponent = React.memo(
       hostVideoTrack,
       error: streamingError,
     } = useChartStreaming(roomId || "", hostId || "");
+
+    // Get open positions for entry lines (only for host)
+    const { openPositions } = usePositions(roomId || "");
+
+    // Debug: Log positions data
+    useEffect(() => {
+      console.log("🔍 Open positions from database:", {
+        roomId,
+        openPositionsCount: openPositions?.length || 0,
+        positions:
+          openPositions?.map((p) => ({
+            id: p.id,
+            symbol: p.symbol,
+            entry_price: p.entry_price,
+            side: p.side,
+            opened_at: p.opened_at,
+          })) || [],
+      });
+    }, [openPositions, roomId]);
+
+    // Get current price for the symbol (same as trade-history-tabs.tsx approach)
+    const marketData = useBinanceFutures(symbol);
+    const currentPrice = marketData?.ticker?.lastPrice
+      ? parseFloat(marketData.ticker.lastPrice)
+      : undefined;
+
+    // Initialize TradingView lines hook
+    const { updateEntryLines, clearAllEntryLines } = useTradingViewLines({
+      widgetRef: tradingViewRef,
+      isReady: isScriptReady && !!tradingViewRef.current?.isReady(),
+    });
+
+    // Force update entry lines when positions change (more aggressive approach)
+    useEffect(() => {
+      if (!isHost || !isScriptReady || !openPositions) {
+        return;
+      }
+
+      // Small delay to ensure TradingView is ready
+      const timeoutId = setTimeout(async () => {
+        const symbolPositions = openPositions.filter(
+          (position) => position.symbol === symbol
+        );
+
+        if (symbolPositions.length > 0) {
+          await updateEntryLines(
+            symbolPositions.map((position) => {
+              // Calculate PnL percentage exactly like in trade-history-tabs.tsx
+              let pnlPercentage = 0;
+              if (currentPrice) {
+                const entry = Number(position.entry_price);
+                const side = (position.side ?? "").toLowerCase();
+                const pnlPercent =
+                  side === "long"
+                    ? ((currentPrice - entry) / entry) * 100
+                    : ((entry - currentPrice) / entry) * 100;
+
+                // Use the exact same calculation as trade-history-tabs.tsx
+                pnlPercentage = pnlPercent;
+              }
+
+              return {
+                id: position.id,
+                entry_price: position.entry_price,
+                side: position.side,
+                created_at: position.opened_at || new Date().toISOString(),
+                pnl_percentage: pnlPercentage,
+              };
+            })
+          );
+        } else {
+          // If no positions for this symbol, clear all lines
+          clearAllEntryLines();
+        }
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
+    }, [
+      openPositions,
+      symbol,
+      isHost,
+      isScriptReady,
+      currentPrice,
+      updateEntryLines,
+      clearAllEntryLines,
+    ]);
 
     // Attach video track to video element with robust error handling
     useEffect(() => {
@@ -275,6 +368,90 @@ export const TradingViewChartComponent = React.memo(
       }
     }, []);
 
+    // Update entry lines when positions change (only for host)
+    useEffect(() => {
+      console.log("🔍 Entry lines effect triggered:", {
+        isHost,
+        isScriptReady,
+        openPositionsCount: openPositions.length,
+        symbol,
+        widgetReady: tradingViewRef.current?.isReady(),
+      });
+
+      if (!isHost || !isScriptReady) {
+        console.log("❌ Skipping entry lines - not host or script not ready");
+        return;
+      }
+
+      // Add a delay to ensure TradingView widget is fully initialized
+      const timeoutId = setTimeout(() => {
+        console.log("⏰ Timeout triggered, checking widget readiness...");
+
+        if (!tradingViewRef.current?.isReady()) {
+          console.warn(
+            "❌ TradingView widget not ready yet, skipping entry lines update"
+          );
+          return;
+        }
+
+        // Filter positions for the current symbol
+        const symbolPositions = openPositions.filter(
+          (position) => position.symbol === symbol
+        );
+
+        console.log("📊 Symbol positions found:", {
+          symbol,
+          totalPositions: openPositions.length,
+          symbolPositionsCount: symbolPositions.length,
+          allPositions: openPositions.map((p) => ({
+            id: p.id,
+            symbol: p.symbol,
+            entry_price: p.entry_price,
+            side: p.side,
+          })),
+          filteredPositions: symbolPositions.map((p) => ({
+            id: p.id,
+            entry_price: p.entry_price,
+            side: p.side,
+            symbol: p.symbol,
+          })),
+        });
+
+        if (symbolPositions.length === 0) {
+          console.log("⚠️ No positions found for symbol:", symbol);
+          return;
+        }
+
+        // Update entry lines
+        console.log(
+          "🎯 Calling updateEntryLines with positions:",
+          symbolPositions
+        );
+        updateEntryLines(
+          symbolPositions.map((position) => ({
+            id: position.id,
+            entry_price: position.entry_price,
+            side: position.side,
+            created_at: position.opened_at || new Date().toISOString(),
+          }))
+        );
+      }, 1000); // Wait 1 second for TradingView to fully initialize
+
+      return () => clearTimeout(timeoutId);
+    }, [openPositions, symbol, isHost, isScriptReady, updateEntryLines]);
+
+    // Clear entry lines when symbol changes
+    useEffect(() => {
+      clearAllEntryLines();
+    }, [symbol, clearAllEntryLines]);
+
+    // Cleanup entry lines when component unmounts
+    useEffect(() => {
+      return () => {
+        clearAllEntryLines();
+      };
+    }, [clearAllEntryLines]);
+
     const widgetProps = useMemo(
       (): Partial<ChartingLibraryWidgetOptions> => ({
         symbol: symbol,
@@ -414,9 +591,11 @@ export const TradingViewChartComponent = React.memo(
       );
     }
 
+    // Removed overlay badges – label is attached to the TradingView line
+
     // Show normal TradingView chart for host
     return (
-      <div data-testid="trading-view-chart" className="w-full h-full">
+      <div data-testid="trading-view-chart" className="w-full h-full relative">
         {/* Inject datafeed bundle only once */}
         {!isScriptReady && (
           <Script
@@ -426,7 +605,11 @@ export const TradingViewChartComponent = React.memo(
             onReady={handleScriptReady}
           />
         )}
-        {isScriptReady && <TradingViewChart {...widgetProps} />}
+        {isScriptReady && (
+          <>
+            <TradingViewChart ref={tradingViewRef} {...widgetProps} />
+          </>
+        )}
       </div>
     );
   }

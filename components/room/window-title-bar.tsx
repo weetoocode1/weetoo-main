@@ -355,10 +355,24 @@ export function WindowTitleBar({
 
   // Displayed virtual balance for UI - simplified for instant loading
   const displayedVirtualBalance = useMemo(() => {
-    // Always show data instantly with fallback
+    // If we have a valid virtualBalance, use it
     if (typeof virtualBalance === "number" && !isNaN(virtualBalance)) {
+      console.log(`Window title bar: Using virtualBalance ${virtualBalance}`);
       return Math.max(0, virtualBalance);
     }
+
+    // If virtualBalance is undefined (still loading), use resetBaseline
+    if (virtualBalance === undefined) {
+      console.log(
+        `Window title bar: virtualBalance undefined, using resetBaseline ${resetBaseline}`
+      );
+      return resetBaseline;
+    }
+
+    // If virtualBalance is null or invalid, use resetBaseline
+    console.log(
+      `Window title bar: virtualBalance invalid (${virtualBalance}), using resetBaseline ${resetBaseline}`
+    );
     return resetBaseline;
   }, [virtualBalance, resetBaseline]);
 
