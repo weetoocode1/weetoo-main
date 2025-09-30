@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,19 +21,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
+import { usePositions } from "@/hooks/use-positions";
 import { VIRTUAL_BALANCE_KEY } from "@/hooks/use-virtual-balance";
 import { createClient } from "@/lib/supabase/client";
-import { MinusIcon, PlusIcon, AlertTriangle } from "lucide-react";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { useEffect, useRef, useState } from "react";
+import { AlertTriangle, MinusIcon, PlusIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useEffect, useRef, useState } from "react";
 import useSWR, { mutate } from "swr";
-import { usePositions } from "@/hooks/use-positions";
 
 export function TradingForm({
   currentPrice,
@@ -115,25 +115,38 @@ export function TradingForm({
     setOrderPrice(price.toFixed(2));
   };
 
-  // When user changes quantity, update order amount
+  // Quantity change: allow free typing; only compute amount when a valid number
   const handleQuantityChange = (value: string) => {
-    // round & clamp to symbol precision
-    const raw = Number(value);
-    const rounded = Number.isFinite(raw) ? roundToStep(raw, qtyStep) : 0;
-    const clamped = Number.isFinite(rounded)
-      ? clamp(rounded, minQty, maxQty)
-      : 0;
+    setOrderQuantity(value);
+    const price =
+      orderType === "market"
+        ? Number(currentPrice) || 0
+        : Number(orderPrice) || 0;
+    const num = Number(value);
+    if (!price || !leverage || !Number.isFinite(num)) {
+      setOrderAmount("");
+      return;
+    }
+    setOrderAmount(((num * price) / leverage).toFixed(2));
+  };
+
+  // Quantity blur: normalize to step and clamp
+  const handleQuantityBlur = () => {
+    const num = Number(orderQuantity);
+    if (!Number.isFinite(num)) {
+      setOrderQuantity("");
+      return;
+    }
+    const rounded = roundToStep(num, qtyStep);
+    const clamped = clamp(rounded, minQty, maxQty);
     setOrderQuantity(clamped ? clamped.toFixed(6) : "");
     const price =
       orderType === "market"
         ? Number(currentPrice) || 0
         : Number(orderPrice) || 0;
-    if (!price || !leverage) {
-      setOrderAmount("");
-      return;
+    if (price && leverage) {
+      setOrderAmount(((clamped * price) / leverage).toFixed(2));
     }
-    const amount = ((clamped * price) / leverage).toFixed(2);
-    setOrderAmount(amount);
   };
 
   const [pendingMarginMode, setPendingMarginMode] = useState(marginMode);
@@ -557,6 +570,37 @@ export function TradingForm({
   }, [
     leverage,
     shouldUpdateQuantityAfterLeverage,
+    orderType,
+    currentPrice,
+    orderPrice,
+  ]);
+
+  // Recompute derived fields on leverage change to avoid zeros (non-destructive)
+  useEffect(() => {
+    if (advisorApplied) return; // don't override advisor's value
+    const price =
+      orderType === "market"
+        ? Number(currentPrice) || 0
+        : Number(orderPrice) || 0;
+    if (!price || !leverage) return;
+    const amtNum = Number(orderAmount);
+    const qtyNum = Number(orderQuantity);
+    if (Number.isFinite(amtNum) && amtNum > 0) {
+      // keep margin constant, update quantity for new leverage
+      const q = (amtNum * leverage) / price;
+      setOrderQuantity(q.toFixed(6));
+      return;
+    }
+    if (Number.isFinite(qtyNum) && qtyNum > 0) {
+      // keep quantity constant, update margin amount
+      const a = (qtyNum * price) / leverage;
+      setOrderAmount(a.toFixed(2));
+    }
+  }, [
+    leverage,
+    advisorApplied,
+    orderAmount,
+    orderQuantity,
     orderType,
     currentPrice,
     orderPrice,
@@ -1286,6 +1330,7 @@ export function TradingForm({
               type="number"
               value={orderQuantity}
               onChange={(e) => handleQuantityChange(e.target.value)}
+              onBlur={handleQuantityBlur}
               className="w-full bg-transparent border-0 p-0 h-6 text-xs focus-visible:ring-0 no-spinner"
               readOnly={!isHost}
             />
@@ -1517,7 +1562,7 @@ export function TradingForm({
                       {t("confirm.total")}
                     </span>
                     <span className="font-bold text-[22px] text-green-500">
-                      ${format2(positionSize)}
+                      ${Number(orderAmount || 0).toFixed(4)}
                     </span>
                   </div>
                 </div>
@@ -1718,7 +1763,7 @@ export function TradingForm({
                       {t("confirm.total")}
                     </span>
                     <span className="font-bold text-[22px] text-red-500">
-                      ${format2(positionSize)}
+                      ${Number(orderAmount || 0).toFixed(4)}
                     </span>
                   </div>
                 </div>
