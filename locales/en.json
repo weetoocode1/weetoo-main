@@ -1104,6 +1104,15 @@
         "orderType": "Order Type",
         "quantity": "Quantity",
         "price": "Price",
+        "entryVsMarket": "Entry vs Market",
+        "riskReward": "Risk / Reward",
+        "riskOfAccount": "Risk % of Account",
+        "riskOfPosition": "Risk % of Position",
+        "risk": "Risk",
+        "reward": "Reward",
+        "marketContext": "Market Context",
+        "entry": "Entry",
+        "market": "Market",
         "leverage": "Leverage",
         "margin": "Margin",
         "fee": "Fee",
@@ -1111,12 +1120,20 @@
         "total": "Total",
         "confirming": "Confirming..."
       },
+      "common": {
+        "cancel": "Cancel",
+        "confirm": "Confirm",
+        "na": "N/A"
+      },
       "marginLevel": {
         "title": "Margin Level",
         "safe": "Safe",
         "caution": "Caution",
         "atRisk": "At risk",
         "distance": "Distance to liquidation: {percent}%"
+      },
+      "warnings": {
+        "highAccountRisk": "Warning: Risk exceeds 2% of account"
       },
       "positionSize": {
         "title": "Position Size Advisor",
@@ -3293,7 +3310,8 @@
     "loading": "Loading...",
     "error": "Error",
     "success": "Success",
-    "identityVerificationRequired": "Identity verification required"
+    "identityVerificationRequired": "Identity verification required",
+    "na": "N/A"
   },
   "profile": {
     "tabs": {

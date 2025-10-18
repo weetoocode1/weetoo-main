@@ -14,6 +14,8 @@ import { AuthRealtimeGuard } from "@/components/user/auth-realtime-guard";
 import { useEffect, useState } from "react";
 import Script from "next/script";
 import "./globals.css";
+import SchedulerInitializer from "@/components/scheduler-initializer";
+import WebSocketHealthMonitor from "@/components/websocket-health-monitor";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -87,6 +89,8 @@ export default function RootLayout({
           src="https://cdn.portone.io/v2/browser-sdk.js"
           strategy="afterInteractive"
         />
+        <SchedulerInitializer />
+        <WebSocketHealthMonitor />
         <QueryProvider>
           <LanguageProvider messages={enMessages}>
             <ThemeProvider
@@ -107,6 +111,7 @@ export default function RootLayout({
 
         <SpeedInsights />
         <Analytics />
+        <WebSocketHealthMonitor />
       </body>
     </html>
   );

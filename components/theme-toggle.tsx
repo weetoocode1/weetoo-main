@@ -2,8 +2,9 @@
 
 import { cn } from "@/lib/utils";
 import { MoonStarIcon, SunIcon } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 import { flushSync } from "react-dom";
+import { useTheme } from "next-themes";
 import { Button } from "./ui/button";
 
 interface ThemeToggleProps {
@@ -11,21 +12,17 @@ interface ThemeToggleProps {
 }
 
 export const ThemeToggle = ({ className }: ThemeToggleProps) => {
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const { theme, setTheme } = useTheme();
   const buttonRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    const isDark = document.documentElement.classList.contains("dark");
-    setIsDarkMode(isDark);
-  }, []);
 
   const changeTheme = useCallback(async () => {
     if (!buttonRef.current) return;
 
+    const newTheme = theme === "dark" ? "light" : "dark";
+
     await document.startViewTransition(() => {
       flushSync(() => {
-        const dark = document.documentElement.classList.toggle("dark");
-        setIsDarkMode(dark);
+        setTheme(newTheme);
       });
     }).ready;
 
@@ -51,7 +48,7 @@ export const ThemeToggle = ({ className }: ThemeToggleProps) => {
         pseudoElement: "::view-transition-new(root)",
       }
     );
-  }, []);
+  }, [theme, setTheme]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -62,6 +59,8 @@ export const ThemeToggle = ({ className }: ThemeToggleProps) => {
     },
     [changeTheme]
   );
+
+  const isDarkMode = theme === "dark";
 
   return (
     <Button

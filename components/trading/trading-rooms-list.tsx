@@ -10,7 +10,6 @@ import {
 import {
   useInfiniteQuery,
   useMutation,
-  useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -26,8 +25,6 @@ import {
   ImageIcon,
   LockIcon,
   SearchIcon,
-  TrendingDown,
-  TrendingUp,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
@@ -48,9 +45,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import type { InfiniteData, QueryFunctionContext } from "@tanstack/react-query";
 import Image from "next/image";
 import { CreateRoom } from "./create-room";
-import type { QueryFunctionContext, InfiniteData } from "@tanstack/react-query";
 
 interface TradingRoom {
   id: string;
@@ -204,23 +201,23 @@ export function TradingRoomsList() {
   const queryClient = useQueryClient();
 
   // ===== Latest reset markers (to zero PNL display when a room has been reset) =====
-  const { data: latestResets } = useQuery({
-    queryKey: ["trading-rooms", "latest-resets"],
-    queryFn: async () => {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from("v_room_latest_reset")
-        .select("room_id, reset_at")
-        .limit(10000);
-      if (error) throw error;
-      return data as { room_id: string; reset_at: string }[];
-    },
-    staleTime: 10_000,
-  });
-  const resetRoomIdSet = useMemo(
-    () => new Set((latestResets || []).map((r) => r.room_id)),
-    [latestResets]
-  );
+  // const {} = useQuery({
+  //   queryKey: ["trading-rooms", "latest-resets"],
+  //   queryFn: async () => {
+  //     const supabase = createClient();
+  //     const { data, error } = await supabase
+  //       .from("v_room_latest_reset")
+  //       .select("room_id, reset_at")
+  //       .limit(10000);
+  //     if (error) throw error;
+  //     return data as { room_id: string; reset_at: string }[];
+  //   },
+  //   staleTime: 10_000,
+  // });
+  // const resetRoomIdSet = useMemo(
+  //   () => new Set((latestResets || []).map((r) => r.room_id)),
+  //   [latestResets]
+  // );
 
   // Password verification mutation
   const verifyPasswordMutation = useMutation({
@@ -254,8 +251,29 @@ export function TradingRoomsList() {
       });
 
       // Small delay to show success message before opening room
-      setTimeout(() => {
-        window.open(`/room/${variables.roomId}`, "_blank");
+      setTimeout(async () => {
+        try {
+          const room = rooms.find((r) => r.id === variables.roomId);
+          const symbol = room?.symbol;
+          if (symbol) {
+            const resp = await fetch(
+              `https://api.bybit.com/v5/market/tickers?category=linear&symbol=${encodeURIComponent(
+                symbol
+              )}`
+            );
+            const json = await resp.json();
+            const last = Number(
+              json?.result?.list?.[0]?.lastPrice ||
+                json?.result?.list?.[0]?.last_price
+            );
+            if (Number.isFinite(last) && last > 0) {
+              try {
+                sessionStorage.setItem(`entryPrice_${symbol}`, String(last));
+              } catch {}
+            }
+          }
+        } catch {}
+        window.open(`/trading-room/${variables.roomId}`, "_blank");
       }, 500);
     },
     onError: (error: Error) => {
@@ -770,7 +788,7 @@ export function TradingRoomsList() {
     setSelectedAccess(newSelectedAccess);
   };
 
-  const handleJoinRoom = (room: TradingRoom) => {
+  const handleJoinRoom = async (room: TradingRoom) => {
     if (!authUser) {
       toast.warning(t("pleaseLoginToJoin"));
       return;
@@ -785,7 +803,24 @@ export function TradingRoomsList() {
     }
 
     if (room.isPublic || room.isHosted) {
-      window.open(`/room/${room.id}`, "_blank");
+      try {
+        const resp = await fetch(
+          `https://api.bybit.com/v5/market/tickers?category=linear&symbol=${encodeURIComponent(
+            room.symbol
+          )}`
+        );
+        const json = await resp.json();
+        const last = Number(
+          json?.result?.list?.[0]?.lastPrice ||
+            json?.result?.list?.[0]?.last_price
+        );
+        if (Number.isFinite(last) && last > 0) {
+          try {
+            sessionStorage.setItem(`entryPrice_${room.symbol}`, String(last));
+          } catch {}
+        }
+      } catch {}
+      window.open(`/trading-room/${room.id}`, "_blank");
     } else {
       setPasswordDialog({
         open: true,
@@ -1468,18 +1503,15 @@ export function TradingRoomsList() {
 
                     {/* Bottom section with stats and indicators */}
                     <div className="space-y-3">
-                      {/* Time and PNL - Clean horizontal layout */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          {/* Time with clock icon */}
                           <Clock className="h-3 w-3 text-blue-400" />
                           <span className="text-xs text-muted-foreground">
                             <CreatedAtCell value={room.createdAt} t={t} />
                           </span>
                         </div>
 
-                        {/* PNL with trending icon - moved to right */}
-                        {room.pnlPercentage !== null && (
+                        {/* {room.pnlPercentage !== null && (
                           <div className="flex items-center gap-2">
                             {(() => {
                               const effectivePnl = resetRoomIdSet.has(room.id)
@@ -1523,7 +1555,7 @@ export function TradingRoomsList() {
                               })()}
                             </span>
                           </div>
-                        )}
+                        )} */}
                       </div>
 
                       {/* Access and Host - Clean badges */}
