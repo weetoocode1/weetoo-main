@@ -37,6 +37,8 @@ body,
   --destructive-foreground: oklch(1 0 0);
   --success: oklch(0.646 0.222 141.116);
   --success-foreground: oklch(1 0 0);
+  --profit: oklch(0.6746 0.1561 155.8);
+  --loss: oklch(0.6386 0.2063 23.75);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
@@ -81,6 +83,8 @@ body,
   --destructive-foreground: oklch(0.637 0.237 25.331);
   --success: oklch(0.646 0.222 141.116);
   --success-foreground: oklch(0.985 0 0);
+  --profit: oklch(0.7586 0.164 162.97);
+  --loss: oklch(0.6834 0.2053 24.36);
   --border: oklch(0.269 0 0);
   --input: oklch(0.269 0 0);
   --ring: oklch(0.439 0 0);
@@ -124,6 +128,8 @@ body,
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-profit: var(--profit);
+  --color-loss: var(--loss);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -150,6 +156,16 @@ body,
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  --color-order-book-buy: var(--order-book-buy);
+  --color-order-book-sell: var(--order-book-sell);
+  --color-order-text-buy: var(--order-text-buy);
+  --color-order-text-sell: var(--order-text-sell);
+
+  --order-book-buy: oklch(0.2687 0.0312 164.02);
+  --order-book-sell: oklch(0.2532 0.0435 8.79);
+  --order-text-buy: oklch(0.5933 0.1189 164.8);
+  --order-text-sell: oklch(0.6367 0.2082 28);
 
   --shadow-2xs: var(--shadow-2xs);
   --shadow-xs: var(--shadow-xs);
@@ -216,6 +232,19 @@ body {
 @layer utilities {
   .font-gmarket {
     font-family: var(--font-gmarket);
+  }
+
+  /* Align numeric glyphs to fixed widths to prevent layout shift */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .text-profit {
+    color: var(--profit);
+  }
+
+  .text-loss {
+    color: var(--loss);
   }
 
   .line-clamp-1 {
@@ -381,4 +410,203 @@ body {
 
 .duration-200 {
   animation-duration: 200ms;
+}
+
+.react-grid-layout {
+  position: relative;
+}
+
+.react-grid-item {
+  transition: none !important;
+}
+
+.react-grid-layout {
+  position: relative;
+  transition: height 200ms ease;
+}
+
+/* .react-grid-item.cssTransforms {
+  transition-property: transform;
+} */
+
+.react-grid-item.resizing {
+  z-index: 1;
+  will-change: width, height;
+}
+
+.react-grid-item.react-draggable-dragging {
+  transition: none;
+  z-index: 3;
+  will-change: transform;
+}
+
+.react-grid-item > .react-resizable-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  cursor: se-resize;
+}
+
+/* Prevent flashing/flickering on initial render */
+.react-grid-layout {
+  transition: none !important;
+}
+
+.react-grid-item {
+  transition: none !important;
+}
+
+/* .react-grid-item.cssTransforms {
+  transition: none !important;
+} */
+
+.react-grid-item > .react-resizable-handle::after {
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 5px;
+  height: 5px;
+  border-right: 2px solid rgba(0, 0, 0, 0.4);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.4);
+}
+
+/* Dark theme support for resize handles */
+.dark .react-grid-item > .react-resizable-handle::after {
+  border-right: 2px solid rgba(255, 255, 255, 0.4);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.4);
+}
+
+/* SMOOTH ANTI-FLASHING SOLUTION */
+.react-grid-layout {
+  opacity: 0 !important;
+  transition: opacity 0.3s ease-in !important;
+}
+
+.react-grid-layout.mounted {
+  opacity: 1 !important;
+}
+
+.react-grid-item {
+  /* transition: none !important; */
+  /* transform: none !important; */
+}
+
+.react-grid-item.cssTransforms {
+  /* transition: none !important; */
+  /* transform: none !important; */
+}
+
+/* Fix flickering/red background on click while preserving drag/resize */
+.react-grid-item {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+}
+
+.react-grid-item:focus {
+  outline: none !important;
+  background: transparent !important;
+}
+
+.react-grid-item:active {
+  background: transparent !important;
+  outline: none !important;
+}
+
+.react-grid-item:hover {
+  background: transparent !important;
+}
+
+/* Only show visual feedback during actual dragging */
+.react-grid-item.react-draggable-dragging {
+  background: rgba(255, 0, 0, 0.1) !important;
+  border: 1px solid rgba(255, 0, 0, 0.3) !important;
+  z-index: 1000 !important;
+}
+
+/* Only show visual feedback during actual resizing */
+.react-grid-item.resizing {
+  background: rgba(0, 255, 0, 0.1) !important;
+  border: 1px solid rgba(0, 255, 0, 0.3) !important;
+  z-index: 1000 !important;
+}
+
+/* TP/SL Slider Gradients */
+.profit-slider [role="slider"] {
+  @apply bg-white shadow-lg;
+}
+
+.profit-slider [data-orientation="horizontal"] > span:first-child {
+  background: linear-gradient(to right, #86efac, #22c55e, #15803d, #14532d);
+
+  @apply h-full rounded-full;
+}
+
+.loss-slider [role="slider"] {
+  @apply bg-white shadow-lg;
+}
+
+.loss-slider [data-orientation="horizontal"] > span:first-child {
+  background: linear-gradient(to right, #fca5a5, #ef4444, #b91c1c, #7f1d1d);
+
+  @apply h-full rounded-full;
+}
+
+/* Table Sorting Fix for React Grid Layout */
+.table-sortable {
+  pointer-events: auto !important;
+}
+
+.table-sortable * {
+  pointer-events: auto !important;
+}
+
+.table-sortable .react-grid-item {
+  pointer-events: none !important;
+}
+
+.table-sortable .react-grid-item .table-sortable {
+  pointer-events: auto !important;
+}
+
+/* Market Widget Interactive Elements Fix */
+.market-widget-interactive {
+  pointer-events: auto !important;
+}
+
+.market-widget-interactive * {
+  pointer-events: auto !important;
+}
+
+.market-widget-interactive .react-grid-item {
+  pointer-events: none !important;
+}
+
+.market-widget-interactive .react-grid-item .market-widget-interactive {
+  pointer-events: auto !important;
+}
+
+/* Drag Handle Styles for React Grid Layout */
+.drag-handle {
+  pointer-events: auto !important;
+  user-select: none;
+}
+
+.drag-handle:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Prevent dragging from content areas */
+.react-grid-item > *:not(.drag-handle) {
+  pointer-events: auto !important;
+}
+
+/* Ensure grid items don't interfere with content interactions */
+.react-grid-item:not(.react-draggable-dragging):not(.resizing) {
+  pointer-events: none !important;
+}
+
+.react-grid-item:not(.react-draggable-dragging):not(.resizing) > * {
+  pointer-events: auto !important;
 }

@@ -24,7 +24,6 @@ function Calendar({
   buttonVariant?: React.ComponentProps<typeof Button>["variant"];
 }) {
   const defaultClassNames = getDefaultClassNames();
-  const currentYear = new Date().getFullYear();
 
   return (
     <DayPicker
@@ -41,8 +40,6 @@ function Calendar({
           date.toLocaleString("default", { month: "short" }),
         ...formatters,
       }}
-      fromYear={currentYear}
-      toYear={currentYear + 10}
       classNames={{
         root: cn("w-fit", defaultClassNames.root),
         months: cn(
@@ -77,7 +74,7 @@ function Calendar({
           defaultClassNames.dropdown_root
         ),
         dropdown: cn(
-          "absolute inset-0 opacity-0 bg-background",
+          "absolute bg-popover inset-0 opacity-0 pointer-events-auto",
           defaultClassNames.dropdown
         ),
         caption_label: cn(
@@ -183,14 +180,8 @@ function CalendarDayButton({
 }: React.ComponentProps<typeof DayButton>) {
   const defaultClassNames = getDefaultClassNames();
 
-  const ref = React.useRef<HTMLButtonElement>(null);
-  React.useEffect(() => {
-    if (modifiers.focused) ref.current?.focus();
-  }, [modifiers.focused]);
-
   return (
     <Button
-      ref={ref}
       variant="ghost"
       size="icon"
       data-day={day.date.toLocaleDateString()}

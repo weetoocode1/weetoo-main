@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   experimental: {
     viewTransition: true,
   },
+
   webpack: (config, { isServer }) => {
     // Exclude Node.js-only packages from client-side bundling
     if (!isServer) {

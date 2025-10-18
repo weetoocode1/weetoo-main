@@ -49,7 +49,7 @@ interface MarketData {
 // API functions
 async function fetchTicker(symbol: string): Promise<TickerData> {
   const response = await fetch(
-    `https://api.binance.us/api/v3/ticker/24hr?symbol=${symbol}`
+    `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`
   );
   if (!response.ok) throw new Error("Failed to fetch ticker");
   const data = await response.json();
@@ -66,7 +66,7 @@ async function fetchTicker(symbol: string): Promise<TickerData> {
 
 async function fetchOrderBook(symbol: string): Promise<OrderBookData> {
   const response = await fetch(
-    `https://api.binance.us/api/v3/depth?symbol=${symbol}&limit=6`
+    `https://fapi.binance.com/fapi/v1/depth?symbol=${symbol}`
   );
   if (!response.ok) throw new Error("Failed to fetch order book");
   const data = await response.json();
@@ -78,7 +78,7 @@ async function fetchOrderBook(symbol: string): Promise<OrderBookData> {
 
 async function fetchTrades(symbol: string): Promise<TradeData[]> {
   const response = await fetch(
-    `https://api.binance.us/api/v3/trades?symbol=${symbol}&limit=30`
+    `https://fapi.binance.com/fapi/v1/trades?symbol=${symbol}`
   );
   if (!response.ok) throw new Error("Failed to fetch trades");
   return response.json();
@@ -121,7 +121,7 @@ export function useBinanceCandles(symbol: string, interval: string = "1d") {
     queryKey: ["candles", symbol, interval],
     queryFn: async () => {
       const response = await fetch(
-        `https://api.binance.us/api/v3/klines?symbol=${symbol}&interval=${interval}`
+        `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}`
       );
       if (!response.ok) throw new Error("Failed to fetch candles");
       const klines = await response.json();
@@ -146,7 +146,7 @@ export async function fetchBinanceCandles(
   interval: string = "1d"
 ): Promise<CandleData[]> {
   const response = await fetch(
-    `https://api.binance.us/api/v3/klines?symbol=${symbol}&interval=${interval}`
+    `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}`
   );
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);

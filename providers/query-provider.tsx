@@ -14,6 +14,9 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
             retry: 3,
             retryDelay: (attemptIndex) =>
               Math.min(1000 * 2 ** attemptIndex, 30000),
+            refetchOnWindowFocus: false, // Prevent refetch on tab switch
+            refetchOnMount: false, // Prevent refetch on component mount if data exists
+            refetchOnReconnect: true, // Only refetch on network reconnect
           },
         },
       })
@@ -22,7 +25,7 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      <ReactQueryDevtools initialIsOpen={false} />
+      {/* <ReactQueryDevtools initialIsOpen={false} /> */}
     </QueryClientProvider>
   );
 }

@@ -922,6 +922,15 @@
         "orderType": "주문 유형",
         "quantity": "수량",
         "price": "가격",
+        "entryVsMarket": "진입가 vs 시장가",
+        "riskReward": "리스크 / 리워드",
+        "riskOfAccount": "계정 대비 리스크 %",
+        "riskOfPosition": "포지션 대비 리스크 %",
+        "risk": "리스크",
+        "reward": "리워드",
+        "marketContext": "마켓 컨텍스트",
+        "entry": "진입",
+        "market": "시장",
         "leverage": "레버리지",
         "margin": "증거금",
         "fee": "수수료",
@@ -935,6 +944,9 @@
         "caution": "주의",
         "atRisk": "위험",
         "distance": "청산까지 거리: {percent}%"
+      },
+      "warnings": {
+        "highAccountRisk": "경고: 계정 리스크가 2%를 초과했습니다"
       },
       "positionSize": {
         "title": "포지션 사이즈 어드바이저",
@@ -4887,6 +4899,7 @@
     "loading": "로딩 중...",
     "error": "오류",
     "success": "성공",
-    "identityVerificationRequired": "본인 인증 필요"
+    "identityVerificationRequired": "본인 인증 필요",
+    "na": "N/A"
   }
 }
