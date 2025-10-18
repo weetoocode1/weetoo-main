@@ -44,9 +44,19 @@ async function getWebSocketUrl(): Promise<string> {
     console.warn("Failed to get WebSocket URL from API:", error);
   }
 
-  // 3) Safe final fallback using current location
+  // 3) Safe final fallback - use Bybit directly for production
   const isSecure =
     typeof window !== "undefined" && window.location.protocol === "https:";
+
+  // For production (Vercel), use Bybit directly
+  if (
+    typeof window !== "undefined" &&
+    window.location.hostname.includes("vercel.app")
+  ) {
+    return "wss://stream.bybit.com/v5/public/linear";
+  }
+
+  // For local development, use local server
   const scheme = isSecure ? "wss" : "ws";
   const host =
     typeof window !== "undefined" ? window.location.hostname : "localhost";
