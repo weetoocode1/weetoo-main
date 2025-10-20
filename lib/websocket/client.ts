@@ -2,16 +2,16 @@
 // Client-side utility for connecting to our WebSocket server
 // Handles connection management and message parsing
 
-import { EventEmitter } from "events";
 import type {
-  TickerData,
-  OrderBookData,
-  TradeData,
-  KlineData,
   ConnectionStatus,
-  Symbol,
   Interval,
+  KlineData,
+  OrderBookData,
+  Symbol,
+  TickerData,
+  TradeData,
 } from "@/types/market";
+import { EventEmitter } from "events";
 
 // Get WebSocket URL dynamically
 async function getWebSocketUrl(): Promise<string> {
