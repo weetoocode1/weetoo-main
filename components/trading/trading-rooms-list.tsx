@@ -282,7 +282,6 @@ export function TradingRoomsList() {
     },
   });
 
-  // Optimized React Query fetcher
   const fetchTradingRooms = async (
     ctx: QueryFunctionContext<[string, string, string[], string[]], number>
   ): Promise<TradingRoomsPage> => {

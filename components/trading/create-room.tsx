@@ -477,7 +477,7 @@ export function CreateRoom() {
     setSubmitting(false);
     setOpen(false);
     toast.success(t("toasts.created"));
-    window.open(`/room/${data.id}`, "_blank");
+    window.open(`/trading-room/${data.id}`, "_blank");
   }
 
   return (
