@@ -47,8 +47,8 @@ export function QuantityInput({
 }: QuantityInputProps) {
   const qtyInputId = "limit-qty-input";
 
-  // Local state for input display value
-  const [inputValue, setInputValue] = useState<number>(0);
+  // Local state for input display value (allow empty string, 0, and intermediate states)
+  const [inputValue, setInputValue] = useState<number | string>("");
 
   const lastValueRef =
     typeof window !== "undefined" && window._limit_last_value_ref
@@ -70,10 +70,12 @@ export function QuantityInput({
       }
       lastValueRef.current = capital;
       const orderValue = capital * (leverage || 1);
-      setInputValue(Math.round(orderValue * 100) / 100);
+      const display = Math.round(orderValue * 100) / 100;
+      setInputValue(display === 0 ? "" : display);
     } else {
       // Switching to qty mode - show current BTC quantity
-      setInputValue(Math.round((qty || 0) * 100) / 100); // Round to 2 decimals (display)
+      const displayQty = Math.round((qty || 0) * 100) / 100;
+      setInputValue(displayQty === 0 ? "" : displayQty); // keep empty when 0 unless user types
     }
   }, [
     placementMode,
@@ -85,7 +87,26 @@ export function QuantityInput({
   ]);
 
   // Handle input change based on mode
-  const handleInputChange = (num: number) => {
+  const handleInputChange = (raw: string) => {
+    // Allow empty string to keep field blank
+    if (raw === "") {
+      setInputValue("");
+      setQty(0);
+      if (onValueModeCapitalChange) onValueModeCapitalChange(0);
+      return;
+    }
+
+    // Allow intermediate states like "0." or "0.0" while typing
+    if (raw === "0." || raw.endsWith(".") || /^0\.0*$/.test(raw)) {
+      setInputValue(raw);
+      return;
+    }
+
+    const num = Number(raw);
+    if (isNaN(num)) {
+      return; // Invalid input, don't update
+    }
+
     setInputValue(num);
 
     if (placementMode === "value") {
@@ -122,9 +143,9 @@ export function QuantityInput({
   // Reflect external qty changes into the input when in qty mode (e.g., 10%/25% clicks)
   useEffect(() => {
     if (placementMode === "qty") {
-      setInputValue(Math.round((qty || 0) * 100) / 100);
+      const displayQty = Math.round((qty || 0) * 100) / 100;
+      setInputValue(displayQty === 0 ? "" : displayQty);
     }
-     
   }, [qty, placementMode]);
 
   // Handle mode change
@@ -145,7 +166,8 @@ export function QuantityInput({
           id={qtyInputId}
           type="number"
           value={inputValue}
-          onChange={(e) => handleInputChange(Number(e.target.value))}
+          onChange={(e) => handleInputChange(e.target.value)}
+          placeholder="0"
           className="pr-20 h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
         <Dialog>

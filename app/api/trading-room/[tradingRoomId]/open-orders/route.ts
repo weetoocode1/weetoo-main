@@ -261,14 +261,24 @@ export async function PATCH(
           { status: 500 }
         );
 
-      // Deduct balance directly
+      // Fetch current balance and prevent negative balance
       const { data: roomRow } = await supabase
         .from("trading_rooms")
         .select("virtual_balance")
         .eq("id", tradingRoomId)
         .single();
       const current = Number(roomRow?.virtual_balance ?? 0);
-      const nextBalance = current - (initialMargin + openFee);
+
+      // Strict guard: ensure sufficient funds before proceeding
+      const requiredCost = initialMargin + openFee;
+      if (!Number.isFinite(current) || current < requiredCost) {
+        return NextResponse.json(
+          { error: "Insufficient balance for required margin and fees" },
+          { status: 400 }
+        );
+      }
+
+      const nextBalance = Math.max(0, current - requiredCost);
       const { error: balErr } = await supabase
         .from("trading_rooms")
         .update({ virtual_balance: nextBalance })

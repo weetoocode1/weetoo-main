@@ -61,9 +61,20 @@ export class BybitUdfDatafeed implements IDatafeedChartApi, IExternalDatafeed {
   private subs = new Map<string, SubscriptionData>();
   private lastPrice = new Map<string, number>();
   private priceType: "lastPrice" | "markPrice";
+  private tickerDataCallback?: (symbol: string) => {
+    lastPrice: string;
+    markPrice: string;
+  };
 
-  constructor(priceType: "lastPrice" | "markPrice" = "lastPrice") {
+  constructor(
+    priceType: "lastPrice" | "markPrice" = "lastPrice",
+    tickerDataCallback?: (symbol: string) => {
+      lastPrice: string;
+      markPrice: string;
+    }
+  ) {
     this.priceType = priceType;
+    this.tickerDataCallback = tickerDataCallback;
     this.wsClient = new WebSocketClient();
     this.wsClient.connect();
     this.wsClient.on("kline", (k: BybitKlineData) => {
@@ -133,10 +144,24 @@ export class BybitUdfDatafeed implements IDatafeedChartApi, IExternalDatafeed {
         const symbol: string = tkr.symbol || "";
         if (!symbol) return;
 
+        // Use synchronized ticker data if available, otherwise use WebSocket data
+        let lastPrice = tkr.lastPrice || "0";
+        let markPrice = tkr.markPrice || "0";
+
+        if (this.tickerDataCallback) {
+          const syncedData = this.tickerDataCallback(symbol);
+          if (syncedData.lastPrice && syncedData.lastPrice !== "0") {
+            lastPrice = syncedData.lastPrice;
+          }
+          if (syncedData.markPrice && syncedData.markPrice !== "0") {
+            markPrice = syncedData.markPrice;
+          }
+        }
+
         const selectedPrice =
           this.priceType === "lastPrice"
-            ? Number(tkr.lastPrice || 0)
-            : Number(tkr.markPrice || 0);
+            ? Number(lastPrice)
+            : Number(markPrice);
 
         if (Number.isFinite(selectedPrice) && selectedPrice > 0) {
           this.lastPrice.set(symbol, selectedPrice);
@@ -601,6 +626,12 @@ export class BybitUdfDatafeed implements IDatafeedChartApi, IExternalDatafeed {
 
   updatePriceType(newPriceType: "lastPrice" | "markPrice") {
     this.priceType = newPriceType;
+  }
+
+  updateTickerCallback(
+    callback: (symbol: string) => { lastPrice: string; markPrice: string }
+  ) {
+    this.tickerDataCallback = callback;
   }
 
   // Force refresh current price for immediate chart update

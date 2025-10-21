@@ -18,6 +18,7 @@ interface LeverageDialogProps {
   onClose: () => void;
   availableBalance?: number;
   currentPrice?: number;
+  side?: "long" | "short"; // Add side parameter for liquidation calculation
 }
 
 export function LeverageDialog({
@@ -27,14 +28,21 @@ export function LeverageDialog({
   onClose,
   availableBalance = 10000,
   currentPrice = 50000,
+  side = "long",
 }: LeverageDialogProps) {
   const formatted = useMemo(() => String(Math.round(value)), [value]);
   const tickMarks = [1, 10, 25, 50, 75, 100, 125];
 
   // Real calculations using actual data
   const positionSize = (availableBalance * value) / currentPrice;
-  const marginRequired = availableBalance / value;
-  const liquidationPrice = currentPrice * (1 - 0.95 / value); // Simplified calculation
+  const marginRequired = availableBalance; // Using ALL available balance
+  const maintenanceMarginRate = 0.005; // 0.5%
+
+  // Calculate liquidation price based on side
+  const liquidationPrice =
+    side === "long"
+      ? currentPrice * (1 - 1 / value + maintenanceMarginRate) // Long: liquidated if price falls
+      : currentPrice * (1 + 1 / value - maintenanceMarginRate); // Short: liquidated if price rises
 
   // High leverage warning
   const isHighLeverage = value >= 50;
@@ -153,10 +161,14 @@ export function LeverageDialog({
               </div>
 
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Liquidation Price</span>
+                <span className="text-muted-foreground">
+                  Liquidation Price ({side})
+                </span>
                 <span
                   className={`font-medium ${
-                    liquidationPrice < currentPrice * 0.8
+                    (side === "long" &&
+                      liquidationPrice < currentPrice * 0.8) ||
+                    (side === "short" && liquidationPrice > currentPrice * 1.2)
                       ? "text-red-600"
                       : "text-foreground"
                   }`}

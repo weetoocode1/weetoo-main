@@ -110,25 +110,56 @@ export function OpenOrdersTabs({ symbol, roomId }: OpenOrdersTabsProps) {
       "TP/SL": <TpSlIndicator order={o} />,
       status: <StatusBadge status={o.status || "active"} />,
       "total value": (Number(o.limit_price) * Number(o.quantity)).toFixed(2),
-      action: "Cancel",
+      action: (
+        <button
+          type="button"
+          className="px-2 py-1 text-xs rounded border border-border hover:bg-muted/30 cursor-pointer"
+          onMouseDown={(e) => {
+            e.stopPropagation(); // Stop event bubbling up to parent grid item
+            e.preventDefault(); // Prevent default browser drag behavior
+            // This is crucial - prevents react-grid-layout from detecting drag initiation
+          }}
+          onClick={async (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            if (!roomId) return;
+            await fetch(`/api/trading-room/${roomId}/open-orders`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "cancel", orderId: o.id }),
+            });
+          }}
+          data-grid-no-drag
+          style={{
+            pointerEvents: "auto",
+            position: "relative",
+            zIndex: 9999,
+          }}
+        >
+          Cancel
+        </button>
+      ),
     })) || [];
 
-  const handleRowClick = async (row: Record<string, unknown>) => {
-    if (!roomId) return;
-    const match = data?.data?.find(
-      (o: OpenOrder) => o.symbol === (row.Symbol || row.symbol)
-    );
-    if (!match) return;
-
-    await fetch(`/api/trading-room/${roomId}/open-orders`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "cancel", orderId: match.id }),
-    });
+  const handleRowClick = async () => {
+    // No-op: actions handled by buttons above
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div
+      className="h-full flex flex-col"
+      onMouseDown={(e) => {
+        // Only stop propagation if the event target is NOT the cancel button or its immediate children.
+        const target = e.target as HTMLElement;
+        const isCancelButton = target.closest(
+          'button[data-grid-no-drag][type="button"]'
+        );
+        if (!isCancelButton) {
+          e.stopPropagation();
+        }
+      }}
+      data-grid-no-drag
+    >
       <div className="flex-1 overflow-hidden">
         <SimpleTable
           columns={columns}

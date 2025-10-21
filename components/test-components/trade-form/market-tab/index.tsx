@@ -1,6 +1,7 @@
 import { useTickerData } from "@/hooks/websocket/use-market-data";
 import type { Symbol } from "@/types/market";
 import { useCallback, useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { ExecutionTiming } from "../execution-timing";
 import { LongShortButtons } from "../limit-tab/long-short-buttons";
 import { PercentageButtons } from "../limit-tab/percentage-buttons";
@@ -33,6 +34,7 @@ export function MarketTab({
 
   currentPrice,
 }: MarketTabProps) {
+  const queryClient = useQueryClient();
   const [qty, setQty] = useState(0);
   const [placementMode, setPlacementMode] = useState<"qty" | "value">("qty");
   const [unitSymbol, setUnitSymbol] = useState<"BTC" | "USDT">("BTC");
@@ -87,6 +89,45 @@ export function MarketTab({
 
   const handleConfirmPrefs = () => {
     setUnitSymbol(placementMode === "value" ? "USDT" : "BTC");
+  };
+
+  // Handle percentage selection for market orders
+  const handlePercentageSelect = (percentage: number) => {
+    if (!price || price <= 0) return;
+
+    // If percentage is 0, clear the selection
+    if (percentage === 0) {
+      setQty(0);
+      setValueModeCapital(0);
+      // Clear stored capital
+      if (typeof window !== "undefined") {
+        window._limit_user_capital_ref = { current: 0 };
+      }
+      return;
+    }
+
+    // Calculate user's capital (their own money they want to spend)
+    // Convert percentage from whole number (10) to decimal (0.1)
+    const userCapital = availableBalance * (percentage / 100);
+
+    // Calculate position size using leverage: Position Size = User Capital × Leverage
+    const positionSize = userCapital * leverage;
+
+    // Calculate quantity: Quantity = Position Size ÷ Price
+    const computedQty = positionSize / price;
+
+    if (Number.isFinite(computedQty)) {
+      setQty(computedQty);
+      setValueModeCapital(userCapital);
+      // Don't force mode change - let user stay in their chosen mode
+
+      // Remember the user's capital for future leverage changes
+      if (typeof window !== "undefined") {
+        window._limit_user_capital_ref = {
+          current: userCapital,
+        };
+      }
+    }
   };
 
   // Mirror Limit tab: recompute qty when leverage/price changes using stored capital
@@ -174,35 +215,58 @@ export function MarketTab({
               slEnabled && stopLossValue > 0 ? stopLossValue : null,
           };
 
-          await fetch(`/api/trading-room/${roomId}/scheduled-orders`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(scheduledOrderData),
-          });
+          const response = await fetch(
+            `/api/trading-room/${roomId}/scheduled-orders`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(scheduledOrderData),
+            }
+          );
+
+          if (response.ok) {
+            // Optimistically invalidate scheduled orders query
+            queryClient.invalidateQueries({
+              queryKey: ["scheduled-orders", roomId],
+            });
+          }
 
           return;
         }
 
         // Execute immediately for "now" timing
-        await fetch(`/api/trading-room/${roomId}/positions/open`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            symbol: params.symbol || (symbol as string) || "BTCUSDT",
-            side: params.side.toLowerCase(),
-            quantity: params.qty,
-            entryPrice: params.price,
-            leverage: params.leverage || 1,
-            orderType: "market",
-            // TP/SL parameters
-            tpEnabled: tpEnabled && takeProfitValue > 0,
-            slEnabled: slEnabled && stopLossValue > 0,
-            takeProfitPrice:
-              tpEnabled && takeProfitValue > 0 ? takeProfitValue : null,
-            stopLossPrice:
-              slEnabled && stopLossValue > 0 ? stopLossValue : null,
-          }),
-        });
+        const response = await fetch(
+          `/api/trading-room/${roomId}/positions/open`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              symbol: params.symbol || (symbol as string) || "BTCUSDT",
+              side: params.side.toLowerCase(),
+              quantity: params.qty,
+              entryPrice: params.price,
+              leverage: params.leverage || 1,
+              orderType: "market",
+              // TP/SL parameters
+              tpEnabled: tpEnabled && takeProfitValue > 0,
+              slEnabled: slEnabled && stopLossValue > 0,
+              takeProfitPrice:
+                tpEnabled && takeProfitValue > 0 ? takeProfitValue : null,
+              stopLossPrice:
+                slEnabled && stopLossValue > 0 ? stopLossValue : null,
+            }),
+          }
+        );
+
+        if (response.ok) {
+          // Optimistically invalidate queries to trigger immediate refetch
+          queryClient.invalidateQueries({
+            queryKey: ["open-positions", roomId],
+          });
+          queryClient.invalidateQueries({
+            queryKey: ["open-orders", roomId],
+          });
+        }
       } catch (e) {
         console.error(e);
       }
@@ -220,6 +284,7 @@ export function MarketTab({
       slEnabled,
       takeProfitValue,
       stopLossValue,
+      queryClient,
     ]
   );
 
@@ -240,46 +305,7 @@ export function MarketTab({
         onValueModeCapitalChange={setValueModeCapital}
       />
 
-      <PercentageButtons
-        onPercentageSelect={(percentage) => {
-          // percentage is 10, 25, 50, 75, 100 (whole numbers from buttons) or 0 (deactivated)
-          if (!price || price <= 0) return;
-
-          // If percentage is 0, clear the selection
-          if (percentage === 0) {
-            setQty(0);
-            setValueModeCapital(0);
-            // Clear stored capital
-            if (typeof window !== "undefined") {
-              window._limit_user_capital_ref = { current: 0 };
-            }
-            return;
-          }
-
-          // Calculate user's capital (their own money they want to spend)
-          // Convert percentage from whole number (10) to decimal (0.1)
-          const userCapital = availableBalance * (percentage / 100);
-
-          // Calculate position size using leverage: Position Size = User Capital × Leverage
-          const positionSize = userCapital * leverage;
-
-          // Calculate quantity: Quantity = Position Size ÷ Price
-          const computedQty = positionSize / price;
-
-          if (Number.isFinite(computedQty)) {
-            setQty(computedQty);
-            setValueModeCapital(userCapital);
-            // Don't force mode change - let user stay in their chosen mode
-
-            // Remember the user's capital for future leverage changes
-            if (typeof window !== "undefined") {
-              window._limit_user_capital_ref = {
-                current: userCapital,
-              };
-            }
-          }
-        }}
-      />
+      <PercentageButtons onPercentageSelect={handlePercentageSelect} />
 
       <ValueCostSection
         price={price}

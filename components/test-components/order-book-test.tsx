@@ -8,17 +8,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   useOrderBookData,
   useTickerData,
   useTradeData,
 } from "@/hooks/websocket/use-market-data";
 import type { Symbol } from "@/types/market";
-import {
-  TooltipProvider,
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from "@/components/ui/tooltip";
 import { MoreHorizontalIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -53,9 +53,10 @@ interface OrderBookTestProps {
 
 export function OrderBookTest({ symbol }: OrderBookTestProps) {
   const depth = 50;
-  const ob = useOrderBookData(symbol || "BTCUSDT", depth);
-  const ticker = useTickerData(symbol || "BTCUSDT");
-  const trades = useTradeData(symbol || "BTCUSDT");
+  const currentSymbol = symbol || "BTCUSDT";
+  const ob = useOrderBookData(currentSymbol, depth);
+  const ticker = useTickerData(currentSymbol);
+  const trades = useTradeData(currentSymbol);
   const [activeTab, setActiveTab] = useState<"orderbook" | "trades">(
     "orderbook"
   );
@@ -65,8 +66,8 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
   >("composite");
   // Derive base asset (e.g., BTC from BTCUSDT)
   const baseAsset = useMemo(
-    () => (symbol || "BTCUSDT").replace(/USDT$/i, "").toUpperCase(),
-    [symbol]
+    () => currentSymbol.replace(/USDT$/i, "").toUpperCase(),
+    [currentSymbol]
   );
   const [totalUnit, setTotalUnit] = useState<"USDT" | string>(baseAsset);
   useEffect(() => {
@@ -144,21 +145,27 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
 
   // useEffect(() => {
   //   if (trades) {
-  //     console.log("[WS] trades payload", trades.slice(0, 3));
+  //     // console.log("[WS] trades payload", {
+  //     //   count: trades.length,
+  //     //   trades: trades.slice(0, 3),
+  //     //   sampleTrade: trades[0],
+  //     //   sampleTradeKeys: trades[0] ? Object.keys(trades[0]) : [],
+  //     // });
+  //   } else {
+  //     // console.log("[WS] No trades data received yet");
   //   }
   // }, [trades]);
 
   useEffect(() => {
     if (!ob) return;
 
-    // Add logging to debug order book processing
     // console.log("🔄 Processing order book:", {
     //   type: ob.type,
     //   symbol: ob.symbol,
     //   bidsCount: ob.bids?.length || 0,
     //   asksCount: ob.asks?.length || 0,
-    //   currentBidsSize: bidsMapRef.current.size,
-    //   currentAsksSize: asksMapRef.current.size,
+    //   sampleBid: ob.bids?.[0],
+    //   sampleAsk: ob.asks?.[0],
     //   timestamp: new Date().toISOString(),
     // });
 
@@ -168,8 +175,6 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
     // console.log("🔍 Snapshot detection:", {
     //   type: ob.type,
     //   isSnapshot,
-    //   currentBidsSize: bidsMapRef.current.size,
-    //   currentAsksSize: asksMapRef.current.size,
     //   hasData: (ob.bids?.length || 0) > 0 || (ob.asks?.length || 0) > 0,
     // });
 
@@ -262,7 +267,7 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
           qty: x.qty,
           side: asc ? "Sell" : "Buy",
           size: x.qty,
-          symbol: "BTCUSDT",
+          symbol: currentSymbol,
           total: total,
           currentValue: currentValue,
           totalValue: totalValue,
@@ -277,7 +282,6 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
       bids: build(bidsMapRef.current, false),
     };
 
-    // Direct update - no more debouncing, unified throttling in bybit-client
     // console.log("🔄 UI Order Book Update (Direct):", {
     //   asksCount: newMergedBook.asks.length,
     //   bidsCount: newMergedBook.bids.length,
@@ -423,22 +427,70 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
   // Live Recent Trades - using Bybit-compatible structure
   const recentTrades = useMemo(() => {
     const src = trades ?? [];
-    return src.slice(0, 50).map((t) => ({
-      price: parseFloat((t.execPrice as string) || (t.price as string) || "0"),
-      qty: parseFloat((t.execQty as string) || (t.qty as string) || "0"),
-      time: t.execTime
-        ? new Date(t.execTime as string).toLocaleTimeString([], {
+    // console.log("🔄 Processing trades data:", {
+    //   tradesCount: src.length,
+    //   sampleTrade: src[0],
+    //   allTrades: src.slice(0, 3),
+    // });
+
+    return src.slice(0, 50).map((t) => {
+      // Use the correct field names from Bybit API
+      const price = parseFloat(
+        (t.price as string) || (t.execPrice as string) || "0"
+      );
+      const qty = parseFloat((t.qty as string) || (t.execQty as string) || "0");
+
+      // Handle time conversion
+      let timeStr = "";
+      if (t.time) {
+        const timeValue = t.time as string;
+        // Check if it's a timestamp (number) or ISO string
+        if (/^\d+$/.test(timeValue)) {
+          timeStr = new Date(parseInt(timeValue)).toLocaleTimeString([], {
             hour12: false,
-          })
-        : new Date(
-            parseInt((t.time as string) || Date.now().toString())
-          ).toLocaleTimeString([], {
+          });
+        } else {
+          timeStr = new Date(timeValue).toLocaleTimeString([], {
             hour12: false,
-          }),
-      type: ((t.side as string) || "Buy").toLowerCase(),
-      execId: (t.execId as string) || (t.tradeId as string),
-      tickDirection: t.tickDirection as string,
-    }));
+          });
+        }
+      } else if (t.execTime) {
+        timeStr = new Date(t.execTime as string).toLocaleTimeString([], {
+          hour12: false,
+        });
+      } else {
+        timeStr = new Date().toLocaleTimeString([], { hour12: false });
+      }
+
+      // Determine trade type based on side
+      let tradeType = "buy";
+      const side = (t.side as string) || "";
+      if (side.toLowerCase() === "sell") {
+        tradeType = "sell";
+      } else if (side.toLowerCase() === "buy") {
+        tradeType = "buy";
+      } else {
+        // Fallback to tickDirection if available
+        const tickDirection = (t.tickDirection as string) || "";
+        if (tickDirection.toLowerCase().includes("plus")) {
+          tradeType = "buy";
+        } else if (tickDirection.toLowerCase().includes("minus")) {
+          tradeType = "sell";
+        }
+      }
+
+      const trade = {
+        price,
+        qty,
+        time: timeStr,
+        type: tradeType,
+        execId: (t.execId as string) || (t.tradeId as string) || "",
+        tickDirection: (t.tickDirection as string) || "",
+      };
+
+      // console.log("📊 Mapped trade:", trade);
+      return trade;
+    });
   }, [trades]);
 
   const precisionOptions = ["0.01", "0.1", "1"];

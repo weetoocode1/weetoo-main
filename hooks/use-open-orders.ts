@@ -31,10 +31,11 @@ export function useOpenOrders(
       return response.json();
     },
     enabled: !!roomId,
-    staleTime: 30 * 1000, // 30 seconds - open orders change frequently
-    gcTime: 2 * 60 * 1000, // 2 minutes cache
+    staleTime: 10 * 1000, // 10 seconds - open orders change very frequently
+    gcTime: 1 * 60 * 1000, // 1 minute cache
     refetchOnWindowFocus: false,
-    refetchOnMount: false, // Use cached data if available
+    refetchOnMount: true, // Always fetch fresh data on mount
+    refetchInterval: 30 * 1000, // Refetch every 30 seconds as backup
   });
 
   // Set up Supabase Realtime subscription for instant updates

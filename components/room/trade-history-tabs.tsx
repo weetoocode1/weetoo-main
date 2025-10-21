@@ -414,12 +414,12 @@ function PositionRow({
         <div className="flex items-center gap-2">
           <span
             className={
-          unrealizedPnlWithPercent().includes("-")
-            ? "text-red-500"
-            : "text-green-500"
+              unrealizedPnlWithPercent().includes("-")
+                ? "text-red-500"
+                : "text-green-500"
             }
-      >
-        {unrealizedPnlWithPercent()}
+          >
+            {unrealizedPnlWithPercent()}
           </span>
           {(() => {
             const m = marginLevel();
@@ -884,7 +884,7 @@ export function TradeHistoryTabs({
   const sinceResetAt = latestResetData?.latest?.reset_at;
 
   const { openPositions, closedPositions, closePosition, closeAllPositions } =
-    usePositions(roomId, { sinceResetAt }) as {
+    usePositions(roomId, { sinceResetAt }) as unknown as {
       openPositions: OpenPosition[];
       closedPositions: ClosedPosition[];
       closePosition: (id: string, price: number) => Promise<void>;
@@ -1155,23 +1155,23 @@ export function TradeHistoryTabs({
                   <AlertDialogAction
                     onClick={async () => {
                       try {
-                      await closeAllPositions(
-                        async (position: OpenPosition) => {
-                          // Fetch current price for this position's symbol
-                          const response = await fetch(
-                            `https://api.binance.us/api/v3/ticker/24hr?symbol=${position.symbol}`
-                          );
-                          if (response.ok) {
-                            const data = await response.json();
-                            return parseFloat(data.lastPrice);
+                        await closeAllPositions(
+                          async (position: OpenPosition) => {
+                            // Fetch current price for this position's symbol
+                            const response = await fetch(
+                              `https://api.binance.us/api/v3/ticker/24hr?symbol=${position.symbol}`
+                            );
+                            if (response.ok) {
+                              const data = await response.json();
+                              return parseFloat(data.lastPrice);
+                            }
+                            return position.entry_price; // Fallback to entry price if API fails
                           }
-                          return position.entry_price; // Fallback to entry price if API fails
-                        }
-                      );
-                      mutate(VIRTUAL_BALANCE_KEY(roomId)); // Refetch balance after closing all
-                      mutate(TRADER_PNL_KEY(roomId)); // Refetch P&L stats after closing all
-                      if (sinceResetAt) {
-                        mutate(
+                        );
+                        mutate(VIRTUAL_BALANCE_KEY(roomId)); // Refetch balance after closing all
+                        mutate(TRADER_PNL_KEY(roomId)); // Refetch P&L stats after closing all
+                        if (sinceResetAt) {
+                          mutate(
                             `${TRADER_PNL_KEY(
                               roomId
                             )}?since=${encodeURIComponent(sinceResetAt)}`
@@ -1386,7 +1386,7 @@ export function TradeHistoryTabs({
                             className="text-muted-foreground font-bold text-xs p-2 text-left whitespace-nowrap"
                           >
                             <div className="flex items-center gap-1">
-                            {tr("headers.pnl")}
+                              {tr("headers.pnl")}
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>

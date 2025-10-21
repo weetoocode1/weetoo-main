@@ -7,7 +7,7 @@ interface TpSlHeaderProps {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
   mode: "basic" | "advanced";
-  onToggleMode: () => void;
+  onToggleMode?: () => void;
 }
 
 export const TpSlHeader = ({

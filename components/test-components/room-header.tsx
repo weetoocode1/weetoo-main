@@ -703,7 +703,15 @@ export function RoomHeader({
           </span>
           <span className="text-muted-foreground">|</span>
           <span className="text-muted-foreground">Cumulative Profit:</span>
-          <span className="font-semibold tabular-nums">
+          <span
+            className={`font-semibold tabular-nums ${
+              cumulativeProfitRatePct > 0
+                ? "text-profit"
+                : cumulativeProfitRatePct < 0
+                ? "text-loss"
+                : "text-muted-foreground"
+            }`}
+          >
             {cumulativeProfitRatePct.toFixed(2)}%
           </span>
         </div>
@@ -1000,7 +1008,15 @@ export function RoomHeader({
             </span>
             <span className="text-muted-foreground">|</span>
             <span className="text-muted-foreground">Profit:</span>
-            <span className="font-semibold tabular-nums">
+            <span
+              className={`font-semibold tabular-nums ${
+                cumulativeProfitRatePct > 0
+                  ? "text-profit"
+                  : cumulativeProfitRatePct < 0
+                  ? "text-loss"
+                  : "text-muted-foreground"
+              }`}
+            >
               {cumulativeProfitRatePct.toFixed(1)}%
             </span>
           </div>

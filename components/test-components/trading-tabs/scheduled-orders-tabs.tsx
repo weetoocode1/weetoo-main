@@ -119,14 +119,6 @@ export function ScheduledOrdersTabs({ roomId }: ScheduledOrdersTabsProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [targetOrderId, setTargetOrderId] = useState<string | null>(null);
 
-  // Prevent react-grid-layout drag/resize from hijacking clicks in this panel
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
-  const handlePointerDown = (e: React.PointerEvent) => {
-    e.stopPropagation();
-  };
-
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
@@ -248,18 +240,16 @@ export function ScheduledOrdersTabs({ roomId }: ScheduledOrdersTabsProps) {
             data-grid-no-drag
             draggable={false}
             onMouseDown={(e) => {
-              e.stopPropagation();
-              if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) {
-                e.nativeEvent.stopImmediatePropagation();
-              }
-              e.preventDefault();
-              setTargetOrderId(order.id);
-              setConfirmOpen(true);
+              e.stopPropagation(); // Stop event bubbling up to parent grid item
+              e.preventDefault(); // Prevent default browser drag behavior
+              // This is crucial - prevents react-grid-layout from detecting drag initiation
             }}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
+              setTargetOrderId(order.id);
+              setConfirmOpen(true);
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
@@ -312,8 +302,16 @@ export function ScheduledOrdersTabs({ roomId }: ScheduledOrdersTabsProps) {
   return (
     <div
       className="h-full flex flex-col"
-      onMouseDown={handleMouseDown}
-      onPointerDown={handlePointerDown}
+      onMouseDown={(e) => {
+        // Only stop propagation if the event target is NOT the cancel button or its immediate children.
+        const target = e.target as HTMLElement;
+        const isCancelButton = target.closest(
+          'button[data-grid-no-drag][type="button"]'
+        );
+        if (!isCancelButton) {
+          e.stopPropagation();
+        }
+      }}
       data-grid-no-drag
     >
       <div className="flex-1 overflow-hidden">

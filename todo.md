@@ -495,3 +495,12 @@ Orange + Red (loss) = ❌ Clash (both aggressive)
    text
    Yellow = "Professional trading platform" (like the big guys)
    Orange = "Innovative startup" (less established feeling)
+
+[v] Quickly closing issue - if I hit close it should remove quickly but there is delay
+[v] Time zone
+[v] Redirect issue
+[v] Limit market issue
+[v] Chart price are not moving in sync with order book
+[v] Virtual balance negative issue.
+[v] Lag in the position tab.
+[v] In the tp/sl number issue.

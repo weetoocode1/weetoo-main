@@ -39,8 +39,8 @@ export function QuantityMarketInput({
 }: QuantityMarketInputProps) {
   const qtyInputId = "limit-qty-input";
 
-  // Local input value mirroring Limit tab logic
-  const [inputValue, setInputValue] = useState<number>(0);
+  // Local input value mirroring Limit tab logic (allow empty, 0, and intermediate states)
+  const [inputValue, setInputValue] = useState<number | string>("");
 
   // Update input value when mode or leverage changes
   useEffect(() => {
@@ -52,9 +52,11 @@ export function QuantityMarketInput({
         onValueModeCapitalChange?.(capital);
       }
       const orderValue = capital * (leverage || 1);
-      setInputValue(Math.round(orderValue * 100) / 100);
+      const display = Math.round(orderValue * 100) / 100;
+      setInputValue(display === 0 ? "" : display);
     } else {
-      setInputValue(Math.round((qty || 0) * 100) / 100);
+      const displayQty = Math.round((qty || 0) * 100) / 100;
+      setInputValue(displayQty === 0 ? "" : displayQty);
     }
   }, [
     placementMode,
@@ -65,7 +67,25 @@ export function QuantityMarketInput({
     onValueModeCapitalChange,
   ]);
 
-  const handleInputChange = (num: number) => {
+  const handleInputChange = (raw: string) => {
+    if (raw === "") {
+      setInputValue("");
+      setQty(0);
+      onValueModeCapitalChange?.(0);
+      return;
+    }
+
+    // Allow intermediate states like "0." or "0.0" while typing
+    if (raw === "0." || raw.endsWith(".") || /^0\.0*$/.test(raw)) {
+      setInputValue(raw);
+      return;
+    }
+
+    const num = Number(raw);
+    if (isNaN(num)) {
+      return; // Invalid input, don't update
+    }
+
     setInputValue(num);
     if (placementMode === "value") {
       const orderValue = num;
@@ -101,8 +121,9 @@ export function QuantityMarketInput({
         <Input
           id={qtyInputId}
           type="number"
-          value={Number.isFinite(inputValue) ? inputValue : 0}
-          onChange={(e) => handleInputChange(Number(e.target.value))}
+          value={inputValue}
+          placeholder="0"
+          onChange={(e) => handleInputChange(e.target.value)}
           className="pr-20 h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
         <Dialog>

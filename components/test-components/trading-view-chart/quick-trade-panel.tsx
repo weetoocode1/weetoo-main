@@ -42,7 +42,8 @@ export function QuickTradePanel({
     qty: number;
   } | null>(null);
 
-  const ticker = useTickerData((symbol as Symbol) || ("BTCUSDT" as Symbol));
+  const currentSymbol = symbol || "BTCUSDT";
+  const ticker = useTickerData(currentSymbol as Symbol);
   const lastPrice = useMemo(() => {
     const p = ticker?.lastPrice ? parseFloat(ticker.lastPrice) : 0;
     return Number.isFinite(p) ? p : 0;
@@ -77,7 +78,7 @@ export function QuickTradePanel({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          symbol: symbol || "BTCUSDT",
+          symbol: currentSymbol,
           side: dialogData.side,
           quantity: dialogData.qty,
           entryPrice: dialogData.price,
@@ -92,9 +93,9 @@ export function QuickTradePanel({
       toast.success(
         `${dialogData.side === "long" ? "Long" : "Short"} order placed`,
         {
-          description: `${dialogData.qty} ${
-            symbol || "BTCUSDT"
-          } at ${dialogData.price.toLocaleString(undefined, {
+          description: `${
+            dialogData.qty
+          } ${currentSymbol} at ${dialogData.price.toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           })}`,
@@ -323,7 +324,7 @@ export function QuickTradePanel({
             <div className="space-y-3 mb-6">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Symbol:</span>
-                <span className="font-mono">{symbol || "BTCUSDT"}</span>
+                <span className="font-mono">{currentSymbol}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Side:</span>

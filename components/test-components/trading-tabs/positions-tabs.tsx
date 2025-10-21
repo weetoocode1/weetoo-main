@@ -1,18 +1,9 @@
 "use client";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { usePositions } from "@/hooks/use-positions";
 import { useTickerData } from "@/hooks/websocket/use-market-data";
 import type { Symbol } from "@/types/market";
-import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
 import { SimpleTable } from "./shared/simple-table";
 
 interface Position {
@@ -64,6 +55,33 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
+// P&L display component with profit/loss colors
+const PnLDisplay = ({
+  value,
+  isPercentage = false,
+}: {
+  value: string;
+  isPercentage?: boolean;
+}) => {
+  const numericValue = parseFloat(value.replace(/[%$]/g, ""));
+  const isProfit = numericValue > 0;
+  const isLoss = numericValue < 0;
+
+  return (
+    <span
+      className={`font-medium tabular-nums ${
+        isProfit
+          ? "text-profit"
+          : isLoss
+          ? "text-loss"
+          : "text-muted-foreground"
+      }`}
+    >
+      {value}
+    </span>
+  );
+};
+
 // TP/SL status indicator for positions
 const PositionTpSlIndicator = ({ position }: { position: Position }) => {
   const hasTp = position.tp_enabled && position.take_profit_price;
@@ -72,19 +90,19 @@ const PositionTpSlIndicator = ({ position }: { position: Position }) => {
   const slActive = position.sl_status === "active";
 
   // Debug logging to see what data we have
-  console.log("PositionTpSlIndicator data:", {
-    id: position.id,
-    tp_enabled: position.tp_enabled,
-    sl_enabled: position.sl_enabled,
-    take_profit_price: position.take_profit_price,
-    stop_loss_price: position.stop_loss_price,
-    tp_status: position.tp_status,
-    sl_status: position.sl_status,
-    hasTp,
-    hasSl,
-    tpActive,
-    slActive,
-  });
+  // console.log("PositionTpSlIndicator data:", {
+  //   id: position.id,
+  //   tp_enabled: position.tp_enabled,
+  //   sl_enabled: position.sl_enabled,
+  //   take_profit_price: position.take_profit_price,
+  //   stop_loss_price: position.stop_loss_price,
+  //   tp_status: position.tp_status,
+  //   sl_status: position.sl_status,
+  //   hasTp,
+  //   hasSl,
+  //   tpActive,
+  //   slActive,
+  // });
 
   if (!hasTp && !hasSl) return null;
 
@@ -130,11 +148,42 @@ export function PositionsTabs({
   getClosePrice,
   livePriceOverride,
 }: PositionsTabsProps) {
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
-  const handlePointerDown = (e: React.PointerEvent) => {
-    e.stopPropagation();
+  // Simple approach - just track if we're currently closing any position
+  const [isClosing, setIsClosing] = useState(false);
+
+  // Handle position closing - simple and clean
+  const handleClosePosition = async (position: Position) => {
+    if (isClosing) return; // Prevent multiple clicks
+
+    setIsClosing(true);
+    try {
+      const computedPrice = getClosePrice
+        ? await getClosePrice(position)
+        : livePrice || Number(position.entry_price);
+
+      // Optimistic chart update
+      try {
+        window.dispatchEvent(
+          new CustomEvent("position-closed", { detail: { id: position.id } })
+        );
+        console.log("Dispatched position-closed event for ID:", position.id);
+      } catch (error) {
+        console.error("Failed to dispatch position-closed event:", error);
+      }
+
+      await closePosition(position.id, Number(computedPrice));
+      // Force immediate table refresh - target specific queries for better performance
+      queryClientRef.current?.invalidateQueries({
+        queryKey: ["open-positions", roomId],
+      });
+      queryClientRef.current?.invalidateQueries({
+        queryKey: ["closed-positions", roomId],
+      });
+    } catch (error) {
+      console.error("Failed to close position:", error);
+    } finally {
+      setIsClosing(false);
+    }
   };
   const columns = [
     "Symbol",
@@ -152,9 +201,15 @@ export function PositionsTabs({
     "Actions",
   ] as const;
 
-  const { openPositions, loadingOpen } = usePositions(roomId);
-  const [closingId, setClosingId] = useState<string | null>(null);
+  const queryClientRef = useRef<ReturnType<typeof useQueryClient> | null>(null);
+  const dispatchedPositionsRef = useRef<Set<string>>(new Set());
+  const qcLocal = useQueryClient();
+  queryClientRef.current = qcLocal;
+  const { openPositions, loadingOpen, closePosition } = usePositions(roomId);
+  // Dialog removed; instant close on click
   const formatSize = (n: number) => (n >= 1 ? n.toFixed(2) : n.toFixed(3));
+
+  // No dialog body overflow handling needed
 
   // Live price for current room symbol (fallback to entry if unavailable)
   const ticker = useTickerData(symbol || "BTCUSDT");
@@ -163,11 +218,6 @@ export function PositionsTabs({
     (ticker?.lastPrice
       ? parseFloat(String(ticker.lastPrice).replace(/,/g, ""))
       : undefined);
-
-  const handleRowClick = (row: Record<string, unknown>) => {
-    const id = row.id as string | undefined;
-    if (id) setClosingId(id);
-  };
 
   const rows = (openPositions || []).map((pos: Position) => {
     // const sideLabel = pos.side === "long" ? "Long" : "Short";
@@ -213,17 +263,113 @@ export function PositionsTabs({
       Status: <StatusBadge status={pos.status || "filled"} />,
       "Liquidation Price": liq ? liq.toFixed(2) : "-",
       "Distance to Liquidation": distanceToLiq,
-      "Unrealized P&L (%)": unrealizedPct,
-      "Unrealized P&L ($)": unrealized.toFixed(2),
-      Actions: "Close",
+      "Unrealized P&L (%)": (
+        <PnLDisplay value={unrealizedPct} isPercentage={true} />
+      ),
+      "Unrealized P&L ($)": <PnLDisplay value={unrealized.toFixed(2)} />,
+      Actions: (
+        <button
+          type="button"
+          className={`px-2 py-1 text-xs rounded border border-border ${
+            isClosing
+              ? "opacity-50 cursor-not-allowed"
+              : "hover:bg-muted/30 cursor-pointer"
+          }`}
+          onMouseDown={(e) => {
+            e.stopPropagation(); // Stop event bubbling up to parent grid item
+            e.preventDefault(); // Prevent default browser drag behavior
+            // This is crucial - prevents react-grid-layout from detecting drag initiation
+          }}
+          onClick={(e) => {
+            e.stopPropagation(); // Ensure onClick also stops propagation
+            e.preventDefault(); // Prevent default button behavior
+            handleClosePosition(pos);
+          }}
+          disabled={isClosing}
+          data-grid-no-drag
+          style={{
+            pointerEvents: "auto",
+            position: "relative",
+            zIndex: 9999,
+          }}
+        >
+          {isClosing ? "Closing..." : "Close"}
+        </button>
+      ),
     } as Record<string, unknown>;
   });
+
+  // Emit entry lines to the chart for all open positions whenever the list updates
+  useEffect(() => {
+    try {
+      const currentPositionIds = new Set(
+        (openPositions || []).map((p) => p.id)
+      );
+
+      // Remove positions that are no longer open
+      dispatchedPositionsRef.current.forEach((id) => {
+        if (!currentPositionIds.has(id)) {
+          window.dispatchEvent(
+            new CustomEvent("position-closed", { detail: { id } })
+          );
+          dispatchedPositionsRef.current.delete(id);
+        }
+      });
+
+      // Add new positions
+      (openPositions || []).forEach((p: Position) => {
+        // Skip if we've already dispatched this position
+        if (dispatchedPositionsRef.current.has(p.id)) return;
+
+        const price = Number(p.entry_price);
+        if (!Number.isFinite(price) || price <= 0) return;
+        const side = (
+          String(p.side).toLowerCase() === "sell" ? "SHORT" : "LONG"
+        ) as "LONG" | "SHORT";
+
+        window.dispatchEvent(
+          new CustomEvent("position-opened", {
+            detail: { id: p.id, price, side },
+          })
+        );
+
+        console.log("Dispatched position-opened event:", {
+          id: p.id,
+          price,
+          side,
+        });
+
+        dispatchedPositionsRef.current.add(p.id);
+      });
+    } catch {}
+
+    // Optional cleanup: if component unmounts, remove lines
+    return () => {
+      try {
+        dispatchedPositionsRef.current.forEach((id) => {
+          window.dispatchEvent(
+            new CustomEvent("position-closed", { detail: { id } })
+          );
+        });
+        dispatchedPositionsRef.current.clear();
+      } catch {}
+    };
+  }, [openPositions]);
 
   return (
     <div
       className="h-full flex flex-col"
-      onMouseDown={handleMouseDown}
-      onPointerDown={handlePointerDown}
+      onMouseDown={(e) => {
+        // Only stop propagation if the event target is NOT the close button or its immediate children.
+        // This makes sure the parent's onMouseDown doesn't interfere with the button's own event handling.
+        const target = e.target as HTMLElement;
+        const isCloseButton = target.closest(
+          'button[data-grid-no-drag][type="button"]'
+        );
+        if (!isCloseButton) {
+          e.stopPropagation();
+        }
+      }}
       data-grid-no-drag
     >
       <div className="flex-1 overflow-hidden">
@@ -231,7 +377,6 @@ export function PositionsTabs({
           columns={columns}
           data={rows}
           emptyStateText={loadingOpen ? "Loading..." : "No Open Positions"}
-          onRowClick={handleRowClick}
           widenMatchers={[
             "Unrealized P&L ($)",
             "Unrealized P&L (%)",
@@ -244,50 +389,7 @@ export function PositionsTabs({
         />
       </div>
 
-      {/* Close dialog */}
-      <AlertDialog
-        open={!!closingId}
-        onOpenChange={(open) => !open && setClosingId(null)}
-      >
-        <AlertDialogContent
-          onMouseDown={handleMouseDown}
-          onPointerDown={handlePointerDown}
-          data-grid-no-drag
-        >
-          <AlertDialogHeader>
-            <AlertDialogTitle>Close Position</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to close this position? This will realize
-              PnL and update your virtual balance.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={async () => {
-                const pos = (openPositions || []).find(
-                  (p: Position) => p.id === closingId
-                );
-                if (!pos) return setClosingId(null);
-                const price = getClosePrice
-                  ? await getClosePrice(pos)
-                  : livePrice || Number(pos.entry_price);
-                await fetch(`/api/trading-room/${roomId}/positions/close`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    positionId: pos.id,
-                    closePrice: price,
-                  }),
-                });
-                setClosingId(null);
-              }}
-            >
-              Confirm Close
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Dialog removed per request */}
     </div>
   );
 }

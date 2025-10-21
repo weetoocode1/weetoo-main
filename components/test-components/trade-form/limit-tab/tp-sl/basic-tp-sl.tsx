@@ -2,12 +2,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertTriangleIcon } from "lucide-react";
+import { useState } from "react";
 
 interface BasicProps {
-  takeProfitValue: number;
-  setTakeProfitValue: (v: number) => void;
-  stopLossValue: number;
-  setStopLossValue: (v: number) => void;
+  takeProfitValue: number | "";
+  setTakeProfitValue: (v: number | "") => void;
+  stopLossValue: number | "";
+  setStopLossValue: (v: number | "") => void;
   tpEnabled: boolean;
   setTpEnabled: (enabled: boolean) => void;
   slEnabled: boolean;
@@ -26,6 +27,55 @@ export const BasicTpSl = ({
   setSlEnabled,
   orderType,
 }: BasicProps) => {
+  // Local state for input display values (allow empty string, 0, and intermediate states)
+  const [tpInputValue, setTpInputValue] = useState<string>("");
+  const [slInputValue, setSlInputValue] = useState<string>("");
+
+  const handleTpInputChange = (raw: string) => {
+    // Allow empty string
+    if (raw === "") {
+      setTpInputValue("");
+      setTakeProfitValue("");
+      return;
+    }
+
+    // Allow intermediate states like "0." or "0.0" while typing
+    if (raw === "0." || raw.endsWith(".") || /^0\.0*$/.test(raw)) {
+      setTpInputValue(raw);
+      return;
+    }
+
+    const num = Number(raw);
+    if (isNaN(num)) {
+      return; // Invalid input, don't update
+    }
+
+    setTpInputValue(raw);
+    setTakeProfitValue(num);
+  };
+
+  const handleSlInputChange = (raw: string) => {
+    // Allow empty string
+    if (raw === "") {
+      setSlInputValue("");
+      setStopLossValue("");
+      return;
+    }
+
+    // Allow intermediate states like "0." or "0.0" while typing
+    if (raw === "0." || raw.endsWith(".") || /^0\.0*$/.test(raw)) {
+      setSlInputValue(raw);
+      return;
+    }
+
+    const num = Number(raw);
+    if (isNaN(num)) {
+      return; // Invalid input, don't update
+    }
+
+    setSlInputValue(raw);
+    setStopLossValue(num);
+  };
   return (
     <div className="space-y-3 pt-2">
       <div className="flex items-center gap-x-4">
@@ -74,9 +124,9 @@ export const BasicTpSl = ({
           </Label>
           <Input
             type="number"
-            value={Number.isFinite(takeProfitValue) ? takeProfitValue : ""}
-            onChange={(e) => setTakeProfitValue(Number(e.target.value))}
-            placeholder="Enter TP price"
+            value={tpInputValue}
+            onChange={(e) => handleTpInputChange(e.target.value)}
+            placeholder="0"
             className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
         </div>
@@ -89,9 +139,9 @@ export const BasicTpSl = ({
           </Label>
           <Input
             type="number"
-            value={Number.isFinite(stopLossValue) ? stopLossValue : ""}
-            onChange={(e) => setStopLossValue(Number(e.target.value))}
-            placeholder="Enter SL price"
+            value={slInputValue}
+            onChange={(e) => handleSlInputChange(e.target.value)}
+            placeholder="0"
             className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
         </div>
