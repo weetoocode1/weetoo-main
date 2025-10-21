@@ -1,11 +1,13 @@
 "use client";
 
+import { useTickerData } from "@/hooks/websocket/use-market-data";
 import type {
   ChartingLibraryWidgetOptions,
   LanguageCode,
   ResolutionString,
   widget,
 } from "@/public/static/charting_library";
+import type { Symbol } from "@/types/market";
 import { useTheme } from "next-themes";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BybitUdfDatafeed } from "./datafeed/bybit-udf-datafeed";
@@ -15,6 +17,92 @@ import { resolveAppBackground, resolveCssVarToColor } from "./utils/color";
 
 // ===== TYPES =====
 // types moved to dedicated files
+
+// Minimal type definitions for TradingView objects used below
+interface TvOrderLine {
+  setPrice: (price: number) => void;
+  setText: (text: string) => void;
+  setQuantity: (qty: number) => void;
+  setLineLength: (len: number) => void;
+  setLineStyle: (style: number) => void;
+  setLineWidth: (w: number) => void;
+  setLineColor: (color: string) => void;
+  setBodyTextColor: (color: string) => void;
+  setBodyBackgroundColor: (color: string) => void;
+  remove: () => void;
+  // Optional methods that may not exist on all TradingView versions
+  setExtendLeft?: (extend: boolean) => void;
+  setExtendRight?: (extend: boolean) => void;
+  setShowPriceLine?: (show: boolean) => void;
+}
+
+interface TvPositionLine {
+  setPrice: (price: number) => void;
+  setText: (text: string) => void;
+  setQuantity: (qty: number) => void;
+  setLineLength: (len: number) => void;
+  setLineStyle: (style: number) => void;
+  setLineWidth: (w: number) => void;
+  setLineColor: (color: string) => void;
+  setBodyTextColor: (color: string) => void;
+  setBodyBackgroundColor: (color: string) => void;
+  onClose?: (callback: () => void) => void;
+  remove: () => void;
+}
+
+interface TvShape {
+  remove?: () => void;
+  delete?: () => void;
+  close?: () => void;
+  destroy?: () => void;
+  hide?: () => void;
+  // TradingView shape objects have these methods
+}
+
+// TradingView createShape returns a Promise<EntityId>
+interface EntityId {
+  id: string;
+}
+
+interface TradingViewShapePromise {
+  then: (
+    onFulfilled?: (value: EntityId) => void,
+    onRejected?: (reason: unknown) => void
+  ) => Promise<EntityId>;
+}
+
+interface TradingViewShape {
+  remove?: () => void;
+  delete?: () => void;
+  close?: () => void;
+  destroy?: () => void;
+  hide?: () => void;
+  [key: string]: unknown;
+}
+
+interface TvRemovableWithId {
+  id: string | number; // The ID returned by createShape/createOrderLine
+  entityId?: EntityId; // The actual TradingView EntityId for removal
+  remove: () => void; // A function to encapsulate the removal logic
+}
+
+type TvRemovable = TvOrderLine | TvPositionLine | TvShape;
+
+interface TvChart {
+  createOrderLine?: () => TvOrderLine;
+  createPositionLine?: () => TvPositionLine;
+  createShape?: (
+    point: { price: number },
+    options: {
+      shape: string;
+      text?: string;
+      lock?: boolean;
+      disableSelection?: boolean;
+      disableSave?: boolean;
+    }
+  ) => TradingViewShapePromise;
+  removeEntity?: (entityId: EntityId) => void;
+}
 
 interface TradingViewChartTestProps {
   symbol?: string;
@@ -28,7 +116,17 @@ export function TradingViewChartTest({
   const { theme, resolvedTheme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+
+  // Get synchronized ticker data for price consistency
+  const tickerData = useTickerData((symbol as Symbol) || "BTCUSDT");
   const widgetRef = useRef<InstanceType<typeof widget> | null>(null);
+  const tickerCallbackRef = useRef<
+    (symbol: string) => { lastPrice: string; markPrice: string }
+  >((symbol) => ({
+    lastPrice: "0",
+    markPrice: "0",
+  }));
+  const datafeedRef = useRef<BybitUdfDatafeed | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeRes, setActiveRes] = useState<ResolutionString>(
     "30" as ResolutionString
@@ -135,11 +233,398 @@ export function TradingViewChartTest({
     }
   }, []);
 
+  // Keep references to created entry lines so we can manage/cleanup them
+  const entryLinesRef = useRef<
+    Array<{ id?: string | number; line: TvRemovable }>
+  >([]);
+  const entryLineByIdRef = useRef<Map<string | number, TvRemovableWithId>>(
+    new Map()
+  );
+  const domOverlaysRef = useRef<Map<string | number, HTMLElement>>(new Map());
+
+  // Add this helper function if not already present in your util
+  // This will generate a truly unique ID for lines not directly managed by TradingView's ID system
+
+  const createEntryLine = (
+    price: number,
+    side: "LONG" | "SHORT",
+    positionId: string // Pass the position ID for linking
+  ): TvRemovableWithId | undefined => {
+    try {
+      const tvw = widgetRef.current;
+      if (!tvw || typeof tvw.chart !== "function") {
+        console.log("TradingView widget not ready");
+        return;
+      }
+      const chart = tvw.chart() as unknown as TvChart | null;
+      if (!chart) {
+        console.log("Chart not available");
+        return;
+      }
+
+      console.log(
+        `Attempting to create entry line for ${side} at price ${price} (Position ID: ${positionId})`
+      );
+
+      let lineToRemove: TvRemovable | undefined;
+      let lineId: string | number | undefined;
+
+      // --- Skip TradingView's position line API (only available on Trading Platform) ---
+      console.log(
+        "Skipping createPositionLine - only available on Trading Platform"
+      );
+
+      // --- Primary method: createShape for horizontal line (returns Promise<EntityId>) ---
+      if (typeof chart.createShape === "function") {
+        try {
+          console.log("Using createShape for horizontal line");
+          const shapePromise = (chart as TvChart).createShape!(
+            { price },
+            {
+              shape: "horizontal_line",
+              text: `Entry (${side}) ${price.toFixed(2)}`,
+              lock: true,
+              disableSelection: true,
+              disableSave: true,
+            }
+          );
+
+          console.log("createShape returned Promise:", shapePromise);
+
+          // createShape returns Promise<EntityId> - handle it properly
+          if (shapePromise && typeof shapePromise.then === "function") {
+            console.log("Handling createShape Promise<EntityId>");
+
+            // Return a line object that will handle the Promise resolution
+            lineId = positionId;
+            lineToRemove = {
+              remove: () => {
+                console.log(
+                  "Attempting to remove TradingView entity for ID:",
+                  positionId
+                );
+                try {
+                  // Try to remove using the stored entity ID
+                  const storedEntity = entryLineByIdRef.current.get(positionId);
+                  if (
+                    storedEntity &&
+                    storedEntity.entityId &&
+                    chart.removeEntity
+                  ) {
+                    chart.removeEntity(storedEntity.entityId);
+                    console.log(
+                      "Successfully removed TradingView entity:",
+                      storedEntity.entityId
+                    );
+                    entryLineByIdRef.current.delete(positionId);
+                  } else {
+                    console.log("No entity ID found for removal:", positionId);
+                  }
+                } catch (e) {
+                  console.error("Error removing TradingView entity:", e);
+                }
+              },
+            } as TvShape;
+
+            // Handle the Promise resolution
+            (shapePromise as Promise<EntityId>)
+              .then((entityId: EntityId) => {
+                console.log(
+                  "createShape Promise resolved with EntityId:",
+                  entityId
+                );
+
+                // Store the entity ID for later removal
+                const entityLine = {
+                  id: positionId,
+                  entityId: entityId,
+                  remove: () => {
+                    try {
+                      if (chart.removeEntity) {
+                        chart.removeEntity(entityId);
+                        console.log("Removed TradingView entity:", entityId);
+                      } else {
+                        console.log("removeEntity method not available");
+                      }
+                    } catch (e) {
+                      console.error("Error removing TradingView entity:", e);
+                    }
+                  },
+                };
+
+                entryLineByIdRef.current.set(positionId, entityLine);
+                console.log(
+                  "Stored entity with ID:",
+                  positionId,
+                  "EntityId:",
+                  entityId
+                );
+              })
+              .catch((error: unknown) => {
+                console.error("createShape Promise rejected:", error);
+              });
+
+            console.log("Created TradingView shape with Promise handling");
+          } else {
+            console.log("createShape did not return a Promise:", shapePromise);
+          }
+        } catch (error) {
+          console.warn("createShape failed:", error);
+        }
+      } else {
+        console.log("createShape function not available");
+      }
+
+      // --- Fallback to createOrderLine if createShape failed or is not available ---
+      if (!lineToRemove && typeof chart.createOrderLine === "function") {
+        try {
+          console.log("Using createOrderLine as fallback");
+          const ol = (chart as TvChart).createOrderLine!();
+          ol.setPrice(price);
+          ol.setText(`Entry (${side}) ${price.toFixed(2)}`);
+          ol.setQuantity(0);
+          ol.setLineLength(25);
+          ol.setLineStyle(1);
+          ol.setLineWidth(2);
+          ol.setLineColor(side === "LONG" ? "#16a34a" : "#dc2626");
+          ol.setBodyTextColor("#ffffff");
+          ol.setBodyBackgroundColor("#0f172a");
+
+          lineId = positionId; // Use the position ID as the tracking ID
+          lineToRemove = ol;
+        } catch (error) {
+          console.warn("createOrderLine failed:", error);
+        }
+      }
+
+      if (lineToRemove && lineId) {
+        console.log(
+          `Successfully created TradingView line for Position ID: ${lineId}`
+        );
+        return {
+          id: lineId,
+          remove: () => {
+            try {
+              console.log("Attempting to remove TradingView line:", lineId);
+              console.log("Line object:", lineToRemove);
+              console.log(
+                "Available methods:",
+                Object.getOwnPropertyNames(lineToRemove || {})
+              );
+
+              let removed = false;
+
+              // Try all possible removal methods
+              const methods = ["remove", "delete", "close", "destroy", "hide"];
+              for (const method of methods) {
+                if (
+                  lineToRemove &&
+                  typeof (lineToRemove as TradingViewShape)[method] ===
+                    "function"
+                ) {
+                  try {
+                    const methodFn = (lineToRemove as TradingViewShape)[method];
+                    if (methodFn && typeof methodFn === "function") {
+                      methodFn();
+                    }
+                    console.log(
+                      `Successfully removed TradingView line using ${method}() with ID:`,
+                      lineId
+                    );
+                    removed = true;
+                    break;
+                  } catch (methodError) {
+                    console.log(`Method ${method}() failed:`, methodError);
+                  }
+                }
+              }
+
+              if (!removed) {
+                console.log(
+                  "No working removal method found for TradingView line:",
+                  lineId
+                );
+                console.log("Line object type:", typeof lineToRemove);
+                console.log(
+                  "Line object constructor:",
+                  lineToRemove?.constructor?.name
+                );
+              }
+            } catch (e) {
+              console.error("Error removing TradingView line:", e);
+            }
+          },
+        };
+      }
+
+      // --- Always create DOM overlay as guaranteed fallback ---
+      try {
+        console.log("Creating DOM overlay as guaranteed fallback");
+
+        // Create a simple DOM overlay for the entry line
+        const overlay = document.createElement("div");
+        overlay.id = `position-line-${positionId}`; // Unique ID for direct access
+        overlay.style.position = "absolute";
+        overlay.style.left = "0";
+        overlay.style.right = "0";
+        overlay.style.height = "2px";
+        overlay.style.backgroundColor = side === "LONG" ? "#16a34a" : "#dc2626";
+        overlay.style.borderStyle = "dashed";
+        overlay.style.borderWidth = "1px";
+        overlay.style.borderColor = side === "LONG" ? "#16a34a" : "#dc2626";
+        overlay.style.zIndex = "1000";
+        overlay.style.pointerEvents = "none";
+        overlay.style.top = "50%"; // Center vertically for now
+        overlay.setAttribute("data-position-id", positionId);
+        overlay.setAttribute("data-price", price.toString());
+        overlay.setAttribute("data-side", side);
+
+        // Add text label
+        const label = document.createElement("div");
+        label.textContent = `Entry (${side}) ${price.toFixed(2)}`;
+        label.style.position = "absolute";
+        label.style.right = "10px";
+        label.style.top = "-20px";
+        label.style.color = "#ffffff";
+        label.style.backgroundColor = "#0f172a";
+        label.style.padding = "2px 6px";
+        label.style.borderRadius = "4px";
+        label.style.fontSize = "12px";
+        label.style.fontWeight = "bold";
+        overlay.appendChild(label);
+
+        // Add to chart container
+        const chartContainer = containerRef.current;
+        if (chartContainer) {
+          chartContainer.appendChild(overlay);
+          domOverlaysRef.current.set(positionId, overlay);
+          console.log(
+            "Successfully created DOM overlay for position:",
+            positionId
+          );
+
+          return {
+            id: positionId,
+            remove: () => {
+              try {
+                console.log(
+                  "Attempting to remove DOM overlay for ID:",
+                  positionId
+                );
+
+                // Try multiple removal methods
+                const elementById = document.getElementById(
+                  `position-line-${positionId}`
+                );
+                const elementFromRef = domOverlaysRef.current.get(positionId);
+
+                console.log("Element by ID:", elementById);
+                console.log("Element from ref:", elementFromRef);
+
+                let removed = false;
+
+                // Method 1: Remove by ID
+                if (elementById) {
+                  elementById.remove();
+                  console.log(
+                    "Successfully removed DOM overlay by ID:",
+                    positionId
+                  );
+                  removed = true;
+                }
+
+                // Method 2: Remove from ref
+                if (elementFromRef && elementFromRef.parentNode) {
+                  elementFromRef.parentNode.removeChild(elementFromRef);
+                  console.log(
+                    "Successfully removed DOM overlay from ref:",
+                    positionId
+                  );
+                  removed = true;
+                }
+
+                // Method 3: Remove from ref using remove()
+                if (elementFromRef && !removed) {
+                  elementFromRef.remove();
+                  console.log(
+                    "Successfully removed DOM overlay using remove():",
+                    positionId
+                  );
+                  removed = true;
+                }
+
+                // Clean up tracking
+                domOverlaysRef.current.delete(positionId);
+
+                if (!removed) {
+                  console.log(
+                    "Could not remove DOM overlay for ID:",
+                    positionId
+                  );
+                }
+              } catch (e) {
+                console.error("Error removing DOM overlay:", e);
+                // Try alternative removal
+                try {
+                  const elementById = document.getElementById(
+                    `position-line-${positionId}`
+                  );
+                  if (elementById) {
+                    elementById.style.display = "none";
+                    console.log(
+                      "Hidden DOM overlay as fallback for ID:",
+                      positionId
+                    );
+                  }
+                } catch (e2) {
+                  console.error("Failed to hide DOM overlay:", e2);
+                }
+              }
+            },
+          };
+        }
+      } catch (error) {
+        console.error("DOM overlay creation failed:", error);
+      }
+
+      console.log(
+        "No entry line created via any method for Position ID:",
+        positionId
+      );
+      return undefined;
+    } catch (error) {
+      console.error("createEntryLine failed with unexpected error:", error);
+      return undefined;
+    }
+  };
+
+  // Update ticker callback ref when ticker data changes (without recreating chart)
+  useEffect(() => {
+    tickerCallbackRef.current = (symbol: string) => ({
+      lastPrice: tickerData?.lastPrice || "0",
+      markPrice: tickerData?.markPrice || "0",
+    });
+
+    // Update the datafeed's ticker callback if it exists
+    if (datafeedRef.current) {
+      datafeedRef.current.updateTickerCallback(tickerCallbackRef.current);
+    }
+
+    // Force-refresh the current price on every ticker update to keep chart in
+    // perfect sync with order book and market widget (same source-of-truth)
+    try {
+      if (datafeedRef.current && symbol) {
+        datafeedRef.current.refreshCurrentPrice(symbol);
+      }
+    } catch {}
+  }, [tickerData]);
+
   useEffect(() => {
     if (!containerRef.current || !tv) return;
 
-    const datafeed = new BybitUdfDatafeed(priceType);
-    const datafeedRef = { current: datafeed };
+    const datafeed = new BybitUdfDatafeed(priceType, tickerCallbackRef.current);
+    datafeedRef.current = datafeed;
+    const datafeedRefForWidget = { current: datafeed };
     const appBg = resolveAppBackground(currentTheme);
     const options: ChartingLibraryWidgetOptions = {
       symbol,
@@ -190,7 +675,6 @@ export function TradingViewChartTest({
         "study_templates",
         "save_chart_properties_to_local_storage",
         "use_localstorage_for_settings",
-        "volume_force_overlay",
       ],
       // Show bottom timeframe buttons and UTC/log/auto controls
       time_frames: [
@@ -201,7 +685,7 @@ export function TradingViewChartTest({
         { text: "6M", resolution: "1D" as ResolutionString },
         { text: "1Y", resolution: "1W" as ResolutionString },
       ],
-      timezone: "Etc/UTC" as const,
+      timezone: "Asia/Seoul" as const,
       // Disable default volume indicator from the start
       studies_overrides: {
         "volume.show": false, // Disable default volume indicator
@@ -416,22 +900,205 @@ export function TradingViewChartTest({
       // Store interval for cleanup
       (datafeedRef as { refreshInterval?: NodeJS.Timeout }).refreshInterval =
         refreshInterval;
+
+      // Clear any existing entry lines when chart initializes
+      try {
+        entryLineByIdRef.current.forEach((line) => {
+          try {
+            if (line && typeof (line as TvShape).remove === "function")
+              (line as TvShape).remove!();
+            else if (line && typeof (line as TvShape).delete === "function")
+              (line as TvShape).delete!();
+          } catch {}
+        });
+        entryLineByIdRef.current.clear();
+        entryLinesRef.current = [];
+      } catch {}
+
+      // Listen for position open/close events from the app to draw/remove lines
+      const handlePositionOpened = (e: Event) => {
+        const detail = (e as CustomEvent).detail as
+          | { price?: number; side?: "LONG" | "SHORT"; id?: string | number }
+          | undefined;
+        const price = Number(detail?.price);
+        const side = (detail?.side || "LONG") as "LONG" | "SHORT";
+
+        console.log("Position opened event received:", { detail, price, side });
+
+        if (!Number.isFinite(price) || price <= 0) {
+          console.log("Invalid price, skipping:", price);
+          return;
+        }
+        // If a line already exists for this id, update it instead of creating a new one
+        if (detail?.id !== undefined) {
+          const existing = entryLineByIdRef.current.get(detail.id);
+          if (existing) {
+            console.log(
+              "Line already exists for ID:",
+              detail.id,
+              "- skipping creation"
+            );
+            return;
+          }
+        }
+        console.log("Creating new entry line...");
+        const line = createEntryLine(price, side, detail?.id as string);
+        console.log("Entry line created:", line);
+        if (line && detail?.id !== undefined) {
+          entryLineByIdRef.current.set(detail.id, line);
+          console.log("Entry line stored with ID:", detail.id);
+          console.log(
+            "Current map contents:",
+            Array.from(entryLineByIdRef.current.keys())
+          );
+        } else {
+          console.log("Failed to create or store entry line");
+          console.log("Line object:", line);
+          console.log("Detail ID:", detail?.id);
+        }
+      };
+      const handlePositionClosed = (e: Event) => {
+        const detail = (e as CustomEvent).detail as
+          | { id?: string | number }
+          | undefined;
+        const id = detail?.id;
+        console.log("Position closed event received for ID:", id);
+
+        if (id === undefined) {
+          console.log("No ID provided for position-closed event");
+          return;
+        }
+
+        const line = entryLineByIdRef.current.get(id);
+        console.log("Found line to remove:", line);
+        console.log(
+          "Current map contents:",
+          Array.from(entryLineByIdRef.current.keys())
+        );
+        console.log("Looking for ID:", id);
+
+        if (line) {
+          try {
+            // Use our custom remove method
+            line.remove();
+            console.log("Successfully removed line for ID:", id);
+          } catch (error) {
+            console.error("Error removing line:", error);
+          }
+          entryLineByIdRef.current.delete(id);
+          console.log("Removed line from tracking map for ID:", id);
+        } else {
+          console.log("No line found for ID:", id);
+          // Try to remove DOM overlay directly
+          console.log("Attempting to remove DOM overlay directly");
+          try {
+            const domOverlay = domOverlaysRef.current.get(id);
+            if (domOverlay) {
+              console.log("Found DOM overlay for ID:", id);
+              if (domOverlay.parentNode) {
+                domOverlay.parentNode.removeChild(domOverlay);
+                console.log("Successfully removed DOM overlay for ID:", id);
+              } else {
+                domOverlay.remove();
+                console.log(
+                  "Successfully removed DOM overlay using remove() for ID:",
+                  id
+                );
+              }
+              domOverlaysRef.current.delete(id);
+            } else {
+              console.log("No DOM overlay found for ID:", id);
+            }
+          } catch (error) {
+            console.error("Error removing DOM overlay:", error);
+          }
+
+          // Try to remove all lines as a fallback
+          console.log("Attempting to remove all tracked lines as fallback");
+          try {
+            entryLineByIdRef.current.forEach((line, lineId) => {
+              try {
+                console.log("Removing fallback line with ID:", lineId);
+                line.remove();
+              } catch (error) {
+                console.error("Error removing fallback line:", error);
+              }
+            });
+            entryLineByIdRef.current.clear();
+            console.log("Cleared all tracked lines");
+          } catch (error) {
+            console.error("Error in fallback line removal:", error);
+          }
+        }
+      };
+      window.addEventListener(
+        "position-opened",
+        handlePositionOpened as EventListener
+      );
+      window.addEventListener(
+        "position-closed",
+        handlePositionClosed as EventListener
+      );
+
+      // Cleanup listeners when chart is destroyed
+      (
+        tvWidget as unknown as { _cleanupHandlers?: Array<() => void> }
+      )._cleanupHandlers ||= [];
+      (
+        tvWidget as unknown as { _cleanupHandlers: Array<() => void> }
+      )._cleanupHandlers.push(() => {
+        window.removeEventListener(
+          "position-opened",
+          handlePositionOpened as EventListener
+        );
+        window.removeEventListener(
+          "position-closed",
+          handlePositionClosed as EventListener
+        );
+      });
     });
 
     return () => {
       try {
         // Clear refresh interval
         if (
-          (datafeedRef as { refreshInterval?: NodeJS.Timeout }).refreshInterval
+          (datafeedRefForWidget as { refreshInterval?: NodeJS.Timeout })
+            .refreshInterval
         ) {
           clearInterval(
-            (datafeedRef as { refreshInterval?: NodeJS.Timeout })
+            (datafeedRefForWidget as { refreshInterval?: NodeJS.Timeout })
               .refreshInterval
           );
+        }
+        // Remove any lingering entry lines
+        try {
+          entryLinesRef.current.forEach((ref) => {
+            const l = ref?.line as TvRemovable | undefined;
+            if (!l) return;
+            if (typeof (l as TvShape).remove === "function")
+              (l as TvShape).remove!();
+            else if (typeof (l as TvShape).delete === "function")
+              (l as TvShape).delete!();
+          });
+          entryLinesRef.current = [];
+          entryLineByIdRef.current.clear();
+        } catch {}
+        // Run any chart cleanup handlers we registered
+        const tvw = widgetRef.current as unknown as {
+          _cleanupHandlers?: Array<() => void>;
+        } | null;
+        if (tvw?._cleanupHandlers?.length) {
+          tvw._cleanupHandlers.forEach((fn) => {
+            try {
+              fn();
+            } catch {}
+          });
+          tvw._cleanupHandlers = [];
         }
         tvWidget.remove();
       } catch {}
       widgetRef.current = null;
+      datafeedRef.current = null;
     };
   }, [key, theme, symbol, priceType]);
 

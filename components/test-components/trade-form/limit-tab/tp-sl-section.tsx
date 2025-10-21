@@ -35,8 +35,8 @@ export function TpSlSection({
   orderType,
   onTpSlChange,
 }: TpSlSectionProps) {
-  const [takeProfitValue, setTakeProfitValue] = useState(0);
-  const [stopLossValue, setStopLossValue] = useState(0);
+  const [takeProfitValue, setTakeProfitValue] = useState<number | "">("");
+  const [stopLossValue, setStopLossValue] = useState<number | "">("");
 
   // TP/SL toggles with proper defaults
   const [tpEnabled, setTpEnabled] = useState(false); // Default OFF
@@ -57,8 +57,9 @@ export function TpSlSection({
       onTpSlChange({
         tpEnabled,
         slEnabled,
-        takeProfitValue,
-        stopLossValue,
+        takeProfitValue:
+          typeof takeProfitValue === "number" ? takeProfitValue : 0,
+        stopLossValue: typeof stopLossValue === "number" ? stopLossValue : 0,
       });
     }
   }, [tpEnabled, slEnabled, takeProfitValue, stopLossValue, onTpSlChange]);
@@ -69,9 +70,9 @@ export function TpSlSection({
   const [applicableTo, setApplicableTo] = useState<"entire" | "current">(
     "entire"
   );
-  const [triggerPrice, setTriggerPrice] = useState(0);
+  const [triggerPrice, setTriggerPrice] = useState<number | "">("");
   const [triggerPriceType, setTriggerPriceType] = useState("last");
-  const [roiValue, setRoiValue] = useState(0);
+  const [roiValue, setRoiValue] = useState<number | "">("");
   const [limitChecked, setLimitChecked] = useState(false);
   const [stopLossLimitChecked, setStopLossLimitChecked] = useState(false);
   const [showTakeProfitTooltip, setShowTakeProfitTooltip] = useState(false);
@@ -80,10 +81,10 @@ export function TpSlSection({
   const [stopLossTriggerMethod, setStopLossTriggerMethod] = useState("roi");
 
   // Short tab states (completely separate from Long tab)
-  const [shortTriggerPrice, setShortTriggerPrice] = useState(0);
+  const [shortTriggerPrice, setShortTriggerPrice] = useState<number | "">("");
   const [shortTriggerPriceType, setShortTriggerPriceType] = useState("last");
-  const [shortRoiValue, setShortRoiValue] = useState(0);
-  const [shortStopLossValue, setShortStopLossValue] = useState(0);
+  const [shortRoiValue, setShortRoiValue] = useState<number | "">("");
+  const [shortStopLossValue, setShortStopLossValue] = useState<number | "">("");
 
   const [showShortTakeProfitTooltip, setShowShortTakeProfitTooltip] =
     useState(false);
@@ -100,9 +101,9 @@ export function TpSlSection({
         checked={tpSlChecked}
         onCheckedChange={setTpSlChecked}
         mode={tpSlMode}
-        onToggleMode={() =>
-          setTpSlMode(tpSlMode === "basic" ? "advanced" : "basic")
-        }
+        // onToggleMode={() =>
+        //   setTpSlMode(tpSlMode === "basic" ? "advanced" : "basic")
+        // }
       />
 
       <div>
@@ -206,11 +207,11 @@ export function TpSlSection({
                           setLimitChecked={setLimitChecked}
                           stopLossLimitChecked={stopLossLimitChecked}
                           setStopLossLimitChecked={setStopLossLimitChecked}
-                          triggerPrice={triggerPrice}
+                          triggerPrice={triggerPrice as number}
                           setTriggerPrice={setTriggerPrice}
                           triggerPriceType={triggerPriceType}
                           setTriggerPriceType={setTriggerPriceType}
-                          roiValue={roiValue}
+                          roiValue={roiValue as number}
                           setRoiValue={setRoiValue}
                           showTakeProfitTooltip={showTakeProfitTooltip}
                           setShowTakeProfitTooltip={setShowTakeProfitTooltip}
@@ -220,7 +221,7 @@ export function TpSlSection({
                           setTakeProfitTriggerMethod={
                             setTakeProfitTriggerMethod
                           }
-                          stopLossValue={stopLossValue}
+                          stopLossValue={stopLossValue as number}
                           setStopLossValue={
                             setStopLossValue as (v: number) => void
                           }
@@ -247,13 +248,13 @@ export function TpSlSection({
                           <div className="space-y-1.5">
                             {/* Take Profit Section - Only show for Short tab */}
                             <AdvancedShort
-                              shortTriggerPrice={shortTriggerPrice}
+                              shortTriggerPrice={shortTriggerPrice as number}
                               setShortTriggerPrice={setShortTriggerPrice}
                               shortTriggerPriceType={shortTriggerPriceType}
                               setShortTriggerPriceType={
                                 setShortTriggerPriceType
                               }
-                              shortRoiValue={shortRoiValue}
+                              shortRoiValue={shortRoiValue as number}
                               setShortRoiValue={setShortRoiValue}
                               showShortTakeProfitTooltip={
                                 showShortTakeProfitTooltip
@@ -270,7 +271,7 @@ export function TpSlSection({
                               setShortTakeProfitTriggerMethod={
                                 setShortTakeProfitTriggerMethod
                               }
-                              shortStopLossValue={shortStopLossValue}
+                              shortStopLossValue={shortStopLossValue as number}
                               setShortStopLossValue={setShortStopLossValue}
                               showShortStopLossTooltip={
                                 showShortStopLossTooltip

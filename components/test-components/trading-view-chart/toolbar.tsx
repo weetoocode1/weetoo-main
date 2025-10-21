@@ -69,6 +69,7 @@ export const TradingViewToolbar: React.FC<ToolbarProps> = ({
 }) => {
   const handleMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
   };
   const extraActive = extraIntervals.find((x) => x.res === activeRes);
   return (

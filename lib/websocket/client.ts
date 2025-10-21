@@ -87,7 +87,19 @@ export class WebSocketClient extends EventEmitter {
   > = new Map();
   private obQueues: Map<string, Array<{ b?: string[][]; a?: string[][] }>> =
     new Map();
+  private currentTickerData = new Map<string, TickerData>();
   private obEmitInterval: NodeJS.Timeout | null = null;
+
+  private getCurrentTickerPrice(symbol: string): {
+    lastPrice: string;
+    markPrice: string;
+  } {
+    const ticker = this.currentTickerData.get(symbol);
+    return {
+      lastPrice: ticker?.lastPrice || "0",
+      markPrice: ticker?.markPrice || "0",
+    };
+  }
 
   constructor(
     config: {
@@ -178,7 +190,7 @@ export class WebSocketClient extends EventEmitter {
     this.isConnecting = false;
     this.reconnectAttempts = 0;
 
-    console.log(`✅ WebSocket connected successfully to: ${this.url}`);
+    console.log(`✅ WebSocket connected to: ${this.url}`);
 
     this.emit("status", {
       connected: true,
@@ -188,7 +200,11 @@ export class WebSocketClient extends EventEmitter {
 
     this.startHeartbeat();
     this.startDirectOrderBookProcessing();
-    this.resubscribeAll();
+
+    // Add small delay before resubscribing to ensure connection is stable
+    setTimeout(() => {
+      this.resubscribeAll();
+    }, 1000);
   }
 
   private handleClose(event: CloseEvent): void {
@@ -301,7 +317,7 @@ export class WebSocketClient extends EventEmitter {
 
   private async attemptServerStart(): Promise<void> {
     try {
-      console.log("🚀 Attempting to start WebSocket server...");
+      console.log("🚀 Attempt ing to start WebSocket server...");
 
       const response = await fetch("/api/websocket", {
         method: "POST",
@@ -371,13 +387,20 @@ export class WebSocketClient extends EventEmitter {
 
   subscribe(topic: string): void {
     this.subscriptions.add(topic);
+    // console.log(
+    //   `📡 Subscribing to topic: ${topic} (Direct Bybit: ${this.directBybitMode})`
+    // );
     if (this.ws?.readyState === WebSocket.OPEN) {
       if (this.directBybitMode) {
         // Bybit expects { op: 'subscribe', args: [topic] }
-        this.ws.send(JSON.stringify({ op: "subscribe", args: [topic] }));
+        const message = { op: "subscribe", args: [topic] };
+        // console.log(`📤 Sending Bybit subscription:`, message);
+        this.ws.send(JSON.stringify(message));
       } else {
         this.sendMessage({ type: "subscribe", data: { topic } });
       }
+    } else {
+      console.log(`⚠️ WebSocket not ready, topic queued: ${topic}`);
     }
   }
 
@@ -403,17 +426,40 @@ export class WebSocketClient extends EventEmitter {
   private handleMessage(event: MessageEvent): void {
     try {
       const messageString = event.data.toString();
-      // If connected directly to Bybit, route raw messages to Bybit parser in server or ignore here
       const parsed = JSON.parse(messageString);
+
+      // Debug: Log all incoming messages to understand the format
+      if (parsed?.topic || parsed?.success !== undefined) {
+        // console.log("📨 Raw message:", parsed);
+      }
+
       if (this.directBybitMode) {
-        // Expect Bybit format { topic, data, type }
+        // Handle subscription confirmations
+        if (parsed?.success !== undefined) {
+          // console.log("📝 Subscription response:", parsed);
+          return;
+        }
+
+        // Bybit format: { topic, data, type }
         const topic: string | undefined = parsed?.topic;
         const data = parsed?.data;
         const type: string | undefined = parsed?.type;
 
         if (typeof topic === "string") {
+          // console.log("📨 Processing message:", {
+          //   topic,
+          //   type,
+          //   hasData: !!data,
+          // });
+
           if (topic.startsWith("tickers.")) {
-            this.emit("ticker", this.mapBybitTickerData(data));
+            const tickerData = this.mapBybitTickerData(data);
+            // Store current ticker data for price synchronization
+            this.currentTickerData.set(tickerData.symbol, tickerData);
+            // console.log(
+            //   `📊 Ticker price for ${tickerData.symbol}: ${tickerData.lastPrice}`
+            // );
+            this.emit("ticker", tickerData);
             return;
           }
           if (topic.startsWith("orderbook.")) {
@@ -438,7 +484,7 @@ export class WebSocketClient extends EventEmitter {
             return;
           }
           if (topic.startsWith("publicTrade.")) {
-            this.emit("trade", data as TradeData);
+            this.emit("trade", this.mapBybitTradeData(data));
             return;
           }
           if (topic.startsWith("kline.")) {
@@ -446,9 +492,11 @@ export class WebSocketClient extends EventEmitter {
             return;
           }
           // Unknown Bybit topic → ignore silently
+          // console.log(`❓ Unknown Bybit topic: ${topic}`);
           return;
         }
         // Non-topic messages (ping/pong etc.) → ignore
+        // console.log(`📝 Non-topic Bybit message:`, parsed);
         return;
       }
 
@@ -509,41 +557,75 @@ export class WebSocketClient extends EventEmitter {
 
   private buildOrderBookData(symbol: string): OrderBookData {
     const snap = this.obSnapshots.get(symbol) || { b: [], a: [], s: symbol };
+
+    // Process bids (descending order - highest first)
+    const bidsData = snap.b
+      .filter(([_, q]) => parseFloat(q) > 0)
+      .map(([price, qty]) => ({
+        price: parseFloat(price),
+        qty: parseFloat(qty),
+      }))
+      .sort((a, b) => b.price - a.price) // Sort descending
+      .slice(0, 50);
+
+    // Process asks (ascending order - lowest first)
+    const asksData = snap.a
+      .filter(([_, q]) => parseFloat(q) > 0)
+      .map(([price, qty]) => ({
+        price: parseFloat(price),
+        qty: parseFloat(qty),
+      }))
+      .sort((a, b) => a.price - b.price) // Sort ascending
+      .slice(0, 50);
+
+    // Calculate cumulative totals for bids
+    let bidCumulative = 0;
+    const bids = bidsData.map((item) => {
+      bidCumulative += item.qty;
+      return {
+        price: item.price.toString(),
+        qty: item.qty.toString(),
+        Id: item.price,
+        side: "Buy" as const,
+        symbol,
+        total: bidCumulative,
+        currentValue: item.price * item.qty,
+        totalValue: item.price * bidCumulative,
+        inc: true,
+        width: "0%", // Will be calculated in UI
+      };
+    });
+
+    // Calculate cumulative totals for asks
+    let askCumulative = 0;
+    const asks = asksData.map((item) => {
+      askCumulative += item.qty;
+      return {
+        price: item.price.toString(),
+        qty: item.qty.toString(),
+        Id: item.price,
+        side: "Sell" as const,
+        symbol,
+        total: askCumulative,
+        currentValue: item.price * item.qty,
+        totalValue: item.price * askCumulative,
+        inc: true,
+        width: "0%", // Will be calculated in UI
+      };
+    });
+
+    // Get the current ticker price for this symbol to ensure consistency
+    const currentTicker = this.getCurrentTickerPrice(symbol);
+    console.log(
+      `📚 Order book for ${symbol} using ticker price: ${currentTicker.lastPrice}`
+    );
+
     return {
-      // Minimal structure expected by UI
       symbol,
-      bids: snap.b
-        .filter(([_, q]) => parseFloat(q) > 0)
-        .slice(0, 50)
-        .map(([price, qty]) => ({
-          price,
-          qty,
-          Id: parseFloat(price),
-          side: "Buy" as const,
-          symbol,
-          total: 0,
-          currentValue: (parseFloat(price) || 0) * (parseFloat(qty) || 0),
-          totalValue: 0,
-          inc: true,
-          width: "0%",
-        })),
-      asks: snap.a
-        .filter(([_, q]) => parseFloat(q) > 0)
-        .slice(0, 50)
-        .map(([price, qty]) => ({
-          price,
-          qty,
-          Id: parseFloat(price),
-          side: "Sell" as const,
-          symbol,
-          total: 0,
-          currentValue: (parseFloat(price) || 0) * (parseFloat(qty) || 0),
-          totalValue: 0,
-          inc: true,
-          width: "0%",
-        })),
-      lastPrice: "0",
-      markPrice: "0",
+      bids,
+      asks,
+      lastPrice: currentTicker.lastPrice || "0",
+      markPrice: currentTicker.markPrice || "0",
       timestamp: Date.now().toString(),
       type: "snapshot",
     } as OrderBookData;
@@ -551,24 +633,47 @@ export class WebSocketClient extends EventEmitter {
 
   private mapBybitTickerData(raw: unknown): TickerData {
     const d = (Array.isArray(raw) ? raw[0] : raw) as Record<string, unknown>;
+
     return {
-      symbol: (d?.symbol as string) || "",
-      lastPrice: (d?.lastPrice as string) || (d?.lp as string) || "0",
-      price24hPcnt: (d?.price24hPcnt as string) || "0",
+      symbol: (d?.s as string) || (d?.symbol as string) || "",
+      lastPrice: (d?.lp as string) || (d?.lastPrice as string) || "0",
+      price24hPcnt:
+        (d?.p24hPcnt as string) || (d?.price24hPcnt as string) || "0",
       prevPrice24h: (d?.prevPrice24h as string) || undefined,
       change24h: (d?.change24h as string) || "0",
       tickDirection: (d?.tickDirection as string) || "",
-      highPrice24h: (d?.highPrice24h as string) || "0",
-      lowPrice24h: (d?.lowPrice24h as string) || "0",
-      volume24h: (d?.volume24h as string) || "0",
+      highPrice24h: (d?.h24 as string) || (d?.highPrice24h as string) || "0",
+      lowPrice24h: (d?.l24 as string) || (d?.lowPrice24h as string) || "0",
+      volume24h: (d?.v24 as string) || (d?.volume24h as string) || "0",
       turnover24h: (d?.turnover24h as string) || "0",
-      fundingRate: (d?.fundingRate as string) || "0",
+      fundingRate: (d?.fr as string) || (d?.fundingRate as string) || "0",
       predictedFundingRate: (d?.predictedFundingRate as string) || undefined,
-      openInterest: (d?.openInterest as string) || "0",
-      markPrice: (d?.markPrice as string) || "0",
-      indexPrice: (d?.indexPrice as string) || "0",
+      openInterest: (d?.oi as string) || (d?.openInterest as string) || "0",
+      markPrice: (d?.mp as string) || (d?.markPrice as string) || "0",
+      indexPrice: (d?.idx as string) || (d?.indexPrice as string) || "0",
       nextFundingTime: (d?.nextFundingTime as string) || "0",
     } as TickerData;
+  }
+
+  private mapBybitTradeData(raw: unknown): TradeData {
+    const d = (Array.isArray(raw) ? raw[0] : raw) as Record<string, unknown>;
+
+    return {
+      symbol: (d?.s as string) || (d?.symbol as string) || "",
+      price: (d?.p as string) || (d?.price as string) || "0",
+      qty: (d?.v as string) || (d?.qty as string) || (d?.q as string) || "0",
+      side: ((d?.S as string) || (d?.side as string) || "Buy") as
+        | "Buy"
+        | "Sell",
+      time: (d?.T as string) || (d?.time as string) || Date.now().toString(),
+      tradeId: (d?.i as string) || (d?.tradeId as string) || "",
+      tickDirection: (d?.L as string) || (d?.tickDirection as string) || "",
+      execId: (d?.i as string) || (d?.execId as string) || "",
+      execPrice: (d?.p as string) || (d?.execPrice as string) || "0",
+      execQty: (d?.v as string) || (d?.execQty as string) || "0",
+      execTime: (d?.T as string) || (d?.execTime as string) || "",
+      tradeType: (d?.tradeType as string) || "",
+    } as TradeData;
   }
 
   private processMessage(message: ClientMessage): void {
@@ -621,6 +726,7 @@ export class WebSocketClient extends EventEmitter {
   // ===== PUBLIC METHODS =====
 
   subscribeToTicker(symbol: Symbol): void {
+    // Bybit v5 format: tickers.{symbol}
     this.subscribe(`tickers.${symbol}`);
   }
 

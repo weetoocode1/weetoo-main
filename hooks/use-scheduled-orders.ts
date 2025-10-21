@@ -40,10 +40,11 @@ export function useScheduledOrders(
       return response.json();
     },
     enabled: !!roomId,
-    staleTime: 0, // Always consider data stale to ensure fresh data
-    gcTime: 300000,
-    refetchOnWindowFocus: false, // Disable refetch on window focus
+    staleTime: 15 * 1000, // 15 seconds - scheduled orders change moderately
+    gcTime: 2 * 60 * 1000, // 2 minutes cache
+    refetchOnWindowFocus: false,
     refetchOnMount: true, // Always refetch on mount
+    refetchInterval: 60 * 1000, // Refetch every minute as backup
   });
 
   // Set up Supabase Realtime subscription for instant updates
