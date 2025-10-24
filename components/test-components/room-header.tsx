@@ -49,6 +49,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import Link from "next/link";
 
 // Consistent number formatting function to prevent hydration mismatches
 const formatNumber = (num: number, decimals: number = 2): string => {
@@ -614,17 +615,19 @@ export function RoomHeader({
 
       {/* Desktop Layout - Side by side */}
       <div className="hidden lg:flex items-center gap-2">
-        <Button
-          variant="outline"
-          className="rounded-md h-9 !bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-600"
-          onClick={() => {
-            toast.info("Stream page is under construction", {
-              description: "Live streaming feature will be available soon!",
-            });
-          }}
-        >
-          <VideoIcon className="size-4" />
-        </Button>
+        <Link href={`/trading-room/${room.id}/stream`}>
+          <Button
+            variant="outline"
+            className="rounded-md h-9 !bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-600"
+            // onClick={() => {
+            //   toast.info("Stream page is under construction", {
+            //     description: "Live streaming feature will be available soon!",
+            //   });
+            // }}
+          >
+            <VideoIcon className="size-4" />
+          </Button>
+        </Link>
         <span className="sr-only">Start Live Stream</span>
 
         {/* <Dialog
