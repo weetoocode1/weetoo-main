@@ -3,6 +3,10 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { StreamSettings } from "./stream-settings";
+import { StreamAnalytics } from "./stream-analytics";
+import { Donations } from "./donations";
+import { StreamHealth } from "./stream-health";
 import {
   Clock3Icon,
   EyeIcon,
@@ -12,11 +16,67 @@ import {
   VideoIcon,
   WifiIcon,
   WifiOffIcon,
+  SettingsIcon,
+  BarChart3Icon,
+  HeartIcon,
+  ActivityIcon,
 } from "lucide-react";
 import { useState } from "react";
 
+// Custom Tabs Component
+interface CustomTabsProps {
+  tabs: { id: string; label: string; icon?: React.ReactNode }[];
+  activeTab: string;
+  onTabChange: (tabId: string) => void;
+}
+
+function CustomTabs({ tabs, activeTab, onTabChange }: CustomTabsProps) {
+  return (
+    <div className="flex border-b border-border">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => onTabChange(tab.id)}
+          className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 cursor-pointer ${
+            activeTab === tab.id
+              ? "border-primary text-primary bg-primary/5"
+              : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+          }`}
+        >
+          {tab.icon}
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function StreamDashboard() {
   const [isOnline] = useState(true); // flip to true to show LIVE state
+  const [activeTab, setActiveTab] = useState("settings");
+
+  const tabs = [
+    {
+      id: "settings",
+      label: "Stream Settings",
+      icon: <SettingsIcon className="h-4 w-4" />,
+    },
+    {
+      id: "analytics",
+      label: "Stream Analytics",
+      icon: <BarChart3Icon className="h-4 w-4" />,
+    },
+    {
+      id: "donations",
+      label: "Donations",
+      icon: <HeartIcon className="h-4 w-4" />,
+    },
+    {
+      id: "health",
+      label: "Stream Health",
+      icon: <ActivityIcon className="h-4 w-4" />,
+    },
+  ];
   return (
     <div className="flex-1 w-full h-full border flex flex-col">
       <div className="h-12 border-b border-border flex items-center justify-between px-3">
@@ -141,8 +201,19 @@ export function StreamDashboard() {
         </div>
       </div>
 
-      <div className="h-12 border-b border-border flex items-center px-3">
-        <div>Stream Controls</div>
+      {/* Custom Tabs */}
+      <CustomTabs
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
+
+      {/* Tab Content */}
+      <div className="flex-1 overflow-auto">
+        {activeTab === "settings" && <StreamSettings />}
+        {activeTab === "analytics" && <StreamAnalytics />}
+        {activeTab === "donations" && <Donations />}
+        {activeTab === "health" && <StreamHealth />}
       </div>
     </div>
   );

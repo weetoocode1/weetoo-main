@@ -34,8 +34,10 @@ export function LeverageDialog({
   const tickMarks = [1, 10, 25, 50, 75, 100, 125];
 
   // Real calculations using actual data
-  const positionSize = (availableBalance * value) / currentPrice;
-  const marginRequired = availableBalance; // Using ALL available balance
+  // Position Size = Available Balance × Leverage (in dollar terms)
+  const positionSize = availableBalance * value;
+  // Required Margin = Position Size ÷ Leverage = Available Balance
+  const marginRequired = availableBalance;
   const maintenanceMarginRate = 0.005; // 0.5%
 
   // Calculate liquidation price based on side
@@ -149,7 +151,7 @@ export function LeverageDialog({
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Position Size</span>
                 <span className="text-foreground font-medium">
-                  {positionSize.toFixed(4)} BTC
+                  ${positionSize.toFixed(2)} USDT
                 </span>
               </div>
 

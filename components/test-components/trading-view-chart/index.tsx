@@ -104,6 +104,14 @@ interface TvChart {
   removeEntity?: (entityId: EntityId) => void;
 }
 
+interface PositionData {
+  id: string;
+  price: number;
+  side: "LONG" | "SHORT";
+  size: number;
+  entryPrice: number;
+}
+
 interface TradingViewChartTestProps {
   symbol?: string;
   roomId?: string;
@@ -241,14 +249,135 @@ export function TradingViewChartTest({
     new Map()
   );
   const domOverlaysRef = useRef<Map<string | number, HTMLElement>>(new Map());
+  const positionDataRef = useRef<Map<string | number, PositionData>>(new Map());
 
-  // Add this helper function if not already present in your util
-  // This will generate a truly unique ID for lines not directly managed by TradingView's ID system
+  // Calculate unrealized P&L using the same logic as positions-tabs
+  const calculateUnrealizedPnL = (
+    position: PositionData,
+    currentPrice: number
+  ): { unrealized: number; unrealizedPct: string } => {
+    const { size, entryPrice, side } = position;
+    const direction = side === "SHORT" ? -1 : 1;
+    const unrealized = (currentPrice - entryPrice) * size * direction;
+    const basis = entryPrice * size || 0;
+    const unrealizedPct = basis
+      ? ((unrealized / basis) * 100).toFixed(2) + "%"
+      : "0%";
+
+    return { unrealized, unrealizedPct };
+  };
+
+  // Update P&L text on all position lines
+  const updatePositionLinesPnL = (currentPrice: number) => {
+    positionDataRef.current.forEach((position, positionId) => {
+      const { unrealized, unrealizedPct } = calculateUnrealizedPnL(
+        position,
+        currentPrice
+      );
+
+      // Update TradingView shape text if it exists
+      const line = entryLineByIdRef.current.get(positionId);
+      if (line && line.entityId) {
+        try {
+          const tvw = widgetRef.current;
+          if (tvw && typeof tvw.chart === "function") {
+            const chart = tvw.chart() as unknown as TvChart | null;
+            if (chart && chart.removeEntity && chart.createShape) {
+              // Remove old shape and create new one with updated text
+              chart.removeEntity(line.entityId!);
+
+              const newShapePromise = chart.createShape(
+                { price: position.price },
+                {
+                  shape: "horizontal_line",
+                  text: `${
+                    position.side
+                  } | P&L: ${unrealizedPct} ($${unrealized.toFixed(2)})`,
+                  lock: true,
+                  disableSelection: true,
+                  disableSave: true,
+                }
+              );
+
+              if (
+                newShapePromise &&
+                typeof newShapePromise.then === "function"
+              ) {
+                newShapePromise.then((entityId: EntityId) => {
+                  const updatedLine = {
+                    id: positionId,
+                    entityId: entityId,
+                    remove: () => {
+                      try {
+                        if (chart.removeEntity) {
+                          chart.removeEntity(entityId);
+                        }
+                      } catch (e) {
+                        console.error("Error removing TradingView entity:", e);
+                      }
+                    },
+                  };
+                  entryLineByIdRef.current.set(positionId, updatedLine);
+                });
+              }
+            }
+          }
+        } catch (error) {
+          console.warn("Failed to update TradingView shape:", error);
+        }
+      }
+
+      // Update DOM overlay text and line color
+      const overlay = domOverlaysRef.current.get(positionId);
+      if (overlay) {
+        const label = overlay.querySelector("div");
+        if (label) {
+          const isProfit = unrealized > 0;
+          const isLoss = unrealized < 0;
+          const textColor = isProfit
+            ? "#22c55e"
+            : isLoss
+            ? "#ef4444"
+            : "#ffffff";
+
+          // Dynamic line color based on profit/loss
+          const lineColor = isProfit
+            ? "#22c55e"
+            : isLoss
+            ? "#ef4444"
+            : position.side === "LONG"
+            ? "#16a34a"
+            : "#dc2626";
+
+          label.textContent = `${
+            position.side
+          } | P&L: ${unrealizedPct} ($${unrealized.toFixed(2)})`;
+          label.style.color = textColor;
+          label.style.backgroundColor = isProfit
+            ? "rgba(34, 197, 94, 0.1)"
+            : isLoss
+            ? "rgba(239, 68, 68, 0.1)"
+            : "rgba(15, 23, 42, 0.9)";
+          label.style.border = `2px solid ${
+            isProfit ? "#22c55e" : isLoss ? "#ef4444" : "#ffffff"
+          }`;
+          label.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.3)";
+
+          // Update overlay line color
+          overlay.style.backgroundColor = lineColor;
+          overlay.style.borderColor = lineColor;
+          overlay.style.boxShadow = `0 0 8px ${lineColor}40`;
+        }
+      }
+    });
+  };
 
   const createEntryLine = (
     price: number,
     side: "LONG" | "SHORT",
-    positionId: string // Pass the position ID for linking
+    positionId: string, // Pass the position ID for linking
+    size: number = 1, // Default size if not provided
+    entryPrice: number = price // Default to current price if not provided
   ): TvRemovableWithId | undefined => {
     try {
       const tvw = widgetRef.current;
@@ -266,6 +395,26 @@ export function TradingViewChartTest({
         `Attempting to create entry line for ${side} at price ${price} (Position ID: ${positionId})`
       );
 
+      // Store position data for P&L calculations
+      const positionData: PositionData = {
+        id: positionId,
+        price,
+        side,
+        size,
+        entryPrice,
+      };
+      positionDataRef.current.set(positionId, positionData);
+
+      // Calculate initial P&L
+      const { unrealized, unrealizedPct } = calculateUnrealizedPnL(
+        positionData,
+        price
+      );
+
+      // Determine profit/loss status for styling
+      const isProfit = unrealized > 0;
+      const isLoss = unrealized < 0;
+
       let lineToRemove: TvRemovable | undefined;
       let lineId: string | number | undefined;
 
@@ -282,7 +431,9 @@ export function TradingViewChartTest({
             { price },
             {
               shape: "horizontal_line",
-              text: `Entry (${side}) ${price.toFixed(2)}`,
+              text: `${side} | P&L: ${unrealizedPct} ($${unrealized.toFixed(
+                2
+              )})`,
               lock: true,
               disableSelection: true,
               disableSave: true,
@@ -381,14 +532,33 @@ export function TradingViewChartTest({
           console.log("Using createOrderLine as fallback");
           const ol = (chart as TvChart).createOrderLine!();
           ol.setPrice(price);
-          ol.setText(`Entry (${side}) ${price.toFixed(2)}`);
+          ol.setText(
+            `${side} | P&L: ${unrealizedPct} ($${unrealized.toFixed(2)})`
+          );
           ol.setQuantity(0);
           ol.setLineLength(25);
           ol.setLineStyle(1);
           ol.setLineWidth(2);
-          ol.setLineColor(side === "LONG" ? "#16a34a" : "#dc2626");
-          ol.setBodyTextColor("#ffffff");
-          ol.setBodyBackgroundColor("#0f172a");
+          // Dynamic line color based on profit/loss
+          const lineColor = isProfit
+            ? "#22c55e"
+            : isLoss
+            ? "#ef4444"
+            : side === "LONG"
+            ? "#16a34a"
+            : "#dc2626";
+          ol.setLineColor(lineColor);
+          // Enhanced styling for order line
+          ol.setBodyTextColor(
+            isProfit ? "#22c55e" : isLoss ? "#ef4444" : "#ffffff"
+          );
+          ol.setBodyBackgroundColor(
+            isProfit
+              ? "rgba(34, 197, 94, 0.1)"
+              : isLoss
+              ? "rgba(239, 68, 68, 0.1)"
+              : "rgba(15, 23, 42, 0.9)"
+          );
 
           lineId = positionId; // Use the position ID as the tracking ID
           lineToRemove = ol;
@@ -461,36 +631,69 @@ export function TradingViewChartTest({
       try {
         console.log("Creating DOM overlay as guaranteed fallback");
 
-        // Create a simple DOM overlay for the entry line
+        // Create a simple DOM overlay for the entry line with dynamic colors
         const overlay = document.createElement("div");
         overlay.id = `position-line-${positionId}`; // Unique ID for direct access
         overlay.style.position = "absolute";
         overlay.style.left = "0";
         overlay.style.right = "0";
-        overlay.style.height = "2px";
-        overlay.style.backgroundColor = side === "LONG" ? "#16a34a" : "#dc2626";
-        overlay.style.borderStyle = "dashed";
-        overlay.style.borderWidth = "1px";
-        overlay.style.borderColor = side === "LONG" ? "#16a34a" : "#dc2626";
-        overlay.style.zIndex = "1000";
-        overlay.style.pointerEvents = "none";
-        overlay.style.top = "50%"; // Center vertically for now
+        overlay.style.height = "3px";
+
         overlay.setAttribute("data-position-id", positionId);
         overlay.setAttribute("data-price", price.toString());
         overlay.setAttribute("data-side", side);
 
-        // Add text label
+        // Add text label with P&L - Enhanced styling with borders
         const label = document.createElement("div");
-        label.textContent = `Entry (${side}) ${price.toFixed(2)}`;
+        const isProfit = unrealized > 0;
+        const isLoss = unrealized < 0;
+        const textColor = isProfit ? "#22c55e" : isLoss ? "#ef4444" : "#ffffff";
+
+        // Dynamic line color based on profit/loss
+        const lineColor = isProfit
+          ? "#22c55e"
+          : isLoss
+          ? "#ef4444"
+          : side === "LONG"
+          ? "#16a34a"
+          : "#dc2626";
+
+        overlay.style.backgroundColor = lineColor;
+        overlay.style.borderStyle = "solid";
+        overlay.style.borderWidth = "1px";
+        overlay.style.borderColor = lineColor;
+        overlay.style.zIndex = "1000";
+        overlay.style.pointerEvents = "none";
+        overlay.style.top = "50%"; // Center vertically for now
+        overlay.style.boxShadow = `0 0 8px ${lineColor}40`; // Subtle glow effect
+
+        label.textContent = `${side} | P&L: ${unrealizedPct} ($${unrealized.toFixed(
+          2
+        )})`;
         label.style.position = "absolute";
         label.style.right = "10px";
         label.style.top = "-20px";
-        label.style.color = "#ffffff";
-        label.style.backgroundColor = "#0f172a";
-        label.style.padding = "2px 6px";
-        label.style.borderRadius = "4px";
+        label.style.color = textColor;
+        label.style.backgroundColor = isProfit
+          ? "rgba(34, 197, 94, 0.1)"
+          : isLoss
+          ? "rgba(239, 68, 68, 0.1)"
+          : "rgba(15, 23, 42, 0.9)";
+        label.style.padding = "4px 8px";
+        label.style.borderRadius = "6px";
         label.style.fontSize = "12px";
         label.style.fontWeight = "bold";
+        label.style.border = `2px solid ${
+          isProfit ? "#22c55e" : isLoss ? "#ef4444" : "#ffffff"
+        }`;
+        label.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.3)";
+        label.style.whiteSpace = "nowrap";
+        label.style.userSelect = "none";
+        label.style.pointerEvents = "none";
+        label.style.zIndex = "1001";
+        label.style.fontFamily =
+          "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace";
+
         overlay.appendChild(label);
 
         // Add to chart container
@@ -555,6 +758,7 @@ export function TradingViewChartTest({
 
                 // Clean up tracking
                 domOverlaysRef.current.delete(positionId);
+                positionDataRef.current.delete(positionId);
 
                 if (!removed) {
                   console.log(
@@ -617,6 +821,16 @@ export function TradingViewChartTest({
         datafeedRef.current.refreshCurrentPrice(symbol);
       }
     } catch {}
+
+    // Update P&L on all position lines when ticker data changes
+    if (tickerData?.lastPrice) {
+      const currentPrice = parseFloat(
+        String(tickerData.lastPrice).replace(/,/g, "")
+      );
+      if (!isNaN(currentPrice) && currentPrice > 0) {
+        updatePositionLinesPnL(currentPrice);
+      }
+    }
   }, [tickerData]);
 
   useEffect(() => {
@@ -913,17 +1127,32 @@ export function TradingViewChartTest({
         });
         entryLineByIdRef.current.clear();
         entryLinesRef.current = [];
+        positionDataRef.current.clear();
       } catch {}
 
       // Listen for position open/close events from the app to draw/remove lines
       const handlePositionOpened = (e: Event) => {
         const detail = (e as CustomEvent).detail as
-          | { price?: number; side?: "LONG" | "SHORT"; id?: string | number }
+          | {
+              price?: number;
+              side?: "LONG" | "SHORT";
+              id?: string | number;
+              size?: number;
+              entryPrice?: number;
+            }
           | undefined;
         const price = Number(detail?.price);
         const side = (detail?.side || "LONG") as "LONG" | "SHORT";
+        const size = Number(detail?.size) || 1;
+        const entryPrice = Number(detail?.entryPrice) || price;
 
-        console.log("Position opened event received:", { detail, price, side });
+        console.log("Position opened event received:", {
+          detail,
+          price,
+          side,
+          size,
+          entryPrice,
+        });
 
         if (!Number.isFinite(price) || price <= 0) {
           console.log("Invalid price, skipping:", price);
@@ -942,7 +1171,13 @@ export function TradingViewChartTest({
           }
         }
         console.log("Creating new entry line...");
-        const line = createEntryLine(price, side, detail?.id as string);
+        const line = createEntryLine(
+          price,
+          side,
+          detail?.id as string,
+          size,
+          entryPrice
+        );
         console.log("Entry line created:", line);
         if (line && detail?.id !== undefined) {
           entryLineByIdRef.current.set(detail.id, line);
@@ -986,6 +1221,7 @@ export function TradingViewChartTest({
             console.error("Error removing line:", error);
           }
           entryLineByIdRef.current.delete(id);
+          positionDataRef.current.delete(id);
           console.log("Removed line from tracking map for ID:", id);
         } else {
           console.log("No line found for ID:", id);
@@ -1025,6 +1261,7 @@ export function TradingViewChartTest({
               }
             });
             entryLineByIdRef.current.clear();
+            positionDataRef.current.clear();
             console.log("Cleared all tracked lines");
           } catch (error) {
             console.error("Error in fallback line removal:", error);
@@ -1082,6 +1319,7 @@ export function TradingViewChartTest({
           });
           entryLinesRef.current = [];
           entryLineByIdRef.current.clear();
+          positionDataRef.current.clear();
         } catch {}
         // Run any chart cleanup handlers we registered
         const tvw = widgetRef.current as unknown as {

@@ -329,7 +329,13 @@ export function PositionsTabs({
 
         window.dispatchEvent(
           new CustomEvent("position-opened", {
-            detail: { id: p.id, price, side },
+            detail: {
+              id: p.id,
+              price,
+              side,
+              size: Number(p.quantity),
+              entryPrice: Number(p.entry_price),
+            },
           })
         );
 
