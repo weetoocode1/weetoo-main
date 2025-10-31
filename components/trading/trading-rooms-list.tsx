@@ -1362,7 +1362,7 @@ export function TradingRoomsList() {
                 setIsReplayLoading(false);
               }}
             >
-              Rooms
+              {t("tabs.rooms")}
             </button>
             <button
               className={`px-3 h-10 text-sm border-l border-border ${
@@ -1375,7 +1375,7 @@ export function TradingRoomsList() {
                 setIsReplayLoading(true);
               }}
             >
-              Replays
+              {t("tabs.replays")}
             </button>
           </div>
           {/* Type Filter */}
