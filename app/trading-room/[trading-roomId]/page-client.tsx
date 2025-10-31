@@ -1,14 +1,51 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-import { MarketWidget } from "@/components/test-components/market-widget";
-import { RoomHeader } from "@/components/test-components/room-header";
-import { TradingViewChartTest } from "@/components/test-components/trading-view-chart";
-import { OrderBookTest } from "@/components/test-components/order-book-test";
-import { TradeForm } from "@/components/test-components/trade-form";
-import { TradingTabs } from "@/components/test-components/trading-tabs";
+const MarketWidget = dynamic(
+  () =>
+    import("@/components/test-components/market-widget").then((m) => ({
+      default: m.MarketWidget,
+    })),
+  { ssr: false }
+);
+const RoomHeader = dynamic(
+  () =>
+    import("@/components/test-components/room-header").then((m) => ({
+      default: m.RoomHeader,
+    })),
+  { ssr: false }
+);
+const TradingViewChartTest = dynamic(
+  () =>
+    import("@/components/test-components/trading-view-chart").then((m) => ({
+      default: m.TradingViewChartTest,
+    })),
+  { ssr: false }
+);
+const OrderBookTest = dynamic(
+  () =>
+    import("@/components/test-components/order-book-test").then((m) => ({
+      default: m.OrderBookTest,
+    })),
+  { ssr: false }
+);
+const TradeForm = dynamic(
+  () =>
+    import("@/components/test-components/trade-form").then((m) => ({
+      default: m.TradeForm,
+    })),
+  { ssr: false }
+);
+const TradingTabs = dynamic(
+  () =>
+    import("@/components/test-components/trading-tabs").then((m) => ({
+      default: m.TradingTabs,
+    })),
+  { ssr: false }
+);
 import { cn } from "@/lib/utils";
 import { useTickerData } from "@/hooks/websocket/use-market-data";
 import { usePageVisibility } from "@/hooks/use-page-visibility";
@@ -22,6 +59,13 @@ import {
   type Layout,
   type Layouts,
 } from "react-grid-layout";
+const Viewer = dynamic(
+  () =>
+    import("@/components/test-components/test-stream/viewer").then((m) => ({
+      default: m.Viewer,
+    })),
+  { ssr: false }
+);
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -81,6 +125,14 @@ export function TradingRoomPageClient({
   const [, setCurrentUserId] = useState<string | null>(null);
   const [isCreator, setIsCreator] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const gridBreakpoints = useMemo(
+    () => ({ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }),
+    []
+  );
+  const rowHeight = 60;
+  const mobileMargin: [number, number] = useMemo(() => [4, 4], []);
+  const desktopMargin: [number, number] = useMemo(() => [0, 4], []);
+
   const [layouts, setLayouts] = useState<Layouts>({
     // Desktop layout (1200px+)
     lg: [
@@ -160,10 +212,13 @@ export function TradingRoomPageClient({
     debouncedRoomUpdate(room);
   }, [room, debouncedRoomUpdate]);
 
+  const layoutUpdateRef = useRef<NodeJS.Timeout | null>(null);
   const handleLayoutChange = useCallback(
-    (layout: Layout[], layouts: Layouts) => {
-      setLayouts(layouts);
-      console.log(layout, layouts);
+    (layout: Layout[], nextLayouts: Layouts) => {
+      if (layoutUpdateRef.current) clearTimeout(layoutUpdateRef.current);
+      layoutUpdateRef.current = setTimeout(() => {
+        setLayouts(nextLayouts);
+      }, 250);
     },
     []
   );
@@ -522,50 +577,14 @@ export function TradingRoomPageClient({
     </div>
   );
 
-  // Under Construction Component for Participants
-  const UnderConstructionMessage = () => (
-    <div className="flex items-center justify-center h-screen w-full bg-background">
-      <div className="text-center max-w-sm mx-auto px-6">
-        <div className="mb-8">
-          <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
-            <svg
-              className="w-8 h-8 text-muted-foreground"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3"
-              />
-            </svg>
-          </div>
-        </div>
-        <h1 className="text-xl font-semibold text-foreground mb-3">
-          Under Construction
-        </h1>
-        <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-          This trading room is currently being developed. The full trading
-          interface is only available to the room creator at this time.
-        </p>
-
-        <div className="mt-6 text-xs text-muted-foreground/70">
-          Check back later for updates!
-        </div>
-      </div>
-    </div>
-  );
-
   // Show loading while checking authentication
   if (isCheckingAuth) {
     return <LoadingMessage />;
   }
 
-  // Show under construction message for non-creators
+  // Show viewer interface for non-creators
   if (!isCreator) {
-    return <UnderConstructionMessage />;
+    return <Viewer roomId={currentRoom.id} />;
   }
 
   return (
@@ -597,11 +616,11 @@ export function TradingRoomPageClient({
             className={cn("layout", mounted && "mounted")}
             layouts={layouts}
             onLayoutChange={handleLayoutChange}
-            breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-            rowHeight={60}
+            breakpoints={gridBreakpoints}
+            rowHeight={rowHeight}
             isDraggable={false}
             isResizable={false}
-            margin={[4, 4]}
+            margin={mobileMargin}
             containerPadding={undefined}
             useCSSTransforms={true}
             compactType="vertical"
@@ -662,11 +681,11 @@ export function TradingRoomPageClient({
             className={cn("layout", mounted && "mounted")}
             layouts={layouts}
             onLayoutChange={handleLayoutChange}
-            breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-            rowHeight={60}
+            breakpoints={gridBreakpoints}
+            rowHeight={rowHeight}
             isDraggable={true}
             isResizable={true}
-            margin={[0, 4]}
+            margin={desktopMargin}
             containerPadding={undefined}
             useCSSTransforms={true}
             compactType="vertical"

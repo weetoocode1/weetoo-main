@@ -806,7 +806,22 @@
   },
   "trading": {
     "tradingRooms": "Trading Rooms",
-    "tradingRoomsDescription": "Join a trading room to collaborate, share strategies, and trade"
+    "tradingRoomsDescription": "Join a trading room to collaborate, share strategies, and trade",
+    "table": {
+      "filters": "Filters",
+      "symbol": "Symbol",
+      "side": "Side",
+      "type": "Type",
+      "allSymbols": "All Symbols",
+      "allSides": "All Sides",
+      "allTypes": "All Types",
+      "clear": "Clear",
+      "sort": "Sort",
+      "select": "Select",
+      "noSorting": "No Sorting",
+      "empty": "No Available Data",
+      "noSortingShort": "None"
+    }
   },
   "room": {
     "mockNotice": {
@@ -1176,7 +1191,10 @@
       "noDonations": "No donations yet.",
       "kor": "KOR",
       "supportHost": "Support the host by donating kor-coins!",
-      "placeholders": { "enterAmount": "Enter amount" },
+      "placeholders": {
+        "enterAmount": "Enter amount",
+        "enterMessage": "Add a message (optional)"
+      },
       "yourBalance": "Your balance:",
       "buttons": { "donating": "Donating...", "donate": "Donate" },
       "errors": {
@@ -3323,6 +3341,20 @@
       "uidRegistration": "UID Registration",
       "paybackWithdrawal": "Payback Withdrawal"
     },
+    "table": {
+      "filters": "Filters",
+      "symbol": "Symbol",
+      "side": "Side",
+      "type": "Type",
+      "allSymbols": "All Symbols",
+      "allSides": "All Sides",
+      "allTypes": "All Types",
+      "clear": "Clear",
+      "sort": "Sort",
+      "select": "Select",
+      "noSorting": "No Sorting",
+      "empty": "No Available Data"
+    },
     "mobileLabels": {
       "accounts": "Accounts",
       "transactions": "Transactions",
@@ -3670,6 +3702,757 @@
       "validation": {
         "minimumAmount": "Minimum withdrawal amount is $50",
         "insufficientBalance": "Insufficient balance"
+      }
+    }
+  },
+  "guidebook": {
+    "steps": {
+      "download": {
+        "title": "Download OBS Studio",
+        "description": "If OBS is already installed, proceed to the next step.",
+        "line1": "If you don't have OBS, download it from the official site and run the installer:",
+        "line2": "After the download finishes, open the installer and complete the setup.",
+        "line3": "Once OBS is installed (or if it was already installed), click Next to continue.",
+        "downloadUrlLabel": "https://obsproject.com/download"
+      },
+      "copyCreds": {
+        "title": "Copy Stream Credentials",
+        "description": "Get your Stream Key and Primary Stream URL from Stream Settings.",
+        "bullets": {
+          "openSettings": "Open Stream Settings in this dashboard.",
+          "copyKey": "Copy the Stream Key Value (keep it secret).",
+          "copyUrl": "Copy the Primary Stream URL (RTMP server)."
+        },
+        "screenshotAlt": "Stream Settings showing Stream Key and Primary Stream URL"
+      },
+      "configure": {
+        "title": "Configure OBS",
+        "description": "Open OBS Settings → Stream, select Mux, choose Global (RTMP), paste your details, then Apply.",
+        "bullets": {
+          "openSettingsStream": "OBS → Settings → Stream.",
+          "serviceMux": "Set Service to Mux.",
+          "serverGlobal": "Choose Server: Global (RTMP).",
+          "pasteKey": "Paste the Stream Key you copied.",
+          "applyOk": "Click Apply, then OK."
+        },
+        "screenshotAlt": "OBS Stream settings showing Mux, Global (RTMP), and Stream Key"
+      },
+      "output": {
+        "title": "Recommended Settings",
+        "description": "Set Output (Streaming) for a stable 1080p stream.",
+        "openOutput": "OBS → Settings → Output (Streaming)",
+        "bullets": {
+          "encoder": "Encoder: Hardware (if available) or x264",
+          "bitrate": "Bitrate: 4500–6000 Kbps (1080p30)",
+          "keyframe": "Keyframe Interval: 2 seconds",
+          "audioBitrate": "Audio Bitrate: 128–192 Kbps"
+        },
+        "screenshotAlt": "OBS Output Streaming settings with recommended values"
+      },
+      "scene": {
+        "title": "Add Scene and Source",
+        "description": "Create a Scene, then add a Window Capture source.",
+        "bullets": {
+          "addScene": "Click + under Scenes to add and name a scene.",
+          "addSourceWindow": "Click + under Sources and choose Window Capture.",
+          "chooseWindow": "Pick the window, then confirm (eye/lock to control)."
+        },
+        "screenshotAlt": "OBS Scenes and Sources with Window Capture"
+      },
+      "live": {
+        "title": "Start Streaming",
+        "description": "Go live from OBS and monitor status in the dashboard.",
+        "bullets": {
+          "ensureScenes": "Add your scenes and sources (Window/Game/Display Capture).",
+          "pressStart": "Click Start Streaming in OBS.",
+          "checkDashboard": "Return here to see the preview and LIVE status."
+        },
+        "screenshotAlt": "OBS Controls showing Start Streaming button"
+      },
+      "youtube": {
+        "title": "Learn More (YouTube)",
+        "description": "Watch a beginner-friendly OBS tutorial.",
+        "overlay": "Click to watch ▶",
+        "thumbnailAlt": "YouTube: OBS Studio Beginners Guide"
+      }
+    },
+    "ui": {
+      "triggerTitle": "Streaming Guide",
+      "stepOfTotal": "Step {step} of {total}",
+      "previous": "Previous",
+      "next": "Next",
+      "done": "Done"
+    }
+  },
+  "market": {
+    "widget": {
+      "type": { "usdtPerp": "USDT Perpetual" },
+      "tooltip": {
+        "pairDesc": "{asset} USDT Perpetual, using USDT as collateral",
+        "markPriceDesc": "Mark price is derived by index price and funding rate, and reflects the fair market price. Liquidation is triggered by mark price."
+      },
+      "labels": {
+        "indexPrice": "Index Price",
+        "change24hPct": "24H Change %",
+        "change24h": "24H Change",
+        "high24h": "24H High",
+        "low24h": "24H Low",
+        "volume24h": "24H Volume",
+        "turnover24hUsdt": "24H Turnover(USDT)",
+        "openInterest": "Open Interest",
+        "fundingRate": "Funding Rate",
+        "countdown": "Countdown",
+        "nextFunding": "Next Funding"
+      }
+    }
+  },
+  "chart": {
+    "tv": {
+      "loading": {
+        "updatingPriceType": "Updating price type...",
+        "loadingChart": "Loading chart..."
+      },
+      "chartTypes": {
+        "bars": "Bars",
+        "candles": "Candles",
+        "hollowCandles": "Hollow Candles",
+        "heikinAshi": "Heikin Ashi",
+        "line": "Line",
+        "area": "Area",
+        "baseline": "Baseline"
+      }
+    },
+    "toolbar": {
+      "moreIntervals": "More intervals",
+      "customTimeFrame": "Custom Time Frame",
+      "extraIntervals": "Extra Intervals",
+      "indicators": "Indicators",
+      "chartType": "Chart Type",
+      "chartSettings": "Chart Settings",
+      "compareSymbols": "Compare Symbols",
+      "priceType": "Price Type",
+      "lastTradedPrice": "Last Traded Price",
+      "markPrice": "Mark Price",
+      "priceTypeShort": { "last": "Last", "mark": "Mark" },
+      "takeScreenshot": "Take Screenshot",
+      "toggleFullscreen": "Toggle Fullscreen"
+    }
+  },
+  "trade": {
+    "quick": {
+      "aria": { "drag": "Drag", "close": "Close" },
+      "buttons": {
+        "marketLong": "Market Long",
+        "marketShort": "Market Short",
+        "cancel": "Cancel",
+        "confirmWithSide": "Confirm {side}"
+      },
+      "inputs": { "qtyPlaceholder": "Qty" },
+      "dialog": {
+        "title": "Confirm Trade",
+        "symbol": "Symbol:",
+        "side": "Side:",
+        "orderType": "Order Type:",
+        "price": "Price:",
+        "quantity": "Quantity:",
+        "orderValue": "Order Value:"
+      },
+      "common": { "long": "Long", "short": "Short", "market": "Market" },
+      "errors": {
+        "qtyInvalid": "Please enter a valid quantity",
+        "qtyGreaterThanZero": "Quantity must be greater than 0",
+        "missingRoomContext": "Missing room context",
+        "openFailed": "Failed to open position",
+        "orderFailed": "Order failed",
+        "unexpectedOpenError": "Unexpected error while opening position"
+      },
+      "toasts": {
+        "placed": "{side} order placed",
+        "placedDesc": "{qty} {symbol} at {price}"
+      }
+    },
+    "form": {
+      "header": { "trade": "Trade" },
+      "tabs": { "limit": "Limit", "market": "Market" },
+      "cross": "Cross",
+      "isolated": "Isolated",
+      "customize": "Customize",
+      "badges": { "new": "NEW" },
+      "price": { "label": "Price", "last": "Last" },
+      "quantity": {
+        "label": "Quantity",
+        "dialog": {
+          "title": "Order Placement Preferences",
+          "orderByQty": "Order by Quantity",
+          "orderByQtyShort": "Order by Qty",
+          "orderByQtyHelp": "Please enter your order qty denominated in BTC terms.",
+          "orderByValue": "Order by Value",
+          "orderByValueHelp": "Please enter your desired order value. You can modify the required margin by adjusting the applied leverage.",
+          "noteTitle": "* Note",
+          "noteBody": "Your order quantity will be calculated based on the value of your filled order. In extreme market fluctuations, order placement may fail."
+        }
+      },
+      "valueCost": {
+        "availableBalance": "Available Balance",
+        "orderAmount": "Order Amount",
+        "marketInfoAria": "Market order info",
+        "marketInfo": "Final price unknown until execution.",
+        "fee": "Fee ({rate}%)",
+        "totalCost": "Total Cost",
+        "insufficient": "Not enough balance for this order. Please lower the amount or add funds.",
+        "liquidationPrice": "Liquidation Price",
+        "liqTooltip": "The estimated liquidation price is affected by average entry, unrealized P&L, maintenance margin, and available balance. Multiple positions affect each other. This is for reference; liquidation triggers when maintenance margin rate reaches 100%. '--' means no liquidation price to display currently.",
+        "calculate": "Calculate",
+        "liqEst": "Liq. Price (est.)"
+      },
+      "execution": {
+        "title": "Execution Timing",
+        "now": "Execute Now",
+        "time": "Schedule by Time",
+        "price": "Schedule by Price",
+        "date": "Date",
+        "timeLabel": "Time",
+        "triggerWhen": "Trigger when price:",
+        "above": "Rises Above",
+        "below": "Falls Below",
+        "triggerPrice": "Trigger Price",
+        "triggerPricePh": "Enter trigger price",
+        "current": "Current",
+        "distance": "Distance"
+      },
+      "tpsl": {
+        "button": "TP/SL",
+        "addTitle": "Add TP/SL",
+        "lastTraded": "Last Traded Price",
+        "basic": {
+          "enableTp": "Enable Take Profit",
+          "enableTpAria": "Enable Take Profit",
+          "enableSl": "Enable Stop Loss",
+          "enableSlAria": "Enable Stop Loss",
+          "tpPrice": "Take Profit Price",
+          "slPrice": "Stop Loss Price",
+          "warnNoSl": "No stop loss set — higher downside risk",
+          "info": {
+            "market": "TP/SL will activate immediately after position opens",
+            "limit": "TP/SL will activate only after limit order fills"
+          }
+        }
+      },
+      "percentage": { "aria": "Select {percent}%" },
+      "longShort": {
+        "longBuy": "Long/Buy",
+        "shortSell": "Short/Sell",
+        "confirmTitleLong": "Confirm Long / Buy",
+        "confirmTitleShort": "Confirm Short / Sell",
+        "closeAria": "Close",
+        "symbol": "Symbol",
+        "type": "Type",
+        "orderType": "Order Type",
+        "leverage": "Leverage",
+        "entryPrice": "Entry Price",
+        "orderValue": "Order Value",
+        "liqEst": "Liquidation (est.)",
+        "invalid": "Please enter a valid price and quantity to continue.",
+        "confirmLong": "Confirm Long",
+        "confirmShort": "Confirm Short",
+        "long": "Long",
+        "short": "Short"
+      },
+      "leverage": {
+        "title": "Adjust Leverage",
+        "label": "Leverage",
+        "sliderA11y": "Leverage slider",
+        "warningHigh": "The current leverage is too high. There is a high risk of immediate liquidation. Please adjust your position."
+      },
+      "calc": {
+        "title": "Live Calculations",
+        "positionSize": "Position Size",
+        "marginRequired": "Margin Required",
+        "liquidationPrice": "Liquidation Price ({side})",
+        "availableBalance": "Available Balance"
+      },
+      "buttons": { "confirm": "Confirm", "cancel": "Cancel" }
+    }
+  },
+  "orderBook": {
+    "test": {
+      "tabs": { "orderBook": "Order Book", "recentTrades": "Recent Trades" },
+      "display": {
+        "compositeTitle": "Composite view - Both asks and bids",
+        "asksOnlyTitle": "Asks only - Sell orders with current price on top",
+        "bidsOnlyTitle": "Bids only - Buy orders with current price on top"
+      },
+      "headers": {
+        "price": "Price",
+        "qtyBase": "Qty({base})",
+        "totalBase": "Total ({base})",
+        "totalUsdt": "Total (USDT)"
+      },
+      "labels": { "current": "Current", "mark": "Mark" },
+      "tooltip": {
+        "setLimitPrice": "Set limit price",
+        "avgPrice": "Avg. Price",
+        "totalQtyBase": "Total Qty ({base})",
+        "totalQtyUsdt": "Total Qty (USDT)"
+      },
+      "trades": {
+        "priceUsdt": "Price(USDT)",
+        "qtyBase": "Qty({base})",
+        "time": "Time"
+      }
+    }
+  },
+  "trading": {
+    "tradingRooms": "Trading Rooms",
+    "tradingRoomsDescription": "Join a trading room to collaborate, share strategies, and trade",
+    "tabs": {
+      "openOrders": "Open Orders ({count})",
+      "scheduledOrders": "Scheduled Orders ({count})",
+      "positions": "Positions ({count})",
+      "history": "History ({count})",
+      "mobile": {
+        "orders": "Orders ({count})",
+        "scheduled": "Scheduled ({count})",
+        "positions": "Positions ({count})",
+        "history": "History ({count})"
+      }
+    },
+    "table": {
+      "filters": "Filters",
+      "symbol": "Symbol",
+      "side": "Side",
+      "type": "Type",
+      "allSymbols": "All Symbols",
+      "allSides": "All Sides",
+      "allTypes": "All Types",
+      "clear": "Clear",
+      "sort": "Sort",
+      "select": "Select",
+      "noSorting": "No Sorting",
+      "empty": "No Available Data",
+      "noSortingShort": "None"
+    },
+    "openOrders": {
+      "columns": {
+        "time": "Time",
+        "symbol": "Symbol",
+        "type": "Type",
+        "side": "Side",
+        "price": "Price",
+        "amount": "Amount",
+        "tpsl": "TP/SL",
+        "status": "Status",
+        "totalValue": "Total Value",
+        "action": "Action"
+      },
+      "actions": { "cancel": "Cancel" },
+      "empty": { "noOpenOrders": "No Open Orders" },
+      "filterable": { "symbol": "Symbol", "side": "Side", "type": "Type" },
+      "common": { "limit": "Limit", "buy": "Buy", "sell": "Sell" }
+    },
+    "orderHistory": {
+      "columns": {
+        "date": "Date",
+        "time": "Time",
+        "symbol": "Symbol",
+        "type": "Type",
+        "side": "Side",
+        "price": "Price",
+        "amount": "Amount",
+        "totalValue": "Total Value",
+        "fee": "Fee",
+        "status": "Status"
+      },
+      "loading": "Loading order history...",
+      "empty": { "noHistory": "No Order History Found" },
+      "errors": { "failed": "Failed to load order history", "retry": "Retry" },
+      "filterable": {
+        "symbol": "Symbol",
+        "side": "Side",
+        "type": "Type",
+        "status": "Status"
+      },
+      "common": { "buy": "Buy", "sell": "Sell" }
+    },
+    "positions": {
+      "columns": {
+        "symbol": "Symbol",
+        "side": "Side",
+        "size": "Size",
+        "entryPrice": "Entry Price",
+        "markPrice": "Mark Price",
+        "lastPrice": "Last Price",
+        "tpsl": "TP/SL",
+        "status": "Status",
+        "liqPrice": "Liquidation Price",
+        "distanceToLiq": "Distance to Liquidation",
+        "unrealizedPct": "Unrealized P&L (%)",
+        "unrealizedUsd": "Unrealized P&L ($)",
+        "actions": "Actions"
+      },
+      "empty": { "loading": "Loading...", "noOpen": "No Open Positions" },
+      "actions": { "close": "Close", "closing": "Closing..." },
+      "filterable": { "symbol": "Symbol", "side": "Side" },
+      "common": { "buy": "Buy", "sell": "Sell" }
+    },
+    "scheduled": {
+      "columns": {
+        "id": "ID",
+        "symbol": "Symbol",
+        "type": "Type",
+        "side": "Side",
+        "trigger": "Trigger",
+        "order": "Order",
+        "amount": "Amount",
+        "tpsl": "TP/SL",
+        "countdown": "Countdown",
+        "status": "Status",
+        "action": "Action"
+      },
+      "loading": "Loading scheduled orders...",
+      "errors": { "failed": "Failed to load scheduled orders" },
+      "empty": { "noScheduled": "No Scheduled Orders" },
+      "tpsl": { "none": "No TP/SL" },
+      "statusMap": {
+        "pending": "Pending",
+        "watching": "Watching",
+        "executed": "Executed",
+        "cancelled": "Cancelled",
+        "failed": "Failed"
+      },
+      "triggerMap": { "above": "Rises Above", "below": "Falls Below" },
+      "orderMap": { "market": "{side} @ Market", "limit": "{side} @ {price}" },
+      "countdown": { "expired": "Expired", "executing": "Executing..." },
+      "dialog": {
+        "title": "Cancel scheduled order?",
+        "description": "This will cancel the scheduled order. This action cannot be undone.",
+        "keep": "Keep",
+        "confirm": "Confirm Cancel"
+      },
+      "toasts": {
+        "cancelSuccess": "Scheduled order cancelled successfully",
+        "cancelFailed": "Failed to cancel scheduled order"
+      },
+      "filterable": {
+        "symbol": "Symbol",
+        "side": "Side",
+        "type": "Type",
+        "status": "Status"
+      }
+    }
+  },
+  "stream": {
+    "dashboard": {
+      "title": "Stream Dashboard",
+      "liveStream": "Live Stream",
+      "waiting": "Waiting for stream...",
+      "notActive": "Stream not active",
+      "streamTitle": "Stream Title",
+      "characters": "characters",
+      "loading": "Loading...",
+      "descriptionOptional": "Description (optional)",
+      "noDescription": "No description added yet.",
+      "tagsLabel": "Tags (max 5)",
+      "tabs": {
+        "settings": "Stream Settings",
+        "thumbnail": "Stream Thumbnail",
+        "analytics": "Stream Analytics",
+        "donations": "Donations",
+        "health": "Stream Health"
+      },
+      "stats": {
+        "viewers": "Viewers",
+        "latency": "Latency",
+        "started": "Started"
+      },
+      "toasts": {
+        "titleUpdated": "Title updated successfully!",
+        "titleUpdateFailed": "Failed to update title",
+        "descriptionUpdated": "Description updated successfully!",
+        "descriptionUpdateFailed": "Failed to update description"
+      }
+    },
+    "health": {
+      "title": "Stream Health Status",
+      "drift": "drift",
+      "legend": { "driftAvg": "Drift Average" },
+      "labels": {
+        "excellent": "Excellent",
+        "good": "Good",
+        "poor": "Poor",
+        "idle": "Idle",
+        "notStreaming": "Not Streaming",
+        "unknown": "Unknown"
+      },
+      "messages": {
+        "appearWhenActive": "Stream health metrics will appear when the stream is active.",
+        "collecting": "Collecting stream health data... Metrics will appear shortly."
+      }
+    },
+    "settings": {
+      "common": { "cancel": "Cancel", "copy": "Copy" },
+      "errors": {
+        "streamIdNotFound": "Stream ID not found",
+        "waitBeforeReset": "Please wait 5 seconds before resetting again"
+      },
+      "toasts": {
+        "saved": "Settings saved successfully!",
+        "saveFailed": "Failed to save settings",
+        "resetToDefault": "Settings reset to default successfully!",
+        "resetFailed": "Failed to reset settings",
+        "copied": "{label} copied to clipboard!",
+        "copyFailed": "Failed to copy to clipboard"
+      },
+      "connection": {
+        "title": "Stream Connection",
+        "streamKey": "Stream Key",
+        "selectStreamKey": "Select stream key",
+        "defaultKey": "Default stream key",
+        "streamKeyValue": "Stream Key Value",
+        "reset": "Reset",
+        "resetting": "Resetting...",
+        "primaryUrl": "Primary Stream URL",
+        "primaryUrlShort": "Primary URL"
+      },
+      "latency": {
+        "title": "Stream Latency",
+        "normal": "Normal Latency",
+        "normalDesc": "Standard delay (~10-20s)",
+        "low": "Low Latency",
+        "lowDesc": "Reduced delay (~5-10s)",
+        "ultra": "Ultra Low Latency",
+        "ultraDesc": "Minimal delay (~2-5s)"
+      },
+      "features": {
+        "title": "Stream Features",
+        "enableDvr": "Enable DVR",
+        "enableDvrDesc": "Allow viewers to pause and rewind",
+        "unlistReplay": "Unlist Live Replay",
+        "unlistReplayDesc": "Hide recording after stream ends"
+      },
+      "reconnect": {
+        "title": "Reconnect Window",
+        "description": "How long to wait for reconnection before ending stream",
+        "recommended": "Recommended",
+        "options": { "30s": "30s", "60s": "60s", "2m": "2m", "5m": "5m" }
+      },
+      "security": {
+        "title": "Security Notice",
+        "body": "Keep your Stream Key private. Anyone with this key can stream to your channel. Never share it publicly or commit it to version control."
+      },
+      "buttons": {
+        "resetDefault": "Reset to Default Settings",
+        "save": "Save Settings",
+        "saving": "Saving..."
+      },
+      "dialogs": {
+        "resetKey": {
+          "title": "Reset Stream Key",
+          "description": "Are you sure you want to reset your stream key? You'll need to update your streaming software (OBS, Streamlabs etc.) with the new key. The current stream will be interrupted if it's active.",
+          "resetting": "Resetting...",
+          "confirm": "Reset Key"
+        },
+        "resetSettings": {
+          "title": "Reset Settings to Default",
+          "description": "Are you sure you want to reset all settings to their default values?",
+          "defaultLabel": "Default settings:",
+          "defaults": {
+            "latency": "Latency: Ultra Low (low)",
+            "reconnect": "Reconnect Window: 60 seconds",
+            "enableDvr": "Enable DVR: Yes",
+            "unlistReplay": "Unlist Replay: No"
+          },
+          "resetting": "Resetting...",
+          "confirm": "Reset Settings"
+        }
+      }
+    },
+    "tags": {
+      "placeholder": "Tag name",
+      "add": "Add Tag",
+      "errors": {
+        "maxTags": "Maximum {count} tags allowed",
+        "duplicate": "Tag already exists"
+      },
+      "toasts": {
+        "added": "Tag added successfully!",
+        "addFailed": "Failed to add tag",
+        "removed": "Tag removed successfully!",
+        "removeFailed": "Failed to remove tag"
+      }
+    },
+    "thumbnail": {
+      "title": "Thumbnail Settings",
+      "subtitle": "Manage your stream thumbnail",
+      "preview": {
+        "alt": "Stream thumbnail",
+        "noThumb": "No thumbnail available",
+        "appearsWhenActive": "Thumbnail will appear when stream is active",
+        "uploadHint": "Upload a custom thumbnail to preview your stream"
+      },
+      "buttons": {
+        "upload": "Upload Custom Thumbnail",
+        "uploading": "Uploading...",
+        "save": "Save Thumbnail"
+      },
+      "common": { "cancel": "Cancel" },
+      "status": {
+        "title": "Current Status",
+        "customUpload": "Custom Upload",
+        "autoGenerated": "Auto-Generated",
+        "notAvailable": "Not Available",
+        "source": "Source",
+        "yourUpload": "Your Upload",
+        "muxSource": "Mux (10s updates)",
+        "none": "None"
+      },
+      "requirements": {
+        "title": "Requirements",
+        "size": "Recommended size: 1280x720px",
+        "maxFileSize": "Max file size: 5MB",
+        "formats": "Supported formats: JPG, PNG, WebP"
+      },
+      "tip": {
+        "title": "Tip:",
+        "body": "Mux automatically generates thumbnails from your live stream every 10 seconds. You can upload a custom thumbnail anytime."
+      },
+      "active": {
+        "title": "Custom Thumbnail Active",
+        "body": "Your custom thumbnail is being used for this stream."
+      },
+      "best": {
+        "title": "Best Practices",
+        "tip1": "Use eye-catching imagery for better visibility",
+        "tip2": "Ensure important elements are centered",
+        "tip3": "Avoid text-heavy thumbnails"
+      },
+      "notice": {
+        "credentials": "Thumbnail upload will be available once stream credentials are generated."
+      },
+      "errors": {
+        "onlyImages": "Please select an image file",
+        "maxSize": "Image size must be less than 5MB"
+      },
+      "toasts": {
+        "uploaded": "Thumbnail uploaded successfully!",
+        "uploadFailed": "Failed to upload thumbnail",
+        "removed": "Thumbnail removed successfully!",
+        "removeFailed": "Failed to remove thumbnail"
+      }
+    },
+    "chat": {
+      "title": "Live Chat",
+      "titlePopout": "Live Chat (Pop-out)",
+      "labels": {
+        "user": "User",
+        "streamHost": "Stream Host"
+      },
+      "menu": {
+        "delete": "Delete",
+        "popup": "Popup Chat",
+        "restore": "Restore Chat"
+      },
+      "deleted": {
+        "byHost": "Message deleted by host",
+        "bySuperAdmin": "Message deleted by super admin",
+        "byAdmin": "Message deleted by admin",
+        "generic": "Message deleted"
+      },
+      "form": {
+        "messageLabel": "Message",
+        "placeholder": "Type a message..."
+      },
+      "poppedOut": {
+        "title": "Chat popped out",
+        "restore": "Restore chat"
+      }
+    }
+  },
+  "room": {
+    "header": {
+      "labels": {
+        "publicRoom": "Public Room",
+        "privateRoom": "Private Room",
+        "public": "Public",
+        "private": "Private",
+        "new": "NEW"
+      },
+      "edit": {
+        "tooltip": "Edit Room",
+        "shortcutMac": "⌘ + Shift + E",
+        "shortcutWin": "Ctrl + Shift + E",
+        "title": "Edit Room",
+        "description": "Update your room settings and preferences."
+      },
+      "form": {
+        "roomName": "Room Name",
+        "roomNamePlaceholder": "Enter room name",
+        "roomType": "Room Type",
+        "roomTypePlaceholder": "Select room type",
+        "tradingSymbol": "Trading Symbol",
+        "tradingSymbolPlaceholder": "Select trading symbol"
+      },
+      "thumbnail": {
+        "title": "Room Thumbnail",
+        "previewAlt": "Room thumbnail preview",
+        "none": "No thumbnail selected",
+        "upload": "Upload thumbnail",
+        "change": "Change thumbnail"
+      },
+      "common": {
+        "cancel": "Cancel",
+        "saving": "Saving...",
+        "saveChanges": "Save Changes"
+      },
+      "sr": { "startLiveStream": "Start Live Stream" },
+      "stats": {
+        "virtualBalance": "Virtual Balance:",
+        "cumulativeProfit": "Cumulative Profit:"
+      },
+      "actions": {
+        "closeRoom": "Close Room",
+        "leaveRoom": "Leave Room",
+        "leave": "Leave",
+        "close": "Close"
+      },
+      "closeDialog": {
+        "title": "Close Room",
+        "description": "This action cannot be undone. This will permanently close the room and remove your data from our servers."
+      },
+      "mobile": { "balance": "Balance:", "profit": "Profit:" },
+      "stream": {
+        "button": "Stream",
+        "underConstruction": "Live streaming feature will be available soon!"
+      },
+      "errors": {
+        "nameRequired": "Room name is required",
+        "nameExists": "Room name already exists",
+        "updateFailed": "Failed to update room",
+        "saveFailed": "Failed to save changes"
+      },
+      "toasts": { "leaveFailed": "Failed to leave room" }
+    },
+    "donation": {
+      "openButton": "Donation",
+      "title": "Donation",
+      "receivedInThisRoom": "Donations received in this room:",
+      "noDonations": "No donations yet.",
+      "kor": "KOR",
+      "supportHost": "Support the host by donating kor-coins!",
+      "placeholders": {
+        "enterAmount": "Enter amount",
+        "enterMessage": "Add a message (optional)"
+      },
+      "yourBalance": "Your balance:",
+      "buttons": { "donating": "Donating...", "donate": "Donate" },
+      "errors": {
+        "enterValidAmount": "Enter a valid amount",
+        "insufficient": "Insufficient kor-coins"
+      },
+      "toast": {
+        "success": "Donation successful!",
+        "failed": "Donation failed",
+        "userDonated": "{name} donated {amount} kor-coins!"
       }
     }
   }

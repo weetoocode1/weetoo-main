@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface QuantityMarketInputProps {
   qty: number;
@@ -38,6 +39,7 @@ export function QuantityMarketInput({
   onValueModeCapitalChange,
 }: QuantityMarketInputProps) {
   const qtyInputId = "limit-qty-input";
+  const t = useTranslations("trade.form");
 
   // Local input value mirroring Limit tab logic (allow empty, 0, and intermediate states)
   const [inputValue, setInputValue] = useState<number | string>("");
@@ -45,14 +47,13 @@ export function QuantityMarketInput({
   // Update input value when mode or leverage changes
   useEffect(() => {
     if (placementMode === "value") {
-      // Input shows ORDER VALUE (USDT)
+      // Input shows INITIAL MARGIN (USDT)
       let capital = valueModeCapital || 0;
       if (!capital && qty > 0 && price > 0 && leverage > 0) {
         capital = (qty * price) / leverage;
         onValueModeCapitalChange?.(capital);
       }
-      const orderValue = capital * (leverage || 1);
-      const display = Math.round(orderValue * 100) / 100;
+      const display = Math.round(capital * 100) / 100;
       setInputValue(display === 0 ? "" : display);
     } else {
       const displayQty = Math.round((qty || 0) * 100) / 100;
@@ -88,8 +89,8 @@ export function QuantityMarketInput({
 
     setInputValue(num);
     if (placementMode === "value") {
-      const orderValue = num;
-      const capital = leverage > 0 ? orderValue / leverage : 0;
+      const capital = num;
+      const orderValue = capital * (leverage || 1);
       onValueModeCapitalChange?.(capital);
       const computed = price > 0 ? orderValue / price : 0;
       setQty(Math.round(computed * 100000000) / 100000000);
@@ -115,7 +116,7 @@ export function QuantityMarketInput({
   return (
     <div className="space-y-1">
       <Label className="text-xs text-muted-foreground" htmlFor={qtyInputId}>
-        Quantity
+        {t("quantity.label")}
       </Label>
       <div className="relative">
         <Input
@@ -138,7 +139,7 @@ export function QuantityMarketInput({
           <DialogContent className="!sm:max-w-lg !max-w-lg">
             <DialogHeader>
               <DialogTitle className="text-base">
-                Order Placement Preferences
+                {t("quantity.dialog.title")}
               </DialogTitle>
             </DialogHeader>
 
@@ -158,12 +159,12 @@ export function QuantityMarketInput({
                           : "border-muted-foreground"
                       }`}
                     />
-                    <span className="text-sm font-medium">Order by Qty</span>
+                    <span className="text-sm font-medium">{t("quantity.dialog.orderByQtyShort")}</span>
                   </div>
                   <span className="text-xs text-muted-foreground">BTC</span>
                 </div>
                 <div className="mt-1 pl-5 text-[11px] leading-snug text-muted-foreground">
-                  Please enter your order qty denominated in BTC terms.
+                  {t("quantity.dialog.orderByQtyHelp")}
                 </div>
               </button>
 
@@ -182,28 +183,25 @@ export function QuantityMarketInput({
                           : "border-muted-foreground"
                       }`}
                     />
-                    <span className="text-sm font-medium">Order by Value</span>
+                    <span className="text-sm font-medium">{t("quantity.dialog.orderByValue")}</span>
                     <span className="ml-1 rounded-sm bg-primary/10 px-1 text-[10px] font-medium text-primary">
-                      NEW
+                      {t("badges.new")}
                     </span>
                   </div>
                   <span className="text-xs text-muted-foreground">USDT</span>
                 </div>
                 <div className="mt-1 pl-5 text-[11px] leading-snug text-muted-foreground">
-                  Please enter your desired order value. You can modify the
-                  required margin by adjusting the applied leverage.
+                  {t("quantity.dialog.orderByValueHelp")}
                 </div>
               </button>
 
               {placementMode === "value" && (
                 <div className="mt-2 rounded-md border border-border bg-muted/20 p-3">
                   <div className="text-[11px] font-medium text-muted-foreground mb-1">
-                    * Note
+                    {t("quantity.dialog.noteTitle")}
                   </div>
                   <div className="text-[11px] leading-relaxed text-muted-foreground">
-                    Your order quantity will be calculated based on the value of
-                    your filled order. Please note that in the event of extreme
-                    market fluctuations, your order placement may fail.
+                    {t("quantity.dialog.noteBody")}
                   </div>
                 </div>
               )}
@@ -212,11 +210,11 @@ export function QuantityMarketInput({
             <DialogFooter className="w-full">
               <div className="grid w-full grid-cols-2 gap-2">
                 <Button className="w-full" onClick={handleConfirmPrefs}>
-                  Confirm
+                  {t("buttons.confirm")}
                 </Button>
                 <DialogTrigger asChild>
                   <Button className="w-full" variant="outline">
-                    Cancel
+                    {t("buttons.cancel")}
                   </Button>
                 </DialogTrigger>
               </div>

@@ -5,6 +5,7 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface ValueCostSectionProps {
   price: number;
@@ -23,14 +24,15 @@ export function ValueCostSection({
   leverage = 1,
   orderType = "limit",
 }: ValueCostSectionProps) {
-  // Calculate order value
+  const t = useTranslations("trade.form");
+  // Position value (notional)
   const orderValue = price * qty;
-
-  // Calculate fee (typically 0.1% for futures trading)
+  // Initial margin (what user actually pays up-front). This stays constant when leverage changes if user capital is fixed.
+  const initialMargin = leverage > 0 ? orderValue / leverage : 0;
+  // Trading fee on notional
   const fee = orderValue * feeRate;
-
-  // Calculate total cost (order value + fee)
-  const totalCost = orderValue + fee;
+  // Total Cost shown in UI = Initial Margin + Fee
+  const totalCost = initialMargin + fee;
 
   const isInsufficient = totalCost > availableBalance && totalCost > 0;
 
@@ -73,7 +75,7 @@ export function ValueCostSection({
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-muted-foreground/60"></div>
             <span className="text-xs font-medium text-muted-foreground">
-              Available Balance
+              {t("valueCost.availableBalance")}
             </span>
           </div>
           <div className="min-w-[140px] text-right tabular-nums font-mono">
@@ -88,7 +90,7 @@ export function ValueCostSection({
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-blue-500/60"></div>
             <span className="text-xs font-medium text-muted-foreground">
-              Quantity
+              {t("quantity.label")}
             </span>
           </div>
           <div className="min-w-[140px] text-right tabular-nums font-mono">
@@ -98,18 +100,18 @@ export function ValueCostSection({
           </div>
         </div>
 
-        {/* Order Value */}
+        {/* Order Amount (Margin) */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-primary/60"></div>
             <span className="text-xs font-medium text-muted-foreground">
-              Order Value
+              {t("valueCost.orderAmount")}
             </span>
           </div>
           <div className="min-w-[140px] text-right tabular-nums font-mono flex items-center justify-end gap-1">
             <span className="text-[13px] font-semibold text-foreground font-mono">
               {orderType === "market" ? "~" : ""}
-              {formatNumber(orderValue)} USDT
+              {formatNumber(initialMargin)} USDT
             </span>
             {orderType === "market" && (
               <TooltipProvider>
@@ -117,7 +119,7 @@ export function ValueCostSection({
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      aria-label="Market order info"
+                      aria-label={t("valueCost.marketInfoAria")}
                       className="text-muted-foreground hover:text-foreground"
                     >
                       <Info className="w-3.5 h-3.5" />
@@ -125,7 +127,7 @@ export function ValueCostSection({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="text-xs">
-                      Final price unknown until execution.
+                      {t("valueCost.marketInfo")}
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -139,7 +141,7 @@ export function ValueCostSection({
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-muted-foreground/40"></div>
             <span className="text-xs font-medium text-muted-foreground">
-              Fee ({feeRate * 100}%)
+              {t("valueCost.fee", { rate: (feeRate * 100).toFixed(2) })}
             </span>
           </div>
           <div className="min-w-[140px] text-right tabular-nums font-mono">
@@ -157,7 +159,7 @@ export function ValueCostSection({
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-foreground/80"></div>
             <span className="text-xs font-semibold text-foreground">
-              Total Cost
+              {t("valueCost.totalCost")}
             </span>
           </div>
           <div className="min-w-[140px] text-right tabular-nums font-mono">
@@ -173,8 +175,7 @@ export function ValueCostSection({
 
         {isInsufficient && (
           <div className="mt-3 rounded-md border bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800 px-3 py-2 text-xs leading-relaxed">
-            Not enough balance for this order. Please lower the amount or add
-            funds.
+            {t("valueCost.insufficient")}
           </div>
         )}
 
@@ -186,21 +187,12 @@ export function ValueCostSection({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="text-xs font-medium text-muted-foreground border-b border-dotted border-muted-foreground cursor-help">
-                    Liquidation Price
+                    {t("valueCost.liquidationPrice")}
                   </span>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-[300px] w-full">
                   <p className="text-xs">
-                    The est. liquidation price for a USDT Perpetual position in
-                    your Unified Trading Account is affected by your average
-                    entry price, unrealized P&L, maintenance margin, and the
-                    available balance in your account. Having multiple positions
-                    simultaneously will affect the est. liquidation price for
-                    each position. Please note that the est. liquidation price
-                    is for reference only. Do note that liquidation is triggered
-                    when account maintenance margin rate reaches 100%.
-                    &quot;--&quot;: Position risk is low and there is no
-                    liquidation price to display at the moment.
+                    {t("valueCost.liqTooltip")}
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -221,7 +213,7 @@ export function ValueCostSection({
               }}
               className="text-xs font-medium text-muted-foreground cursor-pointer"
             >
-              Calculate
+              {t("valueCost.calculate")}
             </button>
           </div>
         </div>
@@ -231,7 +223,7 @@ export function ValueCostSection({
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-muted-foreground/40"></div>
             <span className="text-xs font-medium text-muted-foreground">
-              Liq. Price (est.)
+              {t("valueCost.liqEst")}
             </span>
           </div>
           <div

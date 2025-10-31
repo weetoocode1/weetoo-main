@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import React from "react";
 import type { ResolutionString } from "@/public/static/charting_library/datafeed-api";
+import { useTranslations } from "next-intl";
 
 type TvChartTypeAction =
   | "chartTypeBars"
@@ -67,6 +68,7 @@ export const TradingViewToolbar: React.FC<ToolbarProps> = ({
   selectedChartType,
   applyChartType,
 }) => {
+  const t = useTranslations("chart.toolbar");
   const handleMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -101,10 +103,10 @@ export const TradingViewToolbar: React.FC<ToolbarProps> = ({
                   <HoverCardTrigger asChild>
                     <button
                       type="button"
-                      aria-label="More intervals"
+                      aria-label={t("moreIntervals")}
                       onMouseDown={handleMouseDown}
                       className="w-6 h-6 inline-flex items-center justify-center rounded border border-border/40 text-muted-foreground hover:text-foreground focus:outline-none"
-                      title="More intervals"
+                      title={t("moreIntervals")}
                     >
                       <ChevronDown size={12} className="text-current" />
                     </button>
@@ -134,7 +136,7 @@ export const TradingViewToolbar: React.FC<ToolbarProps> = ({
                     <div className="mt-2 -mx-2 border-t border-border/40" />
                     <div className="px-1 py-2">
                       <div className="mb-2 text-xs text-muted-foreground">
-                        Custom Time Frame
+                        {t("customTimeFrame")}
                       </div>
                       <div className="grid grid-cols-4 gap-2">
                         {allIntervals.map((r) => (
@@ -167,7 +169,7 @@ export const TradingViewToolbar: React.FC<ToolbarProps> = ({
           type="button"
           onClick={openIndicators}
           onMouseDown={handleMouseDown}
-          title="Indicators"
+          title={t("indicators")}
           className="w-5 h-5 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary/40"
         >
           <TrendingUp size={16} className="text-current" />
@@ -176,7 +178,7 @@ export const TradingViewToolbar: React.FC<ToolbarProps> = ({
           <HoverCardTrigger asChild>
             <button
               type="button"
-              title="Chart Type"
+              title={t("chartType")}
               onMouseDown={handleMouseDown}
               className="ml-1 w-5 h-5 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary/40"
             >
@@ -211,7 +213,7 @@ export const TradingViewToolbar: React.FC<ToolbarProps> = ({
           type="button"
           onClick={openSettings}
           onMouseDown={handleMouseDown}
-          title="Chart Settings"
+          title={t("chartSettings")}
           className="ml-1 w-5 h-5 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary/40"
         >
           <Settings size={16} className="text-current" />
@@ -220,7 +222,7 @@ export const TradingViewToolbar: React.FC<ToolbarProps> = ({
           type="button"
           onClick={openCompareSymbols}
           onMouseDown={handleMouseDown}
-          title="Compare Symbols"
+          title={t("compareSymbols")}
           className="ml-1 w-5 h-5 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary/40"
         >
           <Plus size={16} className="text-current" />
@@ -229,12 +231,14 @@ export const TradingViewToolbar: React.FC<ToolbarProps> = ({
           <HoverCardTrigger asChild className="rounded-none">
             <button
               type="button"
-              title="Price Type"
+              title={t("priceType")}
               onMouseDown={handleMouseDown}
               className="ml-1 px-2 py-1 inline-flex items-center gap-1 rounded-none text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/40 border border-border/40"
             >
               <span className="text-xs">
-                {priceType === "lastPrice" ? "Last Traded Price" : "Mark Price"}
+                {priceType === "lastPrice"
+                  ? t("lastTradedPrice")
+                  : t("markPrice")}
               </span>
               <ChevronDown size={10} className="text-current" />
             </button>
@@ -255,7 +259,7 @@ export const TradingViewToolbar: React.FC<ToolbarProps> = ({
                     : "text-foreground/90"
                 }`}
               >
-                Last Traded Price
+                {t("lastTradedPrice")}
               </button>
               <button
                 type="button"
@@ -267,7 +271,7 @@ export const TradingViewToolbar: React.FC<ToolbarProps> = ({
                     : "text-foreground/90"
                 }`}
               >
-                Mark Price
+                {t("markPrice")}
               </button>
             </div>
           </HoverCardContent>
@@ -276,7 +280,7 @@ export const TradingViewToolbar: React.FC<ToolbarProps> = ({
           type="button"
           onClick={captureScreenshot}
           onMouseDown={handleMouseDown}
-          title="Take Screenshot"
+          title={t("takeScreenshot")}
           className="ml-auto w-5 h-5 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary/40"
         >
           <Camera size={16} className="text-current" />
@@ -285,7 +289,7 @@ export const TradingViewToolbar: React.FC<ToolbarProps> = ({
           type="button"
           onClick={toggleFullscreen}
           onMouseDown={handleMouseDown}
-          title="Toggle Fullscreen"
+          title={t("toggleFullscreen")}
           className="ml-1 w-5 h-5 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary/40"
         >
           <Maximize size={16} className="text-current" />
@@ -316,10 +320,10 @@ export const TradingViewToolbar: React.FC<ToolbarProps> = ({
               <HoverCardTrigger asChild>
                 <button
                   type="button"
-                  aria-label="More intervals"
+                  aria-label={t("moreIntervals")}
                   onMouseDown={handleMouseDown}
                   className="w-6 h-6 inline-flex items-center justify-center rounded border border-border/40 text-muted-foreground hover:text-foreground focus:outline-none ml-1"
-                  title="More intervals"
+                  title={t("moreIntervals")}
                 >
                   <ChevronDown size={12} className="text-current" />
                 </button>
@@ -349,7 +353,7 @@ export const TradingViewToolbar: React.FC<ToolbarProps> = ({
                 <div className="mt-2 -mx-2 border-t border-border/40" />
                 <div className="px-1 py-2">
                   <div className="mb-2 text-xs text-muted-foreground">
-                    Extra Intervals
+                    {t("extraIntervals")}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     {extraIntervals.map((x) => (
@@ -382,7 +386,7 @@ export const TradingViewToolbar: React.FC<ToolbarProps> = ({
               type="button"
               onClick={openIndicators}
               onMouseDown={handleMouseDown}
-              title="Indicators"
+              title={t("indicators")}
               className="w-6 h-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary/40"
             >
               <TrendingUp size={14} className="text-current" />
@@ -391,7 +395,7 @@ export const TradingViewToolbar: React.FC<ToolbarProps> = ({
               <HoverCardTrigger asChild>
                 <button
                   type="button"
-                  title="Chart Type"
+                  title={t("chartType")}
                   onMouseDown={handleMouseDown}
                   className="w-6 h-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary/40"
                 >
@@ -426,7 +430,7 @@ export const TradingViewToolbar: React.FC<ToolbarProps> = ({
               type="button"
               onClick={openSettings}
               onMouseDown={handleMouseDown}
-              title="Chart Settings"
+              title={t("chartSettings")}
               className="w-6 h-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary/40"
             >
               <Settings size={14} className="text-current" />
@@ -435,7 +439,7 @@ export const TradingViewToolbar: React.FC<ToolbarProps> = ({
               type="button"
               onClick={openCompareSymbols}
               onMouseDown={handleMouseDown}
-              title="Compare Symbols"
+              title={t("compareSymbols")}
               className="w-6 h-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary/40"
             >
               <Plus size={14} className="text-current" />
@@ -447,12 +451,14 @@ export const TradingViewToolbar: React.FC<ToolbarProps> = ({
             <HoverCardTrigger asChild className="rounded-none">
               <button
                 type="button"
-                title="Price Type"
+                title={t("priceType")}
                 onMouseDown={handleMouseDown}
                 className="px-2 py-1 inline-flex items-center gap-1 rounded-none text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/40 border border-border/40"
               >
                 <span className="text-xs">
-                  {priceType === "lastPrice" ? "Last" : "Mark"}
+                  {priceType === "lastPrice"
+                    ? t("priceTypeShort.last")
+                    : t("priceTypeShort.mark")}
                 </span>
                 <ChevronDown size={10} className="text-current" />
               </button>
@@ -497,7 +503,7 @@ export const TradingViewToolbar: React.FC<ToolbarProps> = ({
               type="button"
               onClick={captureScreenshot}
               onMouseDown={handleMouseDown}
-              title="Take Screenshot"
+              title={t("takeScreenshot")}
               className="w-6 h-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary/40"
             >
               <Camera size={14} className="text-current" />
@@ -506,7 +512,7 @@ export const TradingViewToolbar: React.FC<ToolbarProps> = ({
               type="button"
               onClick={toggleFullscreen}
               onMouseDown={handleMouseDown}
-              title="Toggle Fullscreen"
+              title={t("toggleFullscreen")}
               className="w-6 h-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary/40"
             >
               <Maximize size={14} className="text-current" />

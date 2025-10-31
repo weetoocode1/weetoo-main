@@ -34,6 +34,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { createClient } from "@/lib/supabase/client";
 import { TRADING_SYMBOLS } from "@/lib/trading/symbols-config";
 import {
   DoorClosedIcon,
@@ -45,11 +46,11 @@ import {
   VideoIcon,
   XIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 // Consistent number formatting function to prevent hydration mismatches
 const formatNumber = (num: number, decimals: number = 2): string => {
@@ -90,6 +91,7 @@ export function RoomHeader({
   onRoomUpdate,
   onCloseRoom,
 }: RoomHeaderProps) {
+  const t = useTranslations("room.header");
   const [roomName, setRoomName] = useState(room.name);
   const [roomType, setRoomType] = useState(room.privacy);
   const [selectedSymbol, setSelectedSymbol] = useState(room.symbol);
@@ -129,7 +131,7 @@ export function RoomHeader({
   // Validate room name
   const validateRoomName = (name: string): boolean => {
     if (!name.trim()) {
-      setRoomNameError("Room name is required");
+      setRoomNameError(t("errors.nameRequired"));
       return false;
     }
 
@@ -139,7 +141,7 @@ export function RoomHeader({
     }
 
     if (existingRoomNames.includes(name.trim())) {
-      setRoomNameError("Room name already exists");
+      setRoomNameError(t("errors.nameExists"));
       return false;
     }
 
@@ -328,7 +330,7 @@ export function RoomHeader({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to update room");
+        throw new Error(data.error || t("errors.updateFailed"));
       }
 
       // Update local state immediately for instant UI feedback
@@ -346,7 +348,7 @@ export function RoomHeader({
     } catch (error) {
       console.error("Error saving room:", error);
       setSaveError(
-        error instanceof Error ? error.message : "Failed to save changes"
+        error instanceof Error ? error.message : t("errors.saveFailed")
       );
     } finally {
       setIsSaving(false);
@@ -419,14 +421,16 @@ export function RoomHeader({
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
                   <span>
-                    {roomType === "public" ? "Public Room" : "Private Room"}
+                    {roomType === "public"
+                      ? t("labels.publicRoom")
+                      : t("labels.privateRoom")}
                   </span>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
 
-          <Dialog open={isEditDialogOpen} onOpenChange={handleDialogOpenChange}>
+          {/* <Dialog open={isEditDialogOpen} onOpenChange={handleDialogOpenChange}>
             <DialogTrigger asChild>
               <span className="align-middle cursor-pointer pointer-events-auto">
                 <TooltipProvider>
@@ -438,11 +442,11 @@ export function RoomHeader({
                     </TooltipTrigger>
                     <TooltipContent side="bottom" align="center">
                       <div className="flex flex-col items-center gap-0.5">
-                        <span>Edit Room</span>
+                        <span>{t("edit.tooltip")}</span>
                         <span className="text-xs text-muted-foreground font-medium">
                           {navigator.platform.toLowerCase().includes("mac")
-                            ? "⌘ + Shift + E"
-                            : "Ctrl + Shift + E"}
+                            ? t("edit.shortcutMac")
+                            : t("edit.shortcutWin")}
                         </span>
                       </div>
                     </TooltipContent>
@@ -452,9 +456,9 @@ export function RoomHeader({
             </DialogTrigger>
             <DialogContent className="sm:max-w-lg !important">
               <DialogHeader>
-                <DialogTitle>Edit Room</DialogTitle>
+                <DialogTitle>{t("edit.title")}</DialogTitle>
                 <DialogDescription>
-                  Update your room settings and preferences.
+                  {t("edit.description")}
                 </DialogDescription>
               </DialogHeader>
 
@@ -467,12 +471,12 @@ export function RoomHeader({
               <div className="space-y-6 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="room-name">Room Name</Label>
+                    <Label htmlFor="room-name">{t("form.roomName")}</Label>
                     <Input
                       id="room-name"
                       value={roomName}
                       onChange={(e) => handleRoomNameChange(e.target.value)}
-                      placeholder="Enter room name"
+                      placeholder={t("form.roomNamePlaceholder")}
                       className={`h-10 ${
                         roomNameError
                           ? "border-red-500 focus:border-red-500"
@@ -484,24 +488,23 @@ export function RoomHeader({
                     )}
                   </div>
 
-                  {/* Room Type */}
                   <div className="space-y-2">
-                    <Label htmlFor="room-type">Room Type</Label>
+                    <Label htmlFor="room-type">{t("form.roomType")}</Label>
                     <Select value={roomType} onValueChange={setRoomType}>
                       <SelectTrigger className="h-10">
-                        <SelectValue placeholder="Select room type" />
+                        <SelectValue placeholder={t("form.roomTypePlaceholder")} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="public">
                           <div className="flex items-center gap-2">
                             <GlobeIcon className="h-4 w-4" />
-                            Public
+                            {t("labels.public")}
                           </div>
                         </SelectItem>
                         <SelectItem value="private">
                           <div className="flex items-center gap-2">
                             <LockIcon className="h-4 w-4" />
-                            Private
+                            {t("labels.private")}
                           </div>
                         </SelectItem>
                       </SelectContent>
@@ -509,15 +512,14 @@ export function RoomHeader({
                   </div>
                 </div>
 
-                {/* Trading Symbol - Full Width */}
                 <div className="space-y-2">
-                  <Label htmlFor="trading-symbol">Trading Symbol</Label>
+                  <Label htmlFor="trading-symbol">{t("form.tradingSymbol")}</Label>
                   <Select
                     value={selectedSymbol}
                     onValueChange={setSelectedSymbol}
                   >
                     <SelectTrigger className="h-10">
-                      <SelectValue placeholder="Select trading symbol" />
+                      <SelectValue placeholder={t("form.tradingSymbolPlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
                       {TRADING_SYMBOLS.map((symbol) => (
@@ -526,7 +528,7 @@ export function RoomHeader({
                             <span>{symbol.label}</span>
                             {symbol.isNew && (
                               <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-semibold text-emerald-600 bg-emerald-50 rounded-sm">
-                                NEW
+                                {t("labels.new")}
                               </span>
                             )}
                           </div>
@@ -536,20 +538,17 @@ export function RoomHeader({
                   </Select>
                 </div>
 
-                {/* Room Thumbnail - Full Width */}
                 <div className="space-y-2">
-                  <Label htmlFor="room-thumbnail">Room Thumbnail</Label>
+                  <Label htmlFor="room-thumbnail">{t("thumbnail.title")}</Label>
                   <div className="space-y-3">
-                    {/* Image Preview Box - Always Visible */}
                     <div className="relative w-full h-48 border border-border rounded-md overflow-hidden bg-muted/20">
                       {thumbnailPreview ? (
                         <>
                           <img
                             src={thumbnailPreview}
-                            alt="Room thumbnail preview"
+                            alt={t("thumbnail.previewAlt")}
                             className="w-full h-full object-cover"
                           />
-                          {/* Remove Button */}
                           <button
                             onClick={handleRemoveThumbnail}
                             className="absolute top-2 right-2 p-1 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
@@ -561,13 +560,12 @@ export function RoomHeader({
                         <div className="flex items-center justify-center h-full text-muted-foreground">
                           <div className="text-center">
                             <UploadIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                            <p className="text-sm">No thumbnail selected</p>
+                            <p className="text-sm">{t("thumbnail.none")}</p>
                           </div>
                         </div>
                       )}
                     </div>
 
-                    {/* Upload Button */}
                     <div className="relative">
                       <Input
                         id="room-thumbnail"
@@ -583,8 +581,8 @@ export function RoomHeader({
                         <UploadIcon className="h-4 w-4" />
                         <span className="text-sm">
                           {thumbnailPreview
-                            ? "Change thumbnail"
-                            : "Upload thumbnail"}
+                            ? t("thumbnail.change")
+                            : t("thumbnail.upload")}
                         </span>
                       </Label>
                     </div>
@@ -598,18 +596,18 @@ export function RoomHeader({
                   className="rounded-md"
                   onClick={handleCancel}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   onClick={handleSave}
                   className="rounded-md"
                   disabled={!!roomNameError || !roomName.trim() || isSaving}
                 >
-                  {isSaving ? "Saving..." : "Save Changes"}
+                  {isSaving ? t("common.saving") : t("common.saveChanges")}
                 </Button>
               </DialogFooter>
             </DialogContent>
-          </Dialog>
+          </Dialog> */}
         </div>
       </div>
 
@@ -628,7 +626,7 @@ export function RoomHeader({
             <VideoIcon className="size-4" />
           </Button>
         </Link>
-        <span className="sr-only">Start Live Stream</span>
+        <span className="sr-only">{t("sr.startLiveStream")}</span>
 
         {/* <Dialog
           open={isDonationsDialogOpen}
@@ -699,13 +697,17 @@ export function RoomHeader({
 
         {/* Stats: Virtual Balance and Cumulative Profit Rate - Desktop */}
         <div className="hidden lg:flex items-center gap-3 ml-1 whitespace-nowrap">
-          <span className="text-muted-foreground">Virtual Balance:</span>
+          <span className="text-muted-foreground">
+            {t("stats.virtualBalance")}
+          </span>
           <span className="font-semibold tabular-nums">
             {"$"}
             {formatNumber(virtualBalanceUsd)}
           </span>
           <span className="text-muted-foreground">|</span>
-          <span className="text-muted-foreground">Cumulative Profit:</span>
+          <span className="text-muted-foreground">
+            {t("stats.cumulativeProfit")}
+          </span>
           <span
             className={`font-semibold tabular-nums ${
               cumulativeProfitRatePct > 0
@@ -723,20 +725,19 @@ export function RoomHeader({
           <AlertDialogTrigger asChild>
             <Button variant="destructive" className="rounded-md h-9">
               <DoorClosedIcon className="size-4" />
-              Close Room
+              {t("actions.closeRoom")}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent className="rounded-md">
             <AlertDialogHeader>
-              <AlertDialogTitle>Close Room</AlertDialogTitle>
+              <AlertDialogTitle>{t("closeDialog.title")}</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently close the
-                room and remove your data from our servers.
+                {t("closeDialog.description")}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel className="rounded-md">
-                Cancel
+                {t("common.cancel")}
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={async () => {
@@ -749,7 +750,7 @@ export function RoomHeader({
                 }}
                 className="bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60 rounded-md"
               >
-                Close Room
+                {t("actions.closeRoom")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -770,7 +771,7 @@ export function RoomHeader({
 
               if (error) {
                 console.error("Error leaving room:", error);
-                toast.error("Failed to leave room");
+                toast.error(t("toasts.leaveFailed"));
                 return;
               }
 
@@ -779,12 +780,12 @@ export function RoomHeader({
               if (onCloseRoom) onCloseRoom();
             } catch (error) {
               console.error("Error leaving room:", error);
-              toast.error("Failed to leave room");
+              toast.error(t("toasts.leaveFailed"));
             }
           }}
         >
           <LogOutIcon className="size-4" />
-          Leave Room
+          {t("actions.leaveRoom")}
         </Button>
       </div>
 
@@ -806,7 +807,9 @@ export function RoomHeader({
                   </TooltipTrigger>
                   <TooltipContent side="bottom">
                     <span>
-                      {roomType === "public" ? "Public Room" : "Private Room"}
+                      {roomType === "public"
+                        ? t("labels.publicRoom")
+                        : t("labels.privateRoom")}
                     </span>
                   </TooltipContent>
                 </Tooltip>
@@ -1004,7 +1007,7 @@ export function RoomHeader({
 
           {/* Mobile Stats */}
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-muted-foreground">Balance:</span>
+            <span className="text-muted-foreground">{t("mobile.balance")}</span>
             <span className="font-semibold tabular-nums">
               {"$"}
               {formatNumber(virtualBalanceUsd)}
@@ -1032,12 +1035,12 @@ export function RoomHeader({
             className="rounded-md h-8 text-xs !bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-600"
             onClick={() => {
               toast.info("Stream page is under construction", {
-                description: "Live streaming feature will be available soon!",
+                description: t("stream.underConstruction"),
               });
             }}
           >
             <VideoIcon className="size-3 mr-1" />
-            Stream
+            {t("stream.button")}
           </Button>
 
           <div className="flex items-center gap-2">
@@ -1048,20 +1051,19 @@ export function RoomHeader({
                   className="rounded-md h-8 text-xs"
                 >
                   <DoorClosedIcon className="size-3 mr-1" />
-                  Close
+                  {t("actions.close")}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent className="rounded-md">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Close Room</AlertDialogTitle>
+                  <AlertDialogTitle>{t("closeDialog.title")}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This action cannot be undone. This will permanently close
-                    the room and remove your data from our servers.
+                    {t("closeDialog.description")}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel className="rounded-md">
-                    Cancel
+                    {t("common.cancel")}
                   </AlertDialogCancel>
                   <AlertDialogAction
                     onClick={async () => {
@@ -1074,7 +1076,7 @@ export function RoomHeader({
                     }}
                     className="bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60 rounded-md"
                   >
-                    Close Room
+                    {t("actions.closeRoom")}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -1095,7 +1097,7 @@ export function RoomHeader({
 
                   if (error) {
                     console.error("Error leaving room:", error);
-                    toast.error("Failed to leave room");
+                    toast.error(t("toasts.leaveFailed"));
                     return;
                   }
 
@@ -1104,12 +1106,12 @@ export function RoomHeader({
                   if (onCloseRoom) onCloseRoom();
                 } catch (error) {
                   console.error("Error leaving room:", error);
-                  toast.error("Failed to leave room");
+                  toast.error(t("toasts.leaveFailed"));
                 }
               }}
             >
               <LogOutIcon className="size-3 mr-1" />
-              Leave
+              {t("actions.leave")}
             </Button>
           </div>
         </div>

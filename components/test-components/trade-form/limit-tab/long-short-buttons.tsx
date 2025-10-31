@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { XIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface LongShortButtonsProps {
   price: number;
@@ -36,6 +37,7 @@ export function LongShortButtons({
 }: LongShortButtonsProps) {
   const [open, setOpen] = useState(false);
   const [side, setSide] = useState<"LONG" | "SHORT">("LONG");
+  const t = useTranslations("trade.form");
 
   useEffect(() => {
     if (open) {
@@ -118,7 +120,7 @@ export function LongShortButtons({
           }}
           className="h-12 text-sm font-medium bg-profit hover:bg-profit/90 text-white border-0 shadow-sm hover:shadow-md transition-all duration-200 rounded-md"
         >
-          Long/Buy
+          {t("longShort.longBuy")}
         </Button>
         <Button
           type="button"
@@ -128,7 +130,7 @@ export function LongShortButtons({
           }}
           className="h-12 text-sm font-medium bg-loss hover:bg-loss/90 text-white border-0 shadow-sm hover:shadow-md transition-all duration-200 rounded-md"
         >
-          Short/Sell
+          {t("longShort.shortSell")}
         </Button>
       </div>
 
@@ -148,11 +150,11 @@ export function LongShortButtons({
             {/* Header */}
             <div className="p-0 mb-5 flex items-center justify-between gap-3">
               <h2 className="text-lg font-semibold">
-                Confirm {side === "LONG" ? "Long / Buy" : "Short / Sell"}
+                {side === "LONG" ? t("longShort.confirmTitleLong") : t("longShort.confirmTitleShort")}
               </h2>
               <button
                 type="button"
-                aria-label="Close"
+                aria-label={t("longShort.closeAria")}
                 onClick={() => setOpen(false)}
                 className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-border cursor-pointer"
               >
@@ -163,27 +165,27 @@ export function LongShortButtons({
             {/* Content */}
             <div className="space-y-5">
               <div className="rounded-md border divide-y border-border bg-background/60">
-                <KV label="Symbol" value={`${symbol || "USDT Perp"}`} />
+                  <KV label={t("longShort.symbol")} value={`${symbol || "USDT Perp"}`} />
                 <KV
-                  label="Type"
-                  value={`${side === "LONG" ? "Long / Buy" : "Short / Sell"}`}
+                    label={t("longShort.type")}
+                    value={`${side === "LONG" ? t("longShort.longBuy") : t("longShort.shortSell")}`}
                 />
-                <KV label="Order Type" value={`${orderType}`} />
-                <KV label="Leverage" value={`${Math.round(leverage)}x`} />
-                <KV label="Entry Price" value={`${formatUSDT(price)} USDT`} />
-                <KV label="Quantity" value={`${formatBTC(qty)} BTC`} />
+                  <KV label={t("longShort.orderType")} value={`${orderType}`} />
+                  <KV label={t("longShort.leverage")} value={`${Math.round(leverage)}x`} />
+                  <KV label={t("longShort.entryPrice")} value={`${formatUSDT(price)} USDT`} />
+                  <KV label={t("quantity.label")} value={`${formatBTC(qty)} BTC`} />
                 <KV
-                  label="Order Value"
+                    label={t("longShort.orderValue")}
                   value={`${orderType === "market" ? "~" : ""}${formatUSDT(
                     orderValue
                   )} USDT`}
                 />
                 <KV
-                  label={`Fee (${(feeRate * 100).toFixed(2)}%)`}
+                    label={t("valueCost.fee", { rate: (feeRate * 100).toFixed(2) })}
                   value={`${formatUSDT(fee)} USDT`}
                 />
                 <KV
-                  label="Liquidation (est.)"
+                    label={t("longShort.liqEst")}
                   value={`${formatUSDT(
                     calcLiq(price, leverage || 1, side)
                   )} USDT`}
@@ -191,7 +193,7 @@ export function LongShortButtons({
               </div>
 
               <div className="rounded-md border border-border bg-accent/20 px-4 py-3 flex items-center justify-between">
-                <span className="text-sm font-semibold">Total Cost</span>
+                  <span className="text-sm font-semibold">{t("valueCost.totalCost")}</span>
                 <span className="text-xl font-bold tabular-nums font-mono">
                   {formatUSDT(totalCost)} USDT
                 </span>
@@ -199,7 +201,7 @@ export function LongShortButtons({
 
               {!canConfirm && (
                 <div className="text-[11px] text-amber-500 bg-amber-500/10 border border-amber-500/30 rounded-md px-3 py-2">
-                  Please enter a valid price and quantity to continue.
+                    {t("longShort.invalid")}
                 </div>
               )}
             </div>
@@ -217,7 +219,7 @@ export function LongShortButtons({
                       : "bg-loss hover:bg-loss/90 h-10"
                   } text-white h-10`}
                 >
-                  {side === "LONG" ? "Confirm Long" : "Confirm Short"}
+                  {side === "LONG" ? t("longShort.confirmLong") : t("longShort.confirmShort")}
                 </Button>
                 <Button
                   type="button"
@@ -225,7 +227,7 @@ export function LongShortButtons({
                   className="h-10 bg-transparent"
                   onClick={() => setOpen(false)}
                 >
-                  Cancel
+                  {t("buttons.cancel")}
                 </Button>
               </div>
             </div>

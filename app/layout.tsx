@@ -1,21 +1,20 @@
 "use client";
 
+import { AdminRealtimeToasts } from "@/components/realtime/admin-realtime-toasts";
+import SchedulerInitializer from "@/components/scheduler-initializer";
+import { AuthRealtimeGuard } from "@/components/user/auth-realtime-guard";
+import { BanDialog } from "@/components/user/ban-dialog";
+import { UserRealtimeToasts } from "@/components/user/user-realtime-toasts";
 import { LanguageProvider } from "@/providers/language-provider";
 import { QueryProvider } from "@/providers/query-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Toaster } from "sonner";
-import { AdminRealtimeToasts } from "@/components/realtime/admin-realtime-toasts";
-import { UserRealtimeToasts } from "@/components/user/user-realtime-toasts";
-import { BanDialog } from "@/components/user/ban-dialog";
-import { AuthRealtimeGuard } from "@/components/user/auth-realtime-guard";
-import { useEffect, useState } from "react";
 import Script from "next/script";
+import { useEffect, useState } from "react";
+import { Toaster } from "sonner";
 import "./globals.css";
-import SchedulerInitializer from "@/components/scheduler-initializer";
-import WebSocketHealthMonitor from "@/components/websocket-health-monitor";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -90,7 +89,7 @@ export default function RootLayout({
           strategy="afterInteractive"
         />
         <SchedulerInitializer />
-        <WebSocketHealthMonitor />
+        {/* <WebSocketHealthMonitor /> */}
         <QueryProvider>
           <LanguageProvider messages={enMessages}>
             <ThemeProvider
@@ -111,7 +110,7 @@ export default function RootLayout({
 
         <SpeedInsights />
         <Analytics />
-        <WebSocketHealthMonitor />
+        {/* <WebSocketHealthMonitor /> */}
       </body>
     </html>
   );

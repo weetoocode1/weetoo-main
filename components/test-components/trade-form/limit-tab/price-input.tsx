@@ -1,6 +1,8 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useTranslations } from "next-intl";
+import * as React from "react";
 
 interface PriceInputProps {
   price: number;
@@ -10,7 +12,7 @@ interface PriceInputProps {
   onLastClick?: () => void;
 }
 
-export function PriceInput({
+function PriceInputInner({
   price,
   setPrice,
   lastButton = false,
@@ -19,32 +21,50 @@ export function PriceInput({
 }: PriceInputProps) {
   const priceInputRef = useRef<HTMLInputElement | null>(null);
   const priceInputId = "limit-price-input";
+  const t = useTranslations("trade.form");
 
   // Local state for input display value (allow empty string, 0, and intermediate states)
   const [inputValue, setInputValue] = useState<string>("");
 
-  const handleInputChange = (raw: string) => {
-    // Allow empty string
-    if (raw === "") {
-      setInputValue("");
-      setPrice(0);
-      return;
-    }
+  const rafRef = useRef<number | null>(null);
+  const lastSentRef = useRef<number>(price || 0);
+  const handleInputChange = useCallback(
+    (raw: string) => {
+      // Allow empty string
+      if (raw === "") {
+        setInputValue("");
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        rafRef.current = requestAnimationFrame(() => {
+          if (lastSentRef.current !== 0) {
+            lastSentRef.current = 0;
+            setPrice(0);
+          }
+        });
+        return;
+      }
 
-    // Allow intermediate states like "0." or "0.0" while typing
-    if (raw === "0." || raw.endsWith(".") || /^0\.0*$/.test(raw)) {
+      // Allow intermediate states like "0." or "0.0" while typing
+      if (raw === "0." || raw.endsWith(".") || /^0\.0*$/.test(raw)) {
+        setInputValue(raw);
+        return;
+      }
+
+      const num = Number(raw);
+      if (isNaN(num)) {
+        return; // Invalid input, don't update
+      }
+
       setInputValue(raw);
-      return;
-    }
-
-    const num = Number(raw);
-    if (isNaN(num)) {
-      return; // Invalid input, don't update
-    }
-
-    setInputValue(raw);
-    setPrice(num);
-  };
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => {
+        if (lastSentRef.current !== num) {
+          lastSentRef.current = num;
+          setPrice(num);
+        }
+      });
+    },
+    [setPrice]
+  );
 
   // Update input value when price changes externally (e.g., from Last button)
   useEffect(() => {
@@ -58,7 +78,7 @@ export function PriceInput({
   return (
     <div className="space-y-1">
       <Label className="text-xs text-muted-foreground" htmlFor={priceInputId}>
-        Price
+        {t("price.label")}
       </Label>
       <div className="relative">
         <Input
@@ -84,10 +104,12 @@ export function PriceInput({
             className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground select-none cursor-pointer"
             disabled={disabled}
           >
-            Last
+            {t("price.last")}
           </button>
         )}
       </div>
     </div>
   );
 }
+
+export const PriceInput = React.memo(PriceInputInner);

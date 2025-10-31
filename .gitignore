@@ -66,3 +66,7 @@ important.txt
 .cursor/
 
 errors.txt
+
+rsa.pem
+pkcs8.pem
+.pem*

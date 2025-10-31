@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useTranslations } from "next-intl";
 
 // Extend Window interface for custom properties
 declare global {
@@ -46,6 +47,7 @@ export function QuantityInput({
   onValueModeCapitalChange,
 }: QuantityInputProps) {
   const qtyInputId = "limit-qty-input";
+  const t = useTranslations("trade.form");
 
   // Local state for input display value (allow empty string, 0, and intermediate states)
   const [inputValue, setInputValue] = useState<number | string>("");
@@ -61,7 +63,7 @@ export function QuantityInput({
   // Update input value when mode changes
   useEffect(() => {
     if (placementMode === "value") {
-      // In value mode, input shows ORDER VALUE (USDT), not capital.
+      // In value mode, input shows INITIAL MARGIN (USDT), i.e., user capital.
       // If no capital provided but qty exists, derive capital from qty.
       let capital = valueModeCapital || 0;
       if (!capital && qty > 0 && price > 0 && leverage > 0) {
@@ -69,8 +71,7 @@ export function QuantityInput({
         if (onValueModeCapitalChange) onValueModeCapitalChange(capital);
       }
       lastValueRef.current = capital;
-      const orderValue = capital * (leverage || 1);
-      const display = Math.round(orderValue * 100) / 100;
+      const display = Math.round(capital * 100) / 100;
       setInputValue(display === 0 ? "" : display);
     } else {
       // Switching to qty mode - show current BTC quantity
@@ -110,9 +111,9 @@ export function QuantityInput({
     setInputValue(num);
 
     if (placementMode === "value") {
-      // In value mode, user types ORDER VALUE (USDT)
-      const orderValue = num;
-      const capital = leverage > 0 ? orderValue / leverage : 0; // store as capital
+      // In value mode, user types INITIAL MARGIN (USDT)
+      const capital = num;
+      const orderValue = capital * (leverage || 1);
       lastValueRef.current = capital;
       if (onValueModeCapitalChange) onValueModeCapitalChange(capital);
       // Quantity = Order Value ÷ Price
@@ -159,7 +160,7 @@ export function QuantityInput({
   return (
     <div className="space-y-1">
       <Label className="text-xs text-muted-foreground" htmlFor={qtyInputId}>
-        Quantity
+        {t("quantity.label")}
       </Label>
       <div className="relative">
         <Input
@@ -182,7 +183,7 @@ export function QuantityInput({
           <DialogContent className="!sm:max-w-lg !max-w-lg">
             <DialogHeader>
               <DialogTitle className="text-base">
-                Order Placement Preferences
+                {t("quantity.dialog.title")}
               </DialogTitle>
             </DialogHeader>
 
@@ -203,13 +204,13 @@ export function QuantityInput({
                       }`}
                     />
                     <span className="text-sm font-medium">
-                      Order by Quantity
+                      {t("quantity.dialog.orderByQty")}
                     </span>
                   </div>
                   <span className="text-xs text-muted-foreground">BTC</span>
                 </div>
                 <div className="mt-1 pl-5 text-[11px] leading-snug text-muted-foreground">
-                  Please enter your order qty denominated in BTC terms.
+                  {t("quantity.dialog.orderByQtyHelp")}
                 </div>
               </button>
 
@@ -228,28 +229,27 @@ export function QuantityInput({
                           : "border-muted-foreground"
                       }`}
                     />
-                    <span className="text-sm font-medium">Order by Value</span>
+                    <span className="text-sm font-medium">
+                      {t("quantity.dialog.orderByValue")}
+                    </span>
                     <span className="ml-1 rounded-sm bg-primary/10 px-1 text-[10px] font-medium text-primary">
-                      NEW
+                      {t("badges.new")}
                     </span>
                   </div>
                   <span className="text-xs text-muted-foreground">USDT</span>
                 </div>
                 <div className="mt-1 pl-5 text-[11px] leading-snug text-muted-foreground">
-                  Please enter your desired order value. You can modify the
-                  required margin by adjusting the applied leverage.
+                  {t("quantity.dialog.orderByValueHelp")}
                 </div>
               </button>
 
               {placementMode === "value" && (
                 <div className="mt-2 rounded-md border border-border bg-muted/20 p-3">
                   <div className="text-[11px] font-medium text-muted-foreground mb-1">
-                    * Note
+                    {t("quantity.dialog.noteTitle")}
                   </div>
                   <div className="text-[11px] leading-relaxed text-muted-foreground">
-                    Your order quantity will be calculated based on the value of
-                    your filled order. Please note that in the event of extreme
-                    market fluctuations, your order placement may fail.
+                    {t("quantity.dialog.noteBody")}
                   </div>
                 </div>
               )}
@@ -259,12 +259,12 @@ export function QuantityInput({
               <div className="grid w-full grid-cols-2 gap-2">
                 <DialogTrigger asChild>
                   <Button className="w-full" onClick={handleConfirmPrefs}>
-                    Confirm
+                    {t("buttons.confirm")}
                   </Button>
                 </DialogTrigger>
                 <DialogTrigger asChild>
                   <Button className="w-full" variant="outline">
-                    Cancel
+                    {t("buttons.cancel")}
                   </Button>
                 </DialogTrigger>
               </div>

@@ -9,6 +9,7 @@ import type { Symbol } from "@/types/market";
 import { InfoIcon, ZapIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { TRADING_SYMBOLS } from "@/lib/trading/symbols-config";
+import { useTranslations } from "next-intl";
 
 // Consistent number formatting function to prevent hydration mismatches
 const formatNumber = (num: number, decimals: number = 2): string => {
@@ -32,6 +33,7 @@ interface MarketWidgetProps {
 }
 
 export function MarketWidget({ symbol }: MarketWidgetProps) {
+  const t = useTranslations("market.widget");
   // Get real-time ticker data
   const tickerData = useTickerData(symbol || "BTCUSDT");
 
@@ -274,7 +276,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
             </span>
             <div className="flex items-center gap-1">
               <span className="text-xs text-muted-foreground">
-                USDT Perpetual
+                {t("type.usdtPerp")}
               </span>
               <TooltipProvider>
                 <Tooltip>
@@ -287,7 +289,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
                   </TooltipTrigger>
                   <TooltipContent side="bottom" align="center">
                     <p className="text-xs">
-                      {assetName} {"USDT Perpetual"}, using USDT as collateral
+                      {t("tooltip.pairDesc", { asset: assetName })}
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -322,11 +324,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
                 side="bottom"
                 align="center"
               >
-                <p className="text-xs">
-                  Mark price is derived by index price and funding rate, and
-                  reflects the fair market price. Liquidation is triggered by
-                  mark price.
-                </p>
+                <p className="text-xs">{t("tooltip.markPriceDesc")}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -336,7 +334,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
         <div className="flex items-center gap-8 ml-8">
           {/* Index Price */}
           <div className="flex flex-col w-fit">
-            <span className="text-xs text-muted-foreground">Index Price</span>
+            <span className="text-xs text-muted-foreground">{t("labels.indexPrice")}</span>
             <span className="text-xs font-medium text-foreground transition-colors duration-300 tabular-nums">
               {hasValidData &&
               (indexPrice > 0 || lastKnownValues.indexPrice > 0)
@@ -349,7 +347,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
 
           {/* 24H Change */}
           <div className="flex flex-col w-fit">
-            <span className="text-xs text-muted-foreground">24H Change %</span>
+            <span className="text-xs text-muted-foreground">{t("labels.change24hPct")}</span>
             <span
               className={`text-xs font-medium transition-colors duration-300 tabular-nums ${
                 (lastKnownValues.change24hPercent !== 0
@@ -389,7 +387,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
 
           {/* 24H High */}
           <div className="flex flex-col w-fit">
-            <span className="text-xs text-muted-foreground">24H High</span>
+            <span className="text-xs text-muted-foreground">{t("labels.high24h")}</span>
             <span className="text-xs font-medium text-foreground transition-colors duration-300 tabular-nums">
               {hasValidData && (high24h > 0 || lastKnownValues.high24h > 0)
                 ? formatNumber(high24h > 0 ? high24h : lastKnownValues.high24h)
@@ -399,7 +397,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
 
           {/* 24H Low */}
           <div className="flex flex-col w-fit">
-            <span className="text-xs text-muted-foreground">24H Low</span>
+            <span className="text-xs text-muted-foreground">{t("labels.low24h")}</span>
             <span className="text-xs font-medium text-foreground transition-colors duration-300 tabular-nums">
               {hasValidData && (low24h > 0 || lastKnownValues.low24h > 0)
                 ? formatNumber(low24h > 0 ? low24h : lastKnownValues.low24h)
@@ -409,7 +407,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
 
           {/* 24H Volume */}
           <div className="flex flex-col w-fit">
-            <span className="text-xs text-muted-foreground">24H Volume</span>
+            <span className="text-xs text-muted-foreground">{t("labels.volume24h")}</span>
             <span className="text-xs font-medium text-foreground transition-colors duration-300 tabular-nums">
               {hasValidData && (volume24h > 0 || lastKnownValues.volume24h > 0)
                 ? formatNumber(
@@ -422,9 +420,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
 
           {/* 24H Turnover */}
           <div className="flex flex-col w-fit">
-            <span className="text-xs text-muted-foreground">
-              24H Turnover(USDT)
-            </span>
+            <span className="text-xs text-muted-foreground">{t("labels.turnover24hUsdt")}</span>
             <span className="text-xs font-medium text-foreground transition-colors duration-300 tabular-nums">
               {hasValidData &&
               (turnover24h > 0 || lastKnownValues.turnover24h > 0)
@@ -437,7 +433,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
 
           {/* Open Interest */}
           <div className="flex flex-col w-fit">
-            <span className="text-xs text-muted-foreground">Open Interest</span>
+            <span className="text-xs text-muted-foreground">{t("labels.openInterest")}</span>
             <span className="text-xs font-medium text-foreground transition-colors duration-300 tabular-nums">
               {hasValidData &&
               (openInterest > 0 || lastKnownValues.openInterest > 0)
@@ -455,11 +451,11 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
           <div className="flex flex-col w-fit">
             <div className="flex items-center gap-1">
               <span className="text-xs text-muted-foreground border-b border-dotted border-muted-foreground">
-                Funding Rate
+                {t("labels.fundingRate")}
               </span>
               <span className="text-xs text-muted-foreground">/</span>
               <span className="text-xs text-muted-foreground border-b border-dotted border-muted-foreground">
-                Countdown
+                {t("labels.countdown")}
               </span>
             </div>
             <div className="flex items-center gap-1">
@@ -503,7 +499,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
               </span>
               <div className="flex items-center gap-1">
                 <span className="text-xs text-muted-foreground">
-                  USDT Perpetual
+                {t("type.usdtPerp")}
                 </span>
                 <TooltipProvider>
                   <Tooltip>
@@ -551,11 +547,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
                   side="bottom"
                   align="center"
                 >
-                  <p className="text-xs">
-                    Mark price is derived by index price and funding rate, and
-                    reflects the fair market price. Liquidation is triggered by
-                    mark price.
-                  </p>
+                  <p className="text-xs">{t("tooltip.markPriceDesc")}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -566,7 +558,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
         <div className="grid grid-cols-3 gap-4">
           {/* 24H Change */}
           <div className="flex flex-col">
-            <span className="text-xs text-muted-foreground">24H Change</span>
+            <span className="text-xs text-muted-foreground">{t("labels.change24h")}</span>
             <span
               className={`text-sm font-medium transition-colors duration-300 tabular-nums ${
                 (lastKnownValues.change24hPercent !== 0
@@ -594,7 +586,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
 
           {/* 24H High */}
           <div className="flex flex-col">
-            <span className="text-xs text-muted-foreground">24H High</span>
+            <span className="text-xs text-muted-foreground">{t("labels.high24h")}</span>
             <span className="text-sm font-medium text-foreground transition-colors duration-300 tabular-nums">
               {hasValidData && (high24h > 0 || lastKnownValues.high24h > 0)
                 ? formatNumber(high24h > 0 ? high24h : lastKnownValues.high24h)
@@ -604,7 +596,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
 
           {/* 24H Low */}
           <div className="flex flex-col">
-            <span className="text-xs text-muted-foreground">24H Low</span>
+            <span className="text-xs text-muted-foreground">{t("labels.low24h")}</span>
             <span className="text-sm font-medium text-foreground transition-colors duration-300 tabular-nums">
               {hasValidData && (low24h > 0 || lastKnownValues.low24h > 0)
                 ? formatNumber(low24h > 0 ? low24h : lastKnownValues.low24h)
@@ -617,7 +609,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
         <div className="grid grid-cols-2 gap-4">
           {/* Index Price */}
           <div className="flex flex-col">
-            <span className="text-xs text-muted-foreground">Index Price</span>
+            <span className="text-xs text-muted-foreground">{t("labels.indexPrice")}</span>
             <span className="text-sm font-medium text-foreground transition-colors duration-300 tabular-nums">
               {hasValidData &&
               (indexPrice > 0 || lastKnownValues.indexPrice > 0)
@@ -630,7 +622,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
 
           {/* Volume */}
           <div className="flex flex-col">
-            <span className="text-xs text-muted-foreground">24H Volume</span>
+            <span className="text-xs text-muted-foreground">{t("labels.volume24h")}</span>
             <span className="text-sm font-medium text-foreground transition-colors duration-300 tabular-nums">
               {hasValidData && (volume24h > 0 || lastKnownValues.volume24h > 0)
                 ? formatNumber(
@@ -646,7 +638,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ZapIcon className="w-3 h-3 text-orange-500 transition-colors duration-300" />
-            <span className="text-xs text-muted-foreground">Funding Rate</span>
+            <span className="text-xs text-muted-foreground">{t("labels.fundingRate")}</span>
             <span className="text-xs font-medium text-orange-500 transition-colors duration-300 tabular-nums">
               {lastKnownValues.fundingRateSeen ||
               lastKnownValues.fundingRateLastNonZero !== 0
@@ -661,7 +653,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Next Funding</span>
+            <span className="text-xs text-muted-foreground">{t("labels.nextFunding")}</span>
             <span className="text-xs font-medium text-foreground transition-colors duration-300">
               {lastKnownValues.nextFundingTimeMs > 0 ? countdown : "--"}
             </span>

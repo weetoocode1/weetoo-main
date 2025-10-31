@@ -1,7 +1,7 @@
 import { useTickerData } from "@/hooks/websocket/use-market-data";
 import type { Symbol } from "@/types/market";
-import { useCallback, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import React, { useCallback, useEffect, useState } from "react";
 import { ExecutionTiming } from "../execution-timing";
 import { LongShortButtons } from "../limit-tab/long-short-buttons";
 import { PercentageButtons } from "../limit-tab/percentage-buttons";
@@ -24,7 +24,7 @@ interface MarketTabProps {
   currentPrice?: number;
 }
 
-export function MarketTab({
+function MarketTabInner({
   roomId,
   symbol,
   price,
@@ -87,48 +87,51 @@ export function MarketTab({
   const [tpSlChecked, setTpSlChecked] = useState(false);
   const [tpSlMode, setTpSlMode] = useState<"basic" | "advanced">("basic");
 
-  const handleConfirmPrefs = () => {
+  const handleConfirmPrefs = useCallback(() => {
     setUnitSymbol(placementMode === "value" ? "USDT" : "BTC");
-  };
+  }, [placementMode]);
 
   // Handle percentage selection for market orders
-  const handlePercentageSelect = (percentage: number) => {
-    if (!price || price <= 0) return;
+  const handlePercentageSelect = useCallback(
+    (percentage: number) => {
+      if (!price || price <= 0) return;
 
-    // If percentage is 0, clear the selection
-    if (percentage === 0) {
-      setQty(0);
-      setValueModeCapital(0);
-      // Clear stored capital
-      if (typeof window !== "undefined") {
-        window._limit_user_capital_ref = { current: 0 };
+      // If percentage is 0, clear the selection
+      if (percentage === 0) {
+        setQty(0);
+        setValueModeCapital(0);
+        // Clear stored capital
+        if (typeof window !== "undefined") {
+          window._limit_user_capital_ref = { current: 0 };
+        }
+        return;
       }
-      return;
-    }
 
-    // Calculate user's capital (their own money they want to spend)
-    // Convert percentage from whole number (10) to decimal (0.1)
-    const userCapital = availableBalance * (percentage / 100);
+      // Calculate user's capital (their own money they want to spend)
+      // Convert percentage from whole number (10) to decimal (0.1)
+      const userCapital = availableBalance * (percentage / 100);
 
-    // Calculate position size using leverage: Position Size = User Capital × Leverage
-    const positionSize = userCapital * leverage;
+      // Calculate position size using leverage: Position Size = User Capital × Leverage
+      const positionSize = userCapital * leverage;
 
-    // Calculate quantity: Quantity = Position Size ÷ Price
-    const computedQty = positionSize / price;
+      // Calculate quantity: Quantity = Position Size ÷ Price
+      const computedQty = positionSize / price;
 
-    if (Number.isFinite(computedQty)) {
-      setQty(computedQty);
-      setValueModeCapital(userCapital);
-      // Don't force mode change - let user stay in their chosen mode
+      if (Number.isFinite(computedQty)) {
+        setQty(computedQty);
+        setValueModeCapital(userCapital);
+        // Don't force mode change - let user stay in their chosen mode
 
-      // Remember the user's capital for future leverage changes
-      if (typeof window !== "undefined") {
-        window._limit_user_capital_ref = {
-          current: userCapital,
-        };
+        // Remember the user's capital for future leverage changes
+        if (typeof window !== "undefined") {
+          window._limit_user_capital_ref = {
+            current: userCapital,
+          };
+        }
       }
-    }
-  };
+    },
+    [availableBalance, leverage, price]
+  );
 
   // Mirror Limit tab: recompute qty when leverage/price changes using stored capital
   const valueModeRecompute = () => {
@@ -312,6 +315,7 @@ export function MarketTab({
         qty={qty}
         availableBalance={availableBalance}
         feeRate={FEE_RATE}
+        leverage={leverage}
         orderType="market"
       />
 
@@ -353,3 +357,5 @@ export function MarketTab({
     </div>
   );
 }
+
+export const MarketTab = React.memo(MarketTabInner);

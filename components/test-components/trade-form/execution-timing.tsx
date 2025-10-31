@@ -19,6 +19,7 @@ import {
 import { Clock, ClockIcon, Info } from "lucide-react";
 import { useId, useMemo } from "react";
 import { DatePicker } from "./date-picker";
+import { useTranslations } from "next-intl";
 
 interface ExecutionTimingProps {
   value: "now" | "time_based" | "price_based";
@@ -40,10 +41,10 @@ interface ExecutionTimingProps {
   limitPrice?: number;
 }
 
-const TRIGGER_CONDITION_MAP = {
-  above: "Rises Above",
-  below: "Falls Below",
-} as const;
+// const TRIGGER_CONDITION_MAP = {
+//   above: "Rises Above",
+//   below: "Falls Below",
+// } as const;
 
 const TIMEZONE_OPTIONS = [
   { value: "Asia/Seoul", label: "KST" },
@@ -68,6 +69,7 @@ export function ExecutionTiming({
   orderContext = "limit",
   limitPrice,
 }: ExecutionTimingProps) {
+  const t = useTranslations("trade.form");
   const nowId = useId();
   const timeId = useId();
   const priceId = useId();
@@ -133,7 +135,7 @@ export function ExecutionTiming({
   return (
     <div className="mt-3 space-y-3 border py-2.5 px-2 bg-muted/20 rounded-md">
       <div className="text-xs font-medium text-muted-foreground flex items-center gap-2">
-        <ClockIcon className="w-4 h-4" /> Execution Timing
+        <ClockIcon className="w-4 h-4" /> {t("execution.title")}
       </div>
 
       <RadioGroup
@@ -146,21 +148,21 @@ export function ExecutionTiming({
         <div className="flex items-center space-x-2">
           <RadioGroupItem id={nowId} value="now" />
           <Label htmlFor={nowId} className="text-sm cursor-pointer">
-            Execute Now
+            {t("execution.now")}
           </Label>
         </div>
 
         <div className="flex items-center space-x-2">
           <RadioGroupItem id={timeId} value="time_based" />
           <Label htmlFor={timeId} className="text-sm cursor-pointer">
-            Schedule by Time
+            {t("execution.time")}
           </Label>
         </div>
 
         <div className="flex items-center space-x-2">
           <RadioGroupItem id={priceId} value="price_based" />
           <Label htmlFor={priceId} className="text-sm cursor-pointer">
-            Schedule by Price
+            {t("execution.price")}
           </Label>
         </div>
       </RadioGroup>
@@ -173,7 +175,7 @@ export function ExecutionTiming({
                 htmlFor="schedule-date"
                 className="text-xs text-muted-foreground"
               >
-                Date
+                {t("execution.date")}
               </Label>
               <DatePicker
                 value={scheduledDate}
@@ -185,7 +187,7 @@ export function ExecutionTiming({
                 htmlFor="schedule-time"
                 className="text-xs text-muted-foreground"
               >
-                Time
+                {t("execution.timeLabel")}
               </Label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
@@ -228,7 +230,7 @@ export function ExecutionTiming({
         <div className="space-y-3">
           <div className="flex flex-col gap-1">
             <Label className="text-xs text-muted-foreground">
-              Trigger when price:
+              {t("execution.triggerWhen")}
             </Label>
             <RadioGroup
               value={triggerCondition}
@@ -240,13 +242,13 @@ export function ExecutionTiming({
               <div className="flex items-center space-x-2">
                 <RadioGroupItem id={aboveId} value="above" />
                 <Label htmlFor={aboveId} className="text-sm cursor-pointer">
-                  {TRIGGER_CONDITION_MAP.above}
+                  {t("execution.above")}
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem id={belowId} value="below" />
                 <Label htmlFor={belowId} className="text-sm cursor-pointer">
-                  {TRIGGER_CONDITION_MAP.below}
+                  {t("execution.below")}
                 </Label>
               </div>
             </RadioGroup>
@@ -257,7 +259,7 @@ export function ExecutionTiming({
               htmlFor="trigger-price"
               className="text-xs text-muted-foreground"
             >
-              Trigger Price
+              {t("execution.triggerPrice")}
             </Label>
             <Input
               id="trigger-price"
@@ -265,15 +267,17 @@ export function ExecutionTiming({
               step="0.01"
               value={triggerPrice}
               onChange={(e) => onTriggerPriceChange(e.target.value)}
-              placeholder="Enter trigger price"
+              placeholder={t("execution.triggerPricePh")}
               className="h-9 text-xs"
             />
           </div>
 
           <div className="text-xs text-muted-foreground space-y-1">
-            <div>Current: {currentPrice.toLocaleString()}</div>
+            <div>
+              {t("execution.current")}: {currentPrice.toLocaleString()}
+            </div>
             <div className="flex items-center gap-2">
-              <span>Distance:</span>
+              <span>{t("execution.distance")}:</span>
               <span
                 className={
                   parseFloat(distance.value.toString()) >= 0

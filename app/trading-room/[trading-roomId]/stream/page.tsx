@@ -1,5 +1,4 @@
-import { StreamChat } from "@/components/test-components/test-stream/stream-chat";
-import { StreamDashboard } from "@/components/test-components/test-stream/stream-dashboard";
+import { StreamPageClient } from "./page-client";
 import { createClient } from "@/lib/supabase/server";
 import { Metadata } from "next";
 
@@ -24,11 +23,13 @@ export async function generateMetadata({
   };
 }
 
-export default function TestStream() {
-  return (
-    <div className="flex h-full w-full gap-3 p-4">
-      <StreamDashboard />
-      <StreamChat />
-    </div>
-  );
+export default async function StreamPage({
+  params,
+}: {
+  params: Promise<{ "trading-roomId": string }>;
+}) {
+  const resolvedParams = await params;
+  const roomId = resolvedParams["trading-roomId"];
+
+  return <StreamPageClient roomId={roomId} />;
 }
