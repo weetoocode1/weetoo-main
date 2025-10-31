@@ -4,6 +4,7 @@ import { StreamChat } from "@/components/test-components/test-stream/stream-chat
 import { StreamDashboard } from "@/components/test-components/test-stream/stream-dashboard";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 interface StreamPageClientProps {
@@ -25,6 +26,7 @@ interface StreamData {
 }
 
 export function StreamPageClient({ roomId }: StreamPageClientProps) {
+  const tDash = useTranslations("stream.dashboard");
   const [popoutMode, setPopoutMode] = useState<null | boolean>(null);
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
@@ -111,7 +113,7 @@ export function StreamPageClient({ roomId }: StreamPageClientProps) {
 
           if (createResponse.ok) {
             hasNotifiedRef.current = true;
-            toast.success("Stream credentials generated successfully!");
+            toast.success(tDash("toasts.credentialsGenerated"));
             setStreamData({
               streamId: createdData.streamId,
               streamKey: createdData.streamKey,
@@ -189,7 +191,7 @@ export function StreamPageClient({ roomId }: StreamPageClientProps) {
   if (isAuthorized !== true || isLoading) {
     return (
       <div className="flex h-full w-full items-center justify-center">
-        <div className="text-muted-foreground">Loading stream...</div>
+        <div className="text-muted-foreground">{tDash("loading")}</div>
       </div>
     );
   }

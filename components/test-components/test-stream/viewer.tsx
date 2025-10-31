@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import MuxPlayer from "@mux/mux-player-react";
 import "@mux/mux-active-viewer-count";
 import { VideoIcon, EyeIcon } from "lucide-react";
@@ -19,6 +20,7 @@ interface ViewerProps {
 }
 
 export function Viewer({ roomId }: ViewerProps) {
+  const tInactive = useTranslations("stream.viewer.inactive");
   const [streamData, setStreamData] = useState<StreamData | undefined>();
   const [roomName, setRoomName] = useState<string | null>(null);
   const [roomDescription, setRoomDescription] = useState<string | null>(null);
@@ -236,16 +238,15 @@ export function Viewer({ roomId }: ViewerProps) {
     const status = streamData?.status;
     if (status === "ended" || status === "stopped" || status === "complete") {
       return {
-        title: "Live stream ended",
-        description:
-          "The stream has ended. Please check back later or wait for the next broadcast.",
+        title: tInactive("endedTitle"),
+        description: tInactive("endedDesc"),
       };
     }
     return {
-      title: "Stream offline",
-      description: "The stream is currently not broadcasting",
+      title: tInactive("offlineTitle"),
+      description: tInactive("offlineDesc"),
     };
-  }, [streamData?.status]);
+  }, [streamData?.status, tInactive]);
 
   const muxPlayerMetadata = useMemo(
     () => ({

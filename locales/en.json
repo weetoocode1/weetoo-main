@@ -1334,6 +1334,10 @@
       "monthsAgo": "{count} months ago",
       "yearAgo": "1 year ago",
       "yearsAgo": "{count} years ago"
+    },
+    "tabs": {
+      "rooms": "Rooms",
+      "replays": "Replays"
     }
   },
   "createRoom": {
@@ -4169,7 +4173,16 @@
         "titleUpdated": "Title updated successfully!",
         "titleUpdateFailed": "Failed to update title",
         "descriptionUpdated": "Description updated successfully!",
-        "descriptionUpdateFailed": "Failed to update description"
+        "descriptionUpdateFailed": "Failed to update description",
+        "credentialsGenerated": "Stream credentials generated successfully!"
+      }
+    },
+    "viewer": {
+      "inactive": {
+        "endedTitle": "Live stream ended",
+        "endedDesc": "The stream has ended. Please check back later or wait for the next broadcast.",
+        "offlineTitle": "Stream offline",
+        "offlineDesc": "The stream is currently not broadcasting"
       }
     },
     "health": {

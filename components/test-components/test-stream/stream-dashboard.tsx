@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { useLiveViewers } from "@/hooks/use-live-viewers";
+import MuxPlayer from "@mux/mux-player-react";
 import {
   ActivityIcon,
   CheckIcon,
@@ -19,17 +20,17 @@ import {
   WifiIcon,
   WifiOffIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import MuxPlayer from "@mux/mux-player-react";
 import { Donations } from "./donations";
 // import { StreamAnalytics } from "./stream-analytics"; // Temporarily disabled
+import { createClient } from "@/lib/supabase/client";
+import { GuideBook } from "./guide-book";
 import { StreamHealth } from "./stream-health";
 import { StreamSettings } from "./stream-settings";
 import { StreamTags } from "./stream-tags";
 import { StreamThumbnail } from "./stream-thumbnail";
-import { GuideBook } from "./guide-book";
 
 // Custom Tabs Component
 interface CustomTabsProps {
@@ -91,6 +92,8 @@ export function StreamDashboard({ streamData, roomId }: StreamDashboardProps) {
   const [editedDescription, setEditedDescription] = useState("");
   const titleInputRef = useRef<HTMLInputElement>(null);
   const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const supabase = useRef(createClient());
+  const [presenceCount, setPresenceCount] = useState(0);
 
   useEffect(() => {
     const originalError = console.error;
@@ -259,10 +262,47 @@ export function StreamDashboard({ streamData, roomId }: StreamDashboardProps) {
   const StatusIcon = currentStatus.icon;
   const isOnline = streamData?.status === "active";
 
-  const { viewers, isLoading: viewersLoading } = useLiveViewers(
+  const { isLoading: viewersLoading } = useLiveViewers(
     streamData?.streamId,
     isOnline
   );
+
+  // Presence-based viewer count (fallback/primary shown in UI)
+  useEffect(() => {
+    if (!roomId) return;
+    let channel: ReturnType<typeof supabase.current.channel> | null = null;
+    let tracked = false;
+    (async () => {
+      try {
+        const { data } = await supabase.current.auth.getUser();
+        const uid =
+          data?.user?.id || `host-${Math.random().toString(36).slice(2, 8)}`;
+        channel = supabase.current.channel(`room-presence-${roomId}`, {
+          config: { presence: { key: uid } },
+        });
+        channel
+          .on("presence", { event: "sync" }, () => {
+            try {
+              const state = channel?.presenceState() || {};
+              const total = Object.values(state).reduce(
+                (acc, arr) => acc + (Array.isArray(arr) ? arr.length : 0),
+                0
+              );
+              setPresenceCount(total);
+            } catch {}
+          })
+          .subscribe(async (status) => {
+            if (status === "SUBSCRIBED" && !tracked) {
+              tracked = true;
+              await channel!.track({ joined_at: new Date().toISOString() });
+            }
+          });
+      } catch {}
+    })();
+    return () => {
+      if (channel) supabase.current.removeChannel(channel);
+    };
+  }, [roomId]);
 
   const latencyModeMap: Record<string, string> = {
     standard: "Normal",
@@ -580,7 +620,9 @@ export function StreamDashboard({ streamData, roomId }: StreamDashboardProps) {
                 <span className="text-xs">{t("stats.viewers")}</span>
               </div>
               <span className="text-sm font-semibold">
-                {viewersLoading ? "..." : viewers.toLocaleString()}
+                {viewersLoading && presenceCount === 0
+                  ? "..."
+                  : presenceCount.toLocaleString()}
               </span>
             </div>
 
