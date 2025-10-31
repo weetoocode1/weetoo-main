@@ -1,9 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const { roomId, amount } = await req.json();
+    const { roomId, amount, message } = await req.json();
     if (!roomId || !amount || amount <= 0) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
@@ -50,6 +50,10 @@ export async function POST(req: Request) {
           p_user_id: userId,
           p_creator_id: creatorId,
           p_amount: amount,
+          p_message:
+            typeof message === "string" && message.trim().length > 0
+              ? message.trim().slice(0, 500)
+              : null,
         })
         .select();
       const timeoutPromise = new Promise((_, reject) =>
@@ -78,6 +82,27 @@ export async function POST(req: Request) {
         }
         console.error("Donation RPC error:", txError);
         return NextResponse.json({ error: errorMsg }, { status: 500 });
+      }
+      // If a message was provided, best-effort attach it to the most recent donation
+      if (typeof message === "string" && message.trim().length > 0) {
+        const trimmed = message.trim().slice(0, 500);
+        const svc = await createServiceClient();
+        const { data: recent } = await svc
+          .from("trading_room_donations")
+          .select("id, message")
+          .eq("room_id", roomId)
+          .eq("user_id", userId)
+          .eq("amount", amount)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (recent?.id) {
+          await svc
+            .from("trading_room_donations")
+            .update({ message: trimmed })
+            .eq("id", recent.id);
+        }
       }
     } catch (rpcErr: unknown) {
       let errorMsg = "Donation failed (timeout)";

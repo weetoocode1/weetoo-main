@@ -3,6 +3,7 @@ import { useTickerData } from "@/hooks/websocket/use-market-data";
 import { createClient } from "@/lib/supabase/client";
 import type { Symbol } from "@/types/market";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useOpenOrders } from "@/hooks/use-open-orders";
 import { OpenOrdersTabs } from "./trading-tabs/open-orders-tabs";
 import { OrderHistoryTabs } from "./trading-tabs/order-history-tabs";
@@ -27,6 +28,7 @@ interface RealtimePayload {
 }
 
 export function TradingTabs({ symbol, roomId }: TradingTabsProps) {
+  const t = useTranslations("trading.tabs");
   const [activeTab, setActiveTab] = useState("open-orders");
   const [historyCount, setHistoryCount] = useState<number>(0);
   const [openOrdersCount, setOpenOrdersCount] = useState<number>(0);
@@ -366,16 +368,18 @@ export function TradingTabs({ symbol, roomId }: TradingTabsProps) {
   };
 
   const tabs = [
-    { id: "open-orders", label: `Open Orders (${openOrdersCount})` },
+    { id: "open-orders", label: t("openOrders", { count: openOrdersCount }) },
     {
       id: "scheduled-orders",
-      label: `Scheduled Orders (${scheduledOrdersCount})`,
+      label: t("scheduledOrders", { count: scheduledOrdersCount }),
     },
     {
       id: "positions",
-      label: `Positions (${openPositions ? openPositions.length : 0})`,
+      label: t("positions", {
+        count: openPositions ? openPositions.length : 0,
+      }),
     },
-    { id: "order-history", label: `History (${historyCount})` },
+    { id: "order-history", label: t("history", { count: historyCount }) },
   ];
 
   return (
@@ -416,12 +420,16 @@ export function TradingTabs({ symbol, roomId }: TradingTabsProps) {
             >
               {/* Mobile: Show abbreviated labels */}
               <span className="lg:hidden">
-                {tab.id === "open-orders" && `Orders (${openOrdersCount})`}
+                {tab.id === "open-orders" &&
+                  t("mobile.orders", { count: openOrdersCount })}
                 {tab.id === "scheduled-orders" &&
-                  `Scheduled (${scheduledOrdersCount})`}
+                  t("mobile.scheduled", { count: scheduledOrdersCount })}
                 {tab.id === "positions" &&
-                  `Positions (${openPositions ? openPositions.length : 0})`}
-                {tab.id === "order-history" && `History (${historyCount})`}
+                  t("mobile.positions", {
+                    count: openPositions ? openPositions.length : 0,
+                  })}
+                {tab.id === "order-history" &&
+                  t("mobile.history", { count: historyCount })}
               </span>
               {/* Desktop: Show full labels */}
               <span className="hidden lg:inline">{tab.label}</span>

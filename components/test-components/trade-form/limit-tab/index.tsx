@@ -1,14 +1,14 @@
 import { useTickerData } from "@/hooks/websocket/use-market-data";
 import type { Symbol } from "@/types/market";
-import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import React, { useCallback, useEffect, useState } from "react";
+import { ExecutionTiming } from "../execution-timing";
 import { LongShortButtons } from "./long-short-buttons";
 import { PercentageButtons } from "./percentage-buttons";
 import { PriceInput } from "./price-input";
 import { QuantityInput } from "./quantity-input";
 import { TpSlSection } from "./tp-sl-section";
 import { ValueCostSection } from "./value-cost-section";
-import { ExecutionTiming } from "../execution-timing";
 
 // Extend Window interface for custom properties
 declare global {
@@ -31,7 +31,7 @@ interface LimitTabProps {
   triggerPrice?: string;
 }
 
-export function LimitTab({
+function LimitTabInner({
   symbol,
   price,
   setPrice,
@@ -62,7 +62,7 @@ export function LimitTab({
   // Set initial price from live ticker for the symbol
   const ticker = useTickerData(symbol || "BTCUSDT");
   // Limit tab: do not auto-update price from ticker; only set when user clicks Last
-  const setToLast = () => {
+  const setToLast = useCallback(() => {
     const lp =
       (currentPrice && Number.isFinite(currentPrice) && currentPrice > 0
         ? currentPrice
@@ -70,7 +70,7 @@ export function LimitTab({
         ? parseFloat(ticker.lastPrice)
         : 0) || 0;
     if (Number.isFinite(lp) && lp > 0) setPrice(lp);
-  };
+  }, [currentPrice, setPrice, ticker?.lastPrice]);
 
   // On first render (or when symbol changes), if price is zero, seed it from currentPrice
   useEffect(() => {
@@ -111,7 +111,7 @@ export function LimitTab({
     setStopLossValue(data.stopLossValue);
   };
 
-  const handleConfirmPrefs = () => {
+  const handleConfirmPrefs = useCallback(() => {
     const newUnitSymbol = placementMode === "value" ? "USDT" : "BTC";
     setUnitSymbol(newUnitSymbol);
 
@@ -123,160 +123,185 @@ export function LimitTab({
       // Switching to qty mode - user will enter BTC amount
       // Keep current quantity as is
     }
-  };
+  }, [placementMode]);
 
   // Handle percentage selection for limit orders
-  const handlePercentageSelect = (percentage: number) => {
-    if (!price || price <= 0) return;
+  const handlePercentageSelect = useCallback(
+    (percentage: number) => {
+      if (!price || price <= 0) return;
 
-    // If percentage is 0, clear the selection
-    if (percentage === 0) {
-      setQty(0);
-      setValueModeCapital(0);
-      // Clear stored capital
-      if (typeof window !== "undefined") {
-        window._limit_user_capital_ref = { current: 0 };
+      // If percentage is 0, clear the selection
+      if (percentage === 0) {
+        setQty(0);
+        setValueModeCapital(0);
+        // Clear stored capital
+        if (typeof window !== "undefined") {
+          window._limit_user_capital_ref = { current: 0 };
+        }
+        return;
       }
-      return;
-    }
 
-    // Calculate user's capital (their own money they want to spend)
-    // Convert percentage from whole number (10) to decimal (0.1)
-    const userCapital = availableBalance * (percentage / 100);
+      // Calculate user's capital (their own money they want to spend)
+      // Convert percentage from whole number (10) to decimal (0.1)
+      const userCapital = availableBalance * (percentage / 100);
 
-    // Calculate position size using leverage: Position Size = User Capital × Leverage
-    const positionSize = userCapital * leverage;
+      // Calculate position size using leverage: Position Size = User Capital × Leverage
+      const positionSize = userCapital * leverage;
 
-    // Calculate quantity: Quantity = Position Size ÷ Price
-    const computedQty = positionSize / price;
+      // Calculate quantity: Quantity = Position Size ÷ Price
+      const computedQty = positionSize / price;
 
-    if (Number.isFinite(computedQty)) {
-      setQty(computedQty);
-      setValueModeCapital(userCapital);
-      // Don't force mode change - let user stay in their chosen mode
+      if (Number.isFinite(computedQty)) {
+        setQty(computedQty);
+        setValueModeCapital(userCapital);
+        // Don't force mode change - let user stay in their chosen mode
 
-      // Remember the user's capital for future leverage changes
-      if (typeof window !== "undefined") {
-        window._limit_user_capital_ref = {
-          current: userCapital,
-        };
+        // Remember the user's capital for future leverage changes
+        if (typeof window !== "undefined") {
+          window._limit_user_capital_ref = {
+            current: userCapital,
+          };
+        }
       }
-    }
-  };
+    },
+    [availableBalance, leverage, price]
+  );
 
   // Handle limit order confirmation
-  const handleLimitOrderConfirm = async (params: {
-    side: "LONG" | "SHORT";
-    price: number;
-    qty: number;
-    orderType: "limit" | "market";
-    symbol?: string;
-    leverage?: number;
-    orderValue: number;
-    fee: number;
-    totalCost: number;
-  }) => {
-    try {
-      const roomId = (window as unknown as Record<string, unknown>)
-        ?.CURRENT_TRADING_ROOM_ID;
-      if (!roomId) return;
+  const handleLimitOrderConfirm = useCallback(
+    async (params: {
+      side: "LONG" | "SHORT";
+      price: number;
+      qty: number;
+      orderType: "limit" | "market";
+      symbol?: string;
+      leverage?: number;
+      orderValue: number;
+      fee: number;
+      totalCost: number;
+    }) => {
+      try {
+        const roomId = (window as unknown as Record<string, unknown>)
+          ?.CURRENT_TRADING_ROOM_ID;
+        if (!roomId) return;
 
-      // If execution timing is not "now", create a scheduled order
-      if (localExecutionTiming !== "now") {
-        const localToUtcIso = (d: Date, t: string) => {
-          const [hh, mm] = (t || "00:00").split(":").map((v) => Number(v));
-          const local = new Date(
-            d.getFullYear(),
-            d.getMonth(),
-            d.getDate(),
-            Number.isFinite(hh) ? hh : 0,
-            Number.isFinite(mm) ? mm : 0,
-            0,
-            0
+        // If execution timing is not "now", create a scheduled order
+        if (localExecutionTiming !== "now") {
+          const localToUtcIso = (d: Date, t: string) => {
+            const [hh, mm] = (t || "00:00").split(":").map((v) => Number(v));
+            const local = new Date(
+              d.getFullYear(),
+              d.getMonth(),
+              d.getDate(),
+              Number.isFinite(hh) ? hh : 0,
+              Number.isFinite(mm) ? mm : 0,
+              0,
+              0
+            );
+            return local.toISOString();
+          };
+          const scheduledOrderData = {
+            symbol: params.symbol,
+            side: params.side === "LONG" ? "buy" : "sell",
+            order_type: "limit",
+            quantity: params.qty,
+            price: params.price,
+            leverage: params.leverage || 1,
+            schedule_type: localExecutionTiming,
+            scheduled_at:
+              localExecutionTiming === "time_based" &&
+              localScheduledDate &&
+              localScheduledTime
+                ? localToUtcIso(localScheduledDate, localScheduledTime)
+                : null,
+            trigger_condition:
+              localExecutionTiming === "price_based"
+                ? localTriggerCondition
+                : null,
+            trigger_price:
+              localExecutionTiming === "price_based"
+                ? parseFloat(localTriggerPrice)
+                : null,
+            current_price: currentPrice || 0,
+            // TP/SL parameters for scheduled orders
+            tp_enabled: tpEnabled && takeProfitValue > 0,
+            sl_enabled: slEnabled && stopLossValue > 0,
+            take_profit_price:
+              tpEnabled && takeProfitValue > 0 ? takeProfitValue : null,
+            stop_loss_price:
+              slEnabled && stopLossValue > 0 ? stopLossValue : null,
+          };
+
+          const response = await fetch(
+            `/api/trading-room/${roomId}/scheduled-orders`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(scheduledOrderData),
+            }
           );
-          return local.toISOString();
-        };
-        const scheduledOrderData = {
-          symbol: params.symbol,
-          side: params.side === "LONG" ? "buy" : "sell",
-          order_type: "limit",
-          quantity: params.qty,
-          price: params.price,
-          leverage: params.leverage || 1,
-          schedule_type: localExecutionTiming,
-          scheduled_at:
-            localExecutionTiming === "time_based" &&
-            localScheduledDate &&
-            localScheduledTime
-              ? localToUtcIso(localScheduledDate, localScheduledTime)
-              : null,
-          trigger_condition:
-            localExecutionTiming === "price_based"
-              ? localTriggerCondition
-              : null,
-          trigger_price:
-            localExecutionTiming === "price_based"
-              ? parseFloat(localTriggerPrice)
-              : null,
-          current_price: currentPrice || 0,
-          // TP/SL parameters for scheduled orders
-          tp_enabled: tpEnabled && takeProfitValue > 0,
-          sl_enabled: slEnabled && stopLossValue > 0,
-          take_profit_price:
-            tpEnabled && takeProfitValue > 0 ? takeProfitValue : null,
-          stop_loss_price:
-            slEnabled && stopLossValue > 0 ? stopLossValue : null,
-        };
 
+          if (response.ok) {
+            // Optimistically invalidate scheduled orders query
+            queryClient.invalidateQueries({
+              queryKey: ["scheduled-orders", roomId],
+            });
+          }
+
+          return;
+        }
+
+        // Execute immediately for "now" timing
         const response = await fetch(
-          `/api/trading-room/${roomId}/scheduled-orders`,
+          `/api/trading-room/${roomId}/open-orders`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(scheduledOrderData),
+            body: JSON.stringify({
+              symbol: params.symbol,
+              side: params.side === "LONG" ? "long" : "short",
+              limitPrice: params.price,
+              quantity: params.qty,
+              leverage: params.leverage || 1,
+              timeInForce: "GTC",
+              // Include TP/SL data
+              tpEnabled: tpEnabled && takeProfitValue > 0,
+              slEnabled: slEnabled && stopLossValue > 0,
+              takeProfitPrice:
+                tpEnabled && takeProfitValue > 0 ? takeProfitValue : null,
+              stopLossPrice:
+                slEnabled && stopLossValue > 0 ? stopLossValue : null,
+            }),
           }
         );
 
         if (response.ok) {
-          // Optimistically invalidate scheduled orders query
+          // Optimistically invalidate open orders query
           queryClient.invalidateQueries({
-            queryKey: ["scheduled-orders", roomId],
+            queryKey: ["open-orders", roomId],
           });
         }
-
-        return;
+      } catch (e) {
+        console.error(e);
       }
-
-      // Execute immediately for "now" timing
-      const response = await fetch(`/api/trading-room/${roomId}/open-orders`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          symbol: params.symbol,
-          side: params.side === "LONG" ? "long" : "short",
-          limitPrice: params.price,
-          quantity: params.qty,
-          leverage: params.leverage || 1,
-          timeInForce: "GTC",
-          // Include TP/SL data
-          tpEnabled: tpEnabled && takeProfitValue > 0,
-          slEnabled: slEnabled && stopLossValue > 0,
-          takeProfitPrice:
-            tpEnabled && takeProfitValue > 0 ? takeProfitValue : null,
-          stopLossPrice: slEnabled && stopLossValue > 0 ? stopLossValue : null,
-        }),
-      });
-
-      if (response.ok) {
-        // Optimistically invalidate open orders query
-        queryClient.invalidateQueries({
-          queryKey: ["open-orders", roomId],
-        });
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
+    },
+    [
+      currentPrice,
+      localExecutionTiming,
+      localScheduledDate,
+      localScheduledTime,
+      localTriggerCondition,
+      localTriggerPrice,
+      setPrice,
+      leverage,
+      availableBalance,
+      tpEnabled,
+      slEnabled,
+      takeProfitValue,
+      stopLossValue,
+      queryClient,
+    ]
+  );
 
   // Recompute qty when leverage/price changes
   const valueModeRecompute = () => {
@@ -363,6 +388,7 @@ export function LimitTab({
         availableBalance={availableBalance}
         feeRate={FEE_RATE}
         leverage={leverage}
+        orderType="limit"
       />
 
       {/* TP/SL Section */}
@@ -406,3 +432,5 @@ export function LimitTab({
     </div>
   );
 }
+
+export const LimitTab = React.memo(LimitTabInner);

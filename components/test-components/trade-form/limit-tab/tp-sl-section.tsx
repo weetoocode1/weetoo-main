@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { AdvancedLong, AdvancedShort, BasicTpSl } from "./tp-sl";
 import { ApplicableToToggle } from "./tp-sl/applicable-to-toggle";
 import { TpSlHeader } from "./tp-sl/tp-sl-header";
+import { useTranslations } from "next-intl";
 
 interface TpSlSectionProps {
   tpSlChecked: boolean;
@@ -35,6 +36,7 @@ export function TpSlSection({
   orderType,
   onTpSlChange,
 }: TpSlSectionProps) {
+  const t = useTranslations("trade.form");
   const [takeProfitValue, setTakeProfitValue] = useState<number | "">("");
   const [stopLossValue, setStopLossValue] = useState<number | "">("");
 
@@ -127,12 +129,12 @@ export function TpSlSection({
                   <DialogTrigger asChild className="gap-1">
                     <Button className="w-full h-10 text-sm" variant="outline">
                       <PlusCircleIcon className="h-4 w-4" />
-                      TP/SL
+                      {t("tpsl.button")}
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-h-[90vh] !max-w-lg overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle>Add TP/SL</DialogTitle>
+                      <DialogTitle>{t("tpsl.addTitle")}</DialogTitle>
                     </DialogHeader>
 
                     <div className="space-y-6">
@@ -140,19 +142,15 @@ export function TpSlSection({
                       <div className="space-y-3">
                         <div className="grid grid-cols-3 gap-4 text-xs">
                           <div>
-                            <div className="text-muted-foreground">Price</div>
+                              <div className="text-muted-foreground">{t("price.label")}</div>
                             <div className="font-medium">$50,000</div>
                           </div>
                           <div>
-                            <div className="text-muted-foreground">
-                              Quantity
-                            </div>
+                              <div className="text-muted-foreground">{t("quantity.label")}</div>
                             <div className="font-medium">0.1 BTC</div>
                           </div>
                           <div>
-                            <div className="text-muted-foreground">
-                              Last Traded Price
-                            </div>
+                              <div className="text-muted-foreground">{t("tpsl.lastTraded")}</div>
                             <div className="font-medium">$49,500</div>
                           </div>
                         </div>
@@ -170,7 +168,7 @@ export function TpSlSection({
                                 : "bg-muted text-muted-foreground hover:text-foreground"
                             }`}
                           >
-                            Long
+                            {t("longShort.long")}
                           </button>
                           <button
                             type="button"
@@ -181,7 +179,7 @@ export function TpSlSection({
                                 : "bg-muted text-muted-foreground hover:text-foreground"
                             }`}
                           >
-                            Short
+                            {t("longShort.short")}
                           </button>
                         </div>
                       </div>
@@ -296,10 +294,10 @@ export function TpSlSection({
 
                     <DialogFooter className="mt-6">
                       <div className="grid w-full grid-cols-2 gap-2">
-                        <Button className="w-full h-10">Confirm</Button>
+                        <Button className="w-full h-10">{t("buttons.confirm")}</Button>
                         <DialogTrigger asChild>
                           <Button className="w-full h-10" variant="outline">
-                            Cancel
+                            {t("buttons.cancel")}
                           </Button>
                         </DialogTrigger>
                       </div>

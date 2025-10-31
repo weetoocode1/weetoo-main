@@ -18,6 +18,7 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { SimpleTable } from "./shared/simple-table";
+import { useTranslations } from "next-intl";
 
 interface ScheduledOrder {
   id: string;
@@ -113,6 +114,7 @@ const TRIGGER_DISPLAY_MAP = {
 } as const;
 
 export function ScheduledOrdersTabs({ roomId }: ScheduledOrdersTabsProps) {
+  const t = useTranslations("trading.scheduled");
   const [currentTime, setCurrentTime] = useState(new Date());
   const { data: ordersData, isLoading, error } = useScheduledOrders(roomId);
   const cancelOrderMutation = useCancelScheduledOrder(roomId);
@@ -130,9 +132,9 @@ export function ScheduledOrdersTabs({ roomId }: ScheduledOrdersTabsProps) {
   const handleCancelOrder = async (orderId: string) => {
     try {
       await cancelOrderMutation.mutateAsync(orderId);
-      toast.success("Scheduled order cancelled successfully");
+      toast.success(t("toasts.cancelSuccess"));
     } catch (_error) {
-      toast.error("Failed to cancel scheduled order");
+      toast.error(t("toasts.cancelFailed"));
     }
   };
 
@@ -155,8 +157,8 @@ export function ScheduledOrdersTabs({ roomId }: ScheduledOrdersTabsProps) {
     const isExecuting = Math.abs(diff) < 30000; // Within 30 seconds
 
     const timeMap = {
-      expired: () => "Expired",
-      executing: () => "Executing...",
+      expired: () => t("countdown.expired"),
+      executing: () => t("countdown.executing"),
       countdown: () => {
         const hours = Math.floor(diff / (1000 * 60 * 60));
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -205,32 +207,58 @@ export function ScheduledOrdersTabs({ roomId }: ScheduledOrdersTabsProps) {
     return orderHandler ? orderHandler() : "Unknown";
   };
 
+  // Define translated column labels and stable data keys BEFORE using them
+  const columns = [
+    t("columns.id"),
+    t("columns.symbol"),
+    t("columns.type"),
+    t("columns.side"),
+    t("columns.trigger"),
+    t("columns.order"),
+    t("columns.amount"),
+    t("columns.tpsl"),
+    t("columns.countdown"),
+    t("columns.status"),
+    t("columns.action"),
+  ] as const;
+  const dataKeys = [
+    "ID",
+    "Symbol",
+    "Type",
+    "Side",
+    "Trigger",
+    "Order",
+    "Amount",
+    "TP/SL",
+    "Countdown",
+    "Status",
+    "Action",
+  ] as const;
+
   const processedData =
     ordersData?.data?.map((order: ScheduledOrder) => ({
-      // Keep full id for actions, show short id in the table
-      _id: order.id,
-      id: order.id.slice(0, 8),
-      symbol: order.symbol,
-      type:
+      _id: order.id, // internal id for actions
+      [dataKeys[0]]: order.id.slice(0, 8),
+      [dataKeys[1]]: order.symbol,
+      [dataKeys[2]]:
         order.order_type.charAt(0).toUpperCase() + order.order_type.slice(1),
-      side: order.side.charAt(0).toUpperCase() + order.side.slice(1),
-      price: order.price || "Market",
-      amount: order.quantity,
-      trigger: getTriggerDisplay(order),
-      order: getOrderDisplay(order),
-      "TP/SL": <ScheduledTpSlIndicator order={order} />,
-      countdown:
+      [dataKeys[3]]: order.side.charAt(0).toUpperCase() + order.side.slice(1),
+      [dataKeys[6]]: order.quantity,
+      [dataKeys[4]]: getTriggerDisplay(order),
+      [dataKeys[5]]: getOrderDisplay(order),
+      [dataKeys[7]]: <ScheduledTpSlIndicator order={order} />,
+      [dataKeys[8]]:
         order.schedule_type === "time_based"
           ? calculateCountdown(order.scheduled_at || "")
           : "Monitoring",
-      status: (
+      [dataKeys[9]]: (
         <StatusBadge
           status={
             STATUS_DISPLAY_MAP[order.status as keyof typeof STATUS_DISPLAY_MAP]
           }
         />
       ),
-      action:
+      [dataKeys[10]]:
         order.status === "pending" || order.status === "watching" ? (
           <Button
             type="button"
@@ -240,9 +268,8 @@ export function ScheduledOrdersTabs({ roomId }: ScheduledOrdersTabsProps) {
             data-grid-no-drag
             draggable={false}
             onMouseDown={(e) => {
-              e.stopPropagation(); // Stop event bubbling up to parent grid item
-              e.preventDefault(); // Prevent default browser drag behavior
-              // This is crucial - prevents react-grid-layout from detecting drag initiation
+              e.stopPropagation();
+              e.preventDefault();
             }}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
@@ -267,26 +294,12 @@ export function ScheduledOrdersTabs({ roomId }: ScheduledOrdersTabsProps) {
         ),
     })) || [];
 
-  const columns = [
-    "ID",
-    "Symbol",
-    "Type",
-    "Side",
-    "Trigger",
-    "Order",
-    "Amount",
-    "TP/SL",
-    "Countdown",
-    "Status",
-    "Action",
-  ] as const;
-
   const handleRowClick = (_row: Record<string, unknown>) => {};
 
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center">
-        <div className="text-muted-foreground">Loading scheduled orders...</div>
+        <div className="text-muted-foreground">{t("loading")}</div>
       </div>
     );
   }
@@ -294,7 +307,7 @@ export function ScheduledOrdersTabs({ roomId }: ScheduledOrdersTabsProps) {
   if (error) {
     return (
       <div className="h-full flex items-center justify-center">
-        <div className="text-destructive">Failed to load scheduled orders</div>
+        <div className="text-destructive">{t("errors.failed")}</div>
       </div>
     );
   }
@@ -317,11 +330,17 @@ export function ScheduledOrdersTabs({ roomId }: ScheduledOrdersTabsProps) {
       <div className="flex-1 overflow-hidden">
         <SimpleTable
           columns={columns}
+          dataKeys={dataKeys as unknown as string[]}
           data={processedData}
-          emptyStateText="No Scheduled Orders"
+          emptyStateText={t("empty.noScheduled")}
           onRowClick={handleRowClick}
-          widenMatchers={["Symbol", "Countdown"]}
-          narrowMatchers={["Action", "Status", "ID", "TP/SL"]}
+          widenMatchers={[t("columns.symbol"), t("columns.countdown")]}
+          narrowMatchers={[
+            t("columns.action"),
+            t("columns.status"),
+            t("columns.id"),
+            t("columns.tpsl"),
+          ]}
           showFilters={true}
           filterableColumns={["Symbol", "Side", "Type", "Status"]}
         />
@@ -330,10 +349,9 @@ export function ScheduledOrdersTabs({ roomId }: ScheduledOrdersTabsProps) {
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent className="rounded-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Cancel scheduled order?</AlertDialogTitle>
+            <AlertDialogTitle>{t("dialog.title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will cancel the scheduled order. This action cannot be
-              undone.
+              {t("dialog.description")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -341,7 +359,7 @@ export function ScheduledOrdersTabs({ roomId }: ScheduledOrdersTabsProps) {
               className="rounded-md"
               onClick={() => setConfirmOpen(false)}
             >
-              Keep
+              {t("dialog.keep")}
             </AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-white rounded-md hover:bg-destructive/90"
@@ -353,7 +371,7 @@ export function ScheduledOrdersTabs({ roomId }: ScheduledOrdersTabsProps) {
                 setTargetOrderId(null);
               }}
             >
-              Confirm Cancel
+              {t("dialog.confirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

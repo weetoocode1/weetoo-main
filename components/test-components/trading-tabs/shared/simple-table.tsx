@@ -18,20 +18,26 @@ import {
 } from "@tanstack/react-table";
 import { ArrowUpDown, ChevronDown, ChevronUp, Filter, X } from "lucide-react";
 import React, { useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface SimpleTableProps<TData = unknown> {
+  // Display labels for columns (localized)
   columns: ReadonlyArray<string>;
+  // Canonical data keys for each column (stable, non-localized). If omitted, falls back to columns[]
+  dataKeys?: ReadonlyArray<string>;
   data: TData[];
   widenMatchers?: string[]; // columns that should be wider
   narrowMatchers?: string[]; // columns that should be narrower (e.g., Action)
   emptyStateText?: string; // custom text for empty state
   onRowClick?: (row: TData) => void; // optional row click handler
   showFilters?: boolean; // show filter controls
+  // Filterable columns use canonical keys (e.g., "Symbol", "Side", "Type")
   filterableColumns?: string[]; // columns that can be filtered
 }
 
 export function SimpleTable<TData = unknown>({
   columns,
+  dataKeys,
   data = [],
   widenMatchers = [],
   narrowMatchers = ["Action", "Actions"],
@@ -40,6 +46,7 @@ export function SimpleTable<TData = unknown>({
   showFilters = false,
   filterableColumns = ["Symbol", "Side", "Type"],
 }: SimpleTableProps<TData>) {
+  const t = useTranslations("trading.table");
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
@@ -51,6 +58,7 @@ export function SimpleTable<TData = unknown>({
 
   const columnDefs: ColumnDef<TData, unknown>[] = columns.map(
     (columnName, index) => {
+      const key = (dataKeys && dataKeys[index]) || columnName; // stable accessor key
       // const isWide = matchesAny(columnName, widenMatchers);
       // const isNarrow = matchesAny(columnName, narrowMatchers);
       // const widthClass = isWide
@@ -59,7 +67,7 @@ export function SimpleTable<TData = unknown>({
       //   ? "flex-[0.8]"
       //   : "flex-1";
 
-      const sortKey = columnName.toLowerCase().replace(/\s+/g, "_");
+      const sortKey = key.toLowerCase().replace(/\s+/g, "_");
       return {
         id: sortKey,
         // Use accessorFn so sorting/filtering work on actual displayed values
@@ -67,8 +75,8 @@ export function SimpleTable<TData = unknown>({
           const rowData = row as Record<string, unknown>;
           // Prefer exact display column key, then lowercase variant, then index-based
           const value =
-            rowData[columnName] ??
-            rowData[columnName.toLowerCase()] ??
+            rowData[key] ??
+            rowData[key.toLowerCase()] ??
             (rowData[index] as unknown);
           return value ?? "";
         },
@@ -94,8 +102,8 @@ export function SimpleTable<TData = unknown>({
         cell: ({ row }) => {
           const rowData = row.original as Record<string, unknown>;
           const value =
-            rowData[columnName] ||
-            rowData[columnName.toLowerCase()] ||
+            rowData[key] ||
+            rowData[key.toLowerCase()] ||
             rowData[index] ||
             "";
 
@@ -110,7 +118,7 @@ export function SimpleTable<TData = unknown>({
 
           const text = String(value);
           let colorClass = "";
-          if (columnName === "Side") {
+          if (key === "Side") {
             const lower = text.toLowerCase();
             if (lower === "buy" || lower === "long")
               colorClass = "text-emerald-500";
@@ -142,13 +150,14 @@ export function SimpleTable<TData = unknown>({
   });
 
   const isEmpty = data.length === 0;
+  const effectiveEmptyText = emptyStateText ?? t("empty");
 
   // Get unique values for filter dropdowns
   const getUniqueValues = (columnName: string) => {
     const values = data.map((row: TData) => {
       const rowData = row as Record<string, unknown>;
-      const value =
-        rowData[columnName] || rowData[columnName.toLowerCase()] || "";
+      const key = columnName; // filter APIs expect canonical keys
+      const value = rowData[key] || rowData[key.toLowerCase()] || "";
       return String(value);
     });
     return Array.from(new Set(values)).filter(Boolean).sort();
@@ -206,7 +215,7 @@ export function SimpleTable<TData = unknown>({
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-muted-foreground" />
                 <span className="text-xs font-medium text-foreground">
-                  Filters:
+                  {t("filters")}:
                 </span>
               </div>
 
@@ -236,7 +245,7 @@ export function SimpleTable<TData = unknown>({
                       }`}
                     >
                       <SelectValue
-                        placeholder="Symbol"
+                        placeholder={t("symbol")}
                         className={
                           isFilterActive("Symbol")
                             ? "text-green-800 font-semibold text-xs"
@@ -245,7 +254,7 @@ export function SimpleTable<TData = unknown>({
                       >
                         {isFilterActive("Symbol") ? (
                           <div className="flex items-center gap-1">
-                            <span>Symbol:</span>
+                            <span>{t("symbol")}:</span>
                             <span className="font-semibold text-xs">
                               {getActiveFilterValue("Symbol")}
                             </span>
@@ -254,13 +263,13 @@ export function SimpleTable<TData = unknown>({
                             </span>
                           </div>
                         ) : (
-                          "Symbol"
+                          t("symbol")
                         )}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all" className="text-xs">
-                        All Symbols
+                    <SelectItem value="all" className="text-xs">
+                      {t("allSymbols")}
                       </SelectItem>
                       {getUniqueValues("Symbol").map((symbol) => (
                         <SelectItem
@@ -414,7 +423,7 @@ export function SimpleTable<TData = unknown>({
                     className="h-8 px-2 text-xs"
                   >
                     <X className="h-3 w-3 mr-1" />
-                    Clear ({activeFilterCount})
+                    {t("clear")} ({activeFilterCount})
                   </Button>
                 </div>
               )}
@@ -426,7 +435,7 @@ export function SimpleTable<TData = unknown>({
               <div className="flex items-center gap-2">
                 {/* Sort By Filter */}
                 <span className="text-xs font-medium text-foreground">
-                  Sort:
+                  {t("sort")}:
                 </span>
                 <div
                   onMouseDown={(e) => e.stopPropagation()}
@@ -444,11 +453,11 @@ export function SimpleTable<TData = unknown>({
                     }}
                   >
                     <SelectTrigger className="h-8 w-32 text-xs">
-                      <SelectValue placeholder="Select" />
+                      <SelectValue placeholder={t("select")}/>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none" className="text-xs">
-                        No Sorting
+                        {t("noSorting")}
                       </SelectItem>
                       {columns.map((columnName) => {
                         // Convert column name to lowercase and replace spaces with underscores for sorting
@@ -478,7 +487,7 @@ export function SimpleTable<TData = unknown>({
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4 text-muted-foreground" />
                   <span className="text-xs font-medium text-foreground">
-                    Filters:
+                    {t("filters")}:
                   </span>
                 </div>
                 {activeFilterCount > 0 && (
@@ -494,7 +503,7 @@ export function SimpleTable<TData = unknown>({
                       className="h-7 px-2 text-xs"
                     >
                       <X className="h-3 w-3 mr-1" />
-                      Clear ({activeFilterCount})
+                      {t("clear")} ({activeFilterCount})
                     </Button>
                   </div>
                 )}
@@ -528,11 +537,11 @@ export function SimpleTable<TData = unknown>({
                             : "w-24"
                         }`}
                       >
-                        <SelectValue placeholder="Symbol" />
+                        <SelectValue placeholder={t("symbol")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all" className="text-xs">
-                          All Symbols
+                      <SelectItem value="all" className="text-xs">
+                        {t("allSymbols")}
                         </SelectItem>
                         {getUniqueValues("Symbol").map((symbol) => (
                           <SelectItem
@@ -573,11 +582,11 @@ export function SimpleTable<TData = unknown>({
                             : "w-20"
                         }`}
                       >
-                        <SelectValue placeholder="Side" />
+                        <SelectValue placeholder={t("side")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all" className="text-xs">
-                          All Sides
+                      <SelectItem value="all" className="text-xs">
+                        {t("allSides")}
                         </SelectItem>
                         {getUniqueValues("Side").map((side) => (
                           <SelectItem
@@ -618,11 +627,11 @@ export function SimpleTable<TData = unknown>({
                             : "w-20"
                         }`}
                       >
-                        <SelectValue placeholder="Type" />
+                        <SelectValue placeholder={t("type")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all" className="text-xs">
-                          All Types
+                      <SelectItem value="all" className="text-xs">
+                        {t("allTypes")}
                         </SelectItem>
                         {getUniqueValues("Type").map((type) => (
                           <SelectItem
@@ -642,7 +651,7 @@ export function SimpleTable<TData = unknown>({
               {/* Bottom Row: Sort Controls */}
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-foreground">
-                  Sort:
+                  {t("sort")}:
                 </span>
                 <div
                   onMouseDown={(e) => e.stopPropagation()}
@@ -660,11 +669,11 @@ export function SimpleTable<TData = unknown>({
                     }}
                   >
                     <SelectTrigger className="h-7 w-28 text-xs">
-                      <SelectValue placeholder="Select" />
+                      <SelectValue placeholder={t("select")} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none" className="text-xs">
-                        No Sorting
+                        {t("noSorting")}
                       </SelectItem>
                       {columns.map((columnName) => {
                         // Convert column name to lowercase and replace spaces with underscores for sorting
@@ -837,7 +846,7 @@ export function SimpleTable<TData = unknown>({
                     />
                   </svg>
                 </div>
-                <p className="text-sm font-medium">{emptyStateText}</p>
+                <p className="text-sm font-medium">{effectiveEmptyText}</p>
               </div>
             </div>
           ) : (
@@ -910,7 +919,7 @@ export function SimpleTable<TData = unknown>({
                     />
                   </svg>
                 </div>
-                <p className="text-sm font-medium">{emptyStateText}</p>
+                <p className="text-sm font-medium">{effectiveEmptyText}</p>
               </div>
             </div>
           ) : (

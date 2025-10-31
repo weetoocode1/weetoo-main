@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
+import { Textarea } from "@/components/ui/textarea";
 
 const QUICK_AMOUNTS = [100, 500, 1000, 5000, 10000];
 
@@ -34,13 +35,16 @@ interface Donation {
 export function Donation({
   roomId,
   creatorId,
+  fullWidth,
 }: {
   roomId: string;
   creatorId: string;
+  fullWidth?: boolean;
 }) {
   const t = useTranslations("room.donation");
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(0);
+  const [message, setMessage] = useState("");
   const [korCoins, setKorCoins] = useState<number | null>(null);
   const [donations, setDonations] = useState<Donation[]>([]);
   const [loading, setLoading] = useState(false);
@@ -160,12 +164,13 @@ export function Donation({
     const res = await fetch("/api/rooms/donate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ roomId, amount }),
+      body: JSON.stringify({ roomId, amount, message: message.trim() || null }),
     });
     setLoading(false);
     if (res.ok) {
       toast.success(t("toast.success"));
       setAmount(0);
+      setMessage("");
       setOpen(false);
       // Refetch user's kor-coins after donation
       if (userId) {
@@ -186,7 +191,12 @@ export function Donation({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm">{t("openButton")}</Button>
+        <Button
+          size="sm"
+          className={fullWidth ? "w-full rounded-none" : undefined}
+        >
+          {t("openButton")}
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogTitle>{t("title")}</DialogTitle>
@@ -255,6 +265,13 @@ export function Donation({
                 onChange={(e) => setAmount(Number(e.target.value))}
                 placeholder={t("placeholders.enterAmount")}
                 className="w-full no-spinner"
+              />
+              <Textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={t("placeholders.enterMessage")}
+                rows={2}
+                className="w-full resize-none"
               />
               <span className="text-xs text-muted-foreground mt-1">
                 {t("yourBalance")}{" "}

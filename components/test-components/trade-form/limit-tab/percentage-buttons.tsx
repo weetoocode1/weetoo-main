@@ -1,47 +1,66 @@
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface PercentageButtonsProps {
   onPercentageSelect: (percentage: number) => void;
 }
 
-export function PercentageButtons({
-  onPercentageSelect,
-}: PercentageButtonsProps) {
-  const percentages = [10, 25, 50, 75, 100];
-  const [activePercentage, setActivePercentage] = useState<number | null>(null);
+const PERCENTAGES = [10, 25, 50, 75, 100] as const;
 
-  const handlePercentageSelect = (percentage: number) => {
-    // If clicking the same button that's already active, deactivate it
-    if (activePercentage === percentage) {
-      setActivePercentage(null);
-      onPercentageSelect(0); // Pass 0 to clear the selection
-    } else {
-      setActivePercentage(percentage);
-      onPercentageSelect(percentage);
-    }
-  };
+function PercentageButtonsInner({ onPercentageSelect }: PercentageButtonsProps) {
+  const t = useTranslations("trade.form");
+  const [activePercentage, setActivePercentage] = useState<number | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const lastSentRef = useRef<number | null>(null);
+
+  const labels = useMemo(
+    () =>
+      PERCENTAGES.map((p) => ({
+        value: p,
+        aria: t("percentage.aria", { percent: p }),
+      })),
+    [t]
+  );
+
+  const handlePercentageSelect = useCallback(
+    (percentage: number) => {
+      const next = activePercentage === percentage ? 0 : percentage;
+      setActivePercentage(next === 0 ? null : percentage);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => {
+        if (lastSentRef.current !== next) {
+          lastSentRef.current = next;
+          onPercentageSelect(next);
+        }
+      });
+    },
+    [activePercentage, onPercentageSelect]
+  );
 
   return (
     <div className="space-y-1">
       <div className="grid grid-cols-5 gap-1">
-        {percentages.map((percentage) => (
+        {labels.map((item) => (
           <Button
-            key={percentage}
+            key={item.value}
             type="button"
-            variant={activePercentage === percentage ? "default" : "outline"}
+            variant={activePercentage === item.value ? "default" : "outline"}
             size="sm"
-            onClick={() => handlePercentageSelect(percentage)}
+            onClick={() => handlePercentageSelect(item.value)}
             className={`h-8 text-xs font-medium ${
-              activePercentage === percentage
+              activePercentage === item.value
                 ? "bg-primary text-primary-foreground hover:bg-primary/90"
                 : "hover:bg-accent"
             }`}
+            aria-label={item.aria}
           >
-            {percentage}%
+            {item.value}%
           </Button>
         ))}
       </div>
     </div>
   );
 }
+
+export const PercentageButtons = React.memo(PercentageButtonsInner);

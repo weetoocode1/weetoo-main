@@ -65,8 +65,9 @@ interface TradingRoom {
   isHosted: boolean;
   participants: number;
   pnlPercentage: number | null;
-  thumbnail_url: string | null;
   isHostStreaming?: boolean; // New field to track if host is streaming
+  room_status?: string; // active | ended | paused
+  isActive?: boolean; // legacy boolean
 }
 
 // Type for paginated rooms API response
@@ -196,6 +197,31 @@ export function TradingRoomsList() {
   const [presenceCounts, setPresenceCounts] = useState<Map<string, number>>(
     new Map()
   );
+  // View mode: live only, or replays only
+  const [roomViewMode, setRoomViewMode] = useState<"live" | "replay">("live");
+  // Live playback ids for rooms (used to render Mux thumbnails when streaming)
+  const [livePlaybackIds, setLivePlaybackIds] = useState<Map<string, string>>(
+    new Map()
+  );
+  // Custom thumbnails coming from user_streams.custom_thumbnail_url (per room)
+  const [streamCustomThumbs, setStreamCustomThumbs] = useState<
+    Map<string, string>
+  >(new Map());
+  // Cache last fetch timestamps to avoid frequent refetches
+  const [streamFetchTimes, setStreamFetchTimes] = useState<Map<string, number>>(
+    new Map()
+  );
+  const STREAM_FETCH_TTL_MS = 60_000;
+  // Cached replay (VOD) playback ids per room for ended streams
+  const [replayPlaybackIds, setReplayPlaybackIds] = useState<
+    Map<string, string>
+  >(new Map());
+  // Cache replay views per room
+  const [, setReplayViews] = useState<Map<string, number>>(new Map());
+  const [replayViewsFetchTimes, setReplayViewsFetchTimes] = useState<
+    Map<string, number>
+  >(new Map());
+  const [isReplayLoading, setIsReplayLoading] = useState(false);
 
   // React Query client for cache management
   const queryClient = useQueryClient();
@@ -330,7 +356,7 @@ export function TradingRoomsList() {
     gcTime: 2 * 60 * 1000, // Keep in cache for 2 minutes (shorter)
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    refetchInterval: 10000, // Refetch every 10 seconds as backup
+    refetchInterval: false, // disable periodic refetch; rely on realtime + user actions
   });
 
   // Flatten all pages into a single array of rooms
@@ -380,6 +406,44 @@ export function TradingRoomsList() {
       isHostStreaming: streamingRooms.has(room.id),
     }));
   }, [currentUserId, filteredRooms, streamingRooms]);
+
+  type DisplayItem = {
+    room: TradingRoom;
+    variant: "live" | "replay" | "default";
+  };
+
+  // Build display list: duplicate a room into a separate replay card when both live and replay are available
+  const displayRooms = useMemo<DisplayItem[]>(() => {
+    const list: DisplayItem[] = [];
+    (roomsWithHostStatus || []).forEach((room) => {
+      const isLive =
+        streamingRooms.has(room.id) || Boolean(livePlaybackIds.get(room.id));
+      const hasReplay = Boolean(replayPlaybackIds.get(room.id));
+      if (isLive && hasReplay) {
+        list.push({ room, variant: "live" });
+        list.push({ room, variant: "replay" });
+      } else if (hasReplay) {
+        list.push({ room, variant: "replay" });
+      } else if (isLive) {
+        list.push({ room, variant: "live" });
+      } else {
+        list.push({ room, variant: "default" });
+      }
+    });
+    return list;
+  }, [roomsWithHostStatus, streamingRooms, livePlaybackIds, replayPlaybackIds]);
+
+  const filteredDisplayRooms = useMemo(() => {
+    if (roomViewMode === "live") {
+      // Show ALL rooms whose room_status is active (or isActive=true), regardless of streaming
+      const activeRooms = (roomsWithHostStatus || []).filter(
+        (r) => (r.room_status || "active") === "active" || r.isActive === true
+      );
+      return activeRooms.map((room) => ({ room, variant: "live" as const }));
+    }
+    // replay
+    return displayRooms.filter((d) => d.variant === "replay");
+  }, [displayRooms, roomViewMode, roomsWithHostStatus]);
 
   // Debug logging to track state changes
   useEffect(() => {
@@ -433,7 +497,10 @@ export function TradingRoomsList() {
       channel.on("presence", { event: "sync" }, () => {
         try {
           const state = channel.presenceState() as Record<string, unknown[]>;
-          const count = Object.keys(state).length;
+          const count = Object.values(state).reduce(
+            (acc, arr) => acc + (Array.isArray(arr) ? arr.length : 0),
+            0
+          );
           setPresenceCounts((prev) => {
             const next = new Map(prev);
             next.set(room.id, count);
@@ -462,6 +529,188 @@ export function TradingRoomsList() {
       });
     };
   }, [roomsWithHostStatus]);
+
+  // Fetch playbackIds for currently streaming rooms (limited set) to show live thumbnails
+  useEffect(() => {
+    const fetchLivePlaybackIds = async () => {
+      try {
+        const loadingReplay = roomViewMode === "replay";
+        if (loadingReplay) setIsReplayLoading(true);
+        const now = Date.now();
+        const roomsToCheck = (roomsWithHostStatus || [])
+          .slice(0, 24)
+          .filter((room) => {
+            // Skip if we already have custom thumb or live playback id
+            const hasThumb = Boolean(streamCustomThumbs.get(room.id));
+            const hasPlayback = Boolean(livePlaybackIds.get(room.id));
+            if (hasThumb || hasPlayback) {
+              // Still allow occasional refresh if TTL passed and currently marked streaming
+              const last = streamFetchTimes.get(room.id) || 0;
+              return room.isHostStreaming && now - last > STREAM_FETCH_TTL_MS;
+            }
+            // No data yet → fetch, but also respect TTL
+            const last = streamFetchTimes.get(room.id) || 0;
+            return now - last > STREAM_FETCH_TTL_MS;
+          });
+        if (roomsToCheck.length === 0) return;
+
+        const results = await Promise.all(
+          roomsToCheck.map(async (room) => {
+            try {
+              const res = await fetch(`/api/streams?roomId=${room.id}`, {
+                headers: { "Cache-Control": "no-store" },
+              });
+              if (!res.ok) return null;
+              const json = await res.json();
+              const s = Array.isArray(json?.streams) ? json.streams[0] : null;
+              if (s) {
+                return {
+                  roomId: room.id,
+                  playbackId: s.playback_id as string | undefined,
+                  status: s.status as string | undefined,
+                  customThumb: s.custom_thumbnail_url as string | undefined,
+                  streamId: s.stream_id as string | undefined,
+                };
+              }
+            } catch {}
+            return null;
+          })
+        );
+
+        // Update caches and states
+        setStreamFetchTimes((prev) => {
+          const next = new Map(prev);
+          roomsToCheck.forEach((r) => next.set(r.id, Date.now()));
+          return next;
+        });
+
+        setLivePlaybackIds((prev) => {
+          const next = new Map(prev);
+          results.forEach((r) => {
+            if (r?.roomId && r.playbackId && r.status === "active")
+              next.set(r.roomId, r.playbackId);
+          });
+          return next;
+        });
+
+        setStreamingRooms((prev) => {
+          const next = new Set(prev);
+          results.forEach((r) => {
+            if (r?.roomId && r.status === "active") next.add(r.roomId);
+          });
+          return next;
+        });
+
+        setStreamCustomThumbs((prev) => {
+          const next = new Map(prev);
+          results.forEach((r) => {
+            if (r?.roomId && r.customThumb) next.set(r.roomId, r.customThumb);
+          });
+          return next;
+        });
+
+        // Fetch replay playbackIds for rooms that are not active and have no custom thumb
+        const replayTargets = results.filter(
+          (r) =>
+            r &&
+            r.roomId &&
+            !r.customThumb &&
+            r.status !== "active" &&
+            r.streamId
+        ) as Array<
+          {
+            roomId: string;
+            streamId: string;
+          } & Record<string, unknown>
+        >;
+
+        if (replayTargets.length > 0) {
+          const replayResults = await Promise.all(
+            replayTargets.map(async (r) => {
+              try {
+                const res = await fetch(`/api/streams/${r.streamId}/replay`, {
+                  headers: { "Cache-Control": "no-store" },
+                });
+                if (!res.ok) return { roomId: r.roomId, playbackId: null };
+                const json = await res.json();
+                return {
+                  roomId: r.roomId,
+                  playbackId: json?.playbackId || null,
+                };
+              } catch {
+                return { roomId: r.roomId, playbackId: null };
+              }
+            })
+          );
+
+          setReplayPlaybackIds((prev) => {
+            const next = new Map(prev);
+            replayResults.forEach(({ roomId, playbackId }) => {
+              if (playbackId) next.set(roomId, playbackId);
+            });
+            return next;
+          });
+
+          // Fetch views for newly discovered replay playbackIds (TTL-based)
+          const now = Date.now();
+          const viewTargets = replayResults
+            .filter(
+              ({ roomId, playbackId }) =>
+                playbackId &&
+                now - (replayViewsFetchTimes.get(roomId) || 0) > 30_000
+            )
+            .map(({ roomId, playbackId }) => ({
+              roomId,
+              playbackId: playbackId as string,
+            }));
+
+          if (viewTargets.length > 0) {
+            const viewResults = await Promise.all(
+              viewTargets.map(async (vr) => {
+                try {
+                  const res = await fetch(
+                    `/api/assets/${vr.playbackId}/views`,
+                    {
+                      headers: { "Cache-Control": "no-store" },
+                    }
+                  );
+                  const json = await res.json();
+                  return { roomId: vr.roomId, views: Number(json?.views || 0) };
+                } catch {
+                  return { roomId: vr.roomId, views: 0 };
+                }
+              })
+            );
+
+            setReplayViewsFetchTimes((prev) => {
+              const next = new Map(prev);
+              viewTargets.forEach((vr) => next.set(vr.roomId, Date.now()));
+              return next;
+            });
+
+            setReplayViews((prev) => {
+              const next = new Map(prev);
+              viewResults.forEach(({ roomId, views }) =>
+                next.set(roomId, views)
+              );
+              return next;
+            });
+          }
+        }
+      } catch {
+      } finally {
+        setIsReplayLoading(false);
+      }
+    };
+
+    fetchLivePlaybackIds();
+  }, [
+    roomsWithHostStatus,
+    livePlaybackIds,
+    streamCustomThumbs,
+    streamFetchTimes,
+    roomViewMode,
+  ]);
 
   // Real-time subscription for trading room participants - More responsive
   useEffect(() => {
@@ -787,7 +1036,10 @@ export function TradingRoomsList() {
     setSelectedAccess(newSelectedAccess);
   };
 
-  const handleJoinRoom = async (room: TradingRoom) => {
+  const handleJoinRoom = async (
+    room: TradingRoom,
+    variant: "live" | "replay" | "default"
+  ) => {
     if (!authUser) {
       toast.warning(t("pleaseLoginToJoin"));
       return;
@@ -798,6 +1050,12 @@ export function TradingRoomsList() {
       toast.error(
         `${tCommon("identityVerificationRequired")} to join trading rooms.`
       );
+      return;
+    }
+
+    // If replay card, open replay directly
+    if (variant === "replay") {
+      window.open(`/trading-room/${room.id}/replay`, "_blank");
       return;
     }
 
@@ -848,169 +1106,63 @@ export function TradingRoomsList() {
         open={passwordDialog.open}
         onOpenChange={(open) => setPasswordDialog((d) => ({ ...d, open }))}
       >
-        <DialogContent className="max-w-lg w-full rounded-3xl shadow-2xl border-0 p-0 overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
-          {/* Animated background effects */}
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-red-500/5 to-purple-500/10 animate-pulse" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,165,0,0.1),transparent_50%)] animate-pulse" />
-
-          {/* Floating particles effect */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div
-              className="absolute top-1/4 left-1/4 w-2 h-2 bg-orange-400/30 rounded-full animate-bounce"
-              style={{ animationDelay: "0s" }}
-            />
-            <div
-              className="absolute top-1/3 right-1/3 w-1 h-1 bg-red-400/40 rounded-full animate-bounce"
-              style={{ animationDelay: "0.5s" }}
-            />
-            <div
-              className="absolute bottom-1/3 left-1/3 w-1.5 h-1.5 bg-purple-400/30 rounded-full animate-bounce"
-              style={{ animationDelay: "1s" }}
-            />
-          </div>
-
-          <div className="relative z-10 flex flex-col items-center justify-center px-10 py-12 gap-8">
-            {/* Animated lock icon with glow effects */}
+        <DialogContent className="max-w-sm w-full">
+          <DialogTitle className="text-lg font-semibold">
+            {t("privateRoomAccess")}
+          </DialogTitle>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {t("enterPasswordPlaceholder")}{" "}
+              <span className="font-medium">{passwordDialog.roomName}</span>
+            </p>
             <div className="relative">
-              {/* Outer glow rings */}
-              <div className="absolute inset-0 w-24 h-24 bg-gradient-to-r from-orange-500/20 to-red-500/20 rounded-full blur-xl animate-pulse" />
-              <div
-                className="absolute inset-0 w-20 h-20 bg-gradient-to-r from-orange-400/30 to-red-400/30 rounded-full blur-lg animate-pulse"
-                style={{ animationDelay: "0.5s" }}
+              <Input
+                type={showPassword ? "text" : "password"}
+                placeholder={t("enterPasswordPlaceholder")}
+                value={passwordDialog.password}
+                onChange={(e) =>
+                  setPasswordDialog((d) => ({ ...d, password: e.target.value }))
+                }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handlePasswordSubmit();
+                }}
+                disabled={verifyPasswordMutation.isPending}
+                autoFocus
               />
-
-              {/* Main lock container */}
-              <div className="relative z-10 w-16 h-16 bg-gradient-to-br from-orange-500 via-red-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-2xl transform hover:scale-110 transition-all duration-300">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-2xl" />
-                <LockIcon className="h-8 w-8 text-white drop-shadow-lg relative z-10" />
-
-                {/* Shimmer effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent rounded-2xl animate-pulse" />
-              </div>
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                disabled={verifyPasswordMutation.isPending}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
             </div>
-
-            {/* Title with animated gradient */}
-            <div className="text-center space-y-3">
-              <DialogTitle className="text-3xl font-bold tracking-tight bg-gradient-to-r from-orange-400 via-red-400 to-purple-400 bg-clip-text text-transparent animate-pulse">
-                {t("privateRoomAccess")}
-              </DialogTitle>
-              <p className="text-slate-300 text-sm leading-relaxed max-w-sm">
-                {t("enterPasswordPlaceholder")}{" "}
-                <span className="font-semibold text-orange-300 bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text bg-transparent">
-                  {passwordDialog.roomName}
-                </span>
-              </p>
-            </div>
-
-            {/* Enhanced password input */}
-            <div className="w-full space-y-6">
-              <div className="relative group">
-                {/* Input background glow */}
-                <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-red-500/20 rounded-xl blur-lg opacity-0 group-focus-within:opacity-100 transition-opacity duration-300" />
-
-                <div className="relative">
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    placeholder={t("enterPasswordPlaceholder")}
-                    className="h-14 pr-14 text-base bg-slate-800/50 border-2 border-slate-700/50 focus:border-orange-500/70 focus:bg-slate-800/70 rounded-xl transition-all duration-300 text-white placeholder:text-slate-400 backdrop-blur-sm"
-                    value={passwordDialog.password}
-                    onChange={(e) =>
-                      setPasswordDialog((d) => ({
-                        ...d,
-                        password: e.target.value,
-                      }))
-                    }
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handlePasswordSubmit();
-                    }}
-                    disabled={verifyPasswordMutation.isPending}
-                    autoFocus
-                  />
-
-                  {/* Password toggle button */}
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-orange-300 focus:outline-none cursor-pointer transition-all duration-200 hover:scale-110"
-                    onClick={() => setShowPassword((v) => !v)}
-                    aria-label={
-                      showPassword ? "Hide password" : "Show password"
-                    }
-                    disabled={verifyPasswordMutation.isPending}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5" />
-                    ) : (
-                      <Eye className="h-5 w-5" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Action buttons with enhanced styling */}
-              <div className="flex gap-4">
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    setPasswordDialog((d) => ({ ...d, open: false }))
-                  }
-                  className="flex-1 h-14 text-base font-medium bg-slate-800/50 border-slate-700/50 hover:bg-slate-700/50 hover:border-slate-600/50 text-slate-300 hover:text-white rounded-xl transition-all duration-300 backdrop-blur-sm"
-                  disabled={verifyPasswordMutation.isPending}
-                >
-                  {tCreate("cancel")}
-                </Button>
-
-                <Button
-                  onClick={handlePasswordSubmit}
-                  disabled={
-                    verifyPasswordMutation.isPending || !passwordDialog.password
-                  }
-                  className="flex-1 h-14 text-base font-semibold bg-gradient-to-r from-orange-500 via-red-500 to-purple-500 hover:from-orange-600 hover:via-red-600 hover:to-purple-600 text-white border-0 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:transform-none disabled:opacity-50 backdrop-blur-sm relative overflow-hidden group"
-                >
-                  {/* Button background animation */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-orange-400/20 via-red-400/20 to-purple-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    {verifyPasswordMutation.isPending ? (
-                      <>
-                        <svg
-                          className="animate-spin h-5 w-5"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                            fill="none"
-                          />
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                          />
-                        </svg>
-                        <span>{t("joining")}</span>
-                      </>
-                    ) : (
-                      <>
-                        <LockIcon className="h-4 w-4" />
-                        <span>{t("joinRoom")}</span>
-                      </>
-                    )}
-                  </span>
-                </Button>
-              </div>
-            </div>
-
-            {/* Security notice */}
-            <div className="text-center">
-              <p className="text-xs text-slate-400 flex items-center justify-center gap-2">
-                <LockIcon className="h-3 w-3" />
-                {t("passwordSecurityNote")}
-              </p>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() =>
+                  setPasswordDialog((d) => ({ ...d, open: false }))
+                }
+                disabled={verifyPasswordMutation.isPending}
+              >
+                {tCreate("cancel")}
+              </Button>
+              <Button
+                onClick={handlePasswordSubmit}
+                disabled={
+                  verifyPasswordMutation.isPending || !passwordDialog.password
+                }
+              >
+                {verifyPasswordMutation.isPending
+                  ? t("joining")
+                  : t("joinRoom")}
+              </Button>
             </div>
           </div>
         </DialogContent>
@@ -1197,6 +1349,35 @@ export function TradingRoomsList() {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* View mode toggle */}
+          <div className="flex items-center rounded-md border border-border overflow-hidden">
+            <button
+              className={`px-3 h-10 text-sm border-l-0 ${
+                roomViewMode === "live"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-background text-muted-foreground"
+              }`}
+              onClick={() => {
+                setRoomViewMode("live");
+                setIsReplayLoading(false);
+              }}
+            >
+              Rooms
+            </button>
+            <button
+              className={`px-3 h-10 text-sm border-l border-border ${
+                roomViewMode === "replay"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-background text-muted-foreground"
+              }`}
+              onClick={() => {
+                setRoomViewMode("replay");
+                setIsReplayLoading(true);
+              }}
+            >
+              Replays
+            </button>
+          </div>
           {/* Type Filter */}
           <Popover>
             <PopoverTrigger asChild>
@@ -1374,20 +1555,100 @@ export function TradingRoomsList() {
               </div>
             </div>
           ))
-        ) : roomsWithHostStatus && roomsWithHostStatus.length > 0 ? (
+        ) : roomViewMode === "replay" &&
+          (isReplayLoading ||
+            !(filteredDisplayRooms && filteredDisplayRooms.length > 0)) ? (
+          // Show skeletons while replay metadata is loading or until content arrives
           <>
-            {roomsWithHostStatus.map((room: TradingRoom) => (
+            {Array.from({ length: 8 }).map((_, i) => (
               <div
-                key={room.id}
+                key={`replay-skel-${i}`}
+                className="group relative bg-background rounded-lg overflow-hidden border border-border"
+              >
+                <div className="relative aspect-video rounded-t-lg overflow-hidden bg-muted">
+                  <div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-muted/30 animate-pulse" />
+                </div>
+                <div className="relative p-4 border border-border border-t-0 bg-gradient-to-br from-card/80 via-card/60 to-card/40 backdrop-blur-sm rounded-b-lg overflow-hidden">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-muted/30 to-muted/10 rounded-full blur-sm" />
+                        <Skeleton className="h-10 w-10 rounded-full relative z-10" />
+                      </div>
+                      <div className="min-w-0">
+                        <Skeleton className="h-5 w-32 mb-2" />
+                        <Skeleton className="h-4 w-24" />
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-muted/20 to-muted/10 rounded-full blur-sm" />
+                      <Skeleton className="h-6 w-16 rounded-full relative z-10" />
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-3 w-3 rounded-full" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-3 w-3 rounded-full" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-2">
+                      <Skeleton className="h-6 w-16 rounded-md" />
+                      <Skeleton className="h-6 w-12 rounded-md" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </>
+        ) : filteredDisplayRooms && filteredDisplayRooms.length > 0 ? (
+          <>
+            {filteredDisplayRooms.map(({ room, variant }: DisplayItem) => (
+              <div
+                key={`${room.id}-${variant}`}
                 className="group relative bg-background rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/10"
-                onClick={() => handleJoinRoom(room)}
+                onClick={() => handleJoinRoom(room, variant)}
               >
                 {/* Room card content */}
                 {/* Thumbnail Container */}
                 <div className="relative aspect-video rounded-t-lg overflow-hidden bg-muted group-hover:bg-muted/80 transition-colors duration-300">
-                  {room.thumbnail_url && !imageErrors.has(room.id) ? (
+                  {variant !== "replay" &&
+                  streamCustomThumbs.get(room.id) &&
+                  !imageErrors.has(room.id) ? (
                     <Image
-                      src={room.thumbnail_url}
+                      src={streamCustomThumbs.get(room.id) as string}
+                      alt={room.name}
+                      fill
+                      unoptimized
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      onError={() =>
+                        setImageErrors((prev) => new Set(prev).add(room.id))
+                      }
+                    />
+                  ) : variant === "live" && livePlaybackIds.get(room.id) ? (
+                    <Image
+                      src={`https://image.mux.com/${livePlaybackIds.get(
+                        room.id
+                      )}/thumbnail.webp?latest=true`}
+                      alt={room.name}
+                      fill
+                      unoptimized
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      onError={() =>
+                        setImageErrors((prev) => new Set(prev).add(room.id))
+                      }
+                    />
+                  ) : variant === "replay" && replayPlaybackIds.get(room.id) ? (
+                    <Image
+                      src={`https://image.mux.com/${replayPlaybackIds.get(
+                        room.id
+                      )}/thumbnail.webp`}
                       alt={room.name}
                       fill
                       unoptimized
@@ -1403,13 +1664,6 @@ export function TradingRoomsList() {
                     </div>
                   )}
 
-                  {/* Live indicator - only show when host is actively streaming */}
-                  {room.isHostStreaming && (
-                    <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded animate-pulse">
-                      {t("live")}
-                    </div>
-                  )}
-
                   {/* Private room indicator */}
                   {!room.isPublic && (
                     <div className="absolute top-2 right-2 bg-orange-500/90 backdrop-blur-sm text-white text-xs font-bold px-2 py-1 rounded flex items-center gap-1">
@@ -1418,15 +1672,30 @@ export function TradingRoomsList() {
                     </div>
                   )}
 
-                  {/* Participants count */}
-                  {(presenceCounts.get(room.id) ?? room.participants) > 0 && (
-                    <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
-                      {presenceCounts.get(room.id) ?? room.participants}{" "}
-                      {(presenceCounts.get(room.id) ?? room.participants) === 1
-                        ? t("participant")
-                        : t("participants")}
+                  {/* Replay badge */}
+                  {variant === "replay" && (
+                    <div className="absolute top-2 left-2 bg-black/80 text-white text-xs font-semibold px-2 py-1 rounded">
+                      Replay
                     </div>
                   )}
+
+                  {/* Replay views (temporarily disabled) */}
+                  {/**
+                  {variant === "replay" && typeof replayViews.get(room.id) === "number" && (
+                    <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
+                      {replayViews.get(room.id)} views
+                    </div>
+                  )}
+                  **/}
+
+                  {/* Participants count */}
+                  {variant !== "replay" &&
+                    (presenceCounts.get(room.id) ?? room.participants) > 0 && (
+                      <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
+                        {presenceCounts.get(room.id) ?? room.participants}{" "}
+                        watching
+                      </div>
+                    )}
 
                   {/* Verification required overlay for unverified users */}
                   {!authUser?.identity_verified && (

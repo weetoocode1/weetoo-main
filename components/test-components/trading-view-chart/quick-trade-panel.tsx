@@ -6,6 +6,7 @@ import type { Symbol } from "@/types/market";
 import { GripVertical, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface QuickTradePanelProps {
   parentRef: React.RefObject<HTMLDivElement | null>;
@@ -18,6 +19,7 @@ export function QuickTradePanel({
   symbol,
   roomId,
 }: QuickTradePanelProps) {
+  const t = useTranslations("trade.quick");
   const panelRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(true);
   const [qty, setQty] = useState<string>("");
@@ -53,8 +55,8 @@ export function QuickTradePanel({
   const handleTradeClick = (side: "long" | "short") => {
     const qtyNum = parseFloat(qty) || 0;
     if (qtyNum <= 0) {
-      toast.error("Please enter a valid quantity", {
-        description: "Quantity must be greater than 0",
+      toast.error(t("errors.qtyInvalid"), {
+        description: t("errors.qtyGreaterThanZero"),
       });
       return;
     }
@@ -71,7 +73,7 @@ export function QuickTradePanel({
     if (!dialogData) return;
     try {
       if (!roomId) {
-        toast.error("Missing room context");
+        toast.error(t("errors.missingRoomContext"));
         return;
       }
       const resp = await fetch(`/api/trading-room/${roomId}/positions/open`, {
@@ -88,25 +90,28 @@ export function QuickTradePanel({
       });
       if (!resp.ok) {
         const j = await resp.json().catch(() => ({}));
-        throw new Error(j?.error || "Failed to open position");
+        throw new Error(j?.error || t("errors.openFailed"));
       }
       toast.success(
-        `${dialogData.side === "long" ? "Long" : "Short"} order placed`,
+        t("toasts.placed", {
+          side:
+            dialogData.side === "long" ? t("common.long") : t("common.short"),
+        }),
         {
-          description: `${
-            dialogData.qty
-          } ${currentSymbol} at ${dialogData.price.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}`,
+          description: t("toasts.placedDesc", {
+            qty: dialogData.qty,
+            symbol: currentSymbol,
+            price: dialogData.price.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            }),
+          }),
         }
       );
     } catch (e) {
-      toast.error("Order failed", {
+      toast.error(t("errors.orderFailed"), {
         description:
-          e instanceof Error
-            ? e.message
-            : "Unexpected error while opening position",
+          e instanceof Error ? e.message : t("errors.unexpectedOpenError"),
       });
     } finally {
       setShowDialog(false);
@@ -241,7 +246,7 @@ export function QuickTradePanel({
         {/* Drag handle */}
         <button
           type="button"
-          aria-label="Drag"
+          aria-label={t("aria.drag")}
           onPointerDown={onDragStart}
           className="qt-drag-handle px-2 bg-muted/40 hover:bg-muted flex items-center justify-center cursor-grab"
         >
@@ -255,7 +260,9 @@ export function QuickTradePanel({
           onMouseDown={(e) => e.stopPropagation()}
           className="px-3 py-2 bg-profit/20 text-foreground hover:bg-profit/30 transition-colors cursor-pointer"
         >
-          <div className="text-[11px] font-medium">Market Long</div>
+          <div className="text-[11px] font-medium">
+            {t("buttons.marketLong")}
+          </div>
           <div className="text-[13px] font-semibold tabular-nums font-mono">
             {lastPrice.toLocaleString(undefined, {
               minimumFractionDigits: 2,
@@ -273,7 +280,7 @@ export function QuickTradePanel({
             onChange={(e) => setQty(e.target.value)}
             onMouseDown={(e) => e.stopPropagation()}
             className="h-7 w-24 text-xs text-center border-none px-2 tabular-nums font-mono focus:outline-none focus:ring-0 [appearance:textfield] !bg-transparent [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            placeholder="Qty"
+            placeholder={t("inputs.qtyPlaceholder")}
           />
         </div>
 
@@ -284,7 +291,9 @@ export function QuickTradePanel({
           onMouseDown={(e) => e.stopPropagation()}
           className="px-3 py-2 bg-loss/20 text-foreground hover:bg-loss/30 transition-colors cursor-pointer"
         >
-          <div className="text-[11px] font-medium">Market Short</div>
+          <div className="text-[11px] font-medium">
+            {t("buttons.marketShort")}
+          </div>
           <div className="text-[13px] font-semibold tabular-nums font-mono">
             {lastPrice.toLocaleString(undefined, {
               minimumFractionDigits: 2,
@@ -296,7 +305,7 @@ export function QuickTradePanel({
         {/* Close */}
         <button
           type="button"
-          aria-label="Close"
+          aria-label={t("aria.close")}
           onClick={() => setIsOpen(false)}
           className="px-2 bg-muted/40 hover:bg-muted flex items-center justify-center cursor-pointer"
         >
@@ -310,7 +319,7 @@ export function QuickTradePanel({
           <div className="bg-background border border-border rounded-lg shadow-lg p-6 max-w-md w-full mx-4">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Confirm Trade</h3>
+              <h3 className="text-lg font-semibold">{t("dialog.title")}</h3>
               <button
                 type="button"
                 onClick={handleCancelTrade}
@@ -323,25 +332,35 @@ export function QuickTradePanel({
             {/* Trade Details */}
             <div className="space-y-3 mb-6">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Symbol:</span>
+                <span className="text-muted-foreground">
+                  {t("dialog.symbol")}
+                </span>
                 <span className="font-mono">{currentSymbol}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Side:</span>
+                <span className="text-muted-foreground">
+                  {t("dialog.side")}
+                </span>
                 <span
                   className={`font-semibold ${
                     dialogData.side === "long" ? "text-profit" : "text-loss"
                   }`}
                 >
-                  {dialogData.side === "long" ? "Long" : "Short"}
+                  {dialogData.side === "long"
+                    ? t("common.long")
+                    : t("common.short")}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Order Type:</span>
-                <span className="font-mono">Market</span>
+                <span className="text-muted-foreground">
+                  {t("dialog.orderType")}
+                </span>
+                <span className="font-mono">{t("common.market")}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Price:</span>
+                <span className="text-muted-foreground">
+                  {t("dialog.price")}
+                </span>
                 <span className="font-mono">
                   {dialogData.price.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
@@ -350,11 +369,15 @@ export function QuickTradePanel({
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Quantity:</span>
+                <span className="text-muted-foreground">
+                  {t("dialog.quantity")}
+                </span>
                 <span className="font-mono">{dialogData.qty}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Order Value:</span>
+                <span className="text-muted-foreground">
+                  {t("dialog.orderValue")}
+                </span>
                 <span className="font-mono">
                   {(dialogData.price * dialogData.qty).toLocaleString(
                     undefined,
@@ -374,7 +397,7 @@ export function QuickTradePanel({
                 onClick={handleCancelTrade}
                 className="flex-1 px-4 py-2 bg-muted text-muted-foreground rounded-md hover:bg-muted/80 transition-colors"
               >
-                Cancel
+                {t("buttons.cancel")}
               </button>
               <button
                 type="button"
@@ -385,7 +408,12 @@ export function QuickTradePanel({
                     : "bg-loss text-white hover:bg-loss/90"
                 }`}
               >
-                Confirm {dialogData.side === "long" ? "Long" : "Short"}
+                {t("buttons.confirmWithSide", {
+                  side:
+                    dialogData.side === "long"
+                      ? t("common.long")
+                      : t("common.short"),
+                })}
               </button>
             </div>
           </div>

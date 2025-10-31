@@ -5,6 +5,7 @@ import type { Symbol } from "@/types/market";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { SimpleTable } from "./shared/simple-table";
+import { useTranslations } from "next-intl";
 
 interface Position {
   id: string;
@@ -148,6 +149,7 @@ export function PositionsTabs({
   getClosePrice,
   livePriceOverride,
 }: PositionsTabsProps) {
+  const t = useTranslations("trading.positions");
   // Simple approach - just track if we're currently closing any position
   const [isClosing, setIsClosing] = useState(false);
 
@@ -185,7 +187,37 @@ export function PositionsTabs({
       setIsClosing(false);
     }
   };
+  const col = {
+    symbol: t("columns.symbol"),
+    side: t("columns.side"),
+    size: t("columns.size"),
+    entry: t("columns.entryPrice"),
+    mark: t("columns.markPrice"),
+    last: t("columns.lastPrice"),
+    tpsl: t("columns.tpsl"),
+    status: t("columns.status"),
+    liq: t("columns.liqPrice"),
+    dist: t("columns.distanceToLiq"),
+    upnlPct: t("columns.unrealizedPct"),
+    upnlUsd: t("columns.unrealizedUsd"),
+    actions: t("columns.actions"),
+  } as const;
   const columns = [
+    col.symbol,
+    col.side,
+    col.size,
+    col.entry,
+    col.mark,
+    col.last,
+    col.tpsl,
+    col.status,
+    col.liq,
+    col.dist,
+    col.upnlPct,
+    col.upnlUsd,
+    col.actions,
+  ] as const;
+  const dataKeys = [
     "Symbol",
     "Side",
     "Size",
@@ -194,7 +226,7 @@ export function PositionsTabs({
     "Last Price",
     "TP/SL",
     "Status",
-    "Liquidation Price",
+    "Liq. Price",
     "Distance to Liquidation",
     "Unrealized P&L (%)",
     "Unrealized P&L ($)",
@@ -253,21 +285,19 @@ export function PositionsTabs({
 
     return {
       id: pos.id,
-      Symbol: pos.symbol,
-      Side: pos.side === "long" ? "Buy" : "Sell",
-      Size: formatSize(size),
-      "Entry Price": entry.toFixed(2),
-      "Mark Price": mark.toFixed(2),
-      "Last Price": last.toFixed(2),
-      "TP/SL": <PositionTpSlIndicator position={pos} />,
-      Status: <StatusBadge status={pos.status || "filled"} />,
-      "Liquidation Price": liq ? liq.toFixed(2) : "-",
-      "Distance to Liquidation": distanceToLiq,
-      "Unrealized P&L (%)": (
-        <PnLDisplay value={unrealizedPct} isPercentage={true} />
-      ),
-      "Unrealized P&L ($)": <PnLDisplay value={unrealized.toFixed(2)} />,
-      Actions: (
+      [dataKeys[0]]: pos.symbol,
+      [dataKeys[1]]: pos.side === "long" ? t("common.buy") : t("common.sell"),
+      [dataKeys[2]]: formatSize(size),
+      [dataKeys[3]]: entry.toFixed(2),
+      [dataKeys[4]]: mark.toFixed(2),
+      [dataKeys[5]]: last.toFixed(2),
+      [dataKeys[6]]: <PositionTpSlIndicator position={pos} />,
+      [dataKeys[7]]: <StatusBadge status={pos.status || "filled"} />,
+      [dataKeys[8]]: liq ? liq.toFixed(2) : "-",
+      [dataKeys[9]]: distanceToLiq,
+      [dataKeys[10]]: <PnLDisplay value={unrealizedPct} isPercentage={true} />,
+      [dataKeys[11]]: <PnLDisplay value={unrealized.toFixed(2)} />,
+      [dataKeys[12]]: (
         <button
           type="button"
           className={`px-2 py-1 text-xs rounded border border-border ${
@@ -293,7 +323,7 @@ export function PositionsTabs({
             zIndex: 9999,
           }}
         >
-          {isClosing ? "Closing..." : "Close"}
+          {isClosing ? t("actions.closing") : t("actions.close")}
         </button>
       ),
     } as Record<string, unknown>;
@@ -381,15 +411,11 @@ export function PositionsTabs({
       <div className="flex-1 overflow-hidden">
         <SimpleTable
           columns={columns}
+          dataKeys={dataKeys as unknown as string[]}
           data={rows}
-          emptyStateText={loadingOpen ? "Loading..." : "No Open Positions"}
-          widenMatchers={[
-            "Unrealized P&L ($)",
-            "Unrealized P&L (%)",
-            "Distance to Liquidation",
-            "Liquidation Price",
-          ]}
-          narrowMatchers={["Actions", "Side", "TP/SL", "Status"]}
+          emptyStateText={loadingOpen ? t("empty.loading") : t("empty.noOpen")}
+          widenMatchers={[col.upnlUsd, col.upnlPct, col.dist, col.liq]}
+          narrowMatchers={[col.actions, col.side, col.tpsl, col.status]}
           showFilters={true}
           filterableColumns={["Symbol", "Side"]}
         />

@@ -62,6 +62,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "f1.tokenpost.kr",
       },
+      {
+        protocol: "https",
+        hostname: "image.mux.com",
+      },
     ],
   },
 };

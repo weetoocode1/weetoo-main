@@ -20,6 +20,7 @@ import {
 } from "@/hooks/websocket/use-market-data";
 import type { Symbol } from "@/types/market";
 import { MoreHorizontalIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 // Consistent number formatting function to prevent hydration mismatches
@@ -52,6 +53,7 @@ interface OrderBookTestProps {
 }
 
 export function OrderBookTest({ symbol }: OrderBookTestProps) {
+  const t = useTranslations("orderBook.test");
   const depth = 50;
   const currentSymbol = symbol || "BTCUSDT";
   const ob = useOrderBookData(currentSymbol, depth);
@@ -60,7 +62,7 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
   const [activeTab, setActiveTab] = useState<"orderbook" | "trades">(
     "orderbook"
   );
-  const [precision, setPrecision] = useState("0.01");
+  // const [precision, setPrecision] = useState("0.01");
   const [displayMode, setDisplayMode] = useState<
     "composite" | "left-red" | "left-green"
   >("composite");
@@ -493,7 +495,7 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
     });
   }, [trades]);
 
-  const precisionOptions = ["0.01", "0.1", "1"];
+  // const precisionOptions = ["0.01", "0.1", "1"];
 
   return (
     <TooltipProvider delayDuration={80}>
@@ -512,7 +514,7 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Order Book
+                {t("tabs.orderBook")}
               </button>
               <button
                 onClick={() => setActiveTab("trades")}
@@ -523,7 +525,7 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Recent Trades
+                {t("tabs.recentTrades")}
               </button>
             </div>
           </div>
@@ -551,7 +553,7 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
                 }`}
                 onMouseDown={handleMouseDown}
                 onClick={() => setDisplayMode("composite")}
-                title="Composite view - Both asks and bids"
+                title={t("display.compositeTitle")}
                 role="button"
                 aria-pressed={displayMode === "composite"}
               >
@@ -578,7 +580,7 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
                 }`}
                 onMouseDown={handleMouseDown}
                 onClick={() => setDisplayMode("left-red")}
-                title="Asks only - Sell orders with current price on top"
+                title={t("display.asksOnlyTitle")}
                 role="button"
                 aria-pressed={displayMode === "left-red"}
               >
@@ -600,7 +602,7 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
                 }`}
                 onMouseDown={handleMouseDown}
                 onClick={() => setDisplayMode("left-green")}
-                title="Bids only - Buy orders with current price on top"
+                title={t("display.bidsOnlyTitle")}
                 role="button"
                 aria-pressed={displayMode === "left-green"}
               >
@@ -615,7 +617,7 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
             </div>
 
             {/* Precision Dropdown */}
-            <div className="relative">
+            {/* <div className="relative">
               <Select value={precision} onValueChange={setPrecision}>
                 <SelectTrigger
                   className="w-[90px] h-8 text-xs font-medium rounded-none border-border"
@@ -635,7 +637,7 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </div> */}
           </div>
         )}
 
@@ -657,7 +659,7 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
                       {formatNumber(orderBookData.currentPrice)}
                     </span>
                     <span className="text-xs text-muted-foreground ml-2">
-                      Current
+                      {t("labels.current")}
                     </span>
                     <span className="mx-2 text-muted-foreground">•</span>
                     <span className="text-sm font-medium text-foreground">
@@ -666,7 +668,7 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
                         : "--.--"}
                     </span>
                     <span className="text-xs text-muted-foreground ml-2">
-                      Mark
+                      {t("labels.mark")}
                     </span>
                   </div>
                 </div>
@@ -676,9 +678,11 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
               <div className="flex-1 overflow-y-auto scrollbar-none">
                 {/* Column Headers */}
                 <div className="flex items-center text-xs text-muted-foreground border-b border-border h-9">
-                  <div className="basis-[30%] text-center">Price</div>
                   <div className="basis-[30%] text-center">
-                    Qty({baseAsset})
+                    {t("headers.price")}
+                  </div>
+                  <div className="basis-[30%] text-center">
+                    {t("headers.qtyBase", { base: baseAsset })}
                   </div>
                   <div className="basis-[40%] text-center flex items-center justify-end gap-2">
                     <Select
@@ -686,10 +690,14 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
                       onValueChange={(v) => setTotalUnit(v as string)}
                     >
                       <SelectTrigger className="text-xs text-muted-foreground rounded-none border-none px-6 !h-0">
-                        <SelectValue placeholder={`Total (${baseAsset})`}>
+                        <SelectValue
+                          placeholder={t("headers.totalBase", {
+                            base: baseAsset,
+                          })}
+                        >
                           {totalUnit === baseAsset
-                            ? `Total (${baseAsset})`
-                            : "Total (USDT)"}
+                            ? t("headers.totalBase", { base: baseAsset })
+                            : t("headers.totalUsdt")}
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent className="!text-xs rounded-none min-w-[130px]">
@@ -697,13 +705,13 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
                           value={baseAsset}
                           className="text-xs rounded-none"
                         >
-                          {`Total (${baseAsset})`}
+                          {t("headers.totalBase", { base: baseAsset })}
                         </SelectItem>
                         <SelectItem
                           value="USDT"
                           className="text-xs rounded-none"
                         >
-                          Total (USDT)
+                          {t("headers.totalUsdt")}
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -728,7 +736,7 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
                                 onClick={() =>
                                   emitSetLimitPrice(Number(ask.price))
                                 }
-                                title="Set limit price"
+                                title={t("tooltip.setLimitPrice")}
                               >
                                 {formatNumber(ask.price)}
                               </div>
@@ -738,7 +746,9 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
                               side="left"
                             >
                               <div className="flex items-center justify-between gap-6">
-                                <span className="">Avg. Price</span>
+                                <span className="">
+                                  {t("tooltip.avgPrice")}
+                                </span>
                                 <span className="tabular-nums font-mono">
                                   {formatNumber(
                                     (Number(ask.totalValue) || 0) /
@@ -748,14 +758,18 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
                               </div>
                               <div className="flex items-center justify-between gap-6">
                                 <span className="">
-                                  Total Qty ({baseAsset})
+                                  {t("tooltip.totalQtyBase", {
+                                    base: baseAsset,
+                                  })}
                                 </span>
                                 <span className="tabular-nums font-mono">
                                   {(Number(ask.total) || 0).toFixed(3)}
                                 </span>
                               </div>
                               <div className="flex items-center justify-between gap-6">
-                                <span className="">Total Qty (USDT)</span>
+                                <span className="">
+                                  {t("tooltip.totalQtyUsdt")}
+                                </span>
                                 <span className="tabular-nums font-mono">
                                   {formatWithK(Number(ask.totalValue) || 0, 3)}
                                 </span>
@@ -821,7 +835,7 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
                                 onClick={() =>
                                   emitSetLimitPrice(Number(bid.price))
                                 }
-                                title="Set limit price"
+                                title={t("tooltip.setLimitPrice")}
                               >
                                 {formatNumber(bid.price)}
                               </div>
@@ -831,7 +845,9 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
                               side="left"
                             >
                               <div className="flex items-center justify-between gap-6">
-                                <span className="">Avg. Price</span>
+                                <span className="">
+                                  {t("tooltip.avgPrice")}
+                                </span>
                                 <span className="tabular-nums font-mono">
                                   {formatNumber(
                                     (Number(bid.totalValue) || 0) /
@@ -841,14 +857,18 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
                               </div>
                               <div className="flex items-center justify-between gap-6">
                                 <span className="">
-                                  Total Qty ({baseAsset})
+                                  {t("tooltip.totalQtyBase", {
+                                    base: baseAsset,
+                                  })}
                                 </span>
                                 <span className="tabular-nums font-mono">
                                   {(Number(bid.total) || 0).toFixed(3)}
                                 </span>
                               </div>
                               <div className="flex items-center justify-between gap-6">
-                                <span className="">Total Qty (USDT)</span>
+                                <span className="">
+                                  {t("tooltip.totalQtyUsdt")}
+                                </span>
                                 <span className="tabular-nums font-mono">
                                   {formatWithK(Number(bid.totalValue) || 0, 3)}
                                 </span>
@@ -1010,9 +1030,11 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
             <div className="h-full flex flex-col">
               {/* Column Headers */}
               <div className="flex items-center px-3 py-2 text-xs text-muted-foreground border-b border-border">
-                <div className="w-1/3 text-center">Price(USDT)</div>
-                <div className="w-1/3 text-center">Qty({baseAsset})</div>
-                <div className="w-1/3 text-center">Time</div>
+                <div className="w-1/3 text-center">{t("trades.priceUsdt")}</div>
+                <div className="w-1/3 text-center">
+                  {t("trades.qtyBase", { base: baseAsset })}
+                </div>
+                <div className="w-1/3 text-center">{t("trades.time")}</div>
               </div>
 
               {/* Trades List */}

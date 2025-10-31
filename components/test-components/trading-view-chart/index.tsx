@@ -14,6 +14,7 @@ import { BybitUdfDatafeed } from "./datafeed/bybit-udf-datafeed";
 import { QuickTradePanel } from "./quick-trade-panel";
 import { TradingViewToolbar } from "./toolbar";
 import { resolveAppBackground, resolveCssVarToColor } from "./utils/color";
+import { useLocale, useTranslations } from "next-intl";
 
 // ===== TYPES =====
 // types moved to dedicated files
@@ -121,6 +122,8 @@ export function TradingViewChartTest({
   symbol,
   roomId,
 }: TradingViewChartTestProps) {
+  const t = useTranslations("chart.tv");
+  const locale = useLocale();
   const { theme, resolvedTheme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -150,8 +153,8 @@ export function TradingViewChartTest({
 
   const currentTheme = resolvedTheme || theme;
   const key = useMemo(
-    () => `${symbol}-${currentTheme}`,
-    [symbol, currentTheme]
+    () => `${symbol}-${currentTheme}-${locale}`,
+    [symbol, currentTheme, locale]
   );
 
   const allIntervals: ResolutionString[] = [
@@ -846,7 +849,7 @@ export function TradingViewChartTest({
       container: containerRef.current,
       library_path: "/static/charting_library/",
       datafeed: datafeed,
-      locale: "en" as LanguageCode,
+      locale: (locale as LanguageCode) || ("en" as LanguageCode),
       fullscreen: false,
       autosize: true,
       // Avoid study templates requests; also provide valid storage config
@@ -1589,13 +1592,13 @@ export function TradingViewChartTest({
     | "chartTypeBaseline";
 
   const chartTypeOptions: { id: TvChartTypeAction; label: string }[] = [
-    { id: "chartTypeBars", label: "Bars" },
-    { id: "chartTypeCandles", label: "Candles" },
-    { id: "chartTypeHollowCandle", label: "Hollow Candles" },
-    { id: "chartTypeHeikinAshi", label: "Heikin Ashi" },
-    { id: "chartTypeLine", label: "Line" },
-    { id: "chartTypeArea", label: "Area" },
-    { id: "chartTypeBaseline", label: "Baseline" },
+    { id: "chartTypeBars", label: t("chartTypes.bars") },
+    { id: "chartTypeCandles", label: t("chartTypes.candles") },
+    { id: "chartTypeHollowCandle", label: t("chartTypes.hollowCandles") },
+    { id: "chartTypeHeikinAshi", label: t("chartTypes.heikinAshi") },
+    { id: "chartTypeLine", label: t("chartTypes.line") },
+    { id: "chartTypeArea", label: t("chartTypes.area") },
+    { id: "chartTypeBaseline", label: t("chartTypes.baseline") },
   ];
 
   const applyChartType = (action: TvChartTypeAction) => {
@@ -1737,8 +1740,8 @@ export function TradingViewChartTest({
         <div className="absolute inset-0 flex items-center justify-center bg-background">
           <div className="text-muted-foreground">
             {isChangingPriceType
-              ? "Updating price type..."
-              : "Loading chart..."}
+              ? t("loading.updatingPriceType")
+              : t("loading.loadingChart")}
           </div>
         </div>
       )}

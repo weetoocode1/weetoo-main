@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { Symbol } from "@/types/market";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { SimpleTable } from "./shared/simple-table";
+import { useTranslations } from "next-intl";
 
 interface RealtimePayload {
   old?: Record<string, unknown>;
@@ -39,6 +40,7 @@ export function OrderHistoryTabs({
   roomId,
   onCountChange,
 }: OrderHistoryTabsProps) {
+  const t = useTranslations("trading.orderHistory");
   const [filters] = useState({
     symbol: undefined as string | undefined,
     side: undefined as string | undefined,
@@ -95,7 +97,31 @@ export function OrderHistoryTabs({
   }, [roomId, refetch]);
 
   // Define columns for the table
+  const col = {
+    date: t("columns.date"),
+    time: t("columns.time"),
+    symbol: t("columns.symbol"),
+    type: t("columns.type"),
+    side: t("columns.side"),
+    price: t("columns.price"),
+    amount: t("columns.amount"),
+    totalValue: t("columns.totalValue"),
+    fee: t("columns.fee"),
+    status: t("columns.status"),
+  } as const;
   const columns = [
+    col.date,
+    col.time,
+    col.symbol,
+    col.type,
+    col.side,
+    col.price,
+    col.amount,
+    col.totalValue,
+    col.fee,
+    col.status,
+  ] as const;
+  const dataKeys = [
     "Date",
     "Time",
     "Symbol",
@@ -113,20 +139,20 @@ export function OrderHistoryTabs({
     if (!orderHistory) return [];
 
     return orderHistory.map((item: OrderHistoryItem) => ({
-      Date: item.date,
-      Time: item.time,
-      Symbol: item.symbol,
-      Type: item.type.charAt(0).toUpperCase() + item.type.slice(1),
-      Side:
+      [dataKeys[0]]: item.date,
+      [dataKeys[1]]: item.time,
+      [dataKeys[2]]: item.symbol,
+      [dataKeys[3]]: item.type.charAt(0).toUpperCase() + item.type.slice(1),
+      [dataKeys[4]]:
         item.side.toLowerCase().startsWith("long") ||
         item.side.toLowerCase().startsWith("buy")
-          ? "Buy"
-          : "Sell",
-      Price: item.price,
-      Amount: item.amount,
-      "Total Value": item.totalValue,
-      Fee: item.fee,
-      Status: item.status.charAt(0).toUpperCase() + item.status.slice(1),
+          ? t("common.buy")
+          : t("common.sell"),
+      [dataKeys[5]]: item.price,
+      [dataKeys[6]]: item.amount,
+      [dataKeys[7]]: item.totalValue,
+      [dataKeys[8]]: item.fee,
+      [dataKeys[9]]: item.status.charAt(0).toUpperCase() + item.status.slice(1),
     }));
   }, [orderHistory]);
 
@@ -207,9 +233,7 @@ export function OrderHistoryTabs({
               />
             </svg>
           </div>
-          <p className="text-sm font-medium text-red-600 mb-2">
-            Failed to load order history
-          </p>
+          <p className="text-sm font-medium text-red-600 mb-2">{t("errors.failed")}</p>
           <p className="text-xs text-muted-foreground mb-4">
             {error instanceof Error ? error.message : "Unknown error occurred"}
           </p>
@@ -217,7 +241,7 @@ export function OrderHistoryTabs({
             onClick={() => refetch()}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary/90 transition-colors"
           >
-            Retry
+            {t("errors.retry")}
           </button>
         </div>
       </div>
@@ -233,7 +257,7 @@ export function OrderHistoryTabs({
         <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            Loading order history...
+            {t("loading")}
           </div>
         </div>
       )}
@@ -242,11 +266,12 @@ export function OrderHistoryTabs({
       <div className="flex-1 overflow-hidden">
         <SimpleTable
           columns={columns}
+          dataKeys={dataKeys as unknown as string[]}
           data={tableData}
-          emptyStateText="No Order History Found"
+          emptyStateText={t("empty.noHistory")}
           onRowClick={handleRowClick}
-          widenMatchers={["Symbol", "Total Value"]}
-          narrowMatchers={["Status", "Fee", "Type"]}
+          widenMatchers={[col.symbol, col.totalValue]}
+          narrowMatchers={[col.status, col.fee, col.type]}
           showFilters={true}
           filterableColumns={["Symbol", "Side", "Type", "Status"]}
         />

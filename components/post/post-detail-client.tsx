@@ -256,9 +256,7 @@ export default function PostDetailClient({
                 <span>{readingTime}</span>
               </div>
               {(isAuthor || hasViewed) && (
-                <Badge variant="default" className="ml-auto">
-                  {t("youViewedThis")}
-                </Badge>
+                <Badge className="ml-auto">{t("youViewedThis")}</Badge>
               )}
             </div>
           </header>

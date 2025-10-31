@@ -1,6 +1,7 @@
 import { SimpleTable } from "./shared/simple-table";
 import type { Symbol } from "@/types/market";
 import { useOpenOrders } from "@/hooks/use-open-orders";
+import { useTranslations } from "next-intl";
 
 interface OpenOrder {
   id: string;
@@ -81,7 +82,32 @@ interface OpenOrdersTabsProps {
 }
 
 export function OpenOrdersTabs({ symbol, roomId }: OpenOrdersTabsProps) {
+  const t = useTranslations("trading.openOrders");
+  const col = {
+    time: t("columns.time"),
+    symbol: t("columns.symbol"),
+    type: t("columns.type"),
+    side: t("columns.side"),
+    price: t("columns.price"),
+    amount: t("columns.amount"),
+    tpsl: t("columns.tpsl"),
+    status: t("columns.status"),
+    totalValue: t("columns.totalValue"),
+    action: t("columns.action"),
+  } as const;
   const columns = [
+    col.time,
+    col.symbol,
+    col.type,
+    col.side,
+    col.price,
+    col.amount,
+    col.tpsl,
+    col.status,
+    col.totalValue,
+    col.action,
+  ] as const;
+  const dataKeys = [
     "Time",
     "Symbol",
     "Type",
@@ -101,16 +127,16 @@ export function OpenOrdersTabs({ symbol, roomId }: OpenOrdersTabsProps) {
 
   const rows =
     data?.data?.map((o: OpenOrder) => ({
-      time: new Date(o.created_at).toTimeString().split(" ")[0],
-      symbol: o.symbol,
-      type: "Limit",
-      side: o.side === "long" ? "Buy" : "Sell",
-      price: Number(o.limit_price).toFixed(2),
-      amount: Number(o.quantity).toFixed(8),
-      "TP/SL": <TpSlIndicator order={o} />,
-      status: <StatusBadge status={o.status || "active"} />,
-      "total value": (Number(o.limit_price) * Number(o.quantity)).toFixed(2),
-      action: (
+      [dataKeys[0]]: new Date(o.created_at).toTimeString().split(" ")[0],
+      [dataKeys[1]]: o.symbol,
+      [dataKeys[2]]: t("common.limit"),
+      [dataKeys[3]]: o.side === "long" ? t("common.buy") : t("common.sell"),
+      [dataKeys[4]]: Number(o.limit_price).toFixed(2),
+      [dataKeys[5]]: Number(o.quantity).toFixed(8),
+      [dataKeys[6]]: <TpSlIndicator order={o} />,
+      [dataKeys[7]]: <StatusBadge status={o.status || "active"} />,
+      [dataKeys[8]]: (Number(o.limit_price) * Number(o.quantity)).toFixed(2),
+      [dataKeys[9]]: (
         <button
           type="button"
           className="px-2 py-1 text-xs rounded border border-border hover:bg-muted/30 cursor-pointer"
@@ -136,7 +162,7 @@ export function OpenOrdersTabs({ symbol, roomId }: OpenOrdersTabsProps) {
             zIndex: 9999,
           }}
         >
-          Cancel
+          {t("actions.cancel")}
         </button>
       ),
     })) || [];
@@ -163,11 +189,12 @@ export function OpenOrdersTabs({ symbol, roomId }: OpenOrdersTabsProps) {
       <div className="flex-1 overflow-hidden">
         <SimpleTable
           columns={columns}
+          dataKeys={dataKeys as unknown as string[]}
           data={rows}
-          emptyStateText="No Open Orders"
+          emptyStateText={t("empty.noOpenOrders")}
           onRowClick={handleRowClick}
-          widenMatchers={["Symbol", "Total Value"]}
-          narrowMatchers={["Action", "TP/SL", "Status"]}
+          widenMatchers={[col.symbol, col.totalValue]}
+          narrowMatchers={[col.action, col.tpsl, col.status]}
           showFilters={true}
           filterableColumns={["Symbol", "Side", "Type"]}
         />

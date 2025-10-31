@@ -1,5 +1,6 @@
 import cron from "node-cron";
 import { createServiceClient } from "@/lib/supabase/server";
+import { syncAllStreamStatuses } from "@/lib/mux-stream-sync";
 
 // Types for scheduled orders
 interface ScheduledOrder {
@@ -466,7 +467,22 @@ if (shouldRunScheduler && !globalAny.__schedulerStarted) {
     }
   );
 
+  cron.schedule(
+    "*/3 * * * * *",
+    async () => {
+      try {
+        await syncAllStreamStatuses();
+      } catch (error) {
+        console.error("❌ Error syncing Mux stream statuses:", error);
+      }
+    },
+    {
+      timezone: "UTC",
+    }
+  );
+
   console.log("✅ Scheduled order execution engine started successfully");
+  console.log("✅ Mux stream status sync started (every 3 seconds)");
 } else {
   console.log("⚠️ Scheduled order execution engine disabled");
 }

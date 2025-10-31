@@ -606,7 +606,22 @@
   },
   "trading": {
     "tradingRooms": "트레이딩",
-    "tradingRoomsDescription": "당신의 전략을 증명할 무대가 여기 있습니다.실시간으로 벌어지는 승부의 세계 — 지금 도전해보세요 ⚔️"
+    "tradingRoomsDescription": "당신의 전략을 증명할 무대가 여기 있습니다.실시간으로 벌어지는 승부의 세계 — 지금 도전해보세요 ⚔️",
+    "table": {
+      "filters": "필터",
+      "symbol": "심볼",
+      "side": "방향",
+      "type": "유형",
+      "allSymbols": "모든 심볼",
+      "allSides": "모든 방향",
+      "allTypes": "모든 유형",
+      "clear": "초기화",
+      "sort": "정렬",
+      "select": "선택",
+      "noSorting": "정렬 없음",
+      "empty": "데이터가 없습니다",
+      "noSortingShort": "없음"
+    }
   },
   "room": {
     "mockNotice": {
@@ -624,7 +639,10 @@
       "noDonations": "아직 후원이 없습니다.",
       "kor": "KOR",
       "supportHost": "호스트를 코코인으로 후원해보세요!",
-      "placeholders": { "enterAmount": "금액 입력" },
+      "placeholders": {
+        "enterAmount": "금액 입력",
+        "enterMessage": "메시지 추가 (선택)"
+      },
       "yourBalance": "내 잔액:",
       "buttons": { "donating": "후원 중...", "donate": "후원하기" },
       "errors": {
@@ -1111,6 +1129,7 @@
       "yearsAgo": "{count}년 전"
     }
   },
+
   "createRoom": {
     "createRoom": "방 만들기",
     "createTradingRoom": "트레이딩방 만들기",
@@ -4901,5 +4920,758 @@
     "success": "성공",
     "identityVerificationRequired": "본인 인증 필요",
     "na": "N/A"
+  },
+  "guidebook": {
+    "steps": {
+      "download": {
+        "title": "OBS 스튜디오 다운로드",
+        "description": "이미 설치되어 있다면 다음 단계로 진행하세요.",
+        "line1": "OBS가 없다면 공식 사이트에서 내려받아 설치 프로그램을 실행하세요:",
+        "line2": "다운로드가 완료되면 설치 마법사 안내에 따라 설치를 완료합니다.",
+        "line3": "설치가 끝났다면(또는 이미 설치되어 있었다면) 다음(Next)을 눌러 계속 진행하세요.",
+        "downloadUrlLabel": "https://obsproject.com/download"
+      },
+      "copyCreds": {
+        "title": "스트림 자격 증명 복사",
+        "description": "스트림 설정에서 스트림 키와 기본 스트림 URL을 확인하세요.",
+        "bullets": {
+          "openSettings": "이 대시보드에서 스트림 설정을 엽니다.",
+          "copyKey": "스트림 키 값을 복사합니다(비공개 유지).",
+          "copyUrl": "기본 스트림 URL(RTMP 서버)을 복사합니다."
+        },
+        "screenshotAlt": "스트림 키와 기본 스트림 URL이 표시된 스트림 설정 화면"
+      },
+      "configure": {
+        "title": "OBS 설정",
+        "description": "OBS 설정 → 스트림에서 서비스: Mux, 서버: Global (RTMP) 선택 후 키를 붙여넣고 적용합니다.",
+        "bullets": {
+          "openSettingsStream": "OBS → 설정 → 스트림",
+          "serviceMux": "서비스를 Mux로 설정",
+          "serverGlobal": "서버는 Global (RTMP) 선택",
+          "pasteKey": "복사한 스트림 키 붙여넣기",
+          "applyOk": "적용(Apply) → 확인(OK)"
+        },
+        "screenshotAlt": "Mux, Global (RTMP), 스트림 키가 표시된 OBS 스트림 설정 화면"
+      },
+      "output": {
+        "title": "권장 설정",
+        "description": "안정적인 1080p 송출을 위해 출력(스트리밍)을 설정하세요.",
+        "openOutput": "OBS → 설정 → 출력(스트리밍)",
+        "bullets": {
+          "encoder": "인코더: 하드웨어(가능하면) 또는 x264",
+          "bitrate": "비트레이트: 4500–6000 Kbps (1080p30)",
+          "keyframe": "키프레임 간격: 2초",
+          "audioBitrate": "오디오 비트레이트: 128–192 Kbps"
+        },
+        "screenshotAlt": "권장값이 표시된 OBS 출력(스트리밍) 설정 화면"
+      },
+      "scene": {
+        "title": "씬과 소스 추가",
+        "description": "씬을 만든 뒤 소스에 윈도우 캡처를 추가하세요.",
+        "bullets": {
+          "addScene": "씬 아래 + 버튼을 눌러 이름을 지정해 추가",
+          "addSourceWindow": "소스 아래 + 버튼 → 윈도우 캡처 선택",
+          "chooseWindow": "공유할 창을 선택 후 확인(가시성/잠금 아이콘으로 제어)"
+        },
+        "screenshotAlt": "윈도우 캡처가 추가된 OBS 씬/소스 영역"
+      },
+      "live": {
+        "title": "라이브 시작",
+        "description": "OBS에서 방송을 시작하고 대시보드에서 상태를 확인하세요.",
+        "bullets": {
+          "ensureScenes": "씬/소스(윈도우/게임/디스플레이 캡처)를 추가",
+          "pressStart": "OBS에서 ‘스트리밍 시작’ 클릭",
+          "checkDashboard": "이 대시보드에서 미리보기와 LIVE 상태 확인"
+        },
+        "screenshotAlt": "‘스트리밍 시작’ 버튼이 보이는 OBS 컨트롤"
+      },
+      "youtube": {
+        "title": "더 알아보기(유튜브)",
+        "description": "초보자를 위한 OBS 튜토리얼 영상입니다.",
+        "overlay": "클릭하여 시청 ▶",
+        "thumbnailAlt": "유튜브: OBS 스튜디오 초보자 가이드"
+      }
+    },
+    "ui": {
+      "triggerTitle": "스트리밍 가이드",
+      "stepOfTotal": "단계 {step} / {total}",
+      "previous": "이전",
+      "next": "다음",
+      "done": "완료"
+    }
+  },
+  "market": {
+    "widget": {
+      "type": { "usdtPerp": "USDT 무기한" },
+      "tooltip": {
+        "pairDesc": "{asset} USDT 무기한, 담보는 USDT 사용",
+        "markPriceDesc": "마크 가격은 지수 가격과 펀딩 비율로 산출되며 공정가를 반영합니다. 청산은 마크 가격 기준으로 트리거됩니다."
+      },
+      "labels": {
+        "indexPrice": "지수 가격",
+        "change24hPct": "24H 변동 %",
+        "change24h": "24H 변동",
+        "high24h": "24H 최고가",
+        "low24h": "24H 최저가",
+        "volume24h": "24H 거래량",
+        "turnover24hUsdt": "24H 거래대금(USDT)",
+        "openInterest": "미결제약정",
+        "fundingRate": "펀딩 비율",
+        "countdown": "카운트다운",
+        "nextFunding": "다음 펀딩"
+      }
+    }
+  },
+  "chart": {
+    "tv": {
+      "loading": {
+        "updatingPriceType": "가격 유형 업데이트 중...",
+        "loadingChart": "차트 로딩 중..."
+      },
+      "chartTypes": {
+        "bars": "바",
+        "candles": "캔들",
+        "hollowCandles": "빈 캔들",
+        "heikinAshi": "헤이킨 아시",
+        "line": "라인",
+        "area": "영역",
+        "baseline": "베이스라인"
+      }
+    },
+    "toolbar": {
+      "moreIntervals": "추가 간격",
+      "customTimeFrame": "사용자 지정 시간 간격",
+      "extraIntervals": "추가 간격",
+      "indicators": "지표",
+      "chartType": "차트 유형",
+      "chartSettings": "차트 설정",
+      "compareSymbols": "심볼 비교",
+      "priceType": "가격 유형",
+      "lastTradedPrice": "최종 체결가",
+      "markPrice": "마크 가격",
+      "priceTypeShort": { "last": "최종", "mark": "마크" },
+      "takeScreenshot": "스크린샷 찍기",
+      "toggleFullscreen": "전체 화면 전환"
+    }
+  },
+  "trade": {
+    "quick": {
+      "aria": { "drag": "드래그", "close": "닫기" },
+      "buttons": {
+        "marketLong": "시장가 롱",
+        "marketShort": "시장가 숏",
+        "cancel": "취소",
+        "confirmWithSide": "{side} 확인"
+      },
+      "inputs": { "qtyPlaceholder": "수량" },
+      "dialog": {
+        "title": "거래 확인",
+        "symbol": "심볼:",
+        "side": "방향:",
+        "orderType": "주문 종류:",
+        "price": "가격:",
+        "quantity": "수량:",
+        "orderValue": "주문 금액:"
+      },
+      "common": { "long": "롱", "short": "숏", "market": "시장가" },
+      "errors": {
+        "qtyInvalid": "올바른 수량을 입력해 주세요",
+        "qtyGreaterThanZero": "수량은 0보다 커야 합니다",
+        "missingRoomContext": "룸 컨텍스트가 없습니다",
+        "openFailed": "포지션 오픈에 실패했습니다",
+        "orderFailed": "주문 실패",
+        "unexpectedOpenError": "포지션 오픈 중 예기치 않은 오류가 발생했습니다"
+      },
+      "toasts": {
+        "placed": "{side} 주문이 접수되었습니다",
+        "placedDesc": "{qty} {symbol} / {price}"
+      }
+    },
+    "form": {
+      "header": { "trade": "거래" },
+      "tabs": { "limit": "지정가", "market": "시장가" },
+      "cross": "교차",
+      "isolated": "격리",
+      "customize": "사용자 지정",
+      "badges": { "new": "NEW" },
+      "price": { "label": "가격", "last": "최근가" },
+      "quantity": {
+        "label": "수량",
+        "dialog": {
+          "title": "주문 입력 방식 설정",
+          "orderByQty": "수량으로 주문",
+          "orderByQtyShort": "수량 주문",
+          "orderByQtyHelp": "BTC 기준으로 주문 수량을 입력하세요.",
+          "orderByValue": "금액으로 주문",
+          "orderByValueHelp": "원하는 주문 금액을 입력하세요. 적용 레버리지를 조정하여 필요한 증거금을 변경할 수 있습니다.",
+          "noteTitle": "* 안내",
+          "noteBody": "주문 수량은 체결 금액을 기준으로 계산됩니다. 극단적인 시장 변동 시 주문 접수가 실패할 수 있습니다."
+        }
+      },
+      "valueCost": {
+        "availableBalance": "사용 가능 잔액",
+        "orderAmount": "주문 금액",
+        "marketInfoAria": "시장가 주문 정보",
+        "marketInfo": "최종 가격은 체결 시점에 확정됩니다.",
+        "fee": "수수료 ({rate}%)",
+        "totalCost": "총 비용",
+        "insufficient": "잔액이 부족합니다. 금액을 낮추거나 자금을 추가해주세요.",
+        "liquidationPrice": "청산가",
+        "liqTooltip": "추정 청산가는 평균 진입가, 미실현손익, 유지 증거금, 사용 가능 잔액 등의 영향을 받습니다. 여러 포지션 보유 시 서로 영향이 있습니다. 본 값은 참고용이며, 유지 증거금률 100%에서 청산이 발생합니다. '--'는 현재 표시할 청산가가 없음을 의미합니다.",
+        "calculate": "계산",
+        "liqEst": "청산가 (추정)"
+      },
+      "execution": {
+        "title": "실행 타이밍",
+        "now": "즉시 실행",
+        "time": "시간 예약",
+        "price": "가격 예약",
+        "date": "날짜",
+        "timeLabel": "시간",
+        "triggerWhen": "가격이 다음일 때 트리거:",
+        "above": "상이 돌파",
+        "below": "하향 돌파",
+        "triggerPrice": "트리거 가격",
+        "triggerPricePh": "트리거 가격 입력",
+        "current": "현재가",
+        "distance": "거리"
+      },
+      "tpsl": {
+        "button": "TP/SL",
+        "addTitle": "TP/SL 추가",
+        "lastTraded": "최근 체결가",
+        "basic": {
+          "enableTp": "테이크프로핏 사용",
+          "enableTpAria": "테이크프로핏 사용",
+          "enableSl": "스톱로스 사용",
+          "enableSlAria": "스톱로스 사용",
+          "tpPrice": "테이크프로핏 가격",
+          "slPrice": "스톱로스 가격",
+          "warnNoSl": "스톱로스가 설정되지 않았습니다 — 하방 위험이 큽니다",
+          "info": {
+            "market": "시장가 포지션 오픈 직후 TP/SL이 활성화됩니다",
+            "limit": "지정가 주문 체결 후에만 TP/SL이 활성화됩니다"
+          }
+        }
+      },
+      "percentage": { "aria": "{percent}% 선택" },
+      "longShort": {
+        "longBuy": "롱/매수",
+        "shortSell": "숏/매도",
+        "confirmTitleLong": "롱 / 매수 확인",
+        "confirmTitleShort": "숏 / 매도 확인",
+        "closeAria": "닫기",
+        "symbol": "심볼",
+        "type": "유형",
+        "orderType": "주문 유형",
+        "leverage": "레버리지",
+        "entryPrice": "진입가",
+        "orderValue": "주문 가치",
+        "liqEst": "청산가 (추정)",
+        "invalid": "유효한 가격과 수량을 입력하세요.",
+        "confirmLong": "롱 확인",
+        "confirmShort": "숏 확인",
+        "long": "롱",
+        "short": "숏"
+      },
+      "leverage": {
+        "title": "레버리지 조정",
+        "label": "레버리지",
+        "sliderA11y": "레버리지 슬라이더",
+        "warningHigh": "현재 레버리지가 너무 높습니다. 즉시 청산 위험이 매우 큽니다. 포지션을 조정해 주세요."
+      },
+      "calc": {
+        "title": "실시간 계산",
+        "positionSize": "포지션 규모",
+        "marginRequired": "필요 증거금",
+        "liquidationPrice": "청산가 ({side})",
+        "availableBalance": "사용 가능 잔액"
+      },
+      "buttons": { "confirm": "확인", "cancel": "취소" }
+    }
+  },
+  "orderBook": {
+    "test": {
+      "tabs": { "orderBook": "호가창", "recentTrades": "체결 내역" },
+      "display": {
+        "compositeTitle": "합성 보기 - 매도/매수 동시 표시",
+        "asksOnlyTitle": "매도 전용 - 현재가를 상단에 표시",
+        "bidsOnlyTitle": "매수 전용 - 현재가를 상단에 표시"
+      },
+      "headers": {
+        "price": "가격",
+        "qtyBase": "수량({base})",
+        "totalBase": "합계 ({base})",
+        "totalUsdt": "합계 (USDT)"
+      },
+      "labels": { "current": "현재가", "mark": "마크" },
+      "tooltip": {
+        "setLimitPrice": "지정가 설정",
+        "avgPrice": "평균 가격",
+        "totalQtyBase": "총 수량 ({base})",
+        "totalQtyUsdt": "총 수량 (USDT)"
+      },
+      "trades": {
+        "priceUsdt": "가격(USDT)",
+        "qtyBase": "수량({base})",
+        "time": "시간"
+      }
+    }
+  },
+  "trading": {
+    "tradingRooms": "트레이딩 방",
+    "tradingRoomsDescription": "실시간으로 전략을 공유하고 협업하는 트레이딩 공간",
+    "tabs": {
+      "openOrders": "미체결 주문 ({count})",
+      "scheduledOrders": "예약 주문 ({count})",
+      "positions": "포지션 ({count})",
+      "history": "체결 내역 ({count})",
+      "mobile": {
+        "orders": "주문 ({count})",
+        "scheduled": "예약 ({count})",
+        "positions": "포지션 ({count})",
+        "history": "내역 ({count})"
+      }
+    },
+    "table": {
+      "filters": "필터",
+      "symbol": "심볼",
+      "side": "방향",
+      "type": "유형",
+      "allSymbols": "전체 심볼",
+      "allSides": "전체 방향",
+      "allTypes": "전체 유형",
+      "clear": "초기화",
+      "sort": "정렬",
+      "select": "선택",
+      "noSorting": "정렬 없음",
+      "empty": "데이터가 없습니다"
+    },
+    "openOrders": {
+      "columns": {
+        "time": "시간",
+        "symbol": "심볼",
+        "type": "유형",
+        "side": "방향",
+        "price": "가격",
+        "amount": "수량",
+        "tpsl": "TP/SL",
+        "status": "상태",
+        "totalValue": "총 금액",
+        "action": "작업"
+      },
+      "actions": { "cancel": "취소" },
+      "empty": { "noOpenOrders": "미체결 주문이 없습니다" },
+      "filterable": { "symbol": "심볼", "side": "방향", "type": "유형" },
+      "common": { "limit": "지정가", "buy": "매수", "sell": "매도" }
+    },
+    "orderHistory": {
+      "columns": {
+        "date": "날짜",
+        "time": "시간",
+        "symbol": "심볼",
+        "type": "유형",
+        "side": "방향",
+        "price": "가격",
+        "amount": "수량",
+        "totalValue": "총 금액",
+        "fee": "수수료",
+        "status": "상태"
+      },
+      "loading": "체결 내역을 불러오는 중...",
+      "empty": { "noHistory": "체결 내역이 없습니다" },
+      "errors": {
+        "failed": "체결 내역을 불러오지 못했습니다",
+        "retry": "다시 시도"
+      },
+      "filterable": {
+        "symbol": "심볼",
+        "side": "방향",
+        "type": "유형",
+        "status": "상태"
+      },
+      "common": { "buy": "매수", "sell": "매도" }
+    },
+    "positions": {
+      "columns": {
+        "symbol": "심볼",
+        "side": "방향",
+        "size": "규모",
+        "entryPrice": "진입가",
+        "markPrice": "마크 가격",
+        "lastPrice": "최종가",
+        "tpsl": "TP/SL",
+        "status": "상태",
+        "liqPrice": "청산가",
+        "distanceToLiq": "청산까지 거리",
+        "unrealizedPct": "미실현손익 (%)",
+        "unrealizedUsd": "미실현손익 ($)",
+        "actions": "작업"
+      },
+      "empty": { "loading": "로딩 중...", "noOpen": "오픈 포지션이 없습니다" },
+      "actions": { "close": "닫기", "closing": "닫는 중..." },
+      "filterable": { "symbol": "심볼", "side": "방향" },
+      "common": { "buy": "매수", "sell": "매도" }
+    },
+    "scheduled": {
+      "columns": {
+        "id": "ID",
+        "symbol": "심볼",
+        "type": "유형",
+        "side": "방향",
+        "trigger": "트리거",
+        "order": "주문",
+        "amount": "수량",
+        "tpsl": "TP/SL",
+        "countdown": "카운트다운",
+        "status": "상태",
+        "action": "작업"
+      },
+      "loading": "예약 주문을 불러오는 중...",
+      "errors": { "failed": "예약 주문을 불러오지 못했습니다" },
+      "empty": { "noScheduled": "예약 주문이 없습니다" },
+      "tpsl": { "none": "TP/SL 없음" },
+      "statusMap": {
+        "pending": "대기",
+        "watching": "모니터링",
+        "executed": "실행됨",
+        "cancelled": "취소됨",
+        "failed": "실패"
+      },
+      "triggerMap": { "above": "상이 돌파", "below": "하향 돌파" },
+      "orderMap": { "market": "{side} @ 시장가", "limit": "{side} @ {price}" },
+      "countdown": { "expired": "만료", "executing": "실행 중..." },
+      "dialog": {
+        "title": "예약 주문을 취소하시겠습니까?",
+        "description": "이 작업은 예약 주문을 취소합니다. 이 작업은 되돌릴 수 없습니다.",
+        "keep": "유지",
+        "confirm": "취소 확인"
+      },
+      "toasts": {
+        "cancelSuccess": "예약 주문이 취소되었습니다",
+        "cancelFailed": "예약 주문 취소에 실패했습니다"
+      },
+      "filterable": {
+        "symbol": "심볼",
+        "side": "방향",
+        "type": "유형",
+        "status": "상태"
+      }
+    }
+  },
+  "stream": {
+    "dashboard": {
+      "title": "스트림 대시보드",
+      "liveStream": "라이브 스트림",
+      "waiting": "스트림을 기다리는 중...",
+      "notActive": "스트림이 비활성화되었습니다",
+      "streamTitle": "스트림 제목",
+      "characters": "characters",
+      "loading": "로딩 중...",
+      "descriptionOptional": "설명 (선택 사항)",
+      "noDescription": "아직 설명이 없습니다.",
+      "tagsLabel": "태그 (최대 5개)",
+      "tabs": {
+        "settings": "스트림 설정",
+        "thumbnail": "스트림 썸네일",
+        "analytics": "스트림 분석",
+        "donations": "후원",
+        "health": "스트림 상태"
+      },
+      "stats": {
+        "viewers": "시청자",
+        "latency": "지연 시간",
+        "started": "시작됨"
+      },
+      "toasts": {
+        "titleUpdated": "제목이 업데이트되었습니다!",
+        "titleUpdateFailed": "제목 업데이트에 실패했습니다",
+        "descriptionUpdated": "설명이 업데이트되었습니다!",
+        "descriptionUpdateFailed": "설명 업데이트에 실패했습니다"
+      }
+    },
+    "health": {
+      "title": "스트림 상태",
+      "drift": "드리프트",
+      "legend": { "driftAvg": "평균 드리프트" },
+      "labels": {
+        "excellent": "최상",
+        "good": "좋음",
+        "poor": "나쁨",
+        "idle": "대기",
+        "notStreaming": "방송 중 아님",
+        "unknown": "알 수 없음"
+      },
+      "messages": {
+        "appearWhenActive": "스트림이 활성화되면 상태 지표가 표시됩니다.",
+        "collecting": "스트림 상태 데이터를 수집 중입니다. 잠시 후 표시됩니다."
+      }
+    },
+    "settings": {
+      "common": { "cancel": "취소", "copy": "복사" },
+      "errors": {
+        "streamIdNotFound": "스트림 ID를 찾을 수 없습니다",
+        "waitBeforeReset": "다시 초기화하기 전에 5초 기다려주세요"
+      },
+      "toasts": {
+        "saved": "설정이 저장되었습니다!",
+        "saveFailed": "설정 저장에 실패했습니다",
+        "resetToDefault": "기본값으로 재설정되었습니다!",
+        "resetFailed": "설정 재설정에 실패했습니다",
+        "copied": "{label} 클립보드에 복사됨!",
+        "copyFailed": "클립보드 복사에 실패했습니다"
+      },
+      "connection": {
+        "title": "스트림 연결",
+        "streamKey": "스트림 키",
+        "selectStreamKey": "스트림 키 선택",
+        "defaultKey": "기본 스트림 키",
+        "streamKeyValue": "스트림 키 값",
+        "reset": "초기화",
+        "resetting": "초기화 중...",
+        "primaryUrl": "기본 스트림 URL",
+        "primaryUrlShort": "기본 URL"
+      },
+      "latency": {
+        "title": "지연 시간",
+        "normal": "일반 지연",
+        "normalDesc": "표준 지연 (~10-20초)",
+        "low": "낮은 지연",
+        "lowDesc": "감소된 지연 (~5-10초)",
+        "ultra": "초저지연",
+        "ultraDesc": "최소 지연 (~2-5초)"
+      },
+      "features": {
+        "title": "스트림 기능",
+        "enableDvr": "DVR 활성화",
+        "enableDvrDesc": "시청자가 일시 정지 및 되감기 허용",
+        "unlistReplay": "라이브 다시보기 비공개",
+        "unlistReplayDesc": "스트림 종료 후 녹화 숨기기"
+      },
+      "reconnect": {
+        "title": "재연결 유예 시간",
+        "description": "스트림 종료 전에 재연결을 기다리는 시간",
+        "recommended": "권장",
+        "options": { "30s": "30초", "60s": "60초", "2m": "2분", "5m": "5분" }
+      },
+      "security": {
+        "title": "보안 안내",
+        "body": "스트림 키는 비공개로 유지하세요. 이 키를 가진 누구나 귀하의 채널로 방송할 수 있습니다. 공개적으로 공유하거나 버전 관리에 커밋하지 마세요."
+      },
+      "buttons": {
+        "resetDefault": "기본값으로 재설정",
+        "save": "설정 저장",
+        "saving": "저장 중..."
+      },
+      "dialogs": {
+        "resetKey": {
+          "title": "스트림 키 초기화",
+          "description": "스트림 키를 초기화하시겠습니까? 새 키로 스트리밍 소프트웨어(OBS, 스트림랩스 등)를 업데이트해야 합니다. 현재 스트림이 활성화된 경우 중단됩니다.",
+          "resetting": "초기화 중...",
+          "confirm": "키 초기화"
+        },
+        "resetSettings": {
+          "title": "설정을 기본값으로 재설정",
+          "description": "모든 설정을 기본값으로 재설정하시겠습니까?",
+          "defaultLabel": "기본 설정:",
+          "defaults": {
+            "latency": "지연: 초저지연 (low)",
+            "reconnect": "재연결 유예 시간: 60초",
+            "enableDvr": "DVR: 사용",
+            "unlistReplay": "다시보기 비공개: 사용 안 함"
+          },
+          "resetting": "재설정 중...",
+          "confirm": "설정 재설정"
+        }
+      }
+    },
+    "tags": {
+      "placeholder": "태그 이름",
+      "add": "태그 추가",
+      "errors": {
+        "maxTags": "최대 {count}개의 태그만 허용됩니다",
+        "duplicate": "이미 존재하는 태그입니다"
+      },
+      "toasts": {
+        "added": "태그가 추가되었습니다!",
+        "addFailed": "태그 추가에 실패했습니다",
+        "removed": "태그가 삭제되었습니다!",
+        "removeFailed": "태그 삭제에 실패했습니다"
+      }
+    },
+    "thumbnail": {
+      "title": "썸네일 설정",
+      "subtitle": "스트림 썸네일을 관리하세요",
+      "preview": {
+        "alt": "스트림 썸네일",
+        "noThumb": "사용 가능한 썸네일이 없습니다",
+        "appearsWhenActive": "스트림이 활성화되면 썸네일이 표시됩니다",
+        "uploadHint": "미리보기를 위해 커스텀 썸네일을 업로드하세요"
+      },
+      "buttons": {
+        "upload": "커스텀 썸네일 업로드",
+        "uploading": "업로드 중...",
+        "save": "썸네일 저장"
+      },
+      "common": { "cancel": "취소" },
+      "status": {
+        "title": "현재 상태",
+        "customUpload": "커스텀 업로드",
+        "autoGenerated": "자동 생성",
+        "notAvailable": "사용 불가",
+        "source": "소스",
+        "yourUpload": "내 업로드",
+        "muxSource": "Mux (10초 업데이트)",
+        "none": "없음"
+      },
+      "requirements": {
+        "title": "요구 사항",
+        "size": "권장 크기: 1280x720px",
+        "maxFileSize": "최대 파일 크기: 5MB",
+        "formats": "지원 형식: JPG, PNG, WebP"
+      },
+      "tip": {
+        "title": "팁:",
+        "body": "Mux는 라이브 스트림으로부터 10초마다 자동으로 썸네일을 생성합니다. 언제든지 커스텀 썸네일을 업로드할 수 있습니다."
+      },
+      "active": {
+        "title": "커스텀 썸네일 사용 중",
+        "body": "이 스트림에 커스텀 썸네일이 적용되었습니다."
+      },
+      "best": {
+        "title": "모범 사례",
+        "tip1": "시선을 사로잡는 이미지를 사용하세요",
+        "tip2": "중요 요소가 중앙에 오도록 배치하세요",
+        "tip3": "글자가 너무 많은 썸네일은 피하세요"
+      },
+      "notice": {
+        "credentials": "스트림 자격 증명이 생성되면 썸네일 업로드가 가능합니다."
+      },
+      "errors": {
+        "onlyImages": "이미지 파일을 선택해주세요",
+        "maxSize": "이미지 크기는 5MB 미만이어야 합니다"
+      },
+      "toasts": {
+        "uploaded": "썸네일이 업로드되었습니다!",
+        "uploadFailed": "썸네일 업로드에 실패했습니다",
+        "removed": "썸네일이 삭제되었습니다!",
+        "removeFailed": "썸네일 삭제에 실패했습니다"
+      }
+    },
+    "chat": {
+      "title": "라이브 채팅",
+      "titlePopout": "라이브 채팅 (팝업)",
+      "labels": {
+        "user": "사용자",
+        "streamHost": "스트림 호스트"
+      },
+      "menu": {
+        "delete": "삭제",
+        "popup": "채팅 팝업",
+        "restore": "채팅 복원"
+      },
+      "deleted": {
+        "byHost": "호스트가 메시지를 삭제했습니다",
+        "bySuperAdmin": "슈퍼관리자가 메시지를 삭제했습니다",
+        "byAdmin": "관리자가 메시지를 삭제했습니다",
+        "generic": "메시지가 삭제되었습니다"
+      },
+      "form": {
+        "messageLabel": "메시지",
+        "placeholder": "메시지를 입력하세요..."
+      },
+      "poppedOut": {
+        "title": "채팅이 팝업으로 열렸습니다",
+        "restore": "채팅 복원"
+      }
+    }
+  },
+  "room": {
+    "header": {
+      "labels": {
+        "publicRoom": "공개 방",
+        "privateRoom": "비공개 방",
+        "public": "공개",
+        "private": "비공개",
+        "new": "NEW"
+      },
+      "edit": {
+        "tooltip": "방 설정 수정",
+        "shortcutMac": "⌘ + Shift + E",
+        "shortcutWin": "Ctrl + Shift + E",
+        "title": "방 설정 수정",
+        "description": "방 설정과 환경을 업데이트하세요."
+      },
+      "form": {
+        "roomName": "방 이름",
+        "roomNamePlaceholder": "방 이름 입력",
+        "roomType": "방 유형",
+        "roomTypePlaceholder": "방 유형 선택",
+        "tradingSymbol": "거래 심볼",
+        "tradingSymbolPlaceholder": "거래 심볼 선택"
+      },
+      "thumbnail": {
+        "title": "방 썸네일",
+        "previewAlt": "방 썸네일 미리보기",
+        "none": "썸네일이 선택되지 않았습니다",
+        "upload": "썸네일 업로드",
+        "change": "썸네일 변경"
+      },
+      "common": {
+        "cancel": "취소",
+        "saving": "저장 중...",
+        "saveChanges": "변경 사항 저장"
+      },
+      "sr": { "startLiveStream": "라이브 스트림 시작" },
+      "stats": {
+        "virtualBalance": "가상 잔액:",
+        "cumulativeProfit": "누적 수익률:"
+      },
+      "actions": {
+        "closeRoom": "방 닫기",
+        "leaveRoom": "방 나가기",
+        "leave": "나가기",
+        "close": "닫기"
+      },
+      "closeDialog": {
+        "title": "방 닫기",
+        "description": "이 작업은 되돌릴 수 없습니다. 방을 영구적으로 닫고 서버에서 데이터를 제거합니다."
+      },
+      "mobile": { "balance": "잔액:", "profit": "수익:" },
+      "stream": {
+        "button": "스트림",
+        "underConstruction": "라이브 스트리밍 기능은 곧 제공될 예정입니다!"
+      },
+      "errors": {
+        "nameRequired": "방 이름은 필수입니다",
+        "nameExists": "이미 존재하는 방 이름입니다",
+        "updateFailed": "방 업데이트에 실패했습니다",
+        "saveFailed": "변경 사항 저장에 실패했습니다"
+      },
+      "toasts": { "leaveFailed": "방 나가기에 실패했습니다" }
+    },
+    "donation": {
+      "openButton": "후원",
+      "title": "후원",
+      "receivedInThisRoom": "이 방에서 받은 후원:",
+      "noDonations": "아직 후원이 없습니다.",
+      "kor": "KOR",
+      "supportHost": "호스트를 코코인으로 후원해보세요!",
+      "placeholders": {
+        "enterAmount": "금액 입력",
+        "enterMessage": "메시지 추가 (선택)"
+      },
+      "yourBalance": "내 잔액:",
+      "buttons": { "donating": "후원 중...", "donate": "후원하기" },
+      "errors": {
+        "enterValidAmount": "유효한 금액을 입력하세요",
+        "insufficient": "코코인이 부족합니다"
+      },
+      "toast": {
+        "success": "후원이 완료되었습니다!",
+        "failed": "후원에 실패했습니다",
+        "userDonated": "{name} 님이 {amount} 코코인을 후원했습니다!"
+      }
+    }
   }
 }
