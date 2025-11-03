@@ -132,7 +132,7 @@ export function TpSlSection({
                       {t("tpsl.button")}
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-h-[90vh] !max-w-lg overflow-y-auto">
+                  <DialogContent className="max-h-[90vh] max-w-lg! overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>{t("tpsl.addTitle")}</DialogTitle>
                     </DialogHeader>
@@ -142,15 +142,21 @@ export function TpSlSection({
                       <div className="space-y-3">
                         <div className="grid grid-cols-3 gap-4 text-xs">
                           <div>
-                              <div className="text-muted-foreground">{t("price.label")}</div>
+                            <div className="text-muted-foreground">
+                              {t("price.label")}
+                            </div>
                             <div className="font-medium">$50,000</div>
                           </div>
                           <div>
-                              <div className="text-muted-foreground">{t("quantity.label")}</div>
+                            <div className="text-muted-foreground">
+                              {t("quantity.label")}
+                            </div>
                             <div className="font-medium">0.1 BTC</div>
                           </div>
                           <div>
-                              <div className="text-muted-foreground">{t("tpsl.lastTraded")}</div>
+                            <div className="text-muted-foreground">
+                              {t("tpsl.lastTraded")}
+                            </div>
                             <div className="font-medium">$49,500</div>
                           </div>
                         </div>
@@ -294,7 +300,9 @@ export function TpSlSection({
 
                     <DialogFooter className="mt-6">
                       <div className="grid w-full grid-cols-2 gap-2">
-                        <Button className="w-full h-10">{t("buttons.confirm")}</Button>
+                        <Button className="w-full h-10">
+                          {t("buttons.confirm")}
+                        </Button>
                         <DialogTrigger asChild>
                           <Button className="w-full h-10" variant="outline">
                             {t("buttons.cancel")}

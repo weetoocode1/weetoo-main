@@ -3925,6 +3925,8 @@
         "distance": "Distance"
       },
       "tpsl": {
+        "title": "TP/SL",
+        "notConfigured": "No TP/SL configured",
         "button": "TP/SL",
         "addTitle": "Add TP/SL",
         "lastTraded": "Last Traded Price",
@@ -3957,6 +3959,7 @@
         "orderValue": "Order Value",
         "liqEst": "Liquidation (est.)",
         "invalid": "Please enter a valid price and quantity to continue.",
+        "insufficientBalance": "Insufficient balance. Total cost: {totalCost} USDT, Available: {availableBalance} USDT",
         "confirmLong": "Confirm Long",
         "confirmShort": "Confirm Short",
         "long": "Long",

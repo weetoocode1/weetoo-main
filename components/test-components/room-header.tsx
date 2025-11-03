@@ -201,9 +201,9 @@ export function RoomHeader({
   //   { name: "K. Park", amount: "$5.00" },
   // ];
 
-  // Live stats
+  // Live stats - Ensure virtual balance never goes negative (minimum is 0)
   const [virtualBalanceUsd, setVirtualBalanceUsd] = useState<number>(
-    Number(room.virtual_balance || 0)
+    Math.max(0, Number(room.virtual_balance || 0))
   );
   const [cumulativeProfitRatePct, setCumulativeProfitRatePct] =
     useState<number>(0);
@@ -257,7 +257,10 @@ export function RoomHeader({
         },
         (payload: RealtimePayload) => {
           const vb = Number(payload.new?.virtual_balance);
-          if (!Number.isNaN(vb)) setVirtualBalanceUsd(vb);
+          if (!Number.isNaN(vb)) {
+            // Ensure virtual balance never goes negative (minimum is 0)
+            setVirtualBalanceUsd(Math.max(0, vb));
+          }
         }
       )
       .on(
@@ -281,7 +284,8 @@ export function RoomHeader({
 
     // Initial compute
     refreshCumulative();
-    setVirtualBalanceUsd(Number(room.virtual_balance || 0));
+    // Ensure virtual balance never goes negative (minimum is 0)
+    setVirtualBalanceUsd(Math.max(0, Number(room.virtual_balance || 0)));
 
     return () => {
       supabase.removeChannel(channel);

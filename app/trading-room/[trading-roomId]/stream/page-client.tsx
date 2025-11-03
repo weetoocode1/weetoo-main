@@ -197,9 +197,13 @@ export function StreamPageClient({ roomId }: StreamPageClientProps) {
   }
 
   return (
-    <div className="flex h-full w-full gap-2 p-4 overflow-y-auto scrollbar-none">
-      <StreamDashboard streamData={streamData} roomId={roomId} />
+    <div className="flex h-full w-full gap-2 p-4 overflow-y-auto scrollbar-none flex-col lg:flex-row">
+      <div className="flex-1 min-w-0">
+        <StreamDashboard streamData={streamData} roomId={roomId} />
+      </div>
+      <div className="w-full lg:w-[420px] shrink-0 lg:h-full">
       <StreamChat />
+      </div>
     </div>
   );
 }

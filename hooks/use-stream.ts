@@ -64,10 +64,14 @@ export function useUpdateStream() {
         throw new Error(errorData.error || "Failed to update stream");
       }
 
-      return response.json();
+      const result = await response.json();
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["stream"] });
+      if (data.warning) {
+        toast.warning(data.warning);
+      }
     },
   });
 }

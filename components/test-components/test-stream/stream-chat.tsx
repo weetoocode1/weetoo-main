@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useLocale, useTranslations } from "next-intl";
 import { Donation } from "@/components/room/donation";
+import { toast } from "sonner";
 
 // ===== DONATION RENDERING HELPERS =====
 type DonationTierClasses = {
@@ -107,9 +108,11 @@ type ChatMessage = {
 export function StreamChat({
   roomId: roomIdProp,
   showDonation,
+  disablePopout = false,
 }: {
   roomId?: string;
   showDonation?: boolean;
+  disablePopout?: boolean;
 }) {
   const t = useTranslations("stream.chat");
   const locale = useLocale();
@@ -307,8 +310,18 @@ export function StreamChat({
         {messages.map((m) => {
           const isDonation =
             typeof m.donationAmount === "number" && m.donationAmount! > 0;
-          const name = m.user?.first_name || t("labels.user");
-          const initials = name.slice(0, 1).toUpperCase();
+          const fullName = m.user
+            ? `${m.user.first_name || ""} ${m.user.last_name || ""}`.trim()
+            : "";
+          const name = fullName || t("labels.user");
+          const initials = fullName
+            ? fullName
+                .split(" ")
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((s) => s[0]?.toUpperCase())
+                .join("") || name.slice(0, 2).toUpperCase()
+            : name.slice(0, 1).toUpperCase();
           const isHost = creatorId && m.user_id === creatorId;
           const isMessageOwner = userId === m.user_id;
           const isUserAdmin =
@@ -577,17 +590,50 @@ export function StreamChat({
       e.preventDefault();
       const trimmed = message.trim();
       if (!trimmed) return;
-      // Persist to DB
       (async () => {
         try {
           if (!roomId || !userId) return;
-          await supabase.current.from("trading_room_messages").insert({
-            room_id: roomId,
-            user_id: userId,
-            message: trimmed,
+          const response = await fetch(`/api/trading-room/${roomId}/messages`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: trimmed }),
           });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || "Failed to send message");
+          }
+
+          const data = await response.json();
+
+          let currentUser: ChatUser | null = null;
+          try {
+            const { data: u } = await supabase.current
+              .from("users")
+              .select("id, first_name, last_name, avatar_url")
+              .eq("id", userId)
+              .single();
+            currentUser = (u as unknown as ChatUser) || null;
+          } catch {}
+
           setMessage("");
-        } catch {}
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: data.id,
+              room_id: roomId,
+              user_id: userId,
+              message: trimmed,
+              created_at: data.created_at,
+              user: currentUser,
+            },
+          ]);
+        } catch (error) {
+          console.error("Failed to send chat message:", error);
+          toast.error(
+            error instanceof Error ? error.message : "Failed to send message"
+          );
+        }
       })();
     },
     [message, roomId, userId]
@@ -690,41 +736,43 @@ export function StreamChat({
   return (
     <div
       key={locale}
-      className="w-[500px] h-full border border-border flex flex-col bg-card text-card-foreground min-w-0 overflow-hidden"
+      className="w-[425px] h-full border border-border flex flex-col bg-card text-card-foreground min-w-0 overflow-hidden"
     >
       <div className="h-12 border-b border-border flex items-center justify-between px-3">
         <span>{t("title")}</span>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="cursor-pointer h-7 w-7 rounded-none"
-            >
-              <MoreVerticalIcon className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="bottom" align="end" className="w-48">
-            {!isPoppedOut && (
-              <DropdownMenuItem
-                className="cursor-pointer h-10"
-                onClick={openPopout}
+        {!disablePopout && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="cursor-pointer h-7 w-7 rounded-none"
               >
-                <MessageSquareIcon className="h-4 w-4" />
-                {t("menu.popup")}
-              </DropdownMenuItem>
-            )}
-            {isPoppedOut && (
-              <DropdownMenuItem
-                className="cursor-pointer h-10"
-                onClick={restoreFromPopout}
-              >
-                <MessageSquareIcon className="h-4 w-4" />
-                {t("menu.restore")}
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+                <MoreVerticalIcon className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="bottom" align="end" className="w-48">
+              {!isPoppedOut && (
+                <DropdownMenuItem
+                  className="cursor-pointer h-10"
+                  onClick={openPopout}
+                >
+                  <MessageSquareIcon className="h-4 w-4" />
+                  {t("menu.popup")}
+                </DropdownMenuItem>
+              )}
+              {isPoppedOut && (
+                <DropdownMenuItem
+                  className="cursor-pointer h-10"
+                  onClick={restoreFromPopout}
+                >
+                  <MessageSquareIcon className="h-4 w-4" />
+                  {t("menu.restore")}
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
       {!isPoppedOut ? (
         <>

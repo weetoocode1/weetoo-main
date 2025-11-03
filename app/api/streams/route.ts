@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       // Public query - only return public fields needed for viewing
       let publicQuery = supabase
         .from("user_streams")
-        .select("stream_id, playback_id, status, started_at, custom_thumbnail_url, room_id")
+        .select("stream_id, playback_id, status, started_at, custom_thumbnail_url, room_id, latency_mode, reconnect_window, enable_dvr, unlist_replay, stream_key, rtmp_url")
         .eq("room_id", roomId)
         .order("created_at", { ascending: false });
 

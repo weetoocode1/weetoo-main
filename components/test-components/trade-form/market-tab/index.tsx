@@ -352,6 +352,11 @@ function MarketTabInner({
         symbol={symbol}
         leverage={1}
         feeRate={FEE_RATE}
+        availableBalance={availableBalance}
+        tpEnabled={tpEnabled}
+        slEnabled={slEnabled}
+        takeProfitValue={takeProfitValue}
+        stopLossValue={stopLossValue}
         onConfirm={openMarketPosition}
       />
     </div>
