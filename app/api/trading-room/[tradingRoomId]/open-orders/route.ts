@@ -218,87 +218,87 @@ export async function PATCH(
           ? entryPrice * (1 - 1 / lev + MMR)
           : entryPrice * (1 + 1 / lev - MMR);
 
-      // Insert position with TP/SL data
-      const { data: pos, error: insErr } = await supabase
-        .from("trading_room_positions")
-        .insert([
+      // Calculate TP/SL values for RPC
+      const hasValidTp =
+        order.tp_enabled &&
+        order.take_profit_price &&
+        order.take_profit_price > 0;
+      const hasValidSl =
+        order.sl_enabled && order.stop_loss_price && order.stop_loss_price > 0;
+
+      // Use RPC function for atomic position creation + balance deduction
+      // This ensures both operations succeed or both fail, with built-in balance checks
+      const { error: rpcError } = await supabase.rpc(
+        "open_position_and_update_balance",
+        {
+          p_room_id: tradingRoomId,
+          p_user_id: order.user_id,
+          p_symbol: order.symbol,
+          p_side: order.side,
+          p_quantity: qty,
+          p_entry_price: entryPrice,
+          p_leverage: lev,
+          p_fee: openFee,
+          p_initial_margin: initialMargin,
+          p_liquidation_price: liq,
+          p_order_type: "limit",
+          p_status: "filled",
+          p_tp_enabled: hasValidTp,
+          p_sl_enabled: hasValidSl,
+          p_take_profit_price: hasValidTp ? order.take_profit_price : null,
+          p_stop_loss_price: hasValidSl ? order.stop_loss_price : null,
+        }
+      );
+
+      if (rpcError) {
+        console.error("RPC error:", rpcError);
+        // RPC function handles insufficient balance and other errors
+        return NextResponse.json(
           {
-            room_id: tradingRoomId,
-            user_id: order.user_id,
-            symbol: order.symbol,
-            side: order.side,
-            quantity: qty,
-            size,
-            entry_price: entryPrice,
-            initial_margin: initialMargin,
-            leverage: lev,
-            fee: openFee,
-            liquidation_price: liq,
-            order_type: "limit",
-            status: "filled",
-            // TP/SL columns - ensure proper null handling for constraint
-            tp_enabled: order.tp_enabled || false,
-            sl_enabled: order.sl_enabled || false,
-            take_profit_price:
-              order.tp_enabled &&
-              order.take_profit_price &&
-              order.take_profit_price > 0
-                ? order.take_profit_price
-                : null,
-            stop_loss_price:
-              order.sl_enabled &&
-              order.stop_loss_price &&
-              order.stop_loss_price > 0
-                ? order.stop_loss_price
-                : null,
+            error: rpcError.message || "Failed to create position",
+            details: rpcError.message,
           },
-        ])
-        .select("id")
-        .single();
-      if (insErr)
-        return NextResponse.json(
-          { error: "Failed to create position" },
-          { status: 500 }
-        );
-
-      // Fetch current balance and prevent negative balance
-      const { data: roomRow } = await supabase
-        .from("trading_rooms")
-        .select("virtual_balance")
-        .eq("id", tradingRoomId)
-        .single();
-      const current = Number(roomRow?.virtual_balance ?? 0);
-
-      // Strict guard: ensure sufficient funds before proceeding
-      const requiredCost = initialMargin + openFee;
-      if (!Number.isFinite(current) || current < requiredCost) {
-        return NextResponse.json(
-          { error: "Insufficient balance for required margin and fees" },
           { status: 400 }
         );
       }
 
-      const nextBalance = Math.max(0, current - requiredCost);
-      const { error: balErr } = await supabase
-        .from("trading_rooms")
-        .update({ virtual_balance: nextBalance })
-        .eq("id", tradingRoomId);
-      if (balErr)
+      // Query the created position to get its ID
+      const { data: posData, error: fetchErr } = await supabase
+        .from("trading_room_positions")
+        .select("id")
+        .eq("room_id", tradingRoomId)
+        .eq("user_id", order.user_id)
+        .eq("symbol", order.symbol)
+        .eq("side", order.side)
+        .eq("entry_price", entryPrice)
+        .eq("quantity", qty)
+        .is("closed_at", null)
+        .order("opened_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (fetchErr || !posData) {
+        console.error("Failed to fetch created position:", fetchErr);
         return NextResponse.json(
-          { error: "Failed to update balance" },
+          {
+            error: "Position created but failed to retrieve",
+            details: fetchErr?.message,
+          },
           { status: 500 }
         );
+      }
+
+      const pos = { id: posData.id };
+
+      // Position is already created with all fields via RPC function
+      // No need to update after creation (avoids trigger restrictions)
 
       // Create TP/SL orders if enabled (after position is created)
       const tpSlOrders = [];
       let tpOrderId = null;
       let slOrderId = null;
 
-      if (
-        order.tp_enabled &&
-        order.take_profit_price &&
-        order.take_profit_price > 0
-      ) {
+      if (hasValidTp) {
         const { data: tpOrder, error: tpError } = await supabase
           .from("trading_room_tp_sl_orders")
           .insert({
@@ -323,11 +323,7 @@ export async function PATCH(
         }
       }
 
-      if (
-        order.sl_enabled &&
-        order.stop_loss_price &&
-        order.stop_loss_price > 0
-      ) {
+      if (hasValidSl) {
         const { data: slOrder, error: slError } = await supabase
           .from("trading_room_tp_sl_orders")
           .insert({

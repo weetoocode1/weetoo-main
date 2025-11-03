@@ -70,3 +70,10 @@ errors.txt
 rsa.pem
 pkcs8.pem
 .pem*
+
+# scripts
+/scripts/
+/scripts/*
+@/scripts/
+scripts/*
+@scripts/*

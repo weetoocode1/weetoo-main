@@ -305,22 +305,51 @@ export function PositionsTabs({
               ? "opacity-50 cursor-not-allowed"
               : "hover:bg-muted/30 cursor-pointer"
           }`}
+          draggable={false}
           onMouseDown={(e) => {
             e.stopPropagation(); // Stop event bubbling up to parent grid item
             e.preventDefault(); // Prevent default browser drag behavior
-            // This is crucial - prevents react-grid-layout from detecting drag initiation
+            // Prevent react-grid-layout from detecting drag initiation
+            if (e.nativeEvent.stopImmediatePropagation) {
+              e.nativeEvent.stopImmediatePropagation();
+            }
+          }}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            if (e.nativeEvent.stopImmediatePropagation) {
+              e.nativeEvent.stopImmediatePropagation();
+            }
+          }}
+          onTouchStart={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            if (e.nativeEvent.stopImmediatePropagation) {
+              e.nativeEvent.stopImmediatePropagation();
+            }
           }}
           onClick={(e) => {
             e.stopPropagation(); // Ensure onClick also stops propagation
             e.preventDefault(); // Prevent default button behavior
+            if (e.nativeEvent.stopImmediatePropagation) {
+              e.nativeEvent.stopImmediatePropagation(); // Stop all event listeners
+            }
             handleClosePosition(pos);
           }}
+          onPointerUp={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
           disabled={isClosing}
-          data-grid-no-drag
+          data-grid-no-drag="true"
+          data-no-drag="true"
           style={{
             pointerEvents: "auto",
             position: "relative",
             zIndex: 9999,
+            touchAction: "manipulation",
+            WebkitUserSelect: "none",
+            userSelect: "none",
           }}
         >
           {isClosing ? t("actions.closing") : t("actions.close")}
@@ -396,17 +425,29 @@ export function PositionsTabs({
     <div
       className="h-full flex flex-col"
       onMouseDown={(e) => {
-        // Only stop propagation if the event target is NOT the close button or its immediate children.
-        // This makes sure the parent's onMouseDown doesn't interfere with the button's own event handling.
         const target = e.target as HTMLElement;
         const isCloseButton = target.closest(
-          'button[data-grid-no-drag][type="button"]'
+          'button[data-grid-no-drag="true"][type="button"]'
         );
-        if (!isCloseButton) {
+        if (isCloseButton) {
           e.stopPropagation();
+          e.preventDefault();
+          return;
         }
       }}
-      data-grid-no-drag
+      onPointerDown={(e) => {
+        const target = e.target as HTMLElement;
+        const isCloseButton = target.closest(
+          'button[data-grid-no-drag="true"][type="button"]'
+        );
+        if (isCloseButton) {
+          e.stopPropagation();
+          e.preventDefault();
+          return;
+        }
+      }}
+      data-grid-no-drag="true"
+      style={{ touchAction: "pan-y" }}
     >
       <div className="flex-1 overflow-hidden">
         <SimpleTable

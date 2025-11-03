@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useTranslations } from "next-intl";
 
 interface QuantityMarketInputProps {
@@ -41,23 +41,29 @@ export function QuantityMarketInput({
   const qtyInputId = "limit-qty-input";
   const t = useTranslations("trade.form");
 
-  // Local input value mirroring Limit tab logic (allow empty, 0, and intermediate states)
-  const [inputValue, setInputValue] = useState<number | string>("");
+  const [inputValue, setInputValue] = useState<string>("");
+  const isUserTypingRef = useRef<boolean>(false);
 
-  // Update input value when mode or leverage changes
   useEffect(() => {
+    if (isUserTypingRef.current) return;
+
     if (placementMode === "value") {
-      // Input shows INITIAL MARGIN (USDT)
       let capital = valueModeCapital || 0;
       if (!capital && qty > 0 && price > 0 && leverage > 0) {
         capital = (qty * price) / leverage;
         onValueModeCapitalChange?.(capital);
       }
-      const display = Math.round(capital * 100) / 100;
-      setInputValue(display === 0 ? "" : display);
+      if (capital > 0) {
+        setInputValue(capital.toString());
+      } else {
+        setInputValue("");
+      }
     } else {
-      const displayQty = Math.round((qty || 0) * 100) / 100;
-      setInputValue(displayQty === 0 ? "" : displayQty);
+      if (qty > 0) {
+        setInputValue(qty.toString());
+      } else {
+        setInputValue("");
+      }
     }
   }, [
     placementMode,
@@ -69,6 +75,8 @@ export function QuantityMarketInput({
   ]);
 
   const handleInputChange = (raw: string) => {
+    isUserTypingRef.current = true;
+
     if (raw === "") {
       setInputValue("");
       setQty(0);
@@ -76,40 +84,82 @@ export function QuantityMarketInput({
       return;
     }
 
-    // Allow intermediate states like "0." or "0.0" while typing
-    if (raw === "0." || raw.endsWith(".") || /^0\.0*$/.test(raw)) {
-      setInputValue(raw);
+    const decimalCount = (raw.match(/\./g) || []).length;
+    if (decimalCount > 1) {
+      return;
+    }
+
+    if (raw.startsWith(".")) {
+      const normalized = "0" + raw;
+      setInputValue(normalized);
+      const num = Number(normalized);
+      if (!isNaN(num) && num >= 0) {
+        if (placementMode === "value") {
+          const capital = num;
+          const orderValue = capital * (leverage || 1);
+          onValueModeCapitalChange?.(capital);
+          const computed = price > 0 ? orderValue / price : 0;
+          setQty(computed);
+          if (typeof window !== "undefined") {
+            (
+              window as unknown as Record<string, unknown>
+            )._limit_user_capital_ref = { current: capital };
+          }
+        } else {
+          setQty(num);
+          if (price > 0 && leverage > 0) {
+            const capital = (num * price) / leverage;
+            if (typeof window !== "undefined") {
+              (
+                window as unknown as Record<string, unknown>
+              )._limit_user_capital_ref = {
+                current: capital,
+              };
+            }
+          }
+        }
+      }
       return;
     }
 
     const num = Number(raw);
-    if (isNaN(num)) {
-      return; // Invalid input, don't update
+    if (isNaN(num) || num < 0) {
+      return;
     }
 
-    setInputValue(num);
+    setInputValue(raw);
+
     if (placementMode === "value") {
       const capital = num;
       const orderValue = capital * (leverage || 1);
       onValueModeCapitalChange?.(capital);
       const computed = price > 0 ? orderValue / price : 0;
-      setQty(Math.round(computed * 100000000) / 100000000);
+      setQty(computed);
       if (typeof window !== "undefined") {
         (window as unknown as Record<string, unknown>)._limit_user_capital_ref =
           { current: capital };
       }
     } else {
-      setQty(Math.round(num * 100000000) / 100000000);
+      setQty(num);
       if (price > 0 && leverage > 0) {
         const capital = (num * price) / leverage;
         if (typeof window !== "undefined") {
           (
             window as unknown as Record<string, unknown>
           )._limit_user_capital_ref = {
-            current: Math.round(capital * 100) / 100,
+            current: capital,
           };
         }
       }
+    }
+  };
+
+  const handleBlur = () => {
+    isUserTypingRef.current = false;
+    if (inputValue === "" || inputValue === "." || inputValue === "0.") {
+      setInputValue("");
+      setQty(0);
+      onValueModeCapitalChange?.(0);
     }
   };
 
@@ -122,9 +172,12 @@ export function QuantityMarketInput({
         <Input
           id={qtyInputId}
           type="number"
+          inputMode="decimal"
+          step="any"
           value={inputValue}
           placeholder="0"
           onChange={(e) => handleInputChange(e.target.value)}
+          onBlur={handleBlur}
           className="pr-20 h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
         <Dialog>
@@ -159,7 +212,9 @@ export function QuantityMarketInput({
                           : "border-muted-foreground"
                       }`}
                     />
-                    <span className="text-sm font-medium">{t("quantity.dialog.orderByQtyShort")}</span>
+                    <span className="text-sm font-medium">
+                      {t("quantity.dialog.orderByQtyShort")}
+                    </span>
                   </div>
                   <span className="text-xs text-muted-foreground">BTC</span>
                 </div>
@@ -183,7 +238,9 @@ export function QuantityMarketInput({
                           : "border-muted-foreground"
                       }`}
                     />
-                    <span className="text-sm font-medium">{t("quantity.dialog.orderByValue")}</span>
+                    <span className="text-sm font-medium">
+                      {t("quantity.dialog.orderByValue")}
+                    </span>
                     <span className="ml-1 rounded-sm bg-primary/10 px-1 text-[10px] font-medium text-primary">
                       {t("badges.new")}
                     </span>
