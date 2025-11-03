@@ -368,17 +368,18 @@ export function TradingTabs({ symbol, roomId }: TradingTabsProps) {
   };
 
   const tabs = [
-    { id: "open-orders", label: t("openOrders", { count: openOrdersCount }) },
-    {
-      id: "scheduled-orders",
-      label: t("scheduledOrders", { count: scheduledOrdersCount }),
-    },
     {
       id: "positions",
       label: t("positions", {
         count: openPositions ? openPositions.length : 0,
       }),
     },
+    { id: "open-orders", label: t("openOrders", { count: openOrdersCount }) },
+    {
+      id: "scheduled-orders",
+      label: t("scheduledOrders", { count: scheduledOrdersCount }),
+    },
+
     { id: "order-history", label: t("history", { count: historyCount }) },
   ];
 
