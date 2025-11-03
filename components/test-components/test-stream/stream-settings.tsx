@@ -130,8 +130,10 @@ export function StreamSettings({ streamData }: StreamSettingsProps) {
         },
       },
       {
-        onSuccess: () => {
-          toast.success(t("toasts.saved"));
+        onSuccess: (data) => {
+          if (!data.warning) {
+            toast.success(t("toasts.saved"));
+          }
         },
         onError: (error) => {
           toast.error(error.message || t("toasts.saveFailed"));
@@ -167,8 +169,10 @@ export function StreamSettings({ streamData }: StreamSettingsProps) {
         },
       },
       {
-        onSuccess: () => {
-          toast.success(t("toasts.resetToDefault"));
+        onSuccess: (data) => {
+          if (!data.warning) {
+            toast.success(t("toasts.resetToDefault"));
+          }
         },
         onError: (error) => {
           toast.error(error.message || t("toasts.resetFailed"));

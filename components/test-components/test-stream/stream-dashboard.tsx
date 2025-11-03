@@ -41,21 +41,23 @@ interface CustomTabsProps {
 
 function CustomTabs({ tabs, activeTab, onTabChange }: CustomTabsProps) {
   return (
-    <div className="flex border-b border-border">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          onClick={() => onTabChange(tab.id)}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 cursor-pointer ${
-            activeTab === tab.id
-              ? "border-primary text-primary bg-primary/5"
-              : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-          }`}
-        >
-          {tab.icon}
-          {tab.label}
-        </button>
-      ))}
+    <div className="flex border-b border-border overflow-x-auto scrollbar-none">
+      <div className="flex min-w-0">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => onTabChange(tab.id)}
+            className={`shrink-0 flex items-center gap-2 px-4 py-2.5 text-sm sm:text-sm font-medium transition-colors border-b-2 cursor-pointer ${
+              activeTab === tab.id
+                ? "border-primary text-primary bg-primary/5"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+            }`}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -312,6 +314,8 @@ export function StreamDashboard({ streamData, roomId }: StreamDashboardProps) {
 
   const currentLatency = streamData?.latencyMode
     ? latencyModeMap[streamData.latencyMode] || "Unknown"
+    : streamData?.streamId
+    ? "Ultra Low"
     : "Unknown";
 
   const getElapsedTime = (): string => {
@@ -437,8 +441,8 @@ export function StreamDashboard({ streamData, roomId }: StreamDashboardProps) {
         </div>
       </div>
 
-      <div className="py-2 flex gap-2">
-        <div className="aspect-video w-full max-w-xl border border-border overflow-hidden">
+      <div className="py-2 flex flex-col lg:flex-row gap-2">
+        <div className="aspect-video w-full lg:max-w-xl border border-border overflow-hidden">
           {streamData?.playbackId && isOnline ? (
             <MuxPlayer
               streamType="live"
@@ -463,7 +467,7 @@ export function StreamDashboard({ streamData, roomId }: StreamDashboardProps) {
           )}
         </div>
         {/* Stream Info */}
-        <div className="flex-1 border border-border text-card-foreground p-4">
+        <div className="flex-1 min-w-0 border border-border text-card-foreground p-4">
           <div className="flex items-start justify-between">
             <div className="flex-1 pl-3 border-l-2 border-l-primary">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">

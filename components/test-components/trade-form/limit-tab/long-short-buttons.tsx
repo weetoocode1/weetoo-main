@@ -13,6 +13,11 @@ interface LongShortButtonsProps {
   symbol?: string;
   leverage?: number;
   feeRate: number; // e.g., 0.0005
+  availableBalance?: number; // Virtual balance from room
+  tpEnabled?: boolean;
+  slEnabled?: boolean;
+  takeProfitValue?: number;
+  stopLossValue?: number;
   onConfirm?: (params: {
     side: "LONG" | "SHORT";
     price: number;
@@ -33,6 +38,11 @@ export function LongShortButtons({
   symbol,
   leverage = 1,
   feeRate,
+  availableBalance = 0,
+  tpEnabled = false,
+  slEnabled = false,
+  takeProfitValue = 0,
+  stopLossValue = 0,
   onConfirm,
 }: LongShortButtonsProps) {
   const [open, setOpen] = useState(false);
@@ -59,13 +69,18 @@ export function LongShortButtons({
       : entry * (1 + 1 / lev - mmr);
   };
 
-  const { orderValue, fee, totalCost, canConfirm } = useMemo(() => {
+  const { orderValue, fee, totalCost, canConfirm, isInsufficientBalance } = useMemo(() => {
     const ov = (Number(price) || 0) * (Number(qty) || 0);
     const f = ov * (Number(feeRate) || 0);
-    const tc = ov + f;
+    // Total cost = Initial Margin (orderValue / leverage) + Fee
+    // This matches the calculation in value-cost-section.tsx
+    const initialMargin = leverage > 0 ? ov / leverage : 0;
+    const tc = initialMargin + f;
     const ok = ov > 0 && Number.isFinite(ov) && (Number(price) || 0) > 0;
-    return { orderValue: ov, fee: f, totalCost: tc, canConfirm: ok };
-  }, [price, qty, feeRate]);
+    // Check if total cost exceeds available balance
+    const insufficient = tc > (Number(availableBalance) || 0);
+    return { orderValue: ov, fee: f, totalCost: tc, canConfirm: ok, isInsufficientBalance: insufficient };
+  }, [price, qty, feeRate, leverage, availableBalance]);
 
   const formatUSDT = (n: number) =>
     Number.isFinite(n)
@@ -83,7 +98,7 @@ export function LongShortButtons({
       : "0";
 
   const handleConfirm = () => {
-    if (!canConfirm) return;
+    if (!canConfirm || isInsufficientBalance) return;
     onConfirm?.({
       side,
       price,
@@ -192,14 +207,46 @@ export function LongShortButtons({
                 />
               </div>
 
+              {/* TP/SL Section - Only show if TP or SL is enabled and has a value */}
+              {((tpEnabled && takeProfitValue > 0) || (slEnabled && stopLossValue > 0)) && (
+                <div className="rounded-md border divide-y border-border bg-background/60">
+                  <div className="px-4 py-2 bg-muted/30 border-b">
+                    <span className="text-xs font-semibold text-foreground">
+                      {t("tpsl.title")}
+                    </span>
+                  </div>
+                  {tpEnabled && takeProfitValue > 0 && (
+                    <KV
+                      label={t("tpsl.basic.enableTp")}
+                      value={`${formatUSDT(takeProfitValue)} USDT`}
+                    />
+                  )}
+                  {slEnabled && stopLossValue > 0 && (
+                    <KV
+                      label={t("tpsl.basic.enableSl")}
+                      value={`${formatUSDT(stopLossValue)} USDT`}
+                    />
+                  )}
+                </div>
+              )}
+
               <div className="rounded-md border border-border bg-accent/20 px-4 py-3 flex items-center justify-between">
                   <span className="text-sm font-semibold">{t("valueCost.totalCost")}</span>
-                <span className="text-xl font-bold tabular-nums font-mono">
+                <span className={`text-xl font-bold tabular-nums font-mono ${isInsufficientBalance ? "text-red-500" : ""}`}>
                   {formatUSDT(totalCost)} USDT
                 </span>
               </div>
 
-              {!canConfirm && (
+              {isInsufficientBalance && (
+                <div className="text-[11px] text-red-500 bg-red-500/10 border border-red-500/30 rounded-md px-3 py-2">
+                  {t("longShort.insufficientBalance", { 
+                    totalCost: formatUSDT(totalCost),
+                    availableBalance: formatUSDT(availableBalance)
+                  })}
+                </div>
+              )}
+
+              {!canConfirm && !isInsufficientBalance && (
                 <div className="text-[11px] text-amber-500 bg-amber-500/10 border border-amber-500/30 rounded-md px-3 py-2">
                     {t("longShort.invalid")}
                 </div>
@@ -211,7 +258,7 @@ export function LongShortButtons({
               <div className="grid w-full grid-cols-2 gap-2">
                 <Button
                   type="button"
-                  disabled={!canConfirm}
+                  disabled={!canConfirm || isInsufficientBalance}
                   onClick={handleConfirm}
                   className={`${
                     side === "LONG"

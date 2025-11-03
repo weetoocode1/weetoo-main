@@ -427,6 +427,11 @@ function LimitTabInner({
         symbol={symbol}
         leverage={leverage}
         feeRate={FEE_RATE}
+        availableBalance={availableBalance}
+        tpEnabled={tpEnabled}
+        slEnabled={slEnabled}
+        takeProfitValue={takeProfitValue}
+        stopLossValue={stopLossValue}
         onConfirm={handleLimitOrderConfirm}
       />
     </div>

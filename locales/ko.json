@@ -5141,6 +5141,8 @@
         "distance": "거리"
       },
       "tpsl": {
+        "title": "TP/SL",
+        "notConfigured": "TP/SL이 설정되지 않았습니다",
         "button": "TP/SL",
         "addTitle": "TP/SL 추가",
         "lastTraded": "최근 체결가",
@@ -5173,6 +5175,7 @@
         "orderValue": "주문 가치",
         "liqEst": "청산가 (추정)",
         "invalid": "유효한 가격과 수량을 입력하세요.",
+        "insufficientBalance": "잔액이 부족합니다. 총 비용: {totalCost} USDT, 사용 가능: {availableBalance} USDT",
         "confirmLong": "롱 확인",
         "confirmShort": "숏 확인",
         "long": "롱",

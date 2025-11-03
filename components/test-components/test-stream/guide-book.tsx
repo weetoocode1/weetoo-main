@@ -210,40 +210,42 @@ export function GuideBook() {
           <BookIcon className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[760px] p-0 overflow-hidden">
-        <div className="px-6 pt-5">
-          <div className="flex items-center justify-between">
-            <div className="text-xs text-muted-foreground">
-              {tu("stepOfTotal", { step, total })}
+      <DialogContent className="sm:max-w-[760px] p-0 overflow-hidden max-h-[85vh] flex flex-col">
+        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+          <div className="px-6 pt-5 pb-3">
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-muted-foreground">
+                {tu("stepOfTotal", { step, total })}
+              </div>
+              <div className="flex items-center gap-1.5">
+                {Array.from({ length: total }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      i + 1 === step ? "bg-primary" : "bg-muted-foreground/30"
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              {Array.from({ length: total }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`h-1.5 w-1.5 rounded-full ${
-                    i + 1 === step ? "bg-primary" : "bg-muted-foreground/30"
-                  }`}
-                />
-              ))}
-            </div>
+            <DialogHeader className="p-0 mt-2">
+              <DialogTitle className="text-xl">
+                {step}. {steps[step - 1].title}
+              </DialogTitle>
+              <DialogDescription className="text-sm">
+                {steps[step - 1].description}
+              </DialogDescription>
+            </DialogHeader>
           </div>
-          <DialogHeader className="p-0 mt-2">
-            <DialogTitle className="text-xl">
-              {step}. {steps[step - 1].title}
-            </DialogTitle>
-            <DialogDescription className="text-sm">
-              {steps[step - 1].description}
-            </DialogDescription>
-          </DialogHeader>
         </div>
 
-        <div className="px-6 pb-4">
+        <div className="px-6 pb-4 flex-1 overflow-auto min-h-0">
           <div className="rounded-md bg-muted/10 p-4 text-sm leading-relaxed">
             {steps[step - 1].body}
           </div>
         </div>
 
-        <div className="px-6 py-3 border-t border-border flex items-center justify-between bg-background/50">
+        <div className="px-6 py-3 border-t border-border flex items-center justify-between bg-background/90 backdrop-blur sticky bottom-0 z-10">
           <div />
           <DialogFooter className="m-0 p-0">
             <div className="flex items-center gap-2">

@@ -280,8 +280,8 @@ export function Viewer({ roomId }: ViewerProps) {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen w-full bg-background gap-2 p-4 overflow-hidden">
-      <div className="flex-1 flex flex-col min-w-0 lg:min-h-0">
+    <div className="flex flex-col lg:flex-row h-screen w-full bg-background gap-1 p-4 overflow-hidden">
+      <div className="flex-1 flex flex-col w-full min-w-0 lg:min-h-0">
         <div className="flex-1 w-full border border-border bg-background rounded-none overflow-hidden relative aspect-video lg:aspect-auto">
           {hasPlaybackId && streamData?.playbackId && isActive ? (
             <>
@@ -319,7 +319,7 @@ export function Viewer({ roomId }: ViewerProps) {
         </div>
 
         {/* Meta section styled similar to YouTube */}
-        <div className="mt-3 px-2">
+        <div className="mt-1 p-2 bg-background border">
           <div className="flex items-start justify-between gap-3">
             <h1 className="text-xl font-semibold leading-7 text-foreground truncate">
               {roomName || "Live Stream"}
@@ -375,9 +375,7 @@ export function Viewer({ roomId }: ViewerProps) {
         </div>
       </div>
 
-      <div className="w-full lg:w-[500px] shrink-0 lg:h-full">
-        <StreamChat roomId={roomId} showDonation />
-      </div>
+      <StreamChat roomId={roomId} showDonation disablePopout />
     </div>
   );
 }

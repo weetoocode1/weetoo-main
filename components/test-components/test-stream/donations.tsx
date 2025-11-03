@@ -105,9 +105,10 @@ export function Donations({
 
   const displayName = (u: DonationRow["users"], uid: string) => {
     if (!u) return uid.slice(0, 6) + "…";
-    const nickname = u.nickname?.trim();
+    // Prefer real name (first_name + last_name) over nickname/email for consistency with chat
     const full = `${u.first_name || ""} ${u.last_name || ""}`.trim();
-    return nickname || full || u.email || uid;
+    const nickname = u.nickname?.trim();
+    return full || nickname || u.email || uid;
   };
 
   // no donation handler here
