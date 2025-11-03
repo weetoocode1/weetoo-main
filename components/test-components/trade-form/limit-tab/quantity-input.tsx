@@ -2,7 +2,7 @@ import { ChevronDownIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -49,8 +49,8 @@ export function QuantityInput({
   const qtyInputId = "limit-qty-input";
   const t = useTranslations("trade.form");
 
-  // Local state for input display value (allow empty string, 0, and intermediate states)
-  const [inputValue, setInputValue] = useState<number | string>("");
+  const [inputValue, setInputValue] = useState<string>("");
+  const isUserTypingRef = useRef<boolean>(false);
 
   const lastValueRef =
     typeof window !== "undefined" && window._limit_last_value_ref
@@ -60,23 +60,27 @@ export function QuantityInput({
     window._limit_last_value_ref = lastValueRef;
   }
 
-  // Update input value when mode changes
   useEffect(() => {
+    if (isUserTypingRef.current) return;
+
     if (placementMode === "value") {
-      // In value mode, input shows INITIAL MARGIN (USDT), i.e., user capital.
-      // If no capital provided but qty exists, derive capital from qty.
       let capital = valueModeCapital || 0;
       if (!capital && qty > 0 && price > 0 && leverage > 0) {
         capital = (qty * price) / leverage;
         if (onValueModeCapitalChange) onValueModeCapitalChange(capital);
       }
       lastValueRef.current = capital;
-      const display = Math.round(capital * 100) / 100;
-      setInputValue(display === 0 ? "" : display);
+      if (capital > 0) {
+        setInputValue(capital.toString());
+      } else {
+        setInputValue("");
+      }
     } else {
-      // Switching to qty mode - show current BTC quantity
-      const displayQty = Math.round((qty || 0) * 100) / 100;
-      setInputValue(displayQty === 0 ? "" : displayQty); // keep empty when 0 unless user types
+      if (qty > 0) {
+        setInputValue(qty.toString());
+      } else {
+        setInputValue("");
+      }
     }
   }, [
     placementMode,
@@ -87,9 +91,9 @@ export function QuantityInput({
     onValueModeCapitalChange,
   ]);
 
-  // Handle input change based on mode
   const handleInputChange = (raw: string) => {
-    // Allow empty string to keep field blank
+    isUserTypingRef.current = true;
+
     if (raw === "") {
       setInputValue("");
       setQty(0);
@@ -97,57 +101,81 @@ export function QuantityInput({
       return;
     }
 
-    // Allow intermediate states like "0." or "0.0" while typing
-    if (raw === "0." || raw.endsWith(".") || /^0\.0*$/.test(raw)) {
-      setInputValue(raw);
+    const decimalCount = (raw.match(/\./g) || []).length;
+    if (decimalCount > 1) {
+      return;
+    }
+
+    if (raw.startsWith(".")) {
+      const normalized = "0" + raw;
+      setInputValue(normalized);
+      const num = Number(normalized);
+      if (!isNaN(num) && num >= 0) {
+        if (placementMode === "value") {
+          const capital = num;
+          const orderValue = capital * (leverage || 1);
+          lastValueRef.current = capital;
+          if (onValueModeCapitalChange) onValueModeCapitalChange(capital);
+          const computed = price > 0 ? orderValue / price : 0;
+          setQty(computed);
+          if (typeof window !== "undefined") {
+            window._limit_user_capital_ref = { current: capital };
+          }
+        } else {
+          setQty(num);
+          if (price > 0 && leverage > 0) {
+            const userCapital = (num * price) / leverage;
+            if (typeof window !== "undefined") {
+              window._limit_user_capital_ref = {
+                current: userCapital,
+              };
+            }
+          }
+        }
+      }
       return;
     }
 
     const num = Number(raw);
-    if (isNaN(num)) {
-      return; // Invalid input, don't update
+    if (isNaN(num) || num < 0) {
+      return;
     }
 
-    setInputValue(num);
+    setInputValue(raw);
 
     if (placementMode === "value") {
-      // In value mode, user types INITIAL MARGIN (USDT)
       const capital = num;
       const orderValue = capital * (leverage || 1);
       lastValueRef.current = capital;
       if (onValueModeCapitalChange) onValueModeCapitalChange(capital);
-      // Quantity = Order Value ÷ Price
       const computed = price > 0 ? orderValue / price : 0;
-      setQty(Math.round(computed * 100000000) / 100000000); // 8 decimals for BTC
+      setQty(computed);
 
-      // Store user's capital for leverage changes
       if (typeof window !== "undefined") {
         window._limit_user_capital_ref = { current: capital };
       }
     } else {
-      // In qty mode, user is entering BTC amount directly
-      setQty(Math.round(num * 100000000) / 100000000); // Round to 8 decimal places for BTC
+      setQty(num);
 
-      // Calculate user's capital from quantity
       if (price > 0 && leverage > 0) {
-        // Capital = (Quantity × Price) ÷ Leverage
         const userCapital = (num * price) / leverage;
         if (typeof window !== "undefined") {
           window._limit_user_capital_ref = {
-            current: Math.round(userCapital * 100) / 100, // Round to 2 decimal places for USDT
+            current: userCapital,
           };
         }
       }
     }
   };
 
-  // Reflect external qty changes into the input when in qty mode (e.g., 10%/25% clicks)
-  useEffect(() => {
-    if (placementMode === "qty") {
-      const displayQty = Math.round((qty || 0) * 100) / 100;
-      setInputValue(displayQty === 0 ? "" : displayQty);
+  const handleBlur = () => {
+    isUserTypingRef.current = false;
+    if (inputValue === "" || inputValue === "." || inputValue === "0.") {
+      setInputValue("");
+      setQty(0);
+      if (onValueModeCapitalChange) onValueModeCapitalChange(0);
     }
-  }, [qty, placementMode]);
+  };
 
   // Handle mode change
   const handleModeChange = (mode: "qty" | "value") => {
@@ -166,8 +194,11 @@ export function QuantityInput({
         <Input
           id={qtyInputId}
           type="number"
+          inputMode="decimal"
+          step="any"
           value={inputValue}
           onChange={(e) => handleInputChange(e.target.value)}
+          onBlur={handleBlur}
           placeholder="0"
           className="pr-20 h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />

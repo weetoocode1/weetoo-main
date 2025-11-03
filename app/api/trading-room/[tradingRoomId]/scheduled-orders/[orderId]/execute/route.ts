@@ -266,45 +266,66 @@ async function executeMarketOrder(
       : Number(currentPrice) * (1 + 1 / leverage - MMR);
   })();
 
-  const { data, error } = await supabase
-    .from("trading_room_positions")
-    .insert({
-      room_id: order.trading_room_id,
-      user_id: userId,
-      symbol: order.symbol,
-      side: mappedSide,
-      size: notional,
-      quantity: order.quantity,
-      entry_price: currentPrice,
-      leverage: order.leverage,
-      fee: openFee,
-      liquidation_price: liquidationPrice,
-      initial_margin: initialMargin,
-      order_type: "market",
-      status: "filled",
-      opened_at: new Date().toISOString(),
-      // ✅ ADD TP/SL FIELDS - ensure proper null handling for constraint
-      tp_enabled: order.tp_enabled || false,
-      sl_enabled: order.sl_enabled || false,
-      take_profit_price:
-        order.tp_enabled &&
-        order.take_profit_price &&
-        order.take_profit_price > 0
-          ? order.take_profit_price
-          : null,
-      stop_loss_price:
-        order.sl_enabled && order.stop_loss_price && order.stop_loss_price > 0
-          ? order.stop_loss_price
-          : null,
-    })
-    .select()
-    .single();
+  // Calculate TP/SL values for RPC
+  const hasValidTp =
+    order.tp_enabled && order.take_profit_price && order.take_profit_price > 0;
+  const hasValidSl =
+    order.sl_enabled && order.stop_loss_price && order.stop_loss_price > 0;
 
-  if (error) {
-    throw new Error(`Market order failed: ${error.message}`);
+  // Use RPC function for atomic position creation + balance deduction
+  // This ensures both operations succeed or both fail, with built-in balance checks
+  const { error: rpcError } = await supabase.rpc(
+    "open_position_and_update_balance",
+    {
+      p_room_id: order.trading_room_id,
+      p_user_id: userId,
+      p_symbol: order.symbol,
+      p_side: mappedSide,
+      p_quantity: Number(order.quantity || 0),
+      p_entry_price: Number(currentPrice),
+      p_leverage: leverage,
+      p_fee: openFee,
+      p_initial_margin: initialMargin,
+      p_liquidation_price: liquidationPrice,
+      p_order_type: "market",
+      p_status: "filled",
+      p_tp_enabled: hasValidTp,
+      p_sl_enabled: hasValidSl,
+      p_take_profit_price: hasValidTp ? order.take_profit_price : null,
+      p_stop_loss_price: hasValidSl ? order.stop_loss_price : null,
+    }
+  );
+
+  if (rpcError) {
+    throw new Error(
+      `Market order failed: ${rpcError.message || "Failed to create position"}`
+    );
   }
 
-  return { price: currentPrice, positionId: data.id };
+  // Query the created position to get its ID
+  const { data: positionData, error: fetchErr } = await supabase
+    .from("trading_room_positions")
+    .select("id")
+    .eq("room_id", order.trading_room_id)
+    .eq("user_id", userId)
+    .eq("symbol", order.symbol)
+    .eq("side", mappedSide)
+    .eq("entry_price", currentPrice)
+    .eq("quantity", order.quantity)
+    .is("closed_at", null)
+    .order("opened_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (fetchErr || !positionData) {
+    throw new Error(
+      `Position created but failed to retrieve: ${
+        fetchErr?.message || "Unknown error"
+      }`
+    );
+  }
+
+  return { price: currentPrice, positionId: positionData.id };
 }
 
 async function executeLimitOrder(

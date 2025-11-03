@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { NextRequest, NextResponse } from "next/server";
 
 interface RouteParams {
   tradingRoomId: string;
@@ -95,101 +95,91 @@ export async function POST(
       Number(leverage)
     );
 
-    // Debug: Log the values that will be inserted
-    console.log("📊 Values being inserted into database:", {
-      tp_enabled: tpEnabled || false,
-      sl_enabled: slEnabled || false,
-      take_profit_price:
-        tpEnabled && takeProfitPrice && takeProfitPrice > 0
-          ? takeProfitPrice
-          : null,
-      stop_loss_price:
-        slEnabled && stopLossPrice && stopLossPrice > 0 ? stopLossPrice : null,
-    });
+    // Calculate TP/SL values for RPC
+    const hasValidTp = tpEnabled && takeProfitPrice && takeProfitPrice > 0;
+    const hasValidSl = slEnabled && stopLossPrice && stopLossPrice > 0;
 
-    // 1) Insert position (open)
-    const { data: position, error: insertErr } = await supabase
-      .from("trading_room_positions")
-      .insert([
+    // Use RPC function for atomic position creation + balance deduction
+    // This ensures both operations succeed or both fail, with built-in balance checks
+    const { error: rpcError } = await supabase.rpc(
+      "open_position_and_update_balance",
+      {
+        p_room_id: tradingRoomId,
+        p_user_id: userId ?? user.id,
+        p_symbol: symbol,
+        p_side: side,
+        p_quantity: Number(quantity),
+        p_entry_price: Number(entryPrice),
+        p_leverage: Number(leverage),
+        p_fee: openFee,
+        p_initial_margin: initialMargin,
+        p_liquidation_price: liquidationPrice,
+        p_order_type: orderType,
+        p_status: orderType === "market" ? "filled" : "pending",
+        p_tp_enabled: hasValidTp,
+        p_sl_enabled: hasValidSl,
+        p_take_profit_price: hasValidTp ? takeProfitPrice : null,
+        p_stop_loss_price: hasValidSl ? stopLossPrice : null,
+      }
+    );
+
+    if (rpcError) {
+      console.error("RPC error:", rpcError);
+      // RPC function handles insufficient balance and other errors
+      return NextResponse.json(
         {
-          room_id: tradingRoomId,
-          user_id: userId ?? user.id,
-          symbol,
-          side,
-          quantity,
-          size: orderValue,
-          entry_price: entryPrice,
-          initial_margin: initialMargin,
-          leverage,
-          fee: openFee,
-          liquidation_price: liquidationPrice,
-          order_type: orderType,
-          status: orderType === "market" ? "filled" : "pending",
-          opened_at: new Date().toISOString(),
-          // TP/SL columns - ensure proper null handling for constraint
-          tp_enabled: tpEnabled || false,
-          sl_enabled: slEnabled || false,
-          take_profit_price:
-            tpEnabled && takeProfitPrice && takeProfitPrice > 0
-              ? takeProfitPrice
-              : null,
-          stop_loss_price:
-            slEnabled && stopLossPrice && stopLossPrice > 0
-              ? stopLossPrice
-              : null,
+          error: rpcError.message || "Failed to open position",
+          details: rpcError.message,
         },
-      ])
+        { status: 400 }
+      );
+    }
+
+    // Query the created position to get its ID
+    // We query by recent timestamp and matching parameters to find the position
+    const { data: positions, error: fetchErr } = await supabase
+      .from("trading_room_positions")
       .select("id")
+      .eq("room_id", tradingRoomId)
+      .eq("user_id", userId ?? user.id)
+      .eq("symbol", symbol)
+      .eq("side", side)
+      .eq("entry_price", entryPrice)
+      .eq("quantity", quantity)
+      .is("closed_at", null)
+      .order("opened_at", { ascending: false })
+      .limit(1)
       .single();
 
-    if (insertErr) {
+    if (fetchErr || !positions) {
+      console.error("Failed to fetch created position:", fetchErr);
       return NextResponse.json(
-        { error: "Failed to open position", details: insertErr.message },
+        {
+          error: "Position created but failed to retrieve",
+          details: fetchErr?.message,
+        },
         { status: 500 }
       );
     }
 
-    // 2) Deduct from room virtual balance directly
-    const { data: updatedRoom, error: balErr } = await supabase
+    const position = { id: positions.id };
+
+    // Position is already created with all fields via RPC function
+    // No need to update after creation (avoids trigger restrictions)
+
+    // Fetch updated room balance for response
+    const { data: updatedRoom } = await supabase
       .from("trading_rooms")
-      .update({
-        virtual_balance: undefined, // Will be handled by fallback logic below
-      })
-      .eq("id", tradingRoomId)
       .select("virtual_balance")
+      .eq("id", tradingRoomId)
       .single();
 
-    // Workaround: Supabase client doesn't support arithmetic in object; do it via RPC-less approach
-    if (balErr) {
-      // Fallback: fetch current, then write new value
-      const { data: roomNow } = await supabase
-        .from("trading_rooms")
-        .select("virtual_balance")
-        .eq("id", tradingRoomId)
-        .single();
-      const current = Number(roomNow?.virtual_balance ?? 0);
-      const nextBalance = current - totalCost;
-      const { error: updErr } = await supabase
-        .from("trading_rooms")
-        .update({ virtual_balance: nextBalance })
-        .eq("id", tradingRoomId);
-      if (updErr) {
-        return NextResponse.json(
-          {
-            error: "Failed to update virtual balance",
-            details: updErr.message,
-          },
-          { status: 500 }
-        );
-      }
-    }
-
-    // 3) Create TP/SL orders if enabled
+    // 3) Create TP/SL orders if enabled (use consistent validation)
     const tpSlOrders = [];
     let tpOrderId = null;
     let slOrderId = null;
 
-    if (tpEnabled && takeProfitPrice && takeProfitPrice > 0) {
+    if (hasValidTp) {
       const { data: tpOrder, error: tpError } = await supabase
         .from("trading_room_tp_sl_orders")
         .insert({
@@ -214,7 +204,7 @@ export async function POST(
       }
     }
 
-    if (slEnabled && stopLossPrice && stopLossPrice > 0) {
+    if (hasValidSl) {
       const { data: slOrder, error: slError } = await supabase
         .from("trading_room_tp_sl_orders")
         .insert({

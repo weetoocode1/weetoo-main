@@ -23,57 +23,62 @@ function PriceInputInner({
   const priceInputId = "limit-price-input";
   const t = useTranslations("trade.form");
 
-  // Local state for input display value (allow empty string, 0, and intermediate states)
   const [inputValue, setInputValue] = useState<string>("");
+  const isUserTypingRef = useRef<boolean>(false);
 
-  const rafRef = useRef<number | null>(null);
-  const lastSentRef = useRef<number>(price || 0);
   const handleInputChange = useCallback(
     (raw: string) => {
-      // Allow empty string
+      isUserTypingRef.current = true;
+
       if (raw === "") {
         setInputValue("");
-        if (rafRef.current) cancelAnimationFrame(rafRef.current);
-        rafRef.current = requestAnimationFrame(() => {
-          if (lastSentRef.current !== 0) {
-            lastSentRef.current = 0;
-            setPrice(0);
-          }
-        });
+        setPrice(0);
         return;
       }
 
-      // Allow intermediate states like "0." or "0.0" while typing
-      if (raw === "0." || raw.endsWith(".") || /^0\.0*$/.test(raw)) {
-        setInputValue(raw);
+      const decimalCount = (raw.match(/\./g) || []).length;
+      if (decimalCount > 1) {
+        return;
+      }
+
+      if (raw.startsWith(".")) {
+        setInputValue("0" + raw);
+        const num = Number("0" + raw);
+        if (!isNaN(num) && num >= 0) {
+          setPrice(num);
+        }
         return;
       }
 
       const num = Number(raw);
-      if (isNaN(num)) {
-        return; // Invalid input, don't update
+      if (isNaN(num) || num < 0) {
+        return;
       }
 
       setInputValue(raw);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      rafRef.current = requestAnimationFrame(() => {
-        if (lastSentRef.current !== num) {
-          lastSentRef.current = num;
-          setPrice(num);
-        }
-      });
+      setPrice(num);
     },
     [setPrice]
   );
 
-  // Update input value when price changes externally (e.g., from Last button)
   useEffect(() => {
-    if (price > 0) {
-      setInputValue(price.toString());
-    } else if (price === 0) {
+    if (!isUserTypingRef.current && price > 0) {
+      const priceStr = price.toString();
+      if (inputValue !== priceStr) {
+        setInputValue(priceStr);
+      }
+    } else if (!isUserTypingRef.current && price === 0 && inputValue !== "") {
       setInputValue("");
     }
-  }, [price]);
+  }, [price, inputValue]);
+
+  const handleBlur = useCallback(() => {
+    isUserTypingRef.current = false;
+    if (inputValue === "" || inputValue === "." || inputValue === "0.") {
+      setInputValue("");
+      setPrice(0);
+    }
+  }, [inputValue, setPrice]);
 
   return (
     <div className="space-y-1">
@@ -85,8 +90,11 @@ function PriceInputInner({
           ref={priceInputRef}
           id={priceInputId}
           type="number"
+          inputMode="decimal"
+          step="any"
           value={inputValue}
           onChange={(e) => handleInputChange(e.target.value)}
+          onBlur={handleBlur}
           placeholder="0"
           disabled={disabled}
           className="pr-14 h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
@@ -113,3 +121,4 @@ function PriceInputInner({
 }
 
 export const PriceInput = React.memo(PriceInputInner);
+
