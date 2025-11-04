@@ -101,8 +101,13 @@ export function StreamSettings({ streamData }: StreamSettingsProps) {
 
     setShowResetConfirm(false);
     lastResetTime.current = now;
-
-    resetStreamKey.mutate(streamData.streamId);
+    // Reset on server and immediately reflect new key in UI without refresh
+    resetStreamKey.mutate(streamData.streamId, {
+      onSuccess: (data: { stream_key?: string; streamKey?: string }) => {
+        const nextKey = data?.stream_key ?? data?.streamKey ?? "";
+        if (nextKey) setStreamKey(nextKey);
+      },
+    });
   };
 
   const saveSettings = async () => {
