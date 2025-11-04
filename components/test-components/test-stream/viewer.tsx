@@ -312,6 +312,8 @@ export function Viewer({ roomId }: ViewerProps) {
                 metadata={muxPlayerMetadata}
                 preferPlayback="mse"
                 autoPlay
+                muted
+                preload="auto"
                 playsInline
                 envKey={process.env.NEXT_PUBLIC_MUX_DATA_ENV_KEY}
                 style={{ height: "100%", width: "100%" }}
