@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { Donation } from "@/components/room/donation";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,22 +14,20 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  MessageSquareIcon,
-  MoreVerticalIcon,
-  SendHorizontalIcon,
-  Trash2Icon,
-  MoreVertical,
-} from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { Crown } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { createClient } from "@/lib/supabase/client";
+import {
+  Crown,
+  MessageSquareIcon,
+  MoreVertical,
+  MoreVerticalIcon,
+  SendHorizontalIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { Donation } from "@/components/room/donation";
 import { toast } from "sonner";
 
 // ===== DONATION RENDERING HELPERS =====
@@ -139,6 +139,7 @@ export function StreamChat({
   const [userRole, setUserRole] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [creatorId, setCreatorId] = useState<string | null>(null);
+  const optimisticMessageIdsRef = useRef<Set<string>>(new Set());
 
   const [isThisWindowPopout, setIsThisWindowPopout] = useState(false);
   useEffect(() => {
@@ -164,6 +165,8 @@ export function StreamChat({
   // Initial load
   useEffect(() => {
     if (!roomId) return;
+    // Clear optimistic message IDs when room changes
+    optimisticMessageIdsRef.current.clear();
     // fetch creator id once for host highlighting
     (async () => {
       try {
@@ -493,6 +496,24 @@ export function StreamChat({
         async (payload) => {
           const msg = payload.new as ChatMessage;
 
+          // Skip if this message was already added optimistically
+          if (optimisticMessageIdsRef.current.has(msg.id)) {
+            optimisticMessageIdsRef.current.delete(msg.id);
+            // Still fetch user data to update the optimistic message
+            try {
+              const { data: u } = await supabase.current
+                .from("users")
+                .select("id, first_name, last_name, avatar_url")
+                .eq("id", msg.user_id)
+                .single();
+              const user = (u as unknown as ChatUser) || null;
+              setMessages((prev) =>
+                prev.map((m) => (m.id === msg.id ? { ...m, user } : m))
+              );
+            } catch {}
+            return;
+          }
+
           // Check if message already exists to prevent duplicates
           setMessages((prev) => {
             if (prev.some((m) => m.id === msg.id)) {
@@ -616,18 +637,27 @@ export function StreamChat({
             currentUser = (u as unknown as ChatUser) || null;
           } catch {}
 
+          // Mark this message ID as optimistically added
+          optimisticMessageIdsRef.current.add(data.id);
+
           setMessage("");
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: data.id,
-              room_id: roomId,
-              user_id: userId,
-              message: trimmed,
-              created_at: data.created_at,
-              user: currentUser,
-            },
-          ]);
+          setMessages((prev) => {
+            // Double-check it doesn't already exist
+            if (prev.some((m) => m.id === data.id)) {
+              return prev;
+            }
+            return [
+              ...prev,
+              {
+                id: data.id,
+                room_id: roomId,
+                user_id: userId,
+                message: trimmed,
+                created_at: data.created_at,
+                user: currentUser,
+              },
+            ];
+          });
         } catch (error) {
           console.error("Failed to send chat message:", error);
           toast.error(
