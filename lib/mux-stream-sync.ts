@@ -7,7 +7,9 @@ const muxClient = new Mux({
 });
 
 const lastSyncTime = new Map<string, number>();
-const SYNC_COOLDOWN_MS = 2000;
+const SYNC_COOLDOWN_MS = 15000; // 15 seconds cooldown per stream
+const MAX_STREAMS_PER_BATCH = 5; // Process max 5 streams per sync cycle
+const BATCH_DELAY_MS = 500; // 500ms delay between batches
 
 export async function syncAllStreamStatuses() {
   try {
@@ -31,10 +33,25 @@ export async function syncAllStreamStatuses() {
     let errors = 0;
     const now = Date.now();
 
-    for (const stream of streams) {
-      const lastSync = lastSyncTime.get(stream.stream_id) || 0;
-      if (now - lastSync < SYNC_COOLDOWN_MS) {
-        continue;
+    // Filter streams that are due for sync
+    const streamsToSync = streams
+      .filter((stream) => {
+        const lastSync = lastSyncTime.get(stream.stream_id) || 0;
+        return now - lastSync >= SYNC_COOLDOWN_MS;
+      })
+      .slice(0, MAX_STREAMS_PER_BATCH); // Limit to batch size
+
+    if (streamsToSync.length === 0) {
+      return; // No streams need syncing
+    }
+
+    // Process streams with delays between requests
+    for (let i = 0; i < streamsToSync.length; i++) {
+      const stream = streamsToSync[i];
+
+      // Add delay between requests (except for the first one)
+      if (i > 0) {
+        await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
       }
 
       try {
@@ -69,9 +86,29 @@ export async function syncAllStreamStatuses() {
         } else {
           lastSyncTime.set(stream.stream_id, now);
         }
-      } catch (muxError) {
-        console.error(`Error syncing stream ${stream.stream_id}:`, muxError);
-        errors++;
+      } catch (muxError: unknown) {
+        const error = muxError as { status?: number; message?: string };
+
+        // Handle rate limit errors (429) with exponential backoff
+        if (error.status === 429) {
+          console.warn(
+            `⚠️ Rate limit hit for stream ${stream.stream_id.substring(
+              0,
+              8
+            )}..., backing off`
+          );
+          // Set a longer cooldown for this stream
+          lastSyncTime.set(stream.stream_id, now + 60000); // 60 seconds cooldown
+          errors++;
+          // Stop processing remaining streams to avoid more rate limits
+          break;
+        } else {
+          console.error(
+            `Error syncing stream ${stream.stream_id.substring(0, 8)}...:`,
+            error.message || muxError
+          );
+          errors++;
+        }
       }
     }
 

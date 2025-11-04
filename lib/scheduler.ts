@@ -468,7 +468,7 @@ if (shouldRunScheduler && !globalAny.__schedulerStarted) {
   );
 
   cron.schedule(
-    "*/1 * * * * *",
+    "*/5 * * * * *",
     async () => {
       try {
         await syncAllStreamStatuses();
@@ -482,7 +482,7 @@ if (shouldRunScheduler && !globalAny.__schedulerStarted) {
   );
 
   console.log("✅ Scheduled order execution engine started successfully");
-  console.log("✅ Mux stream status sync started (every 1 second)");
+  console.log("✅ Mux stream status sync started (every 5 seconds)");
 } else {
   console.log("⚠️ Scheduled order execution engine disabled");
 }

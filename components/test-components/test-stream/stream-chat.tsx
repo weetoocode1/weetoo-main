@@ -140,6 +140,9 @@ export function StreamChat({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [creatorId, setCreatorId] = useState<string | null>(null);
   const optimisticMessageIdsRef = useRef<Set<string>>(new Set());
+  const [isLoadingMessages, setIsLoadingMessages] = useState(true);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const currentUserRef = useRef<ChatUser | null>(null);
 
   const [isThisWindowPopout, setIsThisWindowPopout] = useState(false);
   useEffect(() => {
@@ -152,21 +155,43 @@ export function StreamChat({
     supabase.current.auth.getUser().then(async ({ data }) => {
       setUserId(data.user?.id ?? null);
       if (data.user?.id) {
-        const { data: userData } = await supabase.current
-          .from("users")
-          .select("role")
-          .eq("id", data.user.id)
-          .single();
-        setUserRole(userData?.role || null);
+        // Fetch both role and user profile data for instant message display
+        const [roleResult, profileResult] = await Promise.all([
+          supabase.current
+            .from("users")
+            .select("role")
+            .eq("id", data.user.id)
+            .single(),
+          supabase.current
+            .from("users")
+            .select("id, first_name, last_name, avatar_url")
+            .eq("id", data.user.id)
+            .single(),
+        ]);
+        setUserRole(roleResult.data?.role || null);
+        if (profileResult.data) {
+          currentUserRef.current = profileResult.data as ChatUser;
+        }
       }
     });
   }, []);
 
   // Initial load
   useEffect(() => {
-    if (!roomId) return;
+    if (!roomId) {
+      setIsLoadingMessages(false);
+      return;
+    }
+
     // Clear optimistic message IDs when room changes
     optimisticMessageIdsRef.current.clear();
+
+    // Clear any existing timeout
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = null;
+    }
+
     // fetch creator id once for host highlighting
     (async () => {
       try {
@@ -179,64 +204,116 @@ export function StreamChat({
       } catch {}
     })();
     const fetchMessages = async () => {
-      // Regular chat messages
-      const { data: chatData, error: chatError } = await supabase.current
-        .from("trading_room_messages")
-        .select(
-          "id, room_id, user_id, message, created_at, user:users!trading_room_messages_user_id_fkey(id, first_name, last_name, avatar_url)"
-        )
-        .eq("room_id", roomId)
-        .order("created_at", { ascending: true });
-
-      if (chatError) {
-        console.error("chat fetch error", chatError);
+      // Clear any existing timeout
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
       }
 
-      // Donation entries (hydrate into chat list so they persist after refresh)
-      const { data: donationData, error: donationError } =
-        await supabase.current
-          .from("trading_room_donations")
-          .select(
-            "id, room_id, user_id, amount, message, created_at, user:users(id, first_name, last_name, avatar_url)"
-          )
-          .eq("room_id", roomId)
-          .order("created_at", { ascending: true });
-      if (donationError) {
-        console.error("donation fetch error", donationError);
+      setIsLoadingMessages(true);
+
+      // Safety timeout to prevent stuck loading state (10 seconds)
+      loadingTimeoutRef.current = setTimeout(() => {
+        console.warn("Message fetch timeout, forcing loading state to false");
+        setIsLoadingMessages(false);
+      }, 10000);
+
+      try {
+        // Fetch both chat messages and donations in parallel for faster loading
+        const [chatResult, donationResult] = await Promise.all([
+          supabase.current
+            .from("trading_room_messages")
+            .select(
+              "id, room_id, user_id, message, created_at, user:users!trading_room_messages_user_id_fkey(id, first_name, last_name, avatar_url)"
+            )
+            .eq("room_id", roomId)
+            .order("created_at", { ascending: true })
+            .limit(100), // Limit to last 100 messages for performance
+          supabase.current
+            .from("trading_room_donations")
+            .select(
+              "id, room_id, user_id, amount, message, created_at, user:users(id, first_name, last_name, avatar_url)"
+            )
+            .eq("room_id", roomId)
+            .order("created_at", { ascending: true })
+            .limit(50), // Limit donations too
+        ]);
+
+        if (loadingTimeoutRef.current) {
+          clearTimeout(loadingTimeoutRef.current);
+          loadingTimeoutRef.current = null;
+        }
+
+        const { data: chatData, error: chatError } = chatResult;
+        const { data: donationData, error: donationError } = donationResult;
+
+        if (chatError) {
+          console.error("chat fetch error", chatError);
+          setMessages([]);
+          setIsLoadingMessages(false);
+          return;
+        }
+
+        if (donationError) {
+          console.error("donation fetch error", donationError);
+        }
+
+        const baseMessages: ChatMessage[] =
+          (chatData as unknown as ChatMessage[]) || [];
+        type DonationRow = {
+          id: string;
+          room_id: string;
+          user_id: string;
+          amount: number;
+          created_at: string;
+          message?: string | null;
+          user?: ChatUser | null;
+        };
+        const donationRows: DonationRow[] =
+          (donationData as unknown as DonationRow[]) || [];
+        const donationMessages: ChatMessage[] = donationRows.map((d) => ({
+          id: `donation-${d.id}`,
+          room_id: d.room_id,
+          user_id: d.user_id,
+          message: "",
+          created_at: d.created_at,
+          user: d.user ?? null,
+          donationAmount: d.amount,
+          donationMessage: d.message ?? null,
+        }));
+
+        const merged = [...baseMessages, ...donationMessages].sort(
+          (a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+
+        setMessages(merged);
+        setIsLoadingMessages(false);
+        console.log(
+          `✅ Loaded ${merged.length} messages for room ${roomId.substring(
+            0,
+            8
+          )}...`
+        );
+      } catch (error) {
+        console.error("Error fetching messages:", error);
+        if (loadingTimeoutRef.current) {
+          clearTimeout(loadingTimeoutRef.current);
+          loadingTimeoutRef.current = null;
+        }
+        setMessages([]);
+        setIsLoadingMessages(false);
       }
-
-      const baseMessages: ChatMessage[] =
-        (chatData as unknown as ChatMessage[]) || [];
-      type DonationRow = {
-        id: string;
-        room_id: string;
-        user_id: string;
-        amount: number;
-        created_at: string;
-        message?: string | null;
-        user?: ChatUser | null;
-      };
-      const donationRows: DonationRow[] =
-        (donationData as unknown as DonationRow[]) || [];
-      const donationMessages: ChatMessage[] = donationRows.map((d) => ({
-        id: `donation-${d.id}`,
-        room_id: d.room_id,
-        user_id: d.user_id,
-        message: "",
-        created_at: d.created_at,
-        user: d.user ?? null,
-        donationAmount: d.amount,
-        donationMessage: d.message ?? null,
-      }));
-
-      const merged = [...baseMessages, ...donationMessages].sort(
-        (a, b) =>
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      );
-
-      setMessages(merged);
     };
     fetchMessages();
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+    };
   }, [roomId]);
 
   // Auto-scroll to bottom when messages change
@@ -310,179 +387,235 @@ export function StreamChat({
   const MessageList = useMemo(
     () => (
       <div className="px-3 py-2 space-y-2">
-        {messages.map((m) => {
-          const isDonation =
-            typeof m.donationAmount === "number" && m.donationAmount! > 0;
-          const fullName = m.user
-            ? `${m.user.first_name || ""} ${m.user.last_name || ""}`.trim()
-            : "";
-          const name = fullName || t("labels.user");
-          const initials = fullName
-            ? fullName
-                .split(" ")
-                .filter(Boolean)
-                .slice(0, 2)
-                .map((s) => s[0]?.toUpperCase())
-                .join("") || name.slice(0, 2).toUpperCase()
-            : name.slice(0, 1).toUpperCase();
-          const isHost = creatorId && m.user_id === creatorId;
-          const isMessageOwner = userId === m.user_id;
-          const isUserAdmin =
-            userRole === "admin" || userRole === "super_admin";
-          const canDelete = isUserAdmin || isHost || isMessageOwner;
-          const isDeleted = m.message?.includes("[DELETED_BY_");
-          // Donation card rendering
-          if (isDonation) {
-            const cls = getDonationTierClasses(m.donationAmount || 0);
+        {isLoadingMessages ? (
+          // Skeleton loader matching chat design exactly
+          <>
+            {[...Array(5)].map((_, i) => (
+              <div
+                key={`skeleton-${i}`}
+                className="group flex items-start gap-2.5 px-2 py-1.5 rounded-md"
+              >
+                <div className="h-7 w-7 shrink-0 rounded-full bg-muted/60 animate-pulse" />
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="h-4 w-24 bg-muted/60 rounded animate-pulse" />
+                    {i === 0 && (
+                      <div className="h-3.5 w-3.5 rounded-full bg-muted/60 animate-pulse" />
+                    )}
+                    <div className="ml-auto h-3 w-14 bg-muted/60 rounded animate-pulse" />
+                  </div>
+                  <div
+                    className="h-4 bg-muted/60 rounded animate-pulse mt-0.5"
+                    style={{ width: `${55 + (i % 3) * 15}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </>
+        ) : (
+          messages.map((m) => {
+            const isDonation =
+              typeof m.donationAmount === "number" && m.donationAmount! > 0;
+            const fullName = m.user
+              ? `${m.user.first_name || ""} ${m.user.last_name || ""}`.trim()
+              : "";
+            // Only show fallback for other users' messages, never for own messages
+            const isOwnMessage = userId && m.user_id === userId;
+            const name = fullName || (isOwnMessage ? "" : t("labels.user"));
+            const initials = fullName
+              ? fullName
+                  .split(" ")
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .map((s) => s[0]?.toUpperCase())
+                  .join("") || name.slice(0, 2).toUpperCase()
+              : isOwnMessage
+              ? ""
+              : name.slice(0, 1).toUpperCase();
+            const isHost = creatorId && m.user_id === creatorId;
+            const isMessageOwner = userId === m.user_id;
+            const isUserAdmin =
+              userRole === "admin" || userRole === "super_admin";
+            const canDelete = isUserAdmin || isHost || isMessageOwner;
+            const isDeleted = m.message?.includes("[DELETED_BY_");
+            // Donation card rendering
+            if (isDonation) {
+              const cls = getDonationTierClasses(m.donationAmount || 0);
+              return (
+                <div
+                  key={m.id}
+                  className={`relative overflow-hidden rounded-md border border-border bg-card/60 ${cls.chip}`}
+                >
+                  <div
+                    className={`absolute inset-y-0 left-0 w-1 ${cls.accent}`}
+                  />
+                  <div className="flex items-center justify-between gap-3 p-3">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div
+                        className={`h-7 w-7 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0 ${cls.badge}`}
+                      >
+                        {initials}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold truncate">
+                          {name}
+                        </div>
+                        {m.donationMessage &&
+                          m.donationMessage.trim().length > 0 && (
+                            <div className="text-sm text-foreground/90 mt-1 leading-5 wrap-break-word">
+                              {m.donationMessage}
+                            </div>
+                          )}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <div
+                        className={`font-semibold text-xs whitespace-nowrap px-2 py-1 rounded-md ${cls.badge}`}
+                      >
+                        +{(m.donationAmount || 0).toLocaleString()} KOR
+                      </div>
+                      <div className="text-[10px] text-muted-foreground/80">
+                        {formatTime(m.created_at)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
             return (
               <div
                 key={m.id}
-                className={`relative overflow-hidden rounded-md border border-border bg-card/60 ${cls.chip}`}
+                className={`group flex items-start gap-2.5 px-2 py-1.5 rounded-md transition-colors ${
+                  isHost ? "bg-amber-500/10" : "hover:bg-muted/40"
+                }`}
               >
-                <div
-                  className={`absolute inset-y-0 left-0 w-1 ${cls.accent}`}
-                />
-                <div className="flex items-center justify-between gap-3 p-3">
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <div
-                      className={`h-7 w-7 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0 ${cls.badge}`}
+                <Avatar
+                  className={`h-7 w-7 shrink-0 ${
+                    isHost
+                      ? "ring-2 ring-amber-500 ring-offset-1 ring-offset-background"
+                      : ""
+                  }`}
+                >
+                  <AvatarImage
+                    src={m.user?.avatar_url || undefined}
+                    alt={name}
+                  />
+                  {fullName && initials ? (
+                    <AvatarFallback
+                      className={`text-xs font-semibold ${
+                        isHost
+                          ? "bg-linear-to-br from-amber-400 to-amber-600 text-white"
+                          : "bg-muted text-muted-foreground"
+                      }`}
                     >
                       {initials}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold truncate">
-                        {name}
-                      </div>
-                      {m.donationMessage &&
-                        m.donationMessage.trim().length > 0 && (
-                          <div className="text-sm text-foreground/90 mt-1 leading-5 break-words">
-                            {m.donationMessage}
-                          </div>
-                        )}
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <div
-                      className={`font-semibold text-xs whitespace-nowrap px-2 py-1 rounded-md ${cls.badge}`}
-                    >
-                      +{(m.donationAmount || 0).toLocaleString()} KOR
-                    </div>
-                    <div className="text-[10px] text-muted-foreground/80">
+                    </AvatarFallback>
+                  ) : null}
+                </Avatar>
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {fullName ? (
+                      <span
+                        className={`text-sm font-semibold truncate ${
+                          isHost ? "text-amber-500" : "text-foreground"
+                        }`}
+                      >
+                        {fullName}
+                      </span>
+                    ) : null}
+                    {isHost && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex items-center">
+                            <Crown className="h-3.5 w-3.5 text-amber-500" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{t("labels.streamHost")}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    <span className="ml-auto text-[10px] text-muted-foreground whitespace-nowrap flex items-center gap-1">
                       {formatTime(m.created_at)}
-                    </div>
+                      {canDelete && !isDeleted && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              className="h-6 w-6 rounded-md flex items-center justify-center hover:bg-muted transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
+                            >
+                              <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-32">
+                            <DropdownMenuItem
+                              className="text-xs py-2 cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/20"
+                              onClick={() =>
+                                handleDeleteMessage(m.id, m.user_id)
+                              }
+                            >
+                              <Trash2Icon className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                              <span className="text-red-600 dark:text-red-400 font-medium">
+                                {t("menu.delete")}
+                              </span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </span>
+                  </div>
+                  <div
+                    className={`text-sm leading-5 wrap-break-word whitespace-pre-wrap ${
+                      isHost
+                        ? "text-foreground font-medium"
+                        : "text-foreground/90"
+                    }`}
+                  >
+                    {m.message?.includes("[DELETED_BY_") ? (
+                      <span className="inline-flex items-center gap-1.5 text-muted-foreground/70 italic">
+                        <MessageSquareIcon className="h-3.5 w-3.5" />
+                        {m.message?.includes("[DELETED_BY_HOST]")
+                          ? t("deleted.byHost")
+                          : m.message?.includes("[DELETED_BY_SUPER_ADMIN]")
+                          ? t("deleted.bySuperAdmin")
+                          : m.message?.includes("[DELETED_BY_ADMIN]")
+                          ? t("deleted.byAdmin")
+                          : t("deleted.generic")}
+                      </span>
+                    ) : (
+                      m.message
+                    )}
                   </div>
                 </div>
               </div>
             );
-          }
-          return (
-            <div
-              key={m.id}
-              className={`group flex items-start gap-2.5 px-2 py-1.5 rounded-md transition-colors ${
-                isHost ? "bg-amber-500/10" : "hover:bg-muted/40"
-              }`}
-            >
-              <Avatar
-                className={`h-7 w-7 shrink-0 ${
-                  isHost
-                    ? "ring-2 ring-amber-500 ring-offset-1 ring-offset-background"
-                    : ""
-                }`}
-              >
-                <AvatarImage src={m.user?.avatar_url || undefined} alt={name} />
-                <AvatarFallback
-                  className={`text-xs font-semibold ${
-                    isHost
-                      ? "bg-linear-to-br from-amber-400 to-amber-600 text-white"
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 flex-1 space-y-0.5">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span
-                    className={`text-sm font-semibold truncate ${
-                      isHost ? "text-amber-500" : "text-foreground"
-                    }`}
-                  >
-                    {name}
-                  </span>
-                  {isHost && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="inline-flex items-center">
-                          <Crown className="h-3.5 w-3.5 text-amber-500" />
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{t("labels.streamHost")}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-                  <span className="ml-auto text-[10px] text-muted-foreground whitespace-nowrap flex items-center gap-1">
-                    {formatTime(m.created_at)}
-                    {canDelete && !isDeleted && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            type="button"
-                            className="h-6 w-6 rounded-md flex items-center justify-center hover:bg-muted transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
-                          >
-                            <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-32">
-                          <DropdownMenuItem
-                            className="text-xs py-2 cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/20"
-                            onClick={() => handleDeleteMessage(m.id, m.user_id)}
-                          >
-                            <Trash2Icon className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
-                            <span className="text-red-600 dark:text-red-400 font-medium">
-                              {t("menu.delete")}
-                            </span>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                  </span>
-                </div>
-                <div
-                  className={`text-sm leading-5 wrap-break-word whitespace-pre-wrap ${
-                    isHost
-                      ? "text-foreground font-medium"
-                      : "text-foreground/90"
-                  }`}
-                >
-                  {m.message?.includes("[DELETED_BY_") ? (
-                    <span className="inline-flex items-center gap-1.5 text-muted-foreground/70 italic">
-                      <MessageSquareIcon className="h-3.5 w-3.5" />
-                      {m.message?.includes("[DELETED_BY_HOST]")
-                        ? t("deleted.byHost")
-                        : m.message?.includes("[DELETED_BY_SUPER_ADMIN]")
-                        ? t("deleted.bySuperAdmin")
-                        : m.message?.includes("[DELETED_BY_ADMIN]")
-                        ? t("deleted.byAdmin")
-                        : t("deleted.generic")}
-                    </span>
-                  ) : (
-                    m.message
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+          })
+        )}
         <div ref={messagesEndRef} />
       </div>
     ),
-    [messages, creatorId, userId, userRole, formatTime, handleDeleteMessage]
+    [
+      messages,
+      creatorId,
+      userId,
+      userRole,
+      formatTime,
+      handleDeleteMessage,
+      isLoadingMessages,
+    ]
   );
 
   // Realtime subscription
   useEffect(() => {
     if (!roomId) return;
+
+    console.log(
+      `🔔 Setting up realtime subscription for room ${roomId.substring(
+        0,
+        8
+      )}...`
+    );
+
     const channel = supabase.current
       .channel(`stream-room-messages-${roomId}`)
       .on(
@@ -495,6 +628,7 @@ export function StreamChat({
         },
         async (payload) => {
           const msg = payload.new as ChatMessage;
+          console.log(`📨 New message received: ${msg.id.substring(0, 8)}...`);
 
           // Skip if this message was already added optimistically
           if (optimisticMessageIdsRef.current.has(msg.id)) {
@@ -517,8 +651,17 @@ export function StreamChat({
           // Check if message already exists to prevent duplicates
           setMessages((prev) => {
             if (prev.some((m) => m.id === msg.id)) {
+              console.log(
+                `⚠️ Message ${msg.id.substring(
+                  0,
+                  8
+                )}... already exists, skipping`
+              );
               return prev;
             }
+            console.log(
+              `✅ Adding new message ${msg.id.substring(0, 8)}... to chat`
+            );
             return [...prev, msg];
           });
 
@@ -534,11 +677,35 @@ export function StreamChat({
             setMessages((prev) =>
               prev.map((m) => (m.id === msg.id ? { ...m, user } : m))
             );
-          } catch {}
+          } catch (error) {
+            console.error("Error fetching user data for message:", error);
+          }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.log(
+            `✅ Realtime subscription active for room ${roomId.substring(
+              0,
+              8
+            )}...`
+          );
+        } else if (status === "CHANNEL_ERROR") {
+          console.error(
+            `❌ Realtime subscription error for room ${roomId.substring(
+              0,
+              8
+            )}...`
+          );
+        }
+      });
     return () => {
+      console.log(
+        `🔕 Cleaning up realtime subscription for room ${roomId.substring(
+          0,
+          8
+        )}...`
+      );
       supabase.current.removeChannel(channel);
     };
   }, [roomId]);
@@ -607,66 +774,132 @@ export function StreamChat({
   }, [roomId]);
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent<HTMLFormElement>) => {
+    async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       const trimmed = message.trim();
       if (!trimmed) return;
-      (async () => {
+      if (!roomId || !userId) return;
+
+      // Ensure user data is ALWAYS available before showing message
+      let currentUser = currentUserRef.current;
+      if (!currentUser) {
+        // Fetch user data synchronously before proceeding
         try {
-          if (!roomId || !userId) return;
-          const response = await fetch(`/api/trading-room/${roomId}/messages`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: trimmed }),
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || "Failed to send message");
+          const { data: u } = await supabase.current
+            .from("users")
+            .select("id, first_name, last_name, avatar_url")
+            .eq("id", userId)
+            .single();
+          if (u) {
+            currentUserRef.current = u as ChatUser;
+            currentUser = currentUserRef.current;
+          } else {
+            toast.error("Failed to load user data. Please try again.");
+            return;
           }
-
-          const data = await response.json();
-
-          let currentUser: ChatUser | null = null;
-          try {
-            const { data: u } = await supabase.current
-              .from("users")
-              .select("id, first_name, last_name, avatar_url")
-              .eq("id", userId)
-              .single();
-            currentUser = (u as unknown as ChatUser) || null;
-          } catch {}
-
-          // Mark this message ID as optimistically added
-          optimisticMessageIdsRef.current.add(data.id);
-
-          setMessage("");
-          setMessages((prev) => {
-            // Double-check it doesn't already exist
-            if (prev.some((m) => m.id === data.id)) {
-              return prev;
-            }
-            return [
-              ...prev,
-              {
-                id: data.id,
-                room_id: roomId,
-                user_id: userId,
-                message: trimmed,
-                created_at: data.created_at,
-                user: currentUser,
-              },
-            ];
-          });
         } catch (error) {
-          console.error("Failed to send chat message:", error);
-          toast.error(
-            error instanceof Error ? error.message : "Failed to send message"
-          );
+          console.error("Failed to fetch user data:", error);
+          toast.error("Failed to load user data. Please try again.");
+          return;
         }
-      })();
+      }
+
+      // Generate temporary ID for optimistic update
+      const tempId = `temp-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 9)}`;
+      const tempCreatedAt = new Date().toISOString();
+
+      // Add message optimistically IMMEDIATELY - user data is guaranteed to exist
+      const optimisticMessage: ChatMessage = {
+        id: tempId,
+        room_id: roomId,
+        user_id: userId,
+        message: trimmed,
+        created_at: tempCreatedAt,
+        user: currentUser!, // User data is guaranteed to exist here
+      };
+
+      setMessage("");
+      setMessages((prev) => [...prev, optimisticMessage]);
+
+      // Scroll to bottom immediately
+      setTimeout(() => {
+        if (chatContainerRef.current) {
+          chatContainerRef.current.scrollTop =
+            chatContainerRef.current.scrollHeight;
+        }
+      }, 0);
+
+      // Send to API in background
+      sendMessageToAPI(roomId, trimmed, currentUser!, tempId);
     },
     [message, roomId, userId]
+  );
+
+  const sendMessageToAPI = useCallback(
+    async (
+      roomId: string,
+      trimmed: string,
+      currentUser: ChatUser | null,
+      tempId: string
+    ) => {
+      try {
+        const response = await fetch(`/api/trading-room/${roomId}/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: trimmed }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "Failed to send message");
+        }
+
+        const data = await response.json();
+
+        // Use cached user data (should always be available)
+        const finalUser = currentUser || currentUserRef.current;
+
+        // Mark this message ID as optimistically added
+        optimisticMessageIdsRef.current.add(data.id);
+
+        // Replace temporary message with real one
+        setMessages((prev) => {
+          // Remove the temporary message
+          const filtered = prev.filter((m) => m.id !== tempId);
+          // Check if real message already exists (from realtime)
+          if (filtered.some((m) => m.id === data.id)) {
+            // Update existing message with user data if missing
+            return filtered.map((m) =>
+              m.id === data.id && !m.user && finalUser
+                ? { ...m, user: finalUser }
+                : m
+            );
+          }
+          // Add real message with proper data
+          return [
+            ...filtered,
+            {
+              id: data.id,
+              room_id: roomId,
+              user_id: userId!,
+              message: trimmed,
+              created_at: data.created_at,
+              user: finalUser,
+            },
+          ];
+        });
+      } catch (error) {
+        console.error("Failed to send chat message:", error);
+        // Remove optimistic message on error
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        toast.error(
+          error instanceof Error ? error.message : "Failed to send message"
+        );
+      }
+    },
+    [userId]
   );
 
   const handleKeyDown = useCallback(
