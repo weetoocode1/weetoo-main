@@ -781,12 +781,24 @@ export function StreamChat({
     };
   }, [roomId, isThisWindowPopout, userId]);
 
-  // Realtime donation highlights
+  // Realtime donation highlights - wait for auth to complete before subscribing
   useEffect(() => {
-    if (!roomId) return;
+    if (!roomId || !userId) return; // Wait for auth to complete
+
+    // Use stable channel name per window instance (no Date.now() to prevent re-subscription)
     const channelName = `stream-room-donations-${roomId}-${
       isThisWindowPopout ? "popout" : "main"
-    }-${Date.now()}`;
+    }`;
+
+    console.log(
+      `💰 Setting up donation subscription for room ${roomId.substring(
+        0,
+        8
+      )}... (${
+        isThisWindowPopout ? "POPOUT" : "MAIN"
+      }) User: ${userId.substring(0, 8)}...`
+    );
+
     const channel = supabase.current
       .channel(channelName)
       .on(
@@ -805,47 +817,111 @@ export function StreamChat({
             created_at: string;
             message?: string | null;
           };
-          try {
-            const { data: u } = await supabase.current
-              .from("users")
-              .select("id, first_name, last_name, avatar_url")
-              .eq("id", d.user_id)
-              .single();
-            const user = (u as unknown as ChatUser) || null;
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: `donation-${d.id}`,
-                room_id: roomId,
-                user_id: d.user_id,
-                message: "",
-                created_at: d.created_at,
-                user,
-                donationAmount: d.amount,
-                donationMessage: d.message ?? null,
-              },
-            ]);
-          } catch {
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: `donation-${d.id}`,
-                room_id: roomId,
-                user_id: d.user_id,
-                message: "",
-                created_at: d.created_at,
-                donationAmount: d.amount,
-                donationMessage: d.message ?? null,
-              },
-            ]);
-          }
+
+          const donationId = `donation-${d.id}`;
+          console.log(
+            `💰 New donation received (${
+              isThisWindowPopout ? "POPOUT" : "MAIN"
+            }): ${donationId} from user ${d.user_id.substring(
+              0,
+              8
+            )}... amount: ${d.amount}`
+          );
+
+          // Check if donation already exists to prevent duplicates
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === donationId)) {
+              console.log(`⚠️ Donation ${donationId} already exists, skipping`);
+              return prev;
+            }
+
+            console.log(
+              `✅ Adding new donation ${donationId} to chat (${
+                isThisWindowPopout ? "POPOUT" : "MAIN"
+              })`
+            );
+
+            // Add donation immediately without user data, then fetch user data
+            const tempDonation: ChatMessage = {
+              id: donationId,
+              room_id: roomId,
+              user_id: d.user_id,
+              message: "",
+              created_at: d.created_at,
+              donationAmount: d.amount,
+              donationMessage: d.message ?? null,
+            };
+
+            const updated = [...prev, tempDonation].sort(
+              (a, b) =>
+                new Date(a.created_at).getTime() -
+                new Date(b.created_at).getTime()
+            );
+
+            // Fetch user data asynchronously and update donation
+            (async () => {
+              try {
+                const { data: u } = await supabase.current
+                  .from("users")
+                  .select("id, first_name, last_name, avatar_url")
+                  .eq("id", d.user_id)
+                  .single();
+                const user = (u as unknown as ChatUser) || null;
+
+                if (user) {
+                  setMessages((prevMessages) =>
+                    prevMessages.map((m) =>
+                      m.id === donationId ? { ...m, user } : m
+                    )
+                  );
+                }
+              } catch (error) {
+                console.error("Error fetching user data for donation:", error);
+              }
+            })();
+
+            return updated;
+          });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.log(
+            `✅ Donation subscription active for room ${roomId.substring(
+              0,
+              8
+            )}... (${
+              isThisWindowPopout ? "POPOUT" : "MAIN"
+            }) - Channel: ${channelName}`
+          );
+        } else if (status === "CHANNEL_ERROR") {
+          console.error(
+            `❌ Donation subscription error for room ${roomId.substring(
+              0,
+              8
+            )}... (${
+              isThisWindowPopout ? "POPOUT" : "MAIN"
+            }) - Channel: ${channelName}`
+          );
+        } else {
+          console.log(
+            `🔄 Donation subscription status: ${status} for room ${roomId.substring(
+              0,
+              8
+            )}... (${isThisWindowPopout ? "POPOUT" : "MAIN"})`
+          );
+        }
+      });
     return () => {
+      console.log(
+        `🔕 Cleaning up donation subscription for room ${roomId.substring(
+          0,
+          8
+        )}... (${isThisWindowPopout ? "POPOUT" : "MAIN"})`
+      );
       supabase.current.removeChannel(channel);
     };
-  }, [roomId]);
+  }, [roomId, isThisWindowPopout, userId]);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
