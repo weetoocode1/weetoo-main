@@ -150,13 +150,13 @@ export async function getRankingsData(): Promise<RankingsData> {
     };
 
     // Debug: Log the result to understand what data is being returned
-    console.log("getRankingsData result:", {
-      returnRateData: result.returnRateData.length,
-      virtualMoneyData: result.virtualMoneyData.length,
-      activityData: result.activityData.length,
-      donationData: result.donationData.length,
-      followersData: result.followersData.length,
-    });
+    // console.log("getRankingsData result:", {
+    //   returnRateData: result.returnRateData.length,
+    //   virtualMoneyData: result.virtualMoneyData.length,
+    //   activityData: result.activityData.length,
+    //   donationData: result.donationData.length,
+    //   followersData: result.followersData.length,
+    // });
 
     return result;
   } catch (error) {

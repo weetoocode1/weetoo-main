@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
-import { useTranslations } from "next-intl";
-import MuxPlayer from "@mux/mux-player-react";
-import "@mux/mux-active-viewer-count";
-import { VideoIcon, EyeIcon } from "lucide-react";
-import { StreamChat } from "./stream-chat";
-import { createClient } from "@/lib/supabase/client";
 import { useLiveViewers } from "@/hooks/use-live-viewers";
+import { useRoomParticipant } from "@/hooks/use-room-participant";
+import { createClient } from "@/lib/supabase/client";
+import "@mux/mux-active-viewer-count";
+import MuxPlayer from "@mux/mux-player-react";
+import { EyeIcon, VideoIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { StreamChat } from "./stream-chat";
 
 interface StreamData {
   streamId?: string;
@@ -30,6 +31,26 @@ export function Viewer({ roomId }: ViewerProps) {
   const [presenceCount, setPresenceCount] = useState<number>(0);
   const hasCheckedRef = useRef(false);
   const supabase = useRef(createClient());
+  const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
+
+  // Ensure viewer is added as participant to read messages
+  useEffect(() => {
+    supabase.current.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setCurrentUser({ id: data.user.id });
+      }
+    });
+  }, []);
+
+  const { joinRoom } = useRoomParticipant(roomId, currentUser);
+
+  useEffect(() => {
+    if (currentUser && roomId) {
+      joinRoom().catch((error) => {
+        console.error("Error joining room as participant:", error);
+      });
+    }
+  }, [currentUser, roomId, joinRoom]);
 
   // console.log("THE MUX ENV KEY IS:", process.env.NEXT_PUBLIC_MUX_DATA_ENV_KEY);
 

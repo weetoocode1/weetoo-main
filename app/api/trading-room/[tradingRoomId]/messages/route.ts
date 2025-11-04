@@ -71,11 +71,13 @@ export async function POST(
       created_at: insertedMessage.created_at,
     });
   } catch (error) {
-    console.error("Error in POST /api/trading-room/[tradingRoomId]/messages:", error);
+    console.error(
+      "Error in POST /api/trading-room/[tradingRoomId]/messages:",
+      error
+    );
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
-
