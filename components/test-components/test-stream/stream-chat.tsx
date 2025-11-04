@@ -18,6 +18,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useRoomParticipant } from "@/hooks/use-room-participant";
 import { createClient } from "@/lib/supabase/client";
 import {
   Crown,
@@ -143,12 +144,35 @@ export function StreamChat({
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentUserRef = useRef<ChatUser | null>(null);
+  const [currentUserForParticipant, setCurrentUserForParticipant] = useState<{
+    id: string;
+  } | null>(null);
 
   const [isThisWindowPopout, setIsThisWindowPopout] = useState(false);
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
     setIsThisWindowPopout(Boolean(sp.get("is_popout")));
   }, []);
+
+  // Ensure chat user is added as participant to read messages (especially important for popout)
+  useEffect(() => {
+    if (!roomId) return;
+    supabase.current.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setCurrentUserForParticipant({ id: data.user.id });
+      }
+    });
+  }, [roomId]);
+
+  const { joinRoom } = useRoomParticipant(roomId, currentUserForParticipant);
+
+  useEffect(() => {
+    if (currentUserForParticipant && roomId) {
+      joinRoom().catch((error) => {
+        console.error("Error joining room as participant in chat:", error);
+      });
+    }
+  }, [currentUserForParticipant, roomId, joinRoom]);
 
   // Auth
   useEffect(() => {
@@ -605,19 +629,26 @@ export function StreamChat({
     ]
   );
 
-  // Realtime subscription
+  // Realtime subscription - wait for auth to complete before subscribing
   useEffect(() => {
-    if (!roomId) return;
+    if (!roomId || !userId) return; // Wait for auth to complete
+
+    // Use stable channel name per window instance (no Date.now() to prevent re-subscription)
+    const channelName = `stream-room-messages-${roomId}-${
+      isThisWindowPopout ? "popout" : "main"
+    }`;
 
     console.log(
       `🔔 Setting up realtime subscription for room ${roomId.substring(
         0,
         8
-      )}...`
+      )}... (${
+        isThisWindowPopout ? "POPOUT" : "MAIN"
+      }) User: ${userId.substring(0, 8)}...`
     );
 
     const channel = supabase.current
-      .channel(`stream-room-messages-${roomId}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
@@ -628,7 +659,14 @@ export function StreamChat({
         },
         async (payload) => {
           const msg = payload.new as ChatMessage;
-          console.log(`📨 New message received: ${msg.id.substring(0, 8)}...`);
+          console.log(
+            `📨 New message received (${
+              isThisWindowPopout ? "POPOUT" : "MAIN"
+            }): ${msg.id.substring(0, 8)}... from user ${msg.user_id.substring(
+              0,
+              8
+            )}... message: "${msg.message?.substring(0, 30)}..."`
+          );
 
           // Skip if this message was already added optimistically
           if (optimisticMessageIdsRef.current.has(msg.id)) {
@@ -644,7 +682,12 @@ export function StreamChat({
               setMessages((prev) =>
                 prev.map((m) => (m.id === msg.id ? { ...m, user } : m))
               );
-            } catch {}
+            } catch (error) {
+              console.error(
+                "Error fetching user data for optimistic message:",
+                error
+              );
+            }
             return;
           }
 
@@ -660,9 +703,17 @@ export function StreamChat({
               return prev;
             }
             console.log(
-              `✅ Adding new message ${msg.id.substring(0, 8)}... to chat`
+              `✅ Adding new message ${msg.id.substring(0, 8)}... to chat (${
+                isThisWindowPopout ? "POPOUT" : "MAIN"
+              })`
             );
-            return [...prev, msg];
+            // Add message and sort by created_at to maintain chronological order
+            const updated = [...prev, msg].sort(
+              (a, b) =>
+                new Date(a.created_at).getTime() -
+                new Date(b.created_at).getTime()
+            );
+            return updated;
           });
 
           // Fetch user data asynchronously and update message
@@ -674,9 +725,18 @@ export function StreamChat({
               .single();
             const user = (u as unknown as ChatUser) || null;
 
-            setMessages((prev) =>
-              prev.map((m) => (m.id === msg.id ? { ...m, user } : m))
-            );
+            if (user) {
+              setMessages((prev) =>
+                prev.map((m) => (m.id === msg.id ? { ...m, user } : m))
+              );
+            } else {
+              console.warn(
+                `⚠️ Could not fetch user data for message ${msg.id.substring(
+                  0,
+                  8
+                )}...`
+              );
+            }
           } catch (error) {
             console.error("Error fetching user data for message:", error);
           }
@@ -688,14 +748,25 @@ export function StreamChat({
             `✅ Realtime subscription active for room ${roomId.substring(
               0,
               8
-            )}...`
+            )}... (${
+              isThisWindowPopout ? "POPOUT" : "MAIN"
+            }) - Channel: ${channelName}`
           );
         } else if (status === "CHANNEL_ERROR") {
           console.error(
             `❌ Realtime subscription error for room ${roomId.substring(
               0,
               8
-            )}...`
+            )}... (${
+              isThisWindowPopout ? "POPOUT" : "MAIN"
+            }) - Channel: ${channelName}`
+          );
+        } else {
+          console.log(
+            `🔄 Realtime subscription status: ${status} for room ${roomId.substring(
+              0,
+              8
+            )}... (${isThisWindowPopout ? "POPOUT" : "MAIN"})`
           );
         }
       });
@@ -704,17 +775,20 @@ export function StreamChat({
         `🔕 Cleaning up realtime subscription for room ${roomId.substring(
           0,
           8
-        )}...`
+        )}... (${isThisWindowPopout ? "POPOUT" : "MAIN"})`
       );
       supabase.current.removeChannel(channel);
     };
-  }, [roomId]);
+  }, [roomId, isThisWindowPopout, userId]);
 
   // Realtime donation highlights
   useEffect(() => {
     if (!roomId) return;
+    const channelName = `stream-room-donations-${roomId}-${
+      isThisWindowPopout ? "popout" : "main"
+    }-${Date.now()}`;
     const channel = supabase.current
-      .channel(`stream-room-donations-${roomId}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
@@ -999,7 +1073,7 @@ export function StreamChat({
   return (
     <div
       key={locale}
-      className="w-[425px] h-full border border-border flex flex-col bg-card text-card-foreground min-w-0 overflow-hidden"
+      className="w-full md:w-[425px] lg:w-[425px] h-full border border-border flex flex-col bg-card text-card-foreground min-w-0 overflow-hidden"
     >
       <div className="h-12 border-b border-border flex items-center justify-between px-3">
         <span>{t("title")}</span>
