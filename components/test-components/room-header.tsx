@@ -623,7 +623,9 @@ export function RoomHeader({
           asChild
         >
           <Link href={`/trading-room/${room.id}/stream`}>
-            <VideoIcon className="size-4" />
+            <span className="inline-flex items-center">
+              <VideoIcon className="size-4" />
+            </span>
           </Link>
         </Button>
         <span className="sr-only">{t("sr.startLiveStream")}</span>
@@ -1036,9 +1038,11 @@ export function RoomHeader({
             asChild
           >
             <Link href={`/trading-room/${room.id}/stream`}>
-              <VideoIcon className="size-3 mr-1" />
+              <span className="inline-flex items-center">
+                <VideoIcon className="size-3 mr-1" />
+                {t("stream.button")}
+              </span>
             </Link>
-            {t("stream.button")}
           </Button>
 
           <div className="flex items-center gap-2">
