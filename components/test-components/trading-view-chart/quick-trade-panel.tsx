@@ -46,9 +46,23 @@ export function QuickTradePanel({
 
   const currentSymbol = symbol || "BTCUSDT";
   const ticker = useTickerData(currentSymbol as Symbol);
+  
+  // Persist last price to prevent flickering
+  const lastPriceRef = useRef<number>(0);
+  useEffect(() => {
+    if (ticker?.lastPrice && ticker.lastPrice !== "0" && ticker.lastPrice !== "") {
+      const p = parseFloat(ticker.lastPrice);
+      if (Number.isFinite(p) && p > 0) {
+        lastPriceRef.current = p;
+      }
+    }
+  }, [ticker?.lastPrice]);
+  
   const lastPrice = useMemo(() => {
-    const p = ticker?.lastPrice ? parseFloat(ticker.lastPrice) : 0;
-    return Number.isFinite(p) ? p : 0;
+    const p = ticker?.lastPrice && ticker.lastPrice !== "0" && ticker.lastPrice !== ""
+      ? parseFloat(ticker.lastPrice)
+      : lastPriceRef.current;
+    return Number.isFinite(p) && p > 0 ? p : lastPriceRef.current;
   }, [ticker?.lastPrice]);
 
   // Handle trade button clicks

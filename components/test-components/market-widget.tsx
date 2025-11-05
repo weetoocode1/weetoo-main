@@ -65,6 +65,8 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
     fundingRate: 0,
     fundingRateLastNonZero: 0,
     fundingRateSeen: false,
+    high24hSeen: false,
+    low24hSeen: false,
     change24hAmount: 0,
     change24hPercent: 0,
     nextFundingTimeMs: 0,
@@ -114,7 +116,10 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
         ? changeFromPct
         : parse(tickerData?.change24h);
 
-    const fr = parse(tickerData?.fundingRate) * 100; // percent
+    // Parse funding rate - Bybit sends as decimal (e.g., 0.0001 = 0.01%)
+    // Always multiply by 100 to convert to percentage
+    const frRaw = parse(tickerData?.fundingRate);
+    const fr = frRaw * 100;
 
     return {
       currentPrice: last,
@@ -148,24 +153,48 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
           : getNextFundingTimeMs();
       })();
 
+      // Parse funding rate - Bybit sends as decimal (e.g., 0.0001 = 0.01%)
+      // Always multiply by 100 to convert to percentage
       const fundingSrc =
         tickerData.predictedFundingRate ?? tickerData.fundingRate;
-      const frParsed = fundingSrc ? parseFloat(fundingSrc) * 100 : NaN;
-      const frValid = Number.isFinite(frParsed);
+      let frParsed = NaN;
+      if (fundingSrc !== undefined && fundingSrc !== null && fundingSrc !== "0" && fundingSrc !== "") {
+        const parsed = parseFloat(fundingSrc);
+        // Bybit sends funding rate as decimal, multiply by 100 for percentage
+        frParsed = Number.isFinite(parsed) ? parsed * 100 : NaN;
+      }
+      const frValid = Number.isFinite(frParsed) && !isNaN(frParsed);
+
+      // Check if ticker data has actual values (not just "0" strings or empty)
+      // For optional fields (high24h, low24h, fundingRate), check if they exist at all
+      const hasHigh24h = tickerData.highPrice24h !== undefined && tickerData.highPrice24h !== null && tickerData.highPrice24h !== "0" && tickerData.highPrice24h !== "";
+      const hasLow24h = tickerData.lowPrice24h !== undefined && tickerData.lowPrice24h !== null && tickerData.lowPrice24h !== "0" && tickerData.lowPrice24h !== "";
+      const hasOpenInterest = tickerData.openInterest && tickerData.openInterest !== "0" && tickerData.openInterest !== "";
+      const hasVolume24h = tickerData.volume24h && tickerData.volume24h !== "0" && tickerData.volume24h !== "";
+      const hasTurnover24h = tickerData.turnover24h && tickerData.turnover24h !== "0" && tickerData.turnover24h !== "";
+      const hasIndexPrice = tickerData.indexPrice && tickerData.indexPrice !== "0" && tickerData.indexPrice !== "";
+      const hasMarkPrice = tickerData.markPrice && tickerData.markPrice !== "0" && tickerData.markPrice !== "";
+      // For funding rate, check if it exists (not undefined/null) and is not "0"
+      const hasFundingRate = tickerData.fundingRate !== undefined && tickerData.fundingRate !== null && tickerData.fundingRate !== "0" && tickerData.fundingRate !== "";
 
       return {
         ...prev,
-        indexPrice: indexPrice > 0 ? indexPrice : prev.indexPrice,
-        markPrice: markPrice > 0 ? markPrice : prev.markPrice,
-        high24h: high24h > 0 ? high24h : prev.high24h,
-        low24h: low24h > 0 ? low24h : prev.low24h,
-        volume24h: volume24h > 0 ? volume24h : prev.volume24h,
-        turnover24h: turnover24h > 0 ? turnover24h : prev.turnover24h,
-        openInterest: openInterest > 0 ? openInterest : prev.openInterest,
-        fundingRate: frValid ? frParsed : prev.fundingRate,
+        // Update if we have valid new data, otherwise preserve previous value
+        indexPrice: hasIndexPrice && indexPrice > 0 ? indexPrice : prev.indexPrice,
+        markPrice: hasMarkPrice && markPrice > 0 ? markPrice : prev.markPrice,
+        high24h: hasHigh24h && high24h > 0 ? high24h : prev.high24h,
+        low24h: hasLow24h && low24h > 0 ? low24h : prev.low24h,
+        // Set seen flag if we have valid data OR if we already have a stored value
+        high24hSeen: (hasHigh24h && high24h > 0) || (prev.high24h > 0) || prev.high24hSeen,
+        low24hSeen: (hasLow24h && low24h > 0) || (prev.low24h > 0) || prev.low24hSeen,
+        volume24h: hasVolume24h && volume24h > 0 ? volume24h : prev.volume24h,
+        turnover24h: hasTurnover24h && turnover24h > 0 ? turnover24h : prev.turnover24h,
+        openInterest: hasOpenInterest && openInterest > 0 ? openInterest : prev.openInterest,
+        // For funding rate, update if valid (even if 0), otherwise keep previous
+        fundingRate: hasFundingRate && frValid ? frParsed : prev.fundingRate,
         fundingRateLastNonZero:
-          frValid && frParsed !== 0 ? frParsed : prev.fundingRateLastNonZero,
-        fundingRateSeen: frValid ? true : prev.fundingRateSeen,
+          hasFundingRate && frValid && frParsed !== 0 ? frParsed : prev.fundingRateLastNonZero,
+        fundingRateSeen: (hasFundingRate && frValid) || prev.fundingRateSeen,
         change24hAmount: Number.isFinite(change24h)
           ? change24h
           : prev.change24hAmount,
@@ -389,7 +418,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
           <div className="flex flex-col w-fit">
             <span className="text-xs text-muted-foreground">{t("labels.high24h")}</span>
             <span className="text-xs font-medium text-foreground transition-colors duration-300 tabular-nums">
-              {hasValidData && (high24h > 0 || lastKnownValues.high24h > 0)
+              {(high24h > 0 || lastKnownValues.high24h > 0)
                 ? formatNumber(high24h > 0 ? high24h : lastKnownValues.high24h)
                 : "--"}
             </span>
@@ -399,7 +428,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
           <div className="flex flex-col w-fit">
             <span className="text-xs text-muted-foreground">{t("labels.low24h")}</span>
             <span className="text-xs font-medium text-foreground transition-colors duration-300 tabular-nums">
-              {hasValidData && (low24h > 0 || lastKnownValues.low24h > 0)
+              {(low24h > 0 || lastKnownValues.low24h > 0)
                 ? formatNumber(low24h > 0 ? low24h : lastKnownValues.low24h)
                 : "--"}
             </span>
@@ -461,14 +490,15 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
             <div className="flex items-center gap-1">
               <ZapIcon className="w-3 h-3 text-orange-500 transition-colors duration-300" />
               <span className="text-xs font-medium text-orange-500 transition-colors duration-300 tabular-nums">
-                {lastKnownValues.fundingRateSeen ||
-                lastKnownValues.fundingRateLastNonZero !== 0
+                {lastKnownValues.fundingRateSeen
                   ? `${formatPercent4(
                       fundingRate !== 0
                         ? fundingRate
                         : lastKnownValues.fundingRate !== 0
                         ? lastKnownValues.fundingRate
-                        : lastKnownValues.fundingRateLastNonZero
+                        : lastKnownValues.fundingRateLastNonZero !== 0
+                        ? lastKnownValues.fundingRateLastNonZero
+                        : 0
                     )}%`
                   : "--"}
               </span>
@@ -588,7 +618,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
           <div className="flex flex-col">
             <span className="text-xs text-muted-foreground">{t("labels.high24h")}</span>
             <span className="text-sm font-medium text-foreground transition-colors duration-300 tabular-nums">
-              {hasValidData && (high24h > 0 || lastKnownValues.high24h > 0)
+              {(high24h > 0 || lastKnownValues.high24h > 0)
                 ? formatNumber(high24h > 0 ? high24h : lastKnownValues.high24h)
                 : "--"}
             </span>
@@ -598,7 +628,7 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
           <div className="flex flex-col">
             <span className="text-xs text-muted-foreground">{t("labels.low24h")}</span>
             <span className="text-sm font-medium text-foreground transition-colors duration-300 tabular-nums">
-              {hasValidData && (low24h > 0 || lastKnownValues.low24h > 0)
+              {(low24h > 0 || lastKnownValues.low24h > 0)
                 ? formatNumber(low24h > 0 ? low24h : lastKnownValues.low24h)
                 : "--"}
             </span>
@@ -640,14 +670,15 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
             <ZapIcon className="w-3 h-3 text-orange-500 transition-colors duration-300" />
             <span className="text-xs text-muted-foreground">{t("labels.fundingRate")}</span>
             <span className="text-xs font-medium text-orange-500 transition-colors duration-300 tabular-nums">
-              {lastKnownValues.fundingRateSeen ||
-              lastKnownValues.fundingRateLastNonZero !== 0
+              {lastKnownValues.fundingRateSeen
                 ? `${formatPercent4(
                     fundingRate !== 0
                       ? fundingRate
                       : lastKnownValues.fundingRate !== 0
                       ? lastKnownValues.fundingRate
-                      : lastKnownValues.fundingRateLastNonZero
+                      : lastKnownValues.fundingRateLastNonZero !== 0
+                      ? lastKnownValues.fundingRateLastNonZero
+                      : 0
                   )}%`
                 : "--"}
             </span>

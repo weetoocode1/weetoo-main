@@ -7,11 +7,11 @@ export interface TickerData {
   prevPrice24h?: string;
   change24h: string;
   tickDirection: string;
-  highPrice24h: string;
-  lowPrice24h: string;
+  highPrice24h?: string; // Optional - not included in all ticker updates
+  lowPrice24h?: string; // Optional - not included in all ticker updates
   volume24h: string;
   turnover24h: string;
-  fundingRate: string;
+  fundingRate?: string; // Optional - not included in all ticker updates
   predictedFundingRate?: string;
   openInterest: string;
   markPrice: string;

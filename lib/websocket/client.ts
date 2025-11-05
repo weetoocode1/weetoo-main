@@ -512,7 +512,7 @@ export class WebSocketClient extends EventEmitter {
   private startDirectOrderBookProcessing(): void {
     if (!this.directBybitMode) return;
     if (this.obEmitInterval) clearInterval(this.obEmitInterval);
-    // Emit at ~1s cadence as requested
+    // Emit at ~200ms cadence for smoother updates
     this.obEmitInterval = setInterval(() => {
       this.obQueues.forEach((deltas, symbol) => {
         if (deltas.length === 0) return;
@@ -543,7 +543,7 @@ export class WebSocketClient extends EventEmitter {
         this.obQueues.set(symbol, []);
         this.emit("orderbook", this.buildOrderBookData(symbol));
       });
-    }, 1000);
+    }, 200);
   }
 
   private stopDirectOrderBookProcessing(): void {
@@ -616,9 +616,6 @@ export class WebSocketClient extends EventEmitter {
 
     // Get the current ticker price for this symbol to ensure consistency
     const currentTicker = this.getCurrentTickerPrice(symbol);
-    console.log(
-      `📚 Order book for ${symbol} using ticker price: ${currentTicker.lastPrice}`
-    );
 
     return {
       symbol,
@@ -634,6 +631,23 @@ export class WebSocketClient extends EventEmitter {
   private mapBybitTickerData(raw: unknown): TickerData {
     const d = (Array.isArray(raw) ? raw[0] : raw) as Record<string, unknown>;
 
+    // For optional fields (h24, l24, fr), check both shortened and full names
+    const h24 = d?.h24 !== undefined && d?.h24 !== null
+      ? (d.h24 as string)
+      : (d?.highPrice24h !== undefined && d?.highPrice24h !== null
+          ? (d.highPrice24h as string)
+          : undefined);
+    const l24 = d?.l24 !== undefined && d?.l24 !== null
+      ? (d.l24 as string)
+      : (d?.lowPrice24h !== undefined && d?.lowPrice24h !== null
+          ? (d.lowPrice24h as string)
+          : undefined);
+    const fr = d?.fr !== undefined && d?.fr !== null
+      ? (d.fr as string)
+      : (d?.fundingRate !== undefined && d?.fundingRate !== null
+          ? (d.fundingRate as string)
+          : undefined);
+
     return {
       symbol: (d?.s as string) || (d?.symbol as string) || "",
       lastPrice: (d?.lp as string) || (d?.lastPrice as string) || "0",
@@ -642,11 +656,13 @@ export class WebSocketClient extends EventEmitter {
       prevPrice24h: (d?.prevPrice24h as string) || undefined,
       change24h: (d?.change24h as string) || "0",
       tickDirection: (d?.tickDirection as string) || "",
-      highPrice24h: (d?.h24 as string) || (d?.highPrice24h as string) || "0",
-      lowPrice24h: (d?.l24 as string) || (d?.lowPrice24h as string) || "0",
+      // Only include if field exists (not undefined/null)
+      highPrice24h: h24,
+      lowPrice24h: l24,
       volume24h: (d?.v24 as string) || (d?.volume24h as string) || "0",
       turnover24h: (d?.turnover24h as string) || "0",
-      fundingRate: (d?.fr as string) || (d?.fundingRate as string) || "0",
+      // Only include if field exists (not undefined/null)
+      fundingRate: fr,
       predictedFundingRate: (d?.predictedFundingRate as string) || undefined,
       openInterest: (d?.oi as string) || (d?.openInterest as string) || "0",
       markPrice: (d?.mp as string) || (d?.markPrice as string) || "0",

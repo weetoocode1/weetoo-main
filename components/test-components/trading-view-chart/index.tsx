@@ -131,11 +131,38 @@ export function TradingViewChartTest({
   // Get synchronized ticker data for price consistency
   const tickerData = useTickerData((symbol as Symbol) || "BTCUSDT");
   const widgetRef = useRef<InstanceType<typeof widget> | null>(null);
+
+  // Persist ticker values to prevent flickering
+  const tickerValuesRef = useRef<{ lastPrice: string; markPrice: string }>({
+    lastPrice: "0",
+    markPrice: "0",
+  });
+
+  useEffect(() => {
+    if (tickerData) {
+      // Only update if we have valid data (not "0" or empty)
+      if (
+        tickerData.lastPrice &&
+        tickerData.lastPrice !== "0" &&
+        tickerData.lastPrice !== ""
+      ) {
+        tickerValuesRef.current.lastPrice = tickerData.lastPrice;
+      }
+      if (
+        tickerData.markPrice &&
+        tickerData.markPrice !== "0" &&
+        tickerData.markPrice !== ""
+      ) {
+        tickerValuesRef.current.markPrice = tickerData.markPrice;
+      }
+    }
+  }, [tickerData]);
+
   const tickerCallbackRef = useRef<
     (symbol: string) => { lastPrice: string; markPrice: string }
   >((symbol) => ({
-    lastPrice: "0",
-    markPrice: "0",
+    lastPrice: tickerValuesRef.current.lastPrice,
+    markPrice: tickerValuesRef.current.markPrice,
   }));
   const datafeedRef = useRef<BybitUdfDatafeed | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -807,9 +834,27 @@ export function TradingViewChartTest({
 
   // Update ticker callback ref when ticker data changes (without recreating chart)
   useEffect(() => {
+    // Update ref values if we have valid data
+    if (tickerData) {
+      if (
+        tickerData.lastPrice &&
+        tickerData.lastPrice !== "0" &&
+        tickerData.lastPrice !== ""
+      ) {
+        tickerValuesRef.current.lastPrice = tickerData.lastPrice;
+      }
+      if (
+        tickerData.markPrice &&
+        tickerData.markPrice !== "0" &&
+        tickerData.markPrice !== ""
+      ) {
+        tickerValuesRef.current.markPrice = tickerData.markPrice;
+      }
+    }
+
     tickerCallbackRef.current = (symbol: string) => ({
-      lastPrice: tickerData?.lastPrice || "0",
-      markPrice: tickerData?.markPrice || "0",
+      lastPrice: tickerValuesRef.current.lastPrice,
+      markPrice: tickerValuesRef.current.markPrice,
     });
 
     // Update the datafeed's ticker callback if it exists
@@ -826,15 +871,15 @@ export function TradingViewChartTest({
     } catch {}
 
     // Update P&L on all position lines when ticker data changes
-    if (tickerData?.lastPrice) {
-      const currentPrice = parseFloat(
-        String(tickerData.lastPrice).replace(/,/g, "")
-      );
+    const priceToUse =
+      tickerValuesRef.current.lastPrice || tickerData?.lastPrice || "0";
+    if (priceToUse && priceToUse !== "0") {
+      const currentPrice = parseFloat(String(priceToUse).replace(/,/g, ""));
       if (!isNaN(currentPrice) && currentPrice > 0) {
         updatePositionLinesPnL(currentPrice);
       }
     }
-  }, [tickerData]);
+  }, [tickerData, symbol]);
 
   useEffect(() => {
     if (!containerRef.current || !tv) return;

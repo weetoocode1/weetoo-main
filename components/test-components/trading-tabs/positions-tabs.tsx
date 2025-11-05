@@ -1,11 +1,12 @@
 "use client";
 import { usePositions } from "@/hooks/use-positions";
-import { useTickerData } from "@/hooks/websocket/use-market-data";
 import type { Symbol } from "@/types/market";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { SimpleTable } from "./shared/simple-table";
 import { useTranslations } from "next-intl";
+import { EditPositionTpSlDialog } from "./edit-position-tp-sl-dialog";
+import { PencilIcon } from "lucide-react";
 
 interface Position {
   id: string;
@@ -83,54 +84,69 @@ const PnLDisplay = ({
   );
 };
 
-// TP/SL status indicator for positions
-const PositionTpSlIndicator = ({ position }: { position: Position }) => {
+// TP/SL status indicator for positions with edit functionality
+const PositionTpSlIndicator = ({
+  position,
+  roomId,
+  onEdit,
+}: {
+  position: Position;
+  roomId: string;
+  onEdit: () => void;
+}) => {
   const hasTp = position.tp_enabled && position.take_profit_price;
   const hasSl = position.sl_enabled && position.stop_loss_price;
   const tpActive = position.tp_status === "active";
   const slActive = position.sl_status === "active";
 
-  // Debug logging to see what data we have
-  // console.log("PositionTpSlIndicator data:", {
-  //   id: position.id,
-  //   tp_enabled: position.tp_enabled,
-  //   sl_enabled: position.sl_enabled,
-  //   take_profit_price: position.take_profit_price,
-  //   stop_loss_price: position.stop_loss_price,
-  //   tp_status: position.tp_status,
-  //   sl_status: position.sl_status,
-  //   hasTp,
-  //   hasSl,
-  //   tpActive,
-  //   slActive,
-  // });
-
-  if (!hasTp && !hasSl) return null;
+  if (!hasTp && !hasSl) {
+    return (
+      <button
+        type="button"
+        onClick={() => onEdit()}
+        className="action-btn flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded transition-colors cursor-pointer"
+        title="Add TP/SL"
+      >
+        <PencilIcon className="h-3 w-3" />
+        <span>Add TP/SL</span>
+      </button>
+    );
+  }
 
   return (
-    <div className="flex gap-1">
-      {hasTp && (
-        <span
-          className={`px-1.5 py-0.5 rounded text-xs font-medium ${
-            tpActive
-              ? "bg-green-500/20 text-green-400"
-              : "bg-gray-500/20 text-gray-400"
-          }`}
-        >
-          TP{tpActive ? " ✓" : ""}
-        </span>
-      )}
-      {hasSl && (
-        <span
-          className={`px-1.5 py-0.5 rounded text-xs font-medium ${
-            slActive
-              ? "bg-red-500/20 text-red-400"
-              : "bg-gray-500/20 text-gray-400"
-          }`}
-        >
-          SL{slActive ? " ✓" : ""}
-        </span>
-      )}
+    <div className="flex items-center gap-2">
+      <div className="flex gap-1">
+        {hasTp && (
+          <span
+            className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+              tpActive
+                ? "bg-green-500/20 text-green-400"
+                : "bg-gray-500/20 text-gray-400"
+            }`}
+          >
+            TP{tpActive ? " ✓" : ""}
+          </span>
+        )}
+        {hasSl && (
+          <span
+            className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+              slActive
+                ? "bg-red-500/20 text-red-400"
+                : "bg-gray-500/20 text-gray-400"
+            }`}
+          >
+            SL{slActive ? " ✓" : ""}
+          </span>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={() => onEdit()}
+        className="action-btn p-0.5 text-muted-foreground hover:text-foreground transition-colors rounded"
+        title="Edit TP/SL"
+      >
+        <PencilIcon className="h-3 w-3" />
+      </button>
     </div>
   );
 };
@@ -150,43 +166,70 @@ export function PositionsTabs({
   livePriceOverride,
 }: PositionsTabsProps) {
   const t = useTranslations("trading.positions");
-  // Simple approach - just track if we're currently closing any position
   const [isClosing, setIsClosing] = useState(false);
+  const [editingPosition, setEditingPosition] = useState<Position | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-  // Handle position closing - simple and clean
-  const handleClosePosition = async (position: Position) => {
-    if (isClosing) return; // Prevent multiple clicks
-
-    setIsClosing(true);
-    try {
-      const computedPrice = getClosePrice
-        ? await getClosePrice(position)
-        : livePrice || Number(position.entry_price);
-
-      // Optimistic chart update
-      try {
-        window.dispatchEvent(
-          new CustomEvent("position-closed", { detail: { id: position.id } })
-        );
-        console.log("Dispatched position-closed event for ID:", position.id);
-      } catch (error) {
-        console.error("Failed to dispatch position-closed event:", error);
-      }
-
-      await closePosition(position.id, Number(computedPrice));
-      // Force immediate table refresh - target specific queries for better performance
-      queryClientRef.current?.invalidateQueries({
-        queryKey: ["open-positions", roomId],
-      });
-      queryClientRef.current?.invalidateQueries({
-        queryKey: ["closed-positions", roomId],
-      });
-    } catch (error) {
-      console.error("Failed to close position:", error);
-    } finally {
-      setIsClosing(false);
+  // Ensure stale selection is cleared whenever dialog closes (even via cancel)
+  useEffect(() => {
+    if (!editDialogOpen) {
+      setEditingPosition(null);
     }
-  };
+  }, [editDialogOpen]);
+
+  // Use stable prop from parent to avoid frequent re-renders
+  const livePrice = livePriceOverride;
+
+  const queryClientRef = useRef<ReturnType<typeof useQueryClient> | null>(null);
+  const dispatchedPositionsRef = useRef<Set<string>>(new Set());
+  const qcLocal = useQueryClient();
+  queryClientRef.current = qcLocal;
+  const { openPositions, loadingOpen, closePosition } = usePositions(roomId);
+
+  // Handle position closing - stable reference to avoid re-renders breaking click cycle
+  const handleClosePosition = useCallback(
+    async (position: Position) => {
+      if (isClosing) return; // Prevent multiple clicks
+
+      setIsClosing(true);
+      try {
+        const computedPrice = getClosePrice
+          ? await getClosePrice(position)
+          : livePrice || Number(position.entry_price);
+
+        // Optimistic chart update
+        try {
+          window.dispatchEvent(
+            new CustomEvent("position-closed", { detail: { id: position.id } })
+          );
+          console.log("Dispatched position-closed event for ID:", position.id);
+        } catch (error) {
+          console.error("Failed to dispatch position-closed event:", error);
+        }
+
+        await closePosition(position.id, Number(computedPrice));
+        // Force immediate table refresh - target specific queries for better performance
+        queryClientRef.current?.invalidateQueries({
+          queryKey: ["open-positions", roomId],
+        });
+        queryClientRef.current?.invalidateQueries({
+          queryKey: ["closed-positions", roomId],
+        });
+      } catch (error) {
+        console.error("Failed to close position:", error);
+      } finally {
+        setIsClosing(false);
+      }
+    },
+    [
+      isClosing,
+      getClosePrice,
+      livePriceOverride,
+      queryClientRef,
+      roomId,
+      closePosition,
+    ]
+  );
   const col = {
     symbol: t("columns.symbol"),
     side: t("columns.side"),
@@ -233,23 +276,10 @@ export function PositionsTabs({
     "Actions",
   ] as const;
 
-  const queryClientRef = useRef<ReturnType<typeof useQueryClient> | null>(null);
-  const dispatchedPositionsRef = useRef<Set<string>>(new Set());
-  const qcLocal = useQueryClient();
-  queryClientRef.current = qcLocal;
-  const { openPositions, loadingOpen, closePosition } = usePositions(roomId);
   // Dialog removed; instant close on click
   const formatSize = (n: number) => (n >= 1 ? n.toFixed(2) : n.toFixed(3));
 
   // No dialog body overflow handling needed
-
-  // Live price for current room symbol (fallback to entry if unavailable)
-  const ticker = useTickerData(symbol || "BTCUSDT");
-  const livePrice =
-    livePriceOverride ??
-    (ticker?.lastPrice
-      ? parseFloat(String(ticker.lastPrice).replace(/,/g, ""))
-      : undefined);
 
   const rows = (openPositions || []).map((pos: Position) => {
     // const sideLabel = pos.side === "long" ? "Long" : "Short";
@@ -291,7 +321,16 @@ export function PositionsTabs({
       [dataKeys[3]]: entry.toFixed(2),
       [dataKeys[4]]: mark.toFixed(2),
       [dataKeys[5]]: last.toFixed(2),
-      [dataKeys[6]]: <PositionTpSlIndicator position={pos} />,
+      [dataKeys[6]]: (
+        <PositionTpSlIndicator
+          position={pos}
+          roomId={roomId}
+          onEdit={() => {
+            setEditingPosition(pos);
+            setEditDialogOpen(true);
+          }}
+        />
+      ),
       [dataKeys[7]]: <StatusBadge status={pos.status || "filled"} />,
       [dataKeys[8]]: liq ? liq.toFixed(2) : "-",
       [dataKeys[9]]: distanceToLiq,
@@ -300,57 +339,13 @@ export function PositionsTabs({
       [dataKeys[12]]: (
         <button
           type="button"
-          className={`px-2 py-1 text-xs rounded border border-border ${
+          className={`action-btn px-2 py-1 text-xs rounded border border-border ${
             isClosing
               ? "opacity-50 cursor-not-allowed"
               : "hover:bg-muted/30 cursor-pointer"
           }`}
-          draggable={false}
-          onMouseDown={(e) => {
-            e.stopPropagation(); // Stop event bubbling up to parent grid item
-            e.preventDefault(); // Prevent default browser drag behavior
-            // Prevent react-grid-layout from detecting drag initiation
-            if (e.nativeEvent.stopImmediatePropagation) {
-              e.nativeEvent.stopImmediatePropagation();
-            }
-          }}
-          onPointerDown={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            if (e.nativeEvent.stopImmediatePropagation) {
-              e.nativeEvent.stopImmediatePropagation();
-            }
-          }}
-          onTouchStart={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            if (e.nativeEvent.stopImmediatePropagation) {
-              e.nativeEvent.stopImmediatePropagation();
-            }
-          }}
-          onClick={(e) => {
-            e.stopPropagation(); // Ensure onClick also stops propagation
-            e.preventDefault(); // Prevent default button behavior
-            if (e.nativeEvent.stopImmediatePropagation) {
-              e.nativeEvent.stopImmediatePropagation(); // Stop all event listeners
-            }
-            handleClosePosition(pos);
-          }}
-          onPointerUp={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-          }}
+          onClick={() => handleClosePosition(pos)}
           disabled={isClosing}
-          data-grid-no-drag="true"
-          data-no-drag="true"
-          style={{
-            pointerEvents: "auto",
-            position: "relative",
-            zIndex: 9999,
-            touchAction: "manipulation",
-            WebkitUserSelect: "none",
-            userSelect: "none",
-          }}
         >
           {isClosing ? t("actions.closing") : t("actions.close")}
         </button>
@@ -422,33 +417,7 @@ export function PositionsTabs({
   }, [openPositions]);
 
   return (
-    <div
-      className="h-full flex flex-col"
-      onMouseDown={(e) => {
-        const target = e.target as HTMLElement;
-        const isCloseButton = target.closest(
-          'button[data-grid-no-drag="true"][type="button"]'
-        );
-        if (isCloseButton) {
-          e.stopPropagation();
-          e.preventDefault();
-          return;
-        }
-      }}
-      onPointerDown={(e) => {
-        const target = e.target as HTMLElement;
-        const isCloseButton = target.closest(
-          'button[data-grid-no-drag="true"][type="button"]'
-        );
-        if (isCloseButton) {
-          e.stopPropagation();
-          e.preventDefault();
-          return;
-        }
-      }}
-      data-grid-no-drag="true"
-      style={{ touchAction: "pan-y" }}
-    >
+    <div className="h-full flex flex-col">
       <div className="flex-1 overflow-hidden">
         <SimpleTable
           columns={columns}
@@ -462,7 +431,31 @@ export function PositionsTabs({
         />
       </div>
 
-      {/* Dialog removed per request */}
+      {editingPosition && (
+        <EditPositionTpSlDialog
+          key={editingPosition.id}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          position={{
+            id: editingPosition.id,
+            symbol: editingPosition.symbol,
+            side: editingPosition.side as "long" | "short",
+            entry_price: editingPosition.entry_price,
+            quantity: editingPosition.quantity,
+            tp_enabled: editingPosition.tp_enabled,
+            sl_enabled: editingPosition.sl_enabled,
+            take_profit_price: editingPosition.take_profit_price,
+            stop_loss_price: editingPosition.stop_loss_price,
+          }}
+          roomId={roomId}
+          onSuccess={() => {
+            queryClientRef.current?.invalidateQueries({
+              queryKey: ["open-positions", roomId],
+            });
+            setEditingPosition(null);
+          }}
+        />
+      )}
     </div>
   );
 }

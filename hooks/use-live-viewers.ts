@@ -31,12 +31,17 @@ export function useLiveViewers(
       try {
         if (!videoOnly) {
           // Prefer Mux Data real-time engagement counts when available
-          const engagementRes = await fetch(
-            `/api/streams/${streamId}/engagement${
-              playbackId ? `?playbackId=${encodeURIComponent(playbackId)}` : ""
-            }&t=${Date.now()}`,
-            { cache: "no-store" }
+          const engagementUrl = new URL(
+            `/api/streams/${streamId}/engagement`,
+            window.location.origin
           );
+          if (playbackId) {
+            engagementUrl.searchParams.set("playbackId", playbackId);
+          }
+          engagementUrl.searchParams.set("t", Date.now().toString());
+          const engagementRes = await fetch(engagementUrl.toString(), {
+            cache: "no-store",
+          });
           if (engagementRes.ok) {
             const engagement = (await engagementRes.json()) as {
               concurrent?: number;

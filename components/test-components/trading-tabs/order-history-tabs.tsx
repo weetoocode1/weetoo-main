@@ -198,11 +198,8 @@ export function OrderHistoryTabs({
   // Auto-load more data immediately if there's more available
   useEffect(() => {
     if (hasNextPage && !isFetchingNextPage && orderHistory.length > 0) {
-      // Small delay to ensure UI is rendered
-      const timer = setTimeout(() => {
+      // Load immediately without delay for instant display
         loadNextPage();
-      }, 100);
-      return () => clearTimeout(timer);
     }
   }, [hasNextPage, isFetchingNextPage, orderHistory.length, loadNextPage]);
 
@@ -248,27 +245,15 @@ export function OrderHistoryTabs({
     );
   }
 
-  // Remove skeletons; show table immediately (possibly empty) while data streams in
-
+  // Show table immediately without loading overlay for instant display
   return (
     <div className="h-full flex flex-col">
-      {/* Loading state */}
-      {isLoading && (
-        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            {t("loading")}
-          </div>
-        </div>
-      )}
-
-      {/* Table with optimized props */}
       <div className="flex-1 overflow-hidden">
         <SimpleTable
           columns={columns}
           dataKeys={dataKeys as unknown as string[]}
           data={tableData}
-          emptyStateText={t("empty.noHistory")}
+          emptyStateText={isLoading ? t("loading") : t("empty.noHistory")}
           onRowClick={handleRowClick}
           widenMatchers={[col.symbol, col.totalValue]}
           narrowMatchers={[col.status, col.fee, col.type]}

@@ -18,9 +18,7 @@ export function SubTabsHeader<TId extends string = string>({
   onChange,
   rightActions,
 }: SubTabsHeaderProps<TId>) {
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
+  // Keep events simple to avoid interfering with clicks
 
   return (
     <div className="flex items-center px-2 py-1.5">
@@ -29,7 +27,6 @@ export function SubTabsHeader<TId extends string = string>({
           <button
             key={tab.id}
             onClick={() => onChange(tab.id)}
-            onMouseDown={handleMouseDown}
             className={`px-4 py-1.5 text-xs font-medium whitespace-nowrap transition-colors duration-200 cursor-pointer ${
               activeId === tab.id
                 ? "text-foreground bg-muted/50 border"
@@ -42,10 +39,7 @@ export function SubTabsHeader<TId extends string = string>({
       </div>
 
       {rightActions ? (
-        <div
-          className="flex items-center gap-2 ml-4"
-          onMouseDown={handleMouseDown}
-        >
+        <div className="flex items-center gap-2 ml-4">
           <div className="h-4 w-px bg-border" />
           {rightActions}
         </div>

@@ -4100,7 +4100,56 @@
       "empty": { "loading": "Loading...", "noOpen": "No Open Positions" },
       "actions": { "close": "Close", "closing": "Closing..." },
       "filterable": { "symbol": "Symbol", "side": "Side" },
-      "common": { "buy": "Buy", "sell": "Sell" }
+      "common": { "buy": "Buy", "sell": "Sell" },
+      "editTpSl": {
+        "title": "Edit TP/SL Settings",
+        "description": "Update take profit and stop loss for your {side} position in {symbol}",
+        "labels": {
+          "long": "Long",
+          "short": "Short",
+          "takeProfit": "Take Profit (TP)",
+          "stopLoss": "Stop Loss (SL)",
+          "tpPrice": "Take Profit Price (USDT)",
+          "slPrice": "Stop Loss Price (USDT)"
+        },
+        "hints": {
+          "tpLongMustBe": "Must be > ${entryPrice}",
+          "tpShortMustBe": "Must be < ${entryPrice}",
+          "slLongMustBe": "Must be < ${entryPrice}",
+          "slShortMustBe": "Must be > ${entryPrice}"
+        },
+        "placeholders": {
+          "tpPrice": "Enter TP price",
+          "slPrice": "Enter SL price"
+        },
+        "errors": {
+          "tpPriceRequired": "Please enter a valid take profit price",
+          "slPriceRequired": "Please enter a valid stop loss price",
+          "tpLongInvalid": "Take profit must be higher than entry price for long positions",
+          "tpShortInvalid": "Take profit must be lower than entry price for short positions",
+          "slLongInvalid": "Stop loss must be lower than entry price for long positions",
+          "slShortInvalid": "Stop loss must be higher than entry price for short positions",
+          "fixErrors": "Please fix the errors before saving",
+          "saveFailed": "Failed to update TP/SL"
+        },
+        "warnings": {
+          "noStopLoss": "Warning: Trading without a stop loss increases your risk of significant losses."
+        },
+        "info": {
+          "tpCalculation": "TP Calculation:",
+          "tpCalculationDesc": "When price reaches ${price}, your position will be automatically closed.",
+          "slCalculation": "SL Calculation:",
+          "slCalculationDesc": "When price reaches ${price}, your position will be automatically closed to limit losses."
+        },
+        "buttons": {
+          "cancel": "Cancel",
+          "save": "Save Changes",
+          "saving": "Saving..."
+        },
+        "toasts": {
+          "saveSuccess": "TP/SL updated successfully"
+        }
+      }
     },
     "scheduled": {
       "columns": {
@@ -4145,6 +4194,57 @@
         "side": "Side",
         "type": "Type",
         "status": "Status"
+      }
+    },
+    "orders": {
+      "editTpSl": {
+        "title": "Edit TP/SL Settings",
+        "description": "Update take profit and stop loss for your {side} {orderType} in {symbol}",
+        "labels": {
+          "limitPrice": "Limit Price",
+          "price": "Price",
+          "triggerPrice": "Trigger Price",
+          "longBuy": "Long/Buy",
+          "shortSell": "Short/Sell",
+          "limitOrder": "limit order",
+          "scheduledOrder": "scheduled order",
+          "takeProfit": "Take Profit (TP)",
+          "stopLoss": "Stop Loss (SL)",
+          "tpPrice": "Take Profit Price (USDT)",
+          "slPrice": "Stop Loss Price (USDT)",
+          "quantity": "Quantity"
+        },
+        "hints": {
+          "tpLongMustBe": "Must be > ${price}",
+          "tpShortMustBe": "Must be < ${price}",
+          "slLongMustBe": "Must be < ${price}",
+          "slShortMustBe": "Must be > ${price}"
+        },
+        "placeholders": {
+          "tpPrice": "Enter TP price",
+          "slPrice": "Enter SL price"
+        },
+        "errors": {
+          "tpPriceRequired": "Please enter a valid take profit price",
+          "slPriceRequired": "Please enter a valid stop loss price",
+          "tpLongInvalid": "Take profit must be higher than limit price for long orders",
+          "tpShortInvalid": "Take profit must be lower than limit price for short orders",
+          "slLongInvalid": "Stop loss must be lower than limit price for long orders",
+          "slShortInvalid": "Stop loss must be higher than limit price for short orders",
+          "fixErrors": "Please fix the errors before saving",
+          "saveFailed": "Failed to update TP/SL"
+        },
+        "warnings": {
+          "noStopLoss": "Warning: Trading without a stop loss increases your risk of significant losses."
+        },
+        "buttons": {
+          "cancel": "Cancel",
+          "save": "Save Changes",
+          "saving": "Saving..."
+        },
+        "toasts": {
+          "saveSuccess": "TP/SL updated successfully"
+        }
       }
     }
   },

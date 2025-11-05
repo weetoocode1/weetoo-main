@@ -212,7 +212,6 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
       }
     } else {
       // For deltas, apply incremental updates
-      console.log("🔄 Processing DELTA - applying incremental updates");
       const apply = (
         side: "asks" | "bids",
         levels: Record<string, unknown>[]
@@ -231,12 +230,8 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
           if (!Number.isFinite(price) || !Number.isFinite(qty)) continue;
 
           if (qty === 0) {
-            console.log(`🗑️ Removing ${side} at price ${price}`);
             mapRef.delete(price);
           } else {
-            console.log(
-              `➕ Updating ${side} at price ${price} with qty ${qty}`
-            );
             mapRef.set(price, qty);
           }
         }
@@ -306,24 +301,32 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
       return Number.isFinite(num) ? num : null;
     };
 
+    // Check if ticker data has actual values (not just "0" strings or empty)
+    const hasLastPrice = ticker.lastPrice && ticker.lastPrice !== "0" && ticker.lastPrice !== "";
+    const hasMarkPrice = ticker.markPrice && ticker.markPrice !== "0" && ticker.markPrice !== "";
+    const hasIndexPrice = ticker.indexPrice && ticker.indexPrice !== "0" && ticker.indexPrice !== "";
+    const hasFundingRate = ticker.fundingRate && ticker.fundingRate !== "0" && ticker.fundingRate !== "";
+
     setLastKnownValues((prev) => {
       const lastParsed = parseNum(ticker.lastPrice);
       const markParsed = parseNum(ticker.markPrice);
       const indexParsed = parseNum(ticker.indexPrice);
+      const fundingParsed = parseNum(ticker.fundingRate);
 
       return {
+        // Update if we have valid new data, otherwise preserve previous value
         currentPrice:
-          lastParsed && lastParsed > 0 ? lastParsed : prev.currentPrice,
-        markPrice: markParsed && markParsed > 0 ? markParsed : prev.markPrice,
+          hasLastPrice && lastParsed && lastParsed > 0 ? lastParsed : prev.currentPrice,
+        markPrice: hasMarkPrice && markParsed && markParsed > 0 ? markParsed : prev.markPrice,
         indexPrice:
-          indexParsed && indexParsed > 0 ? indexParsed : prev.indexPrice,
+          hasIndexPrice && indexParsed && indexParsed > 0 ? indexParsed : prev.indexPrice,
         change24hAmount:
           parseNum(
             (ticker as unknown as Record<string, unknown>).change24h as string
           ) ?? prev.change24hAmount,
         change24hPercent:
           parseNum(ticker.price24hPcnt) ?? prev.change24hPercent,
-        fundingRate: parseNum(ticker.fundingRate) ?? prev.fundingRate,
+        fundingRate: hasFundingRate && fundingParsed !== null ? fundingParsed : prev.fundingRate,
         nextFundingTimeMs: ticker.nextFundingTime
           ? parseInt(ticker.nextFundingTime)
           : prev.nextFundingTimeMs,

@@ -106,6 +106,9 @@ export function StreamDashboard({ streamData, roomId }: StreamDashboardProps) {
       const isNonFatalHlsError =
         errorString.includes("getErrorFromHlsErrorData") ||
         errorString.includes("bufferStalledError") ||
+        errorString.includes("MediaError") ||
+        errorString.includes("Retrying in") ||
+        errorString.includes("mux-player") ||
         (typeof firstArg === "object" &&
           firstArg !== null &&
           "details" in firstArg &&
@@ -338,6 +341,80 @@ export function StreamDashboard({ streamData, roomId }: StreamDashboardProps) {
   };
 
   const [elapsedTime, setElapsedTime] = useState(getElapsedTime());
+  const [isStreamReady, setIsStreamReady] = useState(false);
+  const streamReadyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const streamProbeAbortRef = useRef<AbortController | null>(null);
+
+  // Reset stream ready state when status changes. Probe Mux playlist before mounting player.
+  useEffect(() => {
+    const playbackId = streamData?.playbackId;
+    if (!isOnline || !playbackId) {
+      setIsStreamReady(false);
+      if (streamReadyTimeoutRef.current) {
+        clearTimeout(streamReadyTimeoutRef.current);
+        streamReadyTimeoutRef.current = null;
+      }
+      if (streamProbeAbortRef.current) {
+        streamProbeAbortRef.current.abort();
+        streamProbeAbortRef.current = null;
+      }
+      return;
+    }
+
+    setIsStreamReady(false);
+    if (streamReadyTimeoutRef.current) {
+      clearTimeout(streamReadyTimeoutRef.current);
+    }
+    if (streamProbeAbortRef.current) {
+      streamProbeAbortRef.current.abort();
+      streamProbeAbortRef.current = null;
+    }
+
+    const controller = new AbortController();
+    streamProbeAbortRef.current = controller;
+
+    const masterUrl = `https://stream.mux.com/${playbackId}.m3u8`;
+    let stopped = false;
+
+    const probe = async () => {
+      const start = Date.now();
+      const maxWaitMs = 10000; // hard cap
+      const intervalMs = 600; // poll cadence
+      while (!stopped && Date.now() - start < maxWaitMs) {
+        try {
+          const res = await fetch(masterUrl, {
+            method: "HEAD",
+            signal: controller.signal,
+            cache: "no-store",
+            credentials: "omit",
+          });
+          if (res.ok) {
+            setIsStreamReady(true);
+            return;
+          }
+        } catch (_) {
+          // ignore transient network/CORS errors and keep probing
+        }
+        await new Promise((r) => setTimeout(r, intervalMs));
+      }
+      // Fallback: if we didn't get 200 within cap, allow mount anyway
+      setIsStreamReady(true);
+    };
+
+    probe();
+
+    return () => {
+      stopped = true;
+      if (streamReadyTimeoutRef.current) {
+        clearTimeout(streamReadyTimeoutRef.current);
+        streamReadyTimeoutRef.current = null;
+      }
+      if (streamProbeAbortRef.current) {
+        streamProbeAbortRef.current.abort();
+        streamProbeAbortRef.current = null;
+      }
+    };
+  }, [isOnline, streamData?.status, streamData?.playbackId]);
 
   useEffect(() => {
     if (!streamData?.startedAt || !isOnline) {
@@ -443,8 +520,11 @@ export function StreamDashboard({ streamData, roomId }: StreamDashboardProps) {
 
       <div className="py-2 flex flex-col lg:flex-row gap-2">
         <div className="aspect-video w-full lg:max-w-xl border border-border overflow-hidden">
-          {streamData?.playbackId && isOnline ? (
+          {streamData?.playbackId && isOnline && isStreamReady ? (
             <MuxPlayer
+              key={`${streamData.playbackId}-active-${streamData.streamId}-${
+                streamData.startedAt || ""
+              }`}
               streamType="live"
               playbackId={streamData.playbackId}
               metadata={{
@@ -452,16 +532,34 @@ export function StreamDashboard({ streamData, roomId }: StreamDashboardProps) {
                 video_id: streamData.streamId,
               }}
               preferPlayback="mse"
+              autoPlay
+              muted
+              playsInline
               disableTracking
               style={{ height: "100%", width: "100%" }}
+              onLoadedMetadata={() => {
+                console.log("✅ MuxPlayer metadata loaded - stream is ready");
+              }}
+              onError={(e) => {
+                console.warn("⚠️ MuxPlayer error (non-fatal):", e);
+              }}
             />
           ) : (
             <div className="h-full grid place-content-center text-muted-foreground bg-muted/20">
               <div className="flex flex-col items-center gap-2">
                 <VideoIcon className="h-8 w-8" />
                 <span className="text-sm">
-                  {isOnline ? t("waiting") : t("notActive")}
+                  {isOnline && !isStreamReady
+                    ? t("waiting")
+                    : isOnline
+                    ? t("waiting")
+                    : t("notActive")}
                 </span>
+                {isOnline && !isStreamReady && (
+                  <span className="text-xs text-muted-foreground">
+                    Initializing stream...
+                  </span>
+                )}
               </div>
             </div>
           )}
