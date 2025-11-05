@@ -96,6 +96,12 @@ export function StreamDashboard({ streamData, roomId }: StreamDashboardProps) {
   const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
   const supabase = useRef(createClient());
   const [presenceCount, setPresenceCount] = useState(0);
+  // Local mirror of stream data that updates via Supabase Realtime
+  const [liveStream, setLiveStream] =
+    useState<StreamDashboardProps["streamData"]>(streamData);
+  useEffect(() => {
+    setLiveStream(streamData);
+  }, [streamData]);
 
   useEffect(() => {
     const originalError = console.error;
@@ -262,10 +268,10 @@ export function StreamDashboard({ streamData, roomId }: StreamDashboardProps) {
   };
 
   const status =
-    (streamData?.status as keyof typeof streamStatusConfig) || "idle";
+    (liveStream?.status as keyof typeof streamStatusConfig) || "idle";
   const currentStatus = streamStatusConfig[status] || streamStatusConfig.idle;
   const StatusIcon = currentStatus.icon;
-  const isOnline = streamData?.status === "active";
+  const isOnline = liveStream?.status === "active";
 
   const { isLoading: viewersLoading } = useLiveViewers(
     streamData?.streamId,
@@ -315,18 +321,18 @@ export function StreamDashboard({ streamData, roomId }: StreamDashboardProps) {
     low: "Ultra Low",
   };
 
-  const currentLatency = streamData?.latencyMode
-    ? latencyModeMap[streamData.latencyMode] || "Unknown"
-    : streamData?.streamId
+  const currentLatency = liveStream?.latencyMode
+    ? latencyModeMap[liveStream.latencyMode] || "Unknown"
+    : liveStream?.streamId
     ? "Ultra Low"
     : "Unknown";
 
   const getElapsedTime = (): string => {
-    if (!streamData?.startedAt || !isOnline) {
+    if (!liveStream?.startedAt || !isOnline) {
       return "Not streaming";
     }
 
-    const startTime = new Date(streamData.startedAt).getTime();
+    const startTime = new Date(liveStream.startedAt).getTime();
     const now = Date.now();
     const diffMs = now - startTime;
 
@@ -347,7 +353,7 @@ export function StreamDashboard({ streamData, roomId }: StreamDashboardProps) {
 
   // Reset stream ready state when status changes. Probe Mux playlist before mounting player.
   useEffect(() => {
-    const playbackId = streamData?.playbackId;
+    const playbackId = liveStream?.playbackId;
     if (!isOnline || !playbackId) {
       setIsStreamReady(false);
       if (streamReadyTimeoutRef.current) {
@@ -414,10 +420,10 @@ export function StreamDashboard({ streamData, roomId }: StreamDashboardProps) {
         streamProbeAbortRef.current = null;
       }
     };
-  }, [isOnline, streamData?.status, streamData?.playbackId]);
+  }, [isOnline, liveStream?.status, liveStream?.playbackId]);
 
   useEffect(() => {
-    if (!streamData?.startedAt || !isOnline) {
+    if (!liveStream?.startedAt || !isOnline) {
       setElapsedTime("Not streaming");
       return;
     }
@@ -427,7 +433,7 @@ export function StreamDashboard({ streamData, roomId }: StreamDashboardProps) {
 
     const interval = setInterval(updateElapsed, 1000);
     return () => clearInterval(interval);
-  }, [streamData?.startedAt, isOnline]);
+  }, [liveStream?.startedAt, isOnline]);
 
   const tabs = [
     {
@@ -459,6 +465,86 @@ export function StreamDashboard({ streamData, roomId }: StreamDashboardProps) {
 
   useEffect(() => {
     fetchRoomData();
+  }, [roomId]);
+
+  // Realtime subscription to user_streams so status/playbackId/startedAt update without refresh
+  useEffect(() => {
+    if (!roomId) return;
+    let channel: ReturnType<typeof supabase.current.channel> | null = null;
+    try {
+      channel = supabase.current
+        .channel(`dashboard-stream-updates-${roomId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "user_streams",
+            filter: `room_id=eq.${roomId}`,
+          },
+          (payload) => {
+            const row = payload.new as {
+              stream_id?: string;
+              playback_id?: string;
+              status?: string;
+              started_at?: string | null;
+              latency_mode?: string | null;
+            };
+            setLiveStream((prev) => ({
+              streamId: row.stream_id ?? prev?.streamId,
+              playbackId: row.playback_id ?? prev?.playbackId,
+              status: row.status ?? prev?.status,
+              startedAt:
+                (row.started_at as string | undefined) ?? prev?.startedAt,
+              latencyMode:
+                (row.latency_mode as string | undefined) ?? prev?.latencyMode,
+              streamKey: prev?.streamKey,
+              rtmpUrl: prev?.rtmpUrl,
+              reconnectWindow: prev?.reconnectWindow,
+              enableDvr: prev?.enableDvr,
+              unlistReplay: prev?.unlistReplay,
+              customThumbnailUrl: prev?.customThumbnailUrl,
+            }));
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "user_streams",
+            filter: `room_id=eq.${roomId}`,
+          },
+          (payload) => {
+            const row = payload.new as {
+              stream_id?: string;
+              playback_id?: string;
+              status?: string;
+              started_at?: string | null;
+              latency_mode?: string | null;
+            };
+            setLiveStream((prev) => ({
+              streamId: row.stream_id ?? prev?.streamId,
+              playbackId: row.playback_id ?? prev?.playbackId,
+              status: row.status ?? prev?.status,
+              startedAt:
+                (row.started_at as string | undefined) ?? prev?.startedAt,
+              latencyMode:
+                (row.latency_mode as string | undefined) ?? prev?.latencyMode,
+              streamKey: prev?.streamKey,
+              rtmpUrl: prev?.rtmpUrl,
+              reconnectWindow: prev?.reconnectWindow,
+              enableDvr: prev?.enableDvr,
+              unlistReplay: prev?.unlistReplay,
+              customThumbnailUrl: prev?.customThumbnailUrl,
+            }));
+          }
+        )
+        .subscribe();
+    } catch {}
+    return () => {
+      if (channel) supabase.current.removeChannel(channel);
+    };
   }, [roomId]);
 
   return (
@@ -520,16 +606,16 @@ export function StreamDashboard({ streamData, roomId }: StreamDashboardProps) {
 
       <div className="py-2 flex flex-col lg:flex-row gap-2">
         <div className="aspect-video w-full lg:max-w-xl border border-border overflow-hidden">
-          {streamData?.playbackId && isOnline && isStreamReady ? (
+          {liveStream?.playbackId && isOnline && isStreamReady ? (
             <MuxPlayer
-              key={`${streamData.playbackId}-active-${streamData.streamId}-${
-                streamData.startedAt || ""
+              key={`${liveStream.playbackId}-active-${liveStream.streamId}-${
+                liveStream.startedAt || ""
               }`}
               streamType="live"
-              playbackId={streamData.playbackId}
+              playbackId={liveStream.playbackId}
               metadata={{
                 video_title: roomData?.name || t("liveStream"),
-                video_id: streamData.streamId,
+                video_id: liveStream.streamId,
               }}
               preferPlayback="mse"
               autoPlay
