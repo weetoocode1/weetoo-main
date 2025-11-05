@@ -44,6 +44,14 @@ export function QuantityMarketInput({
   const [inputValue, setInputValue] = useState<string>("");
   const isUserTypingRef = useRef<boolean>(false);
 
+  // Share typing state with parent to prevent auto-recalculation
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as unknown as Record<string, unknown>)._market_is_typing_ref =
+        isUserTypingRef;
+    }
+  }, []);
+
   useEffect(() => {
     if (isUserTypingRef.current) return;
 

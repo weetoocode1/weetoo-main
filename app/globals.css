@@ -498,6 +498,7 @@ body {
 }
 
 /* Fix flickering/red background on click while preserving drag/resize */
+/* Optimize grid item rendering for better performance */
 .react-grid-item {
   background: transparent !important;
   border: none !important;
@@ -570,6 +571,12 @@ body {
   pointer-events: auto !important;
 }
 
+/* Always let explicit action buttons receive events */
+
+.table-sortable button {
+  pointer-events: auto !important;
+}
+
 /* Market Widget Interactive Elements Fix */
 .market-widget-interactive {
   pointer-events: auto !important;
@@ -587,6 +594,12 @@ body {
   pointer-events: auto !important;
 }
 
+/* Ensure trading tabs area stays interactive above any neighbors */
+.trading-tabs-surface {
+  pointer-events: auto !important;
+  isolation: isolate; /* create new stacking context to honor z-index */
+}
+
 /* Drag Handle Styles for React Grid Layout */
 .drag-handle {
   pointer-events: auto !important;
@@ -599,14 +612,5 @@ body {
 
 /* Prevent dragging from content areas */
 .react-grid-item > *:not(.drag-handle) {
-  pointer-events: auto !important;
-}
-
-/* Ensure grid items don't interfere with content interactions */
-.react-grid-item:not(.react-draggable-dragging):not(.resizing) {
-  pointer-events: none !important;
-}
-
-.react-grid-item:not(.react-draggable-dragging):not(.resizing) > * {
   pointer-events: auto !important;
 }

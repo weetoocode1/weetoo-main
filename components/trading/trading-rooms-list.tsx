@@ -1672,6 +1672,19 @@ export function TradingRoomsList() {
                     </div>
                   )}
 
+                  {/* Live badge (rooms tab only) */}
+                  {roomViewMode === "live" &&
+                    (streamingRooms.has(room.id) ||
+                      Boolean(livePlaybackIds.get(room.id))) && (
+                      <div className="absolute top-2 left-2 bg-red-600/90 text-white text-xs font-semibold px-2 py-1 rounded flex items-center gap-1">
+                        <span className="relative flex h-2 w-2">
+                          <span className="absolute inline-flex h-full w-full rounded-full bg-white opacity-75 animate-ping" />
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+                        </span>
+                        LIVE
+                      </div>
+                    )}
+
                   {/* Replay badge */}
                   {variant === "replay" && (
                     <div className="absolute top-2 left-2 bg-black/80 text-white text-xs font-semibold px-2 py-1 rounded">

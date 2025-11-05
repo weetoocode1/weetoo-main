@@ -32,9 +32,9 @@ function PriceInputInner({
 
       if (raw === "") {
         setInputValue("");
-        setPrice(0);
+            setPrice(0);
         return;
-      }
+          }
 
       const decimalCount = (raw.match(/\./g) || []).length;
       if (decimalCount > 1) {
@@ -56,7 +56,7 @@ function PriceInputInner({
       }
 
       setInputValue(raw);
-      setPrice(num);
+          setPrice(num);
     },
     [setPrice]
   );

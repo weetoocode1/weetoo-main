@@ -1,7 +1,13 @@
+"use client";
+
 import { SimpleTable } from "./shared/simple-table";
 import type { Symbol } from "@/types/market";
 import { useOpenOrders } from "@/hooks/use-open-orders";
 import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
+import { EditOrderTpSlDialog } from "./edit-order-tp-sl-dialog";
+import { PencilIcon } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface OpenOrder {
   id: string;
@@ -53,25 +59,53 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
-// TP/SL status indicator
-const TpSlIndicator = ({ order }: { order: OpenOrder }) => {
+// TP/SL status indicator with edit functionality
+const TpSlIndicator = ({
+  order,
+  onEdit,
+}: {
+  order: OpenOrder;
+  onEdit: () => void;
+}) => {
   const hasTp = order.tp_enabled && order.take_profit_price;
   const hasSl = order.sl_enabled && order.stop_loss_price;
 
-  if (!hasTp && !hasSl) return null;
+  if (!hasTp && !hasSl) {
+    return (
+      <button
+        type="button"
+        onClick={() => onEdit()}
+        className="action-btn flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded transition-colors cursor-pointer"
+        title="Add TP/SL"
+      >
+        <PencilIcon className="h-3 w-3" />
+        <span>Add TP/SL</span>
+      </button>
+    );
+  }
 
   return (
-    <div className="flex gap-1">
-      {hasTp && (
-        <span className="px-1.5 py-0.5 rounded text-xs bg-green-500/20 text-green-400 font-medium">
-          TP
-        </span>
-      )}
-      {hasSl && (
-        <span className="px-1.5 py-0.5 rounded text-xs bg-red-500/20 text-red-400 font-medium">
-          SL
-        </span>
-      )}
+    <div className="flex items-center gap-2">
+          <div className="flex gap-1">
+            {hasTp && (
+              <span className="px-1.5 py-0.5 rounded text-xs bg-green-500/20 text-green-400 font-medium">
+                TP
+              </span>
+            )}
+            {hasSl && (
+              <span className="px-1.5 py-0.5 rounded text-xs bg-red-500/20 text-red-400 font-medium">
+                SL
+              </span>
+            )}
+          </div>
+      <button
+        type="button"
+        onClick={() => onEdit()}
+        className="action-btn p-0.5 text-muted-foreground hover:text-foreground transition-colors rounded"
+        title="Edit TP/SL"
+      >
+        <PencilIcon className="h-3 w-3" />
+      </button>
     </div>
   );
 };
@@ -83,6 +117,16 @@ interface OpenOrdersTabsProps {
 
 export function OpenOrdersTabs({ symbol, roomId }: OpenOrdersTabsProps) {
   const t = useTranslations("trading.openOrders");
+  const queryClient = useQueryClient();
+  const [editingOrder, setEditingOrder] = useState<OpenOrder | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  // Clear selection when dialog closes (even if user cancels)
+  useEffect(() => {
+    if (!editDialogOpen) {
+      setEditingOrder(null);
+    }
+  }, [editDialogOpen]);
   const col = {
     time: t("columns.time"),
     symbol: t("columns.symbol"),
@@ -133,33 +177,31 @@ export function OpenOrdersTabs({ symbol, roomId }: OpenOrdersTabsProps) {
       [dataKeys[3]]: o.side === "long" ? t("common.buy") : t("common.sell"),
       [dataKeys[4]]: Number(o.limit_price).toFixed(2),
       [dataKeys[5]]: Number(o.quantity).toFixed(8),
-      [dataKeys[6]]: <TpSlIndicator order={o} />,
+      [dataKeys[6]]: (
+        <TpSlIndicator
+          order={o}
+          onEdit={() => {
+            setEditingOrder(o);
+            setEditDialogOpen(true);
+          }}
+        />
+      ),
       [dataKeys[7]]: <StatusBadge status={o.status || "active"} />,
       [dataKeys[8]]: (Number(o.limit_price) * Number(o.quantity)).toFixed(2),
       [dataKeys[9]]: (
         <button
           type="button"
-          className="px-2 py-1 text-xs rounded border border-border hover:bg-muted/30 cursor-pointer"
-          onMouseDown={(e) => {
-            e.stopPropagation(); // Stop event bubbling up to parent grid item
-            e.preventDefault(); // Prevent default browser drag behavior
-            // This is crucial - prevents react-grid-layout from detecting drag initiation
-          }}
-          onClick={async (e) => {
-            e.stopPropagation();
-            e.preventDefault();
+          className="action-btn px-2 py-1 text-xs rounded border border-border hover:bg-muted/30 cursor-pointer"
+          onClick={async () => {
             if (!roomId) return;
             await fetch(`/api/trading-room/${roomId}/open-orders`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ action: "cancel", orderId: o.id }),
             });
-          }}
-          data-grid-no-drag
-          style={{
-            pointerEvents: "auto",
-            position: "relative",
-            zIndex: 9999,
+            queryClient.invalidateQueries({
+              queryKey: ["open-orders", roomId],
+            });
           }}
         >
           {t("actions.cancel")}
@@ -172,20 +214,7 @@ export function OpenOrdersTabs({ symbol, roomId }: OpenOrdersTabsProps) {
   };
 
   return (
-    <div
-      className="h-full flex flex-col"
-      onMouseDown={(e) => {
-        // Only stop propagation if the event target is NOT the cancel button or its immediate children.
-        const target = e.target as HTMLElement;
-        const isCancelButton = target.closest(
-          'button[data-grid-no-drag][type="button"]'
-        );
-        if (!isCancelButton) {
-          e.stopPropagation();
-        }
-      }}
-      data-grid-no-drag
-    >
+    <div className="h-full flex flex-col">
       <div className="flex-1 overflow-hidden">
         <SimpleTable
           columns={columns}
@@ -199,6 +228,33 @@ export function OpenOrdersTabs({ symbol, roomId }: OpenOrdersTabsProps) {
           filterableColumns={["Symbol", "Side", "Type"]}
         />
       </div>
+
+      {editingOrder && (
+        <EditOrderTpSlDialog
+          key={editingOrder.id}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          order={{
+            id: editingOrder.id,
+            symbol: editingOrder.symbol,
+            side: editingOrder.side as "long" | "short",
+            limit_price: editingOrder.limit_price,
+            quantity: editingOrder.quantity,
+            tp_enabled: editingOrder.tp_enabled,
+            sl_enabled: editingOrder.sl_enabled,
+            take_profit_price: editingOrder.take_profit_price,
+            stop_loss_price: editingOrder.stop_loss_price,
+          }}
+          roomId={roomId}
+          orderType="open"
+          onSuccess={() => {
+            queryClient.invalidateQueries({
+              queryKey: ["open-orders", roomId],
+            });
+            setEditingOrder(null);
+          }}
+        />
+      )}
     </div>
   );
 }

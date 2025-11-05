@@ -134,7 +134,15 @@ function MarketTabInner({
   );
 
   // Mirror Limit tab: recompute qty when leverage/price changes using stored capital
+  // Only recompute if user is NOT typing and we have stored capital
   const valueModeRecompute = () => {
+    // Check if user is typing in the input field
+    if (typeof window !== "undefined") {
+      const typingRef = (window as unknown as Record<string, unknown>)
+        ._market_is_typing_ref as { current?: boolean } | undefined;
+      if (typingRef?.current === true) return;
+    }
+
     let userCapital = 0;
     if (typeof window !== "undefined") {
       const capitalRef = (window as unknown as Record<string, unknown>)
@@ -142,7 +150,9 @@ function MarketTabInner({
       userCapital = capitalRef?.current || 0;
     }
 
-    if (userCapital >= 0 && price > 0) {
+    // Only recompute if we have stored capital (user used percentage buttons)
+    // Don't recompute if user manually typed a value
+    if (userCapital > 0 && price > 0 && placementMode === "value") {
       const orderValue = userCapital * (leverage || 1);
       const nextQty = orderValue / price;
       if (Number.isFinite(nextQty)) {

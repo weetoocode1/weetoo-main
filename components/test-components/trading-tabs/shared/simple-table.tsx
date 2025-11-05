@@ -854,48 +854,7 @@ export function SimpleTable<TData = unknown>({
               {table.getRowModel().rows.map((row) => (
                 <div
                   key={row.id}
-                  className={`flex items-center px-2 py-2 text-xs border-b border-border/50 hover:bg-muted/20 transition-colors ${
-                    onRowClick ? "cursor-pointer" : ""
-                  }`}
-                  onClick={(e) => {
-                    const target = e.target as HTMLElement;
-                    const isButton = target.closest('button[data-grid-no-drag="true"]');
-                    if (isButton) {
-                      e.stopPropagation();
-                      return;
-                    }
-                    e.stopPropagation();
-                    onRowClick?.(row.original);
-                  }}
-                  onMouseDown={(e) => {
-                    const target = e.target as HTMLElement;
-                    const isButton = target.closest('button[data-grid-no-drag="true"]');
-                    if (isButton) {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      return;
-                    }
-                    e.stopPropagation();
-                  }}
-                  onMouseUp={(e) => {
-                    const target = e.target as HTMLElement;
-                    const isButton = target.closest('button[data-grid-no-drag="true"]');
-                    if (isButton) {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      return;
-                    }
-                    e.stopPropagation();
-                  }}
-                  onPointerDown={(e) => {
-                    const target = e.target as HTMLElement;
-                    const isButton = target.closest('button[data-grid-no-drag="true"]');
-                    if (isButton) {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      return;
-                    }
-                  }}
+                  className="flex items-center px-2 py-2 text-xs border-b border-border/50 hover:bg-muted/20 transition-colors"
                 >
                   {row.getVisibleCells().map((cell, cellIndex) => {
                     const columnName = columns[cellIndex];
@@ -911,14 +870,6 @@ export function SimpleTable<TData = unknown>({
                       <div
                         key={cell.id}
                         className={`${widthClass} flex items-center justify-center`}
-                        onMouseDown={(e) => {
-                          const target = e.target as HTMLElement;
-                          const isButton = target.closest('button[data-grid-no-drag="true"]');
-                          if (isButton) {
-                            e.stopPropagation();
-                            e.preventDefault();
-                          }
-                        }}
                       >
                         {flexRender(
                           cell.column.columnDef.cell,
@@ -964,48 +915,7 @@ export function SimpleTable<TData = unknown>({
               {table.getRowModel().rows.map((row) => (
                 <div
                   key={row.id}
-                  className={`flex items-center px-2 py-2 text-xs border-b border-border/50 hover:bg-muted/20 transition-colors min-w-max ${
-                    onRowClick ? "cursor-pointer" : ""
-                  }`}
-                  onClick={(e) => {
-                    const target = e.target as HTMLElement;
-                    const isButton = target.closest('button[data-grid-no-drag="true"]');
-                    if (isButton) {
-                      e.stopPropagation();
-                      return;
-                    }
-                    e.stopPropagation();
-                    onRowClick?.(row.original);
-                  }}
-                  onMouseDown={(e) => {
-                    const target = e.target as HTMLElement;
-                    const isButton = target.closest('button[data-grid-no-drag="true"]');
-                    if (isButton) {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      return;
-                    }
-                    e.stopPropagation();
-                  }}
-                  onMouseUp={(e) => {
-                    const target = e.target as HTMLElement;
-                    const isButton = target.closest('button[data-grid-no-drag="true"]');
-                    if (isButton) {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      return;
-                    }
-                    e.stopPropagation();
-                  }}
-                  onPointerDown={(e) => {
-                    const target = e.target as HTMLElement;
-                    const isButton = target.closest('button[data-grid-no-drag="true"]');
-                    if (isButton) {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      return;
-                    }
-                  }}
+                  className="flex items-center px-2 py-2 text-xs border-b border-border/50 hover:bg-muted/20 transition-colors min-w-max"
                 >
                   {row.getVisibleCells().map((cell, cellIndex) => {
                     const columnName = columns[cellIndex];

@@ -32,6 +32,9 @@ export function Viewer({ roomId }: ViewerProps) {
   const hasCheckedRef = useRef(false);
   const supabase = useRef(createClient());
   const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
+  const [isStreamReady, setIsStreamReady] = useState(false);
+  const streamReadyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const streamProbeAbortRef = useRef<AbortController | null>(null);
 
   // Ensure viewer is added as participant to read messages
   useEffect(() => {
@@ -282,6 +285,71 @@ export function Viewer({ roomId }: ViewerProps) {
     [streamData?.status]
   );
 
+  // Reset stream ready state when status changes. Probe Mux playlist before mounting player.
+  useEffect(() => {
+    const playbackId = streamData?.playbackId;
+    if (!isOnline || !playbackId) {
+      setIsStreamReady(false);
+      if (streamReadyTimeoutRef.current) {
+        clearTimeout(streamReadyTimeoutRef.current);
+        streamReadyTimeoutRef.current = null;
+      }
+      if (streamProbeAbortRef.current) {
+        streamProbeAbortRef.current.abort();
+        streamProbeAbortRef.current = null;
+      }
+      return;
+    }
+
+    setIsStreamReady(false);
+    if (streamReadyTimeoutRef.current) {
+      clearTimeout(streamReadyTimeoutRef.current);
+    }
+    if (streamProbeAbortRef.current) {
+      streamProbeAbortRef.current.abort();
+      streamProbeAbortRef.current = null;
+    }
+
+    const controller = new AbortController();
+    streamProbeAbortRef.current = controller;
+
+    const masterUrl = `https://stream.mux.com/${playbackId}.m3u8`;
+    const stopped = false;
+    const probe = async () => {
+      const start = Date.now();
+      const maxWaitMs = 10000;
+      const intervalMs = 600;
+      while (!stopped && Date.now() - start < maxWaitMs) {
+        try {
+          const res = await fetch(masterUrl, {
+            method: "HEAD",
+            signal: controller.signal,
+            cache: "no-store",
+            credentials: "omit",
+          });
+          if (res.ok) {
+            setIsStreamReady(true);
+            return;
+          }
+        } catch (_) {}
+        await new Promise((r) => setTimeout(r, intervalMs));
+      }
+      setIsStreamReady(true);
+    };
+    probe();
+
+    return () => {
+      if (streamProbeAbortRef.current) {
+        streamProbeAbortRef.current.abort();
+        streamProbeAbortRef.current = null;
+      }
+      if (streamReadyTimeoutRef.current) {
+        clearTimeout(streamReadyTimeoutRef.current);
+        streamReadyTimeoutRef.current = null;
+      }
+    };
+  }, [isOnline, streamData?.status, streamData?.playbackId]);
+
   const { viewers } = useLiveViewers(
     streamData?.streamId,
     isOnline,
@@ -304,19 +372,28 @@ export function Viewer({ roomId }: ViewerProps) {
     <div className="flex flex-col lg:flex-row h-screen w-full bg-background gap-1 p-4 overflow-hidden">
       <div className="flex-1 flex flex-col w-full min-w-0 lg:min-h-0">
         <div className="flex-1 w-full border border-border bg-background rounded-none overflow-hidden relative aspect-video lg:aspect-auto">
-          {hasPlaybackId && streamData?.playbackId && isActive ? (
+          {hasPlaybackId &&
+          streamData?.playbackId &&
+          isActive &&
+          isStreamReady ? (
             <>
               <MuxPlayer
+                key={`${streamData.playbackId}-active-${streamData.streamId}`}
                 streamType="live"
                 playbackId={streamData.playbackId}
                 metadata={muxPlayerMetadata}
                 preferPlayback="mse"
                 autoPlay
                 muted
-                preload="auto"
                 playsInline
                 envKey={process.env.NEXT_PUBLIC_MUX_DATA_ENV_KEY}
                 style={{ height: "100%", width: "100%" }}
+                onLoadedMetadata={() => {
+                  console.log("✅ MuxPlayer metadata loaded - stream is ready");
+                }}
+                onError={(e) => {
+                  console.warn("⚠️ MuxPlayer error (non-fatal):", e);
+                }}
               />
               {/* @ts-expect-error - mux-active-viewer-count is a custom web component */}
               <mux-active-viewer-count
@@ -330,10 +407,14 @@ export function Viewer({ roomId }: ViewerProps) {
                 <VideoIcon className="h-12 w-12" />
                 <div className="text-center space-y-1">
                   <p className="text-base font-medium">
-                    {inactiveMessage.title}
+                    {isActive && !isStreamReady
+                      ? "Initializing stream..."
+                      : inactiveMessage.title}
                   </p>
                   <p className="text-sm text-muted-foreground/70">
-                    {inactiveMessage.description}
+                    {isActive && !isStreamReady
+                      ? "Please wait while we prepare the stream"
+                      : inactiveMessage.description}
                   </p>
                 </div>
               </div>

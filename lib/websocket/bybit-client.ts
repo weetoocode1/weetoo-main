@@ -69,7 +69,7 @@ export class BybitWebSocketClient extends EventEmitter {
   // Order book management - proper snapshot/delta handling
   private orderBookSnapshots: Map<string, unknown> = new Map(); // Store full snapshots
   private orderBookQueue: Map<string, unknown[]> = new Map(); // Queue for pending deltas per symbol
-  private orderBookThrottleMs = 1000; // Unified throttle: Emit order book updates every 200ms
+  private orderBookThrottleMs = 200; // Unified throttle: Emit order book updates every 200ms
   private orderBookProcessInterval: NodeJS.Timeout | null = null; // Interval to process queue
   private orderBookTimeout: Map<string, NodeJS.Timeout> = new Map(); // Track timeouts per symbol
 
@@ -457,7 +457,6 @@ export class BybitWebSocketClient extends EventEmitter {
         this.orderBookQueue.set(symbol, []); // Clear queue as snapshot is definitive
         // Immediately emit snapshot so UI doesn't wait
         this.emit("orderbook", this.parseOrderBookData(data, messageType));
-        console.log("📸 Snapshot stored for", symbol);
         this.setOrderBookTimeout(symbol);
       } else if (messageType === "delta") {
         const currentSnapshot = this.orderBookSnapshots.get(symbol);
@@ -519,32 +518,54 @@ export class BybitWebSocketClient extends EventEmitter {
 
     const tickerData = data as Record<string, unknown>;
 
+    // Bybit v5 uses shortened field names, map them correctly
+    // Check both shortened and full field names for compatibility
+    const symbol = (tickerData.s as string) || (tickerData.symbol as string) || "";
+    const lastPrice = (tickerData.lp as string) || (tickerData.lastPrice as string) || "0";
+
     // Check if we have essential fields for a valid ticker update
-    const hasEssentialFields =
-      tickerData.symbol && tickerData.lastPrice && tickerData.lastPrice !== "0";
+    const hasEssentialFields = symbol && lastPrice && lastPrice !== "0";
 
     if (!hasEssentialFields) {
       return this.getEmptyTickerData();
     }
 
+    // Map Bybit v5 shortened field names to our format
+    // For optional fields (h24, l24, fr), check both shortened and full names
+    const h24 = tickerData.h24 !== undefined && tickerData.h24 !== null 
+      ? (tickerData.h24 as string) 
+      : (tickerData.highPrice24h !== undefined && tickerData.highPrice24h !== null 
+          ? (tickerData.highPrice24h as string) 
+          : undefined);
+    const l24 = tickerData.l24 !== undefined && tickerData.l24 !== null
+      ? (tickerData.l24 as string)
+      : (tickerData.lowPrice24h !== undefined && tickerData.lowPrice24h !== null
+          ? (tickerData.lowPrice24h as string)
+          : undefined);
+    const fr = tickerData.fr !== undefined && tickerData.fr !== null
+      ? (tickerData.fr as string)
+      : (tickerData.fundingRate !== undefined && tickerData.fundingRate !== null
+          ? (tickerData.fundingRate as string)
+          : undefined);
+
     const result = {
-      symbol: (tickerData.symbol as string) || "",
-      lastPrice: (tickerData.lastPrice as string) || "0",
-      price24hPcnt: (tickerData.price24hPcnt as string) || "0",
-      prevPrice24h: tickerData.prevPrice24h as string | undefined,
-      change24h: (tickerData.change24h as string) || "0", // Add the actual price change amount
-      tickDirection: (tickerData.tickDirection as string) || "", // Add tick direction for immediate movement
-      highPrice24h: (tickerData.highPrice24h as string) || "0",
-      lowPrice24h: (tickerData.lowPrice24h as string) || "0",
-      volume24h: (tickerData.volume24h as string) || "0",
+      symbol,
+      lastPrice,
+      price24hPcnt: (tickerData.p24hPcnt as string) || (tickerData.price24hPcnt as string) || "0",
+      prevPrice24h: (tickerData.prevPrice24h as string) || undefined,
+      change24h: (tickerData.change24h as string) || "0",
+      tickDirection: (tickerData.tickDirection as string) || "",
+      // Only include if field exists (not undefined/null)
+      highPrice24h: h24,
+      lowPrice24h: l24,
+      volume24h: (tickerData.v24 as string) || (tickerData.volume24h as string) || "0",
       turnover24h: (tickerData.turnover24h as string) || "0",
-      fundingRate: (tickerData.fundingRate as string) || "0",
-      predictedFundingRate: tickerData.predictedFundingRate as
-        | string
-        | undefined,
-      openInterest: (tickerData.openInterest as string) || "0",
-      markPrice: (tickerData.markPrice as string) || "0",
-      indexPrice: (tickerData.indexPrice as string) || "0",
+      // Only include if field exists (not undefined/null)
+      fundingRate: fr,
+      predictedFundingRate: (tickerData.predictedFundingRate as string) || undefined,
+      openInterest: (tickerData.oi as string) || (tickerData.openInterest as string) || "0",
+      markPrice: (tickerData.mp as string) || (tickerData.markPrice as string) || "0",
+      indexPrice: (tickerData.idx as string) || (tickerData.indexPrice as string) || "0",
       nextFundingTime: (tickerData.nextFundingTime as string) || "0",
     };
 
@@ -558,11 +579,9 @@ export class BybitWebSocketClient extends EventEmitter {
       price24hPcnt: "0",
       change24h: "0",
       tickDirection: "",
-      highPrice24h: "0",
-      lowPrice24h: "0",
+      // Optional fields are undefined when not present
       volume24h: "0",
       turnover24h: "0",
-      fundingRate: "0",
       openInterest: "0",
       markPrice: "0",
       indexPrice: "0",

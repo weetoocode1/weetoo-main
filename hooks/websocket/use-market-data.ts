@@ -44,6 +44,7 @@ export function useMarketData(options: UseMarketDataOptions = {}) {
   const wsClientRef = useRef<WebSocketClient | null>(null);
   const isInitializedRef = useRef(false);
   const tickerUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   // ===== INITIALIZATION =====
 
@@ -80,14 +81,31 @@ export function useMarketData(options: UseMarketDataOptions = {}) {
       if (tickerUpdateTimeoutRef.current) {
         clearTimeout(tickerUpdateTimeoutRef.current);
       }
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+      if (orderBookRafRef.current) {
+        cancelAnimationFrame(orderBookRafRef.current);
+      }
+      if (tradeRafRef.current) {
+        cancelAnimationFrame(tradeRafRef.current);
+      }
+      if (klineRafRef.current) {
+        cancelAnimationFrame(klineRafRef.current);
+      }
     };
   }, [autoConnect, reconnectInterval, maxReconnectAttempts]);
 
   // ===== EVENT HANDLERS =====
 
   const firstTickerReceivedRef = useRef(false);
+  const tickerDataRef = useRef<TickerData | null>(null);
+
   const handleTickerData = useCallback((data: TickerData) => {
     if (!data || data.symbol === "") return;
+
+    // Store latest data immediately
+    tickerDataRef.current = data;
 
     // If funding fields are present, update immediately (no debounce)
     const hasFundingUpdate =
@@ -104,39 +122,88 @@ export function useMarketData(options: UseMarketDataOptions = {}) {
       hasMarkPriceUpdate
     ) {
       firstTickerReceivedRef.current = true;
-      setMarketData((prev) => ({ ...prev, ticker: data }));
+      // Use requestAnimationFrame for smooth updates
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+      rafRef.current = requestAnimationFrame(() => {
+        setMarketData((prev) => ({ ...prev, ticker: data }));
+      });
       return;
     }
 
-    // Debounce other ticker fields to smooth UI
+    // Debounce other ticker fields to smooth UI, using RAF
     if (tickerUpdateTimeoutRef.current) {
       clearTimeout(tickerUpdateTimeoutRef.current);
     }
     tickerUpdateTimeoutRef.current = setTimeout(() => {
-      setMarketData((prev) => ({ ...prev, ticker: data }));
-    }, 400);
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+      rafRef.current = requestAnimationFrame(() => {
+        setMarketData((prev) => ({
+          ...prev,
+          ticker: tickerDataRef.current || data,
+        }));
+      });
+    }, 100);
   }, []);
+
+  const orderBookRafRef = useRef<number | null>(null);
+  const orderBookDataRef = useRef<OrderBookData | null>(null);
 
   const handleOrderBookData = useCallback((data: OrderBookData) => {
-    setMarketData((prev) => ({
-      ...prev,
-      orderBook: data,
-    }));
+    // Store latest data
+    orderBookDataRef.current = data;
+
+    // Batch updates using requestAnimationFrame
+    if (orderBookRafRef.current) {
+      cancelAnimationFrame(orderBookRafRef.current);
+    }
+    orderBookRafRef.current = requestAnimationFrame(() => {
+      setMarketData((prev) => ({
+        ...prev,
+        orderBook: orderBookDataRef.current || data,
+      }));
+    });
   }, []);
+
+  const tradeRafRef = useRef<number | null>(null);
+  const tradeDataRef = useRef<TradeData[]>([]);
 
   const handleTradeData = useCallback((data: TradeData) => {
-    // console.log("useMarketData - Received trade:", data);
-    setMarketData((prev) => ({
-      ...prev,
-      recentTrades: [data, ...prev.recentTrades.slice(0, 99)],
-    }));
+    // Store latest trade
+    tradeDataRef.current = [data, ...tradeDataRef.current.slice(0, 99)];
+
+    // Batch updates using requestAnimationFrame
+    if (tradeRafRef.current) {
+      cancelAnimationFrame(tradeRafRef.current);
+    }
+    tradeRafRef.current = requestAnimationFrame(() => {
+      setMarketData((prev) => ({
+        ...prev,
+        recentTrades: tradeDataRef.current,
+      }));
+    });
   }, []);
 
+  const klineRafRef = useRef<number | null>(null);
+  const klineDataRef = useRef<KlineData[]>([]);
+
   const handleKlineData = useCallback((data: KlineData) => {
-    setMarketData((prev) => ({
-      ...prev,
-      klines: [data, ...prev.klines.slice(0, 199)], // Keep last 200 klines
-    }));
+    // Store latest kline
+    klineDataRef.current = [data, ...klineDataRef.current.slice(0, 199)];
+
+    // Batch updates using requestAnimationFrame
+    if (klineRafRef.current) {
+      cancelAnimationFrame(klineRafRef.current);
+    }
+    klineRafRef.current = requestAnimationFrame(() => {
+      setMarketData((prev) => ({
+        ...prev,
+        klines: klineDataRef.current,
+      }));
+    });
   }, []);
 
   const handleConnectionStatus = useCallback((status: ConnectionStatus) => {

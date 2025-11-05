@@ -334,21 +334,26 @@ export class MarketDataServer extends EventEmitter {
   ): void {
     const canonical = `${topicPrefix}.${symbol}`;
 
+    // Pre-compile regex for orderbook matching
+    const orderBookRegex = /^orderbook\.[0-9]+\.[A-Z0-9]+$/;
+    const publicTradePrefix = `publicTrade.${symbol}`;
+
     this.clients.forEach((client, clientId) => {
+      // Skip if client connection is not ready
+      if (client.ws.readyState !== WebSocket.OPEN) {
+        return;
+      }
+
       // Match either canonical (e.g., orderbook.BTCUSDT) or depth-qualified (e.g., orderbook.50.BTCUSDT)
       const hasMatch = Array.from(client.subscriptions).some((sub) => {
         if (sub === canonical) return true;
         if (topicPrefix === "orderbook") {
           // Accept formats like orderbook.<depth>.<symbol>
-          return (
-            /^orderbook\.[0-9]+\.[A-Z0-9]+$/.test(sub) &&
-            sub.endsWith(`.${symbol}`)
-          );
+          return orderBookRegex.test(sub) && sub.endsWith(`.${symbol}`);
         }
         if (topicPrefix === "publicTrade") {
           // Accept formats like publicTrade.<symbol>
-          // console.log(`Server broadcasting trade for ${symbol}:`, message.data); // <--- ADD THIS
-          return sub === `publicTrade.${symbol}`;
+          return sub === publicTradePrefix;
         }
         return false;
       });
@@ -372,9 +377,16 @@ export class MarketDataServer extends EventEmitter {
     }
 
     try {
-      client.ws.send(JSON.stringify(message));
+      // Use send with callback to handle backpressure
+      const messageString = JSON.stringify(message);
+      if (client.ws.bufferedAmount < 1024 * 1024) { // Only send if buffer < 1MB
+        client.ws.send(messageString);
+      }
     } catch (error) {
+      // Only log critical errors, not connection issues
+      if (!(error as Error).message.includes("not opened")) {
       console.error(`❌ Failed to send message to client ${clientId}:`, error);
+      }
       this.handleClientDisconnect(clientId);
     }
   }

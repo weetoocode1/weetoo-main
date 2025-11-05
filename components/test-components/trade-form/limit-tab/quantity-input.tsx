@@ -2,7 +2,7 @@ import { ChevronDownIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -51,6 +51,13 @@ export function QuantityInput({
 
   const [inputValue, setInputValue] = useState<string>("");
   const isUserTypingRef = useRef<boolean>(false);
+  
+  // Share typing state with parent to prevent auto-recalculation
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as unknown as Record<string, unknown>)._limit_is_typing_ref = isUserTypingRef;
+    }
+  }, []);
 
   const lastValueRef =
     typeof window !== "undefined" && window._limit_last_value_ref

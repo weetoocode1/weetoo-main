@@ -2,13 +2,19 @@ import { usePositions } from "@/hooks/use-positions";
 import { useTickerData } from "@/hooks/websocket/use-market-data";
 import { createClient } from "@/lib/supabase/client";
 import type { Symbol } from "@/types/market";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 import { useTranslations } from "next-intl";
 import { useOpenOrders } from "@/hooks/use-open-orders";
 import { OpenOrdersTabs } from "./trading-tabs/open-orders-tabs";
 import { OrderHistoryTabs } from "./trading-tabs/order-history-tabs";
 import { PositionsTabs } from "./trading-tabs/positions-tabs";
 import { ScheduledOrdersTabs } from "./trading-tabs/scheduled-orders-tabs";
+
+// Memoized tab components to avoid re-renders when parent state changes
+const MemoizedPositionsTabs = memo(PositionsTabs);
+const MemoizedOpenOrdersTabs = memo(OpenOrdersTabs);
+const MemoizedScheduledOrdersTabs = memo(ScheduledOrdersTabs);
+const MemoizedOrderHistoryTabs = memo(OrderHistoryTabs);
 
 interface TradingTabsProps {
   symbol?: Symbol;
@@ -29,27 +35,48 @@ interface RealtimePayload {
 
 export function TradingTabs({ symbol, roomId }: TradingTabsProps) {
   const t = useTranslations("trading.tabs");
-  const [activeTab, setActiveTab] = useState("open-orders");
+  const [activeTab, setActiveTab] = useState("positions");
   const [historyCount, setHistoryCount] = useState<number>(0);
   const [openOrdersCount, setOpenOrdersCount] = useState<number>(0);
   const [scheduledOrdersCount, setScheduledOrdersCount] = useState<number>(0);
 
   const ticker = useTickerData(symbol || "BTCUSDT");
-  const livePrice = ticker?.lastPrice
-    ? parseFloat(String(ticker.lastPrice).replace(/,/g, ""))
-    : undefined;
+
+  // Persist live price to prevent unnecessary re-renders
+  const livePriceRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (
+      ticker?.lastPrice &&
+      ticker.lastPrice !== "0" &&
+      ticker.lastPrice !== ""
+    ) {
+      const parsed = parseFloat(String(ticker.lastPrice).replace(/,/g, ""));
+      if (Number.isFinite(parsed) && parsed > 0) {
+        livePriceRef.current = parsed;
+      }
+    }
+  }, [ticker?.lastPrice]);
+
+  const livePrice = livePriceRef.current;
+  // Keep positions query active for tab count, but tab component will only render when active
   const { openPositions } = usePositions(roomId || "");
 
   // Keep open orders count in sync with the same query the table uses
-  const openOrdersQuery = useOpenOrders(roomId || "", {
+  // Only fetch when tab is active to reduce load
+  const openOrdersQuery = useOpenOrders(
+    activeTab === "open-orders" && roomId ? roomId : "",
+    {
     symbol: symbol as string,
     status: "open",
-  });
+    }
+  );
 
   useEffect(() => {
+    if (activeTab === "open-orders") {
     const length = openOrdersQuery?.data?.data?.length || 0;
     setOpenOrdersCount(length);
-  }, [openOrdersQuery?.data?.data?.length]);
+    }
+  }, [openOrdersQuery?.data?.data?.length, activeTab]);
 
   // Prefetch scheduled orders count (all statuses) so label is correct immediately
   useEffect(() => {
@@ -64,28 +91,21 @@ export function TradingTabs({ symbol, roomId }: TradingTabsProps) {
           data: { user },
         } = await supabase.auth.getUser();
         if (!user) return;
-        const { count, error } = await supabase
+        const { count } = await supabase
           .from("trading_room_scheduled_orders")
           .select("id", { count: "exact", head: true })
           .eq("trading_room_id", roomId)
           .eq("user_id", user.id);
-        console.log("🔍 Scheduled Count Query Debug:", {
-          roomId,
-          count,
-          error,
-          userId: user.id,
-        });
         if (!cancelled && typeof count === "number") {
-          console.log("✅ Setting scheduled count to:", count);
           setScheduledOrdersCount(count);
         }
-      } catch (err) {
-        console.error("❌ Scheduled count query error:", err);
-      }
+      } catch {}
     };
 
     fetchScheduledCount();
 
+    // Debounce realtime updates to prevent excessive queries
+    let scheduledCountTimeout: NodeJS.Timeout | null = null;
     const channel = supabase
       .channel(`scheduled-orders-count-${roomId}`)
       .on(
@@ -97,35 +117,34 @@ export function TradingTabs({ symbol, roomId }: TradingTabsProps) {
           filter: `trading_room_id=eq.${roomId}`,
         },
         async () => {
+          if (scheduledCountTimeout) {
+            clearTimeout(scheduledCountTimeout);
+          }
+          scheduledCountTimeout = setTimeout(async () => {
           try {
             const {
               data: { user },
             } = await supabase.auth.getUser();
-            if (!user) return;
-            const { count, error } = await supabase
+              if (!user || cancelled) return;
+              const { count } = await supabase
               .from("trading_room_scheduled_orders")
               .select("id", { count: "exact", head: true })
               .eq("trading_room_id", roomId)
               .eq("user_id", user.id);
-            console.log("🔄 Realtime Scheduled Count Update:", {
-              roomId,
-              count,
-              error,
-              userId: user.id,
-            });
             if (!cancelled && typeof count === "number") {
-              console.log("✅ Realtime setting scheduled count to:", count);
               setScheduledOrdersCount(count);
             }
-          } catch (err) {
-            console.error("❌ Realtime scheduled count error:", err);
-          }
+            } catch {}
+          }, 500);
         }
       )
       .subscribe();
 
     return () => {
       cancelled = true;
+      if (scheduledCountTimeout) {
+        clearTimeout(scheduledCountTimeout);
+      }
       supabase.removeChannel(channel);
     };
   }, [roomId]);
@@ -150,6 +169,8 @@ export function TradingTabs({ symbol, roomId }: TradingTabsProps) {
 
     fetchHistoryCount();
 
+    // Debounce realtime updates to prevent excessive queries
+    let historyCountTimeout: NodeJS.Timeout | null = null;
     const channel = supabase
       .channel(`history-count-${roomId}`)
       .on(
@@ -161,20 +182,30 @@ export function TradingTabs({ symbol, roomId }: TradingTabsProps) {
           filter: `room_id=eq.${roomId}`,
         },
         async () => {
+          if (historyCountTimeout) {
+            clearTimeout(historyCountTimeout);
+          }
+          historyCountTimeout = setTimeout(async () => {
           try {
+              if (cancelled) return;
             const { count } = await supabase
               .from("trading_room_positions")
               .select("id", { count: "exact", head: true })
               .eq("room_id", roomId)
               .not("closed_at", "is", null);
-            if (!cancelled && typeof count === "number") setHistoryCount(count);
+              if (!cancelled && typeof count === "number")
+                setHistoryCount(count);
           } catch {}
+          }, 500);
         }
       )
       .subscribe();
 
     return () => {
       cancelled = true;
+      if (historyCountTimeout) {
+        clearTimeout(historyCountTimeout);
+      }
       supabase.removeChannel(channel);
     };
   }, [roomId]);
@@ -193,25 +224,17 @@ export function TradingTabs({ symbol, roomId }: TradingTabsProps) {
           .eq("room_id", roomId)
           .eq("status", "open");
         if (symbol) query = query.eq("symbol", symbol as string);
-        const { count, error } = await query;
-        console.log("🔍 Count Query Debug:", {
-          roomId,
-          symbol,
-          count,
-          error,
-          queryString: query.toString(),
-        });
+        const { count } = await query;
         if (!cancelled && typeof count === "number") {
-          console.log("✅ Setting count to:", count);
           setOpenOrdersCount(count);
         }
-      } catch (err) {
-        console.error("❌ Count query error:", err);
-      }
+      } catch {}
     };
 
     fetchCountOnce();
 
+    // Debounce realtime updates to prevent excessive queries
+    let openOrdersCountTimeout: NodeJS.Timeout | null = null;
     const channel = supabase
       .channel(`open-orders-count-${roomId}`)
       .on(
@@ -250,43 +273,52 @@ export function TradingTabs({ symbol, roomId }: TradingTabsProps) {
 
           if (!affectsCount()) return;
 
+          if (openOrdersCountTimeout) {
+            clearTimeout(openOrdersCountTimeout);
+          }
+          openOrdersCountTimeout = setTimeout(async () => {
           try {
+              if (cancelled) return;
             let query = supabase
               .from("trading_room_open_orders")
               .select("id", { count: "exact", head: true })
               .eq("room_id", roomId)
               .eq("status", "open");
             if (symbol) query = query.eq("symbol", symbol as string);
-            const { count, error } = await query;
-            console.log("🔄 Realtime Count Update:", {
-              roomId,
-              symbol,
-              count,
-              error,
-              payload,
-            });
+              const { count } = await query;
             if (!cancelled && typeof count === "number") {
-              console.log("✅ Realtime setting count to:", count);
               setOpenOrdersCount(count);
             }
-          } catch (err) {
-            console.error("❌ Realtime count error:", err);
-          }
+            } catch {}
+          }, 500);
         }
       )
       .subscribe();
 
     return () => {
       cancelled = true;
+      if (openOrdersCountTimeout) {
+        clearTimeout(openOrdersCountTimeout);
+      }
       supabase.removeChannel(channel);
     };
   }, [roomId, symbol]);
 
-  // Fallback: Use the same API as the table to get accurate count
+  // Fallback: Use the same API as the table to get accurate count (debounced)
+  const countUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const openOrdersCountRef = useRef(openOrdersCount);
+  useEffect(() => {
+    openOrdersCountRef.current = openOrdersCount;
+  }, [openOrdersCount]);
+
   useEffect(() => {
     if (!roomId) return;
 
-    const fetchCountFromAPI = async () => {
+    if (countUpdateTimeoutRef.current) {
+      clearTimeout(countUpdateTimeoutRef.current);
+    }
+
+    countUpdateTimeoutRef.current = setTimeout(async () => {
       try {
         const params = new URLSearchParams();
         params.append("status", "open");
@@ -298,38 +330,35 @@ export function TradingTabs({ symbol, roomId }: TradingTabsProps) {
         if (response.ok) {
           const data = await response.json();
           const actualCount = data?.data?.length || 0;
-          console.log("🔄 Open Orders API Fallback Count:", {
-            roomId,
-            symbol,
-            actualCount,
-            dataLength: data?.data?.length,
-            currentCount: openOrdersCount,
-          });
-          if (actualCount !== openOrdersCount) {
-            console.log(
-              "✅ Open Orders API fallback updating count from",
-              openOrdersCount,
-              "to",
-              actualCount
-            );
+          if (actualCount !== openOrdersCountRef.current) {
             setOpenOrdersCount(actualCount);
           }
         }
-      } catch (err) {
-        console.error("❌ Open Orders API fallback error:", err);
+      } catch {}
+    }, 2000);
+
+    return () => {
+      if (countUpdateTimeoutRef.current) {
+        clearTimeout(countUpdateTimeoutRef.current);
       }
     };
+  }, [roomId, symbol]);
 
-    // Run after a short delay to let Supabase query complete first
-    const timeoutId = setTimeout(fetchCountFromAPI, 2000);
-    return () => clearTimeout(timeoutId);
-  }, [roomId, symbol, openOrdersCount]);
+  // Fallback: Use the same API as the table to get accurate scheduled orders count (debounced)
+  const scheduledCountUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const scheduledOrdersCountRef = useRef(scheduledOrdersCount);
+  useEffect(() => {
+    scheduledOrdersCountRef.current = scheduledOrdersCount;
+  }, [scheduledOrdersCount]);
 
-  // Fallback: Use the same API as the table to get accurate scheduled orders count
   useEffect(() => {
     if (!roomId) return;
 
-    const fetchScheduledCountFromAPI = async () => {
+    if (scheduledCountUpdateTimeoutRef.current) {
+      clearTimeout(scheduledCountUpdateTimeoutRef.current);
+    }
+
+    scheduledCountUpdateTimeoutRef.current = setTimeout(async () => {
       try {
         const response = await fetch(
           `/api/trading-room/${roomId}/scheduled-orders`
@@ -337,63 +366,62 @@ export function TradingTabs({ symbol, roomId }: TradingTabsProps) {
         if (response.ok) {
           const data = await response.json();
           const actualCount = data?.data?.length || 0;
-          console.log("🔄 Scheduled Orders API Fallback Count:", {
-            roomId,
-            actualCount,
-            dataLength: data?.data?.length,
-            currentCount: scheduledOrdersCount,
-          });
-          if (actualCount !== scheduledOrdersCount) {
-            console.log(
-              "✅ Scheduled Orders API fallback updating count from",
-              scheduledOrdersCount,
-              "to",
-              actualCount
-            );
+          if (actualCount !== scheduledOrdersCountRef.current) {
             setScheduledOrdersCount(actualCount);
           }
         }
-      } catch (err) {
-        console.error("❌ Scheduled Orders API fallback error:", err);
+      } catch {}
+    }, 2000);
+
+    return () => {
+      if (scheduledCountUpdateTimeoutRef.current) {
+        clearTimeout(scheduledCountUpdateTimeoutRef.current);
       }
     };
+  }, [roomId]);
 
-    // Run after a short delay to let Supabase query complete first
-    const timeoutId = setTimeout(fetchScheduledCountFromAPI, 2000);
-    return () => clearTimeout(timeoutId);
-  }, [roomId, scheduledOrdersCount]);
+  // Tabs are rendered outside react-grid-layout; keep events simple
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
+  const handleTabChange = useCallback((tabId: string) => {
+    // Immediate update for instant visual feedback
+    setActiveTab(tabId);
+  }, []);
 
-  const tabs = [
+  const positionsCount = useMemo(
+    () => openPositions?.length || 0,
+    [openPositions?.length]
+  );
+
+  const tabs = useMemo(
+    () => [
     {
       id: "positions",
-      label: t("positions", {
-        count: openPositions ? openPositions.length : 0,
-      }),
+        label: t("positions", { count: positionsCount }),
     },
     { id: "open-orders", label: t("openOrders", { count: openOrdersCount }) },
     {
       id: "scheduled-orders",
       label: t("scheduledOrders", { count: scheduledOrdersCount }),
     },
-
     { id: "order-history", label: t("history", { count: historyCount }) },
-  ];
+    ],
+    [t, positionsCount, openOrdersCount, scheduledOrdersCount, historyCount]
+  );
 
   return (
-    <div className="border border-border bg-background rounded-none text-sm w-full h-full flex flex-col">
+    <div
+      className="border border-border bg-background rounded-none text-sm w-full h-full flex flex-col"
+      data-grid-no-drag="true"
+      style={{ touchAction: "pan-y" }}
+    >
       {/* Desktop Tab Navigation */}
       <div className="hidden lg:block">
         <div className="flex items-center overflow-x-auto scrollbar-hide border-b border-border">
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              onMouseDown={handleMouseDown}
-              className={`px-4 py-2.5 text-xs font-medium whitespace-nowrap transition-colors duration-200 border-b-2 cursor-pointer ${
+              onClick={() => handleTabChange(tab.id)}
+              className={`px-4 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 cursor-pointer transition-colors ${
                 activeTab === tab.id
                   ? "text-foreground border-primary bg-primary/5"
                   : "text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/30"
@@ -411,9 +439,8 @@ export function TradingTabs({ symbol, roomId }: TradingTabsProps) {
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              onMouseDown={handleMouseDown}
-              className={`px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors duration-200 border-b-2 cursor-pointer flex-shrink-0 ${
+              onClick={() => handleTabChange(tab.id)}
+              className={`px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2 cursor-pointer shrink-0 transition-colors ${
                 activeTab === tab.id
                   ? "text-foreground border-primary bg-primary/5"
                   : "text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/30"
@@ -426,9 +453,7 @@ export function TradingTabs({ symbol, roomId }: TradingTabsProps) {
                 {tab.id === "scheduled-orders" &&
                   t("mobile.scheduled", { count: scheduledOrdersCount })}
                 {tab.id === "positions" &&
-                  t("mobile.positions", {
-                    count: openPositions ? openPositions.length : 0,
-                  })}
+                  t("mobile.positions", { count: positionsCount })}
                 {tab.id === "order-history" &&
                   t("mobile.history", { count: historyCount })}
               </span>
@@ -439,42 +464,36 @@ export function TradingTabs({ symbol, roomId }: TradingTabsProps) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden">
-        {/* Pre-mount all tabs to ensure realtime subscriptions are always active */}
-        <div
-          className={`h-full ${
-            activeTab === "open-orders" ? "block" : "hidden"
-          }`}
-        >
-          <OpenOrdersTabs symbol={symbol} roomId={roomId || ""} />
+      <div className="flex-1 overflow-hidden" data-grid-no-drag="true">
+        {/* Lazy load tabs - only render active tab for better performance */}
+                {activeTab === "open-orders" && (
+          <div className="h-full" data-grid-no-drag="true">
+                        <MemoizedOpenOrdersTabs symbol={symbol} roomId={roomId || ""} />
         </div>
-        <div
-          className={`h-full ${
-            activeTab === "scheduled-orders" ? "block" : "hidden"
-          }`}
-        >
-          <ScheduledOrdersTabs roomId={roomId as string} />
+        )}
+                {activeTab === "scheduled-orders" && (
+          <div className="h-full" data-grid-no-drag="true">
+                        <MemoizedScheduledOrdersTabs roomId={roomId as string} />
         </div>
-        <div
-          className={`h-full ${activeTab === "positions" ? "block" : "hidden"}`}
-        >
-          <PositionsTabs
+        )}
+                {activeTab === "positions" && (
+          <div className="h-full" data-grid-no-drag="true">
+                        <MemoizedPositionsTabs
             roomId={roomId as string}
             symbol={symbol}
             livePriceOverride={livePrice}
           />
         </div>
-        <div
-          className={`h-full ${
-            activeTab === "order-history" ? "block" : "hidden"
-          }`}
-        >
-          <OrderHistoryTabs
+        )}
+                {activeTab === "order-history" && (
+          <div className="h-full" data-grid-no-drag="true">
+                        <MemoizedOrderHistoryTabs
             symbol={symbol}
             roomId={roomId}
             onCountChange={(n) => setHistoryCount(n)}
           />
         </div>
+        )}
       </div>
     </div>
   );

@@ -617,19 +617,15 @@ export function RoomHeader({
 
       {/* Desktop Layout - Side by side */}
       <div className="hidden lg:flex items-center gap-2">
-        <Link href={`/trading-room/${room.id}/stream`}>
-          <Button
-            variant="outline"
-            className="rounded-md h-9 !bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-600"
-            // onClick={() => {
-            //   toast.info("Stream page is under construction", {
-            //     description: "Live streaming feature will be available soon!",
-            //   });
-            // }}
-          >
+        <Button
+          variant="outline"
+          className="rounded-md h-9 !bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-600"
+          asChild
+        >
+          <Link href={`/trading-room/${room.id}/stream`}>
             <VideoIcon className="size-4" />
-          </Button>
-        </Link>
+          </Link>
+        </Button>
         <span className="sr-only">{t("sr.startLiveStream")}</span>
 
         {/* <Dialog
@@ -1037,13 +1033,11 @@ export function RoomHeader({
           <Button
             variant="outline"
             className="rounded-md h-8 text-xs !bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-600"
-            onClick={() => {
-              toast.info("Stream page is under construction", {
-                description: t("stream.underConstruction"),
-              });
-            }}
+            asChild
           >
-            <VideoIcon className="size-3 mr-1" />
+            <Link href={`/trading-room/${room.id}/stream`}>
+              <VideoIcon className="size-3 mr-1" />
+            </Link>
             {t("stream.button")}
           </Button>
 

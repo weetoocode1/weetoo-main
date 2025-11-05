@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -69,6 +69,11 @@ const Viewer = dynamic(
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
+// Memoized grid children to prevent re-renders during drag/resize
+const MemoizedTradingChart = memo(TradingViewChartTest);
+const MemoizedOrderBook = memo(OrderBookTest);
+const MemoizedTradingTabs = memo(TradingTabs);
+
 interface OpenOrder {
   id: string;
   symbol: string;
@@ -125,6 +130,8 @@ export function TradingRoomPageClient({
   const [, setCurrentUserId] = useState<string | null>(null);
   const [isCreator, setIsCreator] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
   const gridBreakpoints = useMemo(
     () => ({ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }),
     []
@@ -138,29 +145,24 @@ export function TradingRoomPageClient({
     lg: [
       { i: "trading-chart", x: 0, y: 0, w: 9.5, h: 10 },
       { i: "order-book", x: 9.5, y: 0, w: 2.5, h: 10 },
-      { i: "trading-tabs", x: 0, y: 10, w: 12, h: 7 },
     ],
     // Tablet layout (768px - 1199px)
     md: [
       { i: "trading-chart", x: 0, y: 0, w: 12, h: 7 },
       { i: "order-book", x: 0, y: 7, w: 12, h: 10 },
-      { i: "trading-tabs", x: 0, y: 13, w: 12, h: 5 },
     ],
     // Mobile layout (below 768px)
     sm: [
       { i: "trading-chart", x: 0, y: 0, w: 12, h: 5 },
       { i: "order-book", x: 0, y: 5, w: 12, h: 10 },
-      { i: "trading-tabs", x: 0, y: 10, w: 12, h: 4 },
     ],
     xs: [
       { i: "trading-chart", x: 0, y: 0, w: 12, h: 5 },
       { i: "order-book", x: 0, y: 5, w: 12, h: 10 },
-      { i: "trading-tabs", x: 0, y: 10, w: 12, h: 4 },
     ],
     xxs: [
       { i: "trading-chart", x: 0, y: 0, w: 12, h: 5 },
       { i: "order-book", x: 0, y: 5, w: 12, h: 10 },
-      { i: "trading-tabs", x: 0, y: 10, w: 12, h: 4 },
     ],
   });
 
@@ -213,15 +215,55 @@ export function TradingRoomPageClient({
   }, [room, debouncedRoomUpdate]);
 
   const layoutUpdateRef = useRef<NodeJS.Timeout | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const isDraggingRef = useRef(false);
+  const isResizingRef = useRef(false);
+
   const handleLayoutChange = useCallback(
     (layout: Layout[], nextLayouts: Layouts) => {
-      if (layoutUpdateRef.current) clearTimeout(layoutUpdateRef.current);
-      layoutUpdateRef.current = setTimeout(() => {
-        setLayouts(nextLayouts);
-      }, 250);
+      if (layoutUpdateRef.current) {
+        clearTimeout(layoutUpdateRef.current);
+      }
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+
+      rafRef.current = requestAnimationFrame(() => {
+        layoutUpdateRef.current = setTimeout(() => {
+          if (!isDraggingRef.current && !isResizingRef.current) {
+            setLayouts(nextLayouts);
+          }
+        }, 500);
+      });
     },
     []
   );
+
+  const handleDragStart = useCallback(() => {
+    setIsDragging(true);
+    isDraggingRef.current = true;
+    if (layoutUpdateRef.current) {
+      clearTimeout(layoutUpdateRef.current);
+    }
+  }, []);
+
+  const handleDragStop = useCallback(() => {
+    setIsDragging(false);
+    isDraggingRef.current = false;
+  }, []);
+
+  const handleResizeStart = useCallback(() => {
+    setIsResizing(true);
+    isResizingRef.current = true;
+    if (layoutUpdateRef.current) {
+      clearTimeout(layoutUpdateRef.current);
+    }
+  }, []);
+
+  const handleResizeStop = useCallback(() => {
+    setIsResizing(false);
+    isResizingRef.current = false;
+  }, []);
 
   const handleRoomUpdate = useCallback((updatedRoom: Partial<typeof room>) => {
     setCurrentRoom((prev) => ({
@@ -245,32 +287,63 @@ export function TradingRoomPageClient({
     }
   }, [currentRoom.id, isVisible]);
 
+  useEffect(() => {
+    return () => {
+      if (layoutUpdateRef.current) {
+        clearTimeout(layoutUpdateRef.current);
+      }
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, []);
+
+  // Drag is cancelled for buttons/inputs by draggableCancel on the grid
+
+  // Memoize stable props to prevent unnecessary re-renders
+  const memoizedSymbol = useMemo(
+    () => currentRoom.symbol as string,
+    [currentRoom.symbol]
+  );
+  const memoizedRoomId = useMemo(() => currentRoom.id, [currentRoom.id]);
+  const memoizedBalance = useMemo(
+    () => currentRoom.virtual_balance,
+    [currentRoom.virtual_balance]
+  );
+
   // Live matcher: fill limit orders using bid/ask rules (optimized for performance)
   const ticker = useTickerData(currentRoom.symbol as string);
 
-  // Memoize ticker data to prevent unnecessary re-renders
-  const memoizedTickerData = useMemo(
-    () => ({
-      lastPrice: ticker?.lastPrice,
-      bestAskPrice: (ticker as unknown as Record<string, unknown>)
-        ?.bestAskPrice,
-      bestBidPrice: (ticker as unknown as Record<string, unknown>)
-        ?.bestBidPrice,
-      ask: (ticker as unknown as Record<string, unknown>)?.ask,
-      bid: (ticker as unknown as Record<string, unknown>)?.bid,
-      askPrice: (ticker as unknown as Record<string, unknown>)?.askPrice,
-      bidPrice: (ticker as unknown as Record<string, unknown>)?.bidPrice,
-    }),
-    [
-      ticker?.lastPrice,
-      (ticker as unknown as Record<string, unknown>)?.bestAskPrice,
-      (ticker as unknown as Record<string, unknown>)?.bestBidPrice,
-      (ticker as unknown as Record<string, unknown>)?.ask,
-      (ticker as unknown as Record<string, unknown>)?.bid,
-      (ticker as unknown as Record<string, unknown>)?.askPrice,
-      (ticker as unknown as Record<string, unknown>)?.bidPrice,
-    ]
-  );
+  // Use ref to store latest ticker data to avoid re-renders
+  const tickerRef = useRef(ticker);
+  useEffect(() => {
+    tickerRef.current = ticker;
+  }, [ticker]);
+
+  // Memoize ticker data with stable references to prevent unnecessary re-renders
+  const memoizedTickerData = useMemo(() => {
+    const t = tickerRef.current;
+    if (!t) {
+      return {
+        lastPrice: undefined,
+        bestAskPrice: undefined,
+        bestBidPrice: undefined,
+        ask: undefined,
+        bid: undefined,
+        askPrice: undefined,
+        bidPrice: undefined,
+      };
+    }
+    return {
+      lastPrice: t.lastPrice,
+      bestAskPrice: (t as unknown as Record<string, unknown>)?.bestAskPrice,
+      bestBidPrice: (t as unknown as Record<string, unknown>)?.bestBidPrice,
+      ask: (t as unknown as Record<string, unknown>)?.ask,
+      bid: (t as unknown as Record<string, unknown>)?.bid,
+      askPrice: (t as unknown as Record<string, unknown>)?.askPrice,
+      bidPrice: (t as unknown as Record<string, unknown>)?.bidPrice,
+    };
+  }, [ticker?.lastPrice]); // Only depend on lastPrice to minimize re-renders
 
   useEffect(() => {
     // Only run when page is visible and not already initialized
@@ -360,17 +433,34 @@ export function TradingRoomPageClient({
           : v
           ? parseFloat(String(v).replace(/,/g, ""))
           : NaN;
+      // Use ref for latest data to avoid dependency issues
+      const currentTicker = tickerRef.current;
+      const tickerData = currentTicker
+        ? {
+            bestAskPrice: (currentTicker as unknown as Record<string, unknown>)
+              ?.bestAskPrice,
+            bestBidPrice: (currentTicker as unknown as Record<string, unknown>)
+              ?.bestBidPrice,
+            ask: (currentTicker as unknown as Record<string, unknown>)?.ask,
+            bid: (currentTicker as unknown as Record<string, unknown>)?.bid,
+            askPrice: (currentTicker as unknown as Record<string, unknown>)
+              ?.askPrice,
+            bidPrice: (currentTicker as unknown as Record<string, unknown>)
+              ?.bidPrice,
+            lastPrice: currentTicker.lastPrice,
+          }
+        : memoizedTickerData;
       const ask = parseNum(
-        memoizedTickerData.bestAskPrice ??
-          memoizedTickerData.ask ??
-          memoizedTickerData.askPrice ??
-          memoizedTickerData.lastPrice
+        tickerData.bestAskPrice ??
+          tickerData.ask ??
+          tickerData.askPrice ??
+          tickerData.lastPrice
       );
       const bid = parseNum(
-        memoizedTickerData.bestBidPrice ??
-          memoizedTickerData.bid ??
-          memoizedTickerData.bidPrice ??
-          memoizedTickerData.lastPrice
+        tickerData.bestBidPrice ??
+          tickerData.bid ??
+          tickerData.bidPrice ??
+          tickerData.lastPrice
       );
       if (!Number.isFinite(ask) || !Number.isFinite(bid)) return;
 
@@ -407,13 +497,7 @@ export function TradingRoomPageClient({
       }
       isInitializedRef.current = false;
     };
-  }, [
-    currentRoom.id,
-    currentRoom.symbol,
-    isVisible,
-    isDocumentVisible,
-    memoizedTickerData,
-  ]);
+  }, [currentRoom.id, currentRoom.symbol, isVisible, isDocumentVisible]);
 
   // Client-Side Scheduled Orders Execution Engine (Event-Driven)
   // Disabled by default to prevent executions being triggered on page visit.
@@ -423,7 +507,8 @@ export function TradingRoomPageClient({
 
   useEffect(() => {
     if (!ENABLE_CLIENT_EXECUTOR) return;
-    if (!memoizedTickerData.lastPrice) return;
+    const currentTicker = tickerRef.current;
+    if (!currentTicker?.lastPrice) return;
     if (!isVisible || !isDocumentVisible) return;
 
     const checkAndExecuteOrders = async () => {
@@ -442,7 +527,8 @@ export function TradingRoomPageClient({
         if (scheduledOrders.length === 0) return;
 
         const now = new Date();
-        const currentPrice = Number(memoizedTickerData.lastPrice);
+        const currentTicker = tickerRef.current;
+        const currentPrice = Number(currentTicker?.lastPrice || 0);
 
         for (const order of scheduledOrders) {
           // Sanity check: ignore bad IDs or missing schedule types
@@ -491,7 +577,7 @@ export function TradingRoomPageClient({
   }, [
     ENABLE_CLIENT_EXECUTOR,
     currentRoom.id,
-    memoizedTickerData.lastPrice,
+    ticker?.lastPrice,
     isVisible,
     isDocumentVisible,
     queryClient,
@@ -517,17 +603,35 @@ export function TradingRoomPageClient({
               : v
               ? parseFloat(String(v).replace(/,/g, ""))
               : NaN;
+          const currentTicker = tickerRef.current;
+          const tickerData = currentTicker
+            ? {
+                bestAskPrice: (
+                  currentTicker as unknown as Record<string, unknown>
+                )?.bestAskPrice,
+                bestBidPrice: (
+                  currentTicker as unknown as Record<string, unknown>
+                )?.bestBidPrice,
+                ask: (currentTicker as unknown as Record<string, unknown>)?.ask,
+                bid: (currentTicker as unknown as Record<string, unknown>)?.bid,
+                askPrice: (currentTicker as unknown as Record<string, unknown>)
+                  ?.askPrice,
+                bidPrice: (currentTicker as unknown as Record<string, unknown>)
+                  ?.bidPrice,
+                lastPrice: currentTicker.lastPrice,
+              }
+            : memoizedTickerData;
           const ask = parseNum(
-            memoizedTickerData.bestAskPrice ??
-              memoizedTickerData.ask ??
-              memoizedTickerData.askPrice ??
-              memoizedTickerData.lastPrice
+            tickerData.bestAskPrice ??
+              tickerData.ask ??
+              tickerData.askPrice ??
+              tickerData.lastPrice
           );
           const bid = parseNum(
-            memoizedTickerData.bestBidPrice ??
-              memoizedTickerData.bid ??
-              memoizedTickerData.bidPrice ??
-              memoizedTickerData.lastPrice
+            tickerData.bestBidPrice ??
+              tickerData.bid ??
+              tickerData.bidPrice ??
+              tickerData.lastPrice
           );
           if (!Number.isFinite(ask) || !Number.isFinite(bid)) return;
 
@@ -556,7 +660,7 @@ export function TradingRoomPageClient({
         intervalRef.current = setInterval(tick, 1000);
       }
     }
-  }, [isVisible, isDocumentVisible, currentRoom.id, memoizedTickerData]);
+  }, [isVisible, isDocumentVisible, currentRoom.id]);
 
   // Loading Component
   const LoadingMessage = () => (
@@ -613,45 +717,58 @@ export function TradingRoomPageClient({
           </div>
 
           <ResponsiveGridLayout
-            className={cn("layout", mounted && "mounted")}
+            className={cn(
+              "layout",
+              mounted && "mounted",
+              (isDragging || isResizing) && "dragging"
+            )}
             layouts={layouts}
             onLayoutChange={handleLayoutChange}
+            onDragStart={handleDragStart}
+            onDragStop={handleDragStop}
+            onResizeStart={handleResizeStart}
+            onResizeStop={handleResizeStop}
             breakpoints={gridBreakpoints}
             rowHeight={rowHeight}
-            isDraggable={false}
-            isResizable={false}
+            isDraggable={true}
+            isResizable={true}
             margin={mobileMargin}
             containerPadding={undefined}
             useCSSTransforms={true}
             compactType="vertical"
             preventCollision={false}
+            transformScale={1}
+            draggableCancel={
+              ".grid-action-button, button, [data-grid-no-drag], input, textarea, select, [role='button'], [role='menuitem'], [tabindex]"
+            }
           >
             <div key="trading-chart" className="h-full">
-              <TradingViewChartTest
-                symbol={currentRoom.symbol as string}
-                roomId={currentRoom.id}
+              <MemoizedTradingChart
+                symbol={memoizedSymbol}
+                roomId={memoizedRoomId}
               />
             </div>
 
             <div key="order-book" className="h-full">
-              <OrderBookTest symbol={currentRoom.symbol as string} />
-            </div>
-
-            <div key="trading-tabs">
-              <TradingTabs
-                symbol={currentRoom.symbol as string}
-                roomId={currentRoom.id}
-              />
+              <MemoizedOrderBook symbol={memoizedSymbol} />
             </div>
           </ResponsiveGridLayout>
+        </div>
+
+        {/* Trading Tabs - moved outside grid (mobile) */}
+        <div className="w-full h-[360px] mt-1 relative z-50 trading-tabs-surface">
+          <MemoizedTradingTabs
+            symbol={memoizedSymbol}
+            roomId={memoizedRoomId}
+          />
         </div>
 
         {/* Trade Form - Bottom on mobile */}
         <div className="w-full h-auto min-h-[400px] lg:hidden">
           <TradeForm
-            roomId={currentRoom.id}
-            symbol={currentRoom.symbol as string}
-            availableBalance={currentRoom.virtual_balance}
+            roomId={memoizedRoomId}
+            symbol={memoizedSymbol}
+            availableBalance={memoizedBalance}
           />
         </div>
       </div>
@@ -678,9 +795,17 @@ export function TradingRoomPageClient({
 
           {/* Desktop Grid Layout */}
           <ResponsiveGridLayout
-            className={cn("layout", mounted && "mounted")}
+            className={cn(
+              "layout",
+              mounted && "mounted",
+              (isDragging || isResizing) && "dragging"
+            )}
             layouts={layouts}
             onLayoutChange={handleLayoutChange}
+            onDragStart={handleDragStart}
+            onDragStop={handleDragStop}
+            onResizeStart={handleResizeStart}
+            onResizeStop={handleResizeStop}
             breakpoints={gridBreakpoints}
             rowHeight={rowHeight}
             isDraggable={true}
@@ -691,33 +816,38 @@ export function TradingRoomPageClient({
             compactType="vertical"
             preventCollision={false}
             resizeHandles={["se"]}
+            transformScale={1}
+            draggableCancel={
+              ".grid-action-button, button, [data-grid-no-drag], input, textarea, select, [role='button'], [role='menuitem'], [tabindex]"
+            }
           >
             <div key="trading-chart" className="h-full">
-              <TradingViewChartTest
-                symbol={currentRoom.symbol as string}
-                roomId={currentRoom.id}
+              <MemoizedTradingChart
+                symbol={memoizedSymbol}
+                roomId={memoizedRoomId}
               />
             </div>
 
             <div key="order-book" className="h-full">
-              <OrderBookTest symbol={currentRoom.symbol as string} />
-            </div>
-
-            <div key="trading-tabs">
-              <TradingTabs
-                symbol={currentRoom.symbol as string}
-                roomId={currentRoom.id}
-              />
+              <MemoizedOrderBook symbol={memoizedSymbol} />
             </div>
           </ResponsiveGridLayout>
+
+          {/* Trading Tabs - moved outside grid (desktop, left column) */}
+          <div className="w-full h-[420px] mt-1 relative z-50 trading-tabs-surface">
+            <MemoizedTradingTabs
+              symbol={memoizedSymbol}
+              roomId={memoizedRoomId}
+            />
+          </div>
         </div>
 
         {/* Trade Form - Side panel on desktop */}
         <div className="w-full sm:w-[320px] md:w-[350px] lg:w-[380px] xl:w-[400px] h-full">
           <TradeForm
-            roomId={currentRoom.id}
-            symbol={currentRoom.symbol as string}
-            availableBalance={currentRoom.virtual_balance}
+            roomId={memoizedRoomId}
+            symbol={memoizedSymbol}
+            availableBalance={memoizedBalance}
           />
         </div>
       </div>

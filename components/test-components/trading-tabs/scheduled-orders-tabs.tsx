@@ -19,6 +19,9 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { SimpleTable } from "./shared/simple-table";
 import { useTranslations } from "next-intl";
+import { EditOrderTpSlDialog } from "./edit-order-tp-sl-dialog";
+import { PencilIcon } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ScheduledOrder {
   id: string;
@@ -39,25 +42,66 @@ interface ScheduledOrder {
   stop_loss_price?: number;
 }
 
-// TP/SL status indicator for scheduled orders
-const ScheduledTpSlIndicator = ({ order }: { order: ScheduledOrder }) => {
+// TP/SL status indicator for scheduled orders with edit functionality
+const ScheduledTpSlIndicator = ({
+  order,
+  onEdit,
+}: {
+  order: ScheduledOrder;
+  onEdit: () => void;
+}) => {
   const hasTp = order.tp_enabled && order.take_profit_price;
   const hasSl = order.sl_enabled && order.stop_loss_price;
+  const statusLower = order.status?.toLowerCase();
+  const isExecuted = statusLower === "executed";
+  const isCancelled = statusLower === "cancelled";
+  const isNonEditable = isExecuted || isCancelled;
 
-  if (!hasTp && !hasSl)
-    return <span className="text-gray-500 text-xs">No TP/SL</span>;
+  if (!hasTp && !hasSl) {
+    // Executed or cancelled: show disabled state without edit button
+    if (isNonEditable) {
+      return (
+        <span className="text-xs text-muted-foreground">No TP/SL</span>
+      );
+    }
 
   return (
-    <div className="flex gap-1">
-      {hasTp && (
-        <span className="px-1.5 py-0.5 rounded text-xs bg-green-500/20 text-green-400 font-medium">
-          TP
-        </span>
-      )}
-      {hasSl && (
-        <span className="px-1.5 py-0.5 rounded text-xs bg-red-500/20 text-red-400 font-medium">
-          SL
-        </span>
+      <button
+        type="button"
+        onClick={() => onEdit()}
+        className="action-btn flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded transition-colors cursor-pointer"
+        title="Add TP/SL"
+      >
+        <PencilIcon className="h-3 w-3" />
+        <span>Add TP/SL</span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+          <div className="flex gap-1">
+            {hasTp && (
+              <span className="px-1.5 py-0.5 rounded text-xs bg-green-500/20 text-green-400 font-medium">
+                TP
+              </span>
+            )}
+            {hasSl && (
+              <span className="px-1.5 py-0.5 rounded text-xs bg-red-500/20 text-red-400 font-medium">
+                SL
+              </span>
+            )}
+          </div>
+      {/* Only show edit button if order is not executed/cancelled */}
+      {!isNonEditable && (
+        <button
+          type="button"
+          onClick={() => onEdit()}
+          className="action-btn p-0.5 text-muted-foreground hover:text-foreground transition-colors rounded"
+          title="Edit TP/SL"
+        >
+          <PencilIcon className="h-3 w-3" />
+        </button>
       )}
     </div>
   );
@@ -115,11 +159,21 @@ const TRIGGER_DISPLAY_MAP = {
 
 export function ScheduledOrdersTabs({ roomId }: ScheduledOrdersTabsProps) {
   const t = useTranslations("trading.scheduled");
+  const queryClient = useQueryClient();
   const [currentTime, setCurrentTime] = useState(new Date());
   const { data: ordersData, isLoading, error } = useScheduledOrders(roomId);
   const cancelOrderMutation = useCancelScheduledOrder(roomId);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [targetOrderId, setTargetOrderId] = useState<string | null>(null);
+  const [editingOrder, setEditingOrder] = useState<ScheduledOrder | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  // Clear selection when dialog closes (even on cancel)
+  useEffect(() => {
+    if (!editDialogOpen) {
+      setEditingOrder(null);
+    }
+  }, [editDialogOpen]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -246,7 +300,20 @@ export function ScheduledOrdersTabs({ roomId }: ScheduledOrdersTabsProps) {
       [dataKeys[6]]: order.quantity,
       [dataKeys[4]]: getTriggerDisplay(order),
       [dataKeys[5]]: getOrderDisplay(order),
-      [dataKeys[7]]: <ScheduledTpSlIndicator order={order} />,
+      [dataKeys[7]]: (
+        <ScheduledTpSlIndicator
+          order={order}
+          onEdit={() => {
+            // Prevent editing executed or cancelled orders
+            const statusLower = order.status?.toLowerCase();
+            if (statusLower === "executed" || statusLower === "cancelled") {
+              return;
+            }
+            setEditingOrder(order);
+            setEditDialogOpen(true);
+          }}
+        />
+      ),
       [dataKeys[8]]:
         order.schedule_type === "time_based"
           ? calculateCountdown(order.scheduled_at || "")
@@ -264,27 +331,10 @@ export function ScheduledOrdersTabs({ roomId }: ScheduledOrdersTabsProps) {
             type="button"
             size="sm"
             variant="destructive"
-            className="h-6 px-4 text-xs"
-            data-grid-no-drag
-            draggable={false}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
+            className="action-btn h-6 px-4 text-xs"
+            onClick={() => {
               setTargetOrderId(order.id);
               setConfirmOpen(true);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                e.stopPropagation();
-                setTargetOrderId(order.id);
-                setConfirmOpen(true);
-              }
             }}
           >
             Cancel
@@ -313,20 +363,7 @@ export function ScheduledOrdersTabs({ roomId }: ScheduledOrdersTabsProps) {
   }
 
   return (
-    <div
-      className="h-full flex flex-col"
-      onMouseDown={(e) => {
-        // Only stop propagation if the event target is NOT the cancel button or its immediate children.
-        const target = e.target as HTMLElement;
-        const isCancelButton = target.closest(
-          'button[data-grid-no-drag][type="button"]'
-        );
-        if (!isCancelButton) {
-          e.stopPropagation();
-        }
-      }}
-      data-grid-no-drag
-    >
+    <div className="h-full flex flex-col">
       <div className="flex-1 overflow-hidden">
         <SimpleTable
           columns={columns}
@@ -376,6 +413,33 @@ export function ScheduledOrdersTabs({ roomId }: ScheduledOrdersTabsProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {editingOrder && editingOrder.status?.toLowerCase() !== "executed" && (
+        <EditOrderTpSlDialog
+          key={editingOrder.id}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          order={{
+            id: editingOrder.id,
+            symbol: editingOrder.symbol,
+            side: editingOrder.side as "buy" | "sell",
+            price: editingOrder.price,
+            quantity: editingOrder.quantity,
+            tp_enabled: editingOrder.tp_enabled,
+            sl_enabled: editingOrder.sl_enabled,
+            take_profit_price: editingOrder.take_profit_price,
+            stop_loss_price: editingOrder.stop_loss_price,
+          }}
+          roomId={roomId}
+          orderType="scheduled"
+          onSuccess={() => {
+            queryClient.invalidateQueries({
+              queryKey: ["scheduled-orders", roomId],
+            });
+            setEditingOrder(null);
+          }}
+        />
+      )}
     </div>
   );
 }

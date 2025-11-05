@@ -5318,7 +5318,56 @@
       "empty": { "loading": "로딩 중...", "noOpen": "오픈 포지션이 없습니다" },
       "actions": { "close": "닫기", "closing": "닫는 중..." },
       "filterable": { "symbol": "심볼", "side": "방향" },
-      "common": { "buy": "매수", "sell": "매도" }
+      "common": { "buy": "매수", "sell": "매도" },
+      "editTpSl": {
+        "title": "TP/SL 설정 편집",
+        "description": "{symbol}에 대한 {side} 포지션의 손익실현 및 손절매를 업데이트하세요",
+        "labels": {
+          "long": "롱",
+          "short": "숏",
+          "takeProfit": "손익실현 (TP)",
+          "stopLoss": "손절매 (SL)",
+          "tpPrice": "손익실현 가격 (USDT)",
+          "slPrice": "손절매 가격 (USDT)"
+        },
+        "hints": {
+          "tpLongMustBe": "${entryPrice}보다 높아야 합니다",
+          "tpShortMustBe": "${entryPrice}보다 낮아야 합니다",
+          "slLongMustBe": "${entryPrice}보다 낮아야 합니다",
+          "slShortMustBe": "${entryPrice}보다 높아야 합니다"
+        },
+        "placeholders": {
+          "tpPrice": "TP 가격 입력",
+          "slPrice": "SL 가격 입력"
+        },
+        "errors": {
+          "tpPriceRequired": "유효한 손익실현 가격을 입력해 주세요",
+          "slPriceRequired": "유효한 손절매 가격을 입력해 주세요",
+          "tpLongInvalid": "롱 포지션의 손익실현은 진입가보다 높아야 합니다",
+          "tpShortInvalid": "숏 포지션의 손익실현은 진입가보다 낮아야 합니다",
+          "slLongInvalid": "롱 포지션의 손절매는 진입가보다 낮아야 합니다",
+          "slShortInvalid": "숏 포지션의 손절매는 진입가보다 높아야 합니다",
+          "fixErrors": "저장하기 전에 오류를 수정해 주세요",
+          "saveFailed": "TP/SL 업데이트 실패"
+        },
+        "warnings": {
+          "noStopLoss": "경고: 손절매 없이 거래하면 심각한 손실 위험이 증가합니다."
+        },
+        "info": {
+          "tpCalculation": "TP 계산:",
+          "tpCalculationDesc": "가격이 ${price}에 도달하면 포지션이 자동으로 종료됩니다.",
+          "slCalculation": "SL 계산:",
+          "slCalculationDesc": "가격이 ${price}에 도달하면 손실을 제한하기 위해 포지션이 자동으로 종료됩니다."
+        },
+        "buttons": {
+          "cancel": "취소",
+          "save": "변경 사항 저장",
+          "saving": "저장 중..."
+        },
+        "toasts": {
+          "saveSuccess": "TP/SL이 성공적으로 업데이트되었습니다"
+        }
+      }
     },
     "scheduled": {
       "columns": {
@@ -5363,6 +5412,57 @@
         "side": "방향",
         "type": "유형",
         "status": "상태"
+      }
+    },
+    "orders": {
+      "editTpSl": {
+        "title": "TP/SL 설정 편집",
+        "description": "{symbol}에 대한 {side} {orderType}의 손익실현 및 손절매를 업데이트하세요",
+        "labels": {
+          "limitPrice": "지정가",
+          "price": "가격",
+          "triggerPrice": "트리거 가격",
+          "longBuy": "롱/매수",
+          "shortSell": "숏/매도",
+          "limitOrder": "지정가 주문",
+          "scheduledOrder": "예약 주문",
+          "takeProfit": "손익실현 (TP)",
+          "stopLoss": "손절매 (SL)",
+          "tpPrice": "손익실현 가격 (USDT)",
+          "slPrice": "손절매 가격 (USDT)",
+          "quantity": "수량"
+        },
+        "hints": {
+          "tpLongMustBe": "${price}보다 높아야 합니다",
+          "tpShortMustBe": "${price}보다 낮아야 합니다",
+          "slLongMustBe": "${price}보다 낮아야 합니다",
+          "slShortMustBe": "${price}보다 높아야 합니다"
+        },
+        "placeholders": {
+          "tpPrice": "TP 가격 입력",
+          "slPrice": "SL 가격 입력"
+        },
+        "errors": {
+          "tpPriceRequired": "유효한 손익실현 가격을 입력해 주세요",
+          "slPriceRequired": "유효한 손절매 가격을 입력해 주세요",
+          "tpLongInvalid": "롱 주문의 손익실현은 지정가보다 높아야 합니다",
+          "tpShortInvalid": "숏 주문의 손익실현은 지정가보다 낮아야 합니다",
+          "slLongInvalid": "롱 주문의 손절매는 지정가보다 낮아야 합니다",
+          "slShortInvalid": "숏 주문의 손절매는 지정가보다 높아야 합니다",
+          "fixErrors": "저장하기 전에 오류를 수정해 주세요",
+          "saveFailed": "TP/SL 업데이트 실패"
+        },
+        "warnings": {
+          "noStopLoss": "경고: 손절매 없이 거래하면 심각한 손실 위험이 증가합니다."
+        },
+        "buttons": {
+          "cancel": "취소",
+          "save": "변경 사항 저장",
+          "saving": "저장 중..."
+        },
+        "toasts": {
+          "saveSuccess": "TP/SL이 성공적으로 업데이트되었습니다"
+        }
       }
     }
   },
