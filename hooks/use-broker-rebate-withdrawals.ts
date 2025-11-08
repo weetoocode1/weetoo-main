@@ -49,6 +49,10 @@ export function useBrokerRebateWithdrawals() {
       const data = await response.json();
       return data.withdrawals;
     },
+    staleTime: 0,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 }
 
@@ -76,7 +80,6 @@ export function useCreateBrokerRebateWithdrawal() {
         queryKey: ["broker-rebate-withdrawals"],
       });
       queryClient.invalidateQueries({ queryKey: ["user-uids"] }); // Refresh UID data to show updated balance
-      toast.success("Withdrawal request submitted successfully");
     },
     onError: (error: Error) => {
       toast.error(error.message);

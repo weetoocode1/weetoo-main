@@ -37,6 +37,11 @@ const LBANK_BASE_URL =
 const LBANK_API_KEY = process.env.LBANK_API_KEY || "";
 const LBANK_API_SECRET = process.env.LBANK_API_SECRET || "";
 const FIXIE_URL = process.env.FIXIE_URL || "";
+// const LBANK_DEBUG = process.env.LBANK_DEBUG === "true";
+
+// Lightweight cache for 90d totals to avoid recomputation on repeated calls
+export const LBANK_90D_CACHE = new Map<string, { value: number; ts: number }>();
+const LBANK_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 function hasCreds(): boolean {
   return Boolean(LBANK_API_KEY && LBANK_API_SECRET);
@@ -63,20 +68,9 @@ async function doSignedGet<T = unknown>(
     ...params,
   };
 
-  const { sign, md5String, canonical } = signLbankHmacSha256(
-    baseParams,
-    LBANK_API_SECRET,
-    "hex"
-  );
+  const { sign } = signLbankHmacSha256(baseParams, LBANK_API_SECRET, "hex");
 
-  // Debug logging for signature troubleshooting
-  console.log("LBank Signature Debug:", {
-    canonical,
-    md5String,
-    sign,
-    baseParams,
-    secretKeyLength: LBANK_API_SECRET.length,
-  });
+  // Silent in production – no signature debug logs
 
   const finalParams = new URLSearchParams();
   for (const [k, v] of Object.entries(baseParams)) {
@@ -104,12 +98,9 @@ async function doSignedGet<T = unknown>(
       const undici = await import("undici");
       // @ts-expect-error Node fetch proxy dispatcher
       fetchOptions.dispatcher = new undici.ProxyAgent(FIXIE_URL);
-      console.log("LBank Fixie Proxy: Using undici proxy dispatcher");
-    } catch (error) {
-      console.warn(
-        "LBank Fixie Proxy: Failed to load undici proxy agent",
-        error
-      );
+      // Quiet proxy info
+    } catch (_error) {
+      // Quiet proxy failures
     }
   }
 
@@ -211,13 +202,26 @@ export default class LbankAPI implements BrokerAPI {
     sourceType?: string
   ): Promise<CommissionData[]> {
     if (!hasCreds()) return [];
+
+    const tStart = Date.now();
     const now = Date.now();
-    const startTime = now - 30 * 24 * 60 * 60 * 1000;
-    const endTime = now;
-    // tradeType: 0 spot, 1 futures, 10 both. Map sourceType "PERPETUAL" => 1 else 0
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    const thirtyDaysMs = 30 * oneDayMs;
+    const ninetyDaysMs = 90 * oneDayMs;
+
+    // Up to yesterday to respect T+1 settlement per docs
+    const endTime = now - oneDayMs;
+    const fastStartTime = endTime - thirtyDaysMs + 1;
+    const fullStartTime = endTime - ninetyDaysMs + 1;
+
+    // tradeType: 0 spot, 1 futures; "PERPETUAL" => 1 else 0
     const tradeType = sourceType === "PERPETUAL" ? 1 : 0;
 
-    try {
+    const fetchPaged = async (startTime: number, endTime: number) => {
+      const pageSize = 100;
+      let start = 0;
+      const out: LBankCommissionItem[] = [];
+      for (let page = 0; page < 50; page++) {
       const data = await doSignedGet<LBankCommissionItem[]>(
         "/affiliate-api/v2/commission/stats/symbol/list",
         {
@@ -226,12 +230,23 @@ export default class LbankAPI implements BrokerAPI {
           startTime,
           endTime,
           coin: "",
-          start: 0,
-          pageSize: 100,
+            start,
+            pageSize,
         }
       );
       const list = Array.isArray(data) ? data : [];
-      return list.map((row: LBankCommissionItem) => ({
+        out.push(...list);
+        if (list.length < pageSize) break;
+        start += pageSize;
+        await new Promise((r) => setTimeout(r, 120));
+      }
+      return out;
+    };
+
+    try {
+      // Fast path: only last 30 days synchronously
+      const recent = await fetchPaged(fastStartTime, endTime);
+      const recentMapped: CommissionData[] = recent.map((row) => ({
         uid,
         tradeAmount: row?.amount ?? "0",
         fee: row?.usdtAmount ?? row?.amount ?? "0",
@@ -240,6 +255,72 @@ export default class LbankAPI implements BrokerAPI {
         coinSymbol: row?.coinSymbol,
         statsDate: row?.statsDate,
       }));
+
+      // Compute immediate 24h/30d and log
+      const toNum = (v: unknown) =>
+        typeof v === "number" ? v : typeof v === "string" ? parseInt(v, 10) : 0;
+      const sum = (rows: CommissionData[]) =>
+        rows.reduce((s, r) => s + (parseFloat(r.commission as string) || 0), 0);
+
+      const last24hStart = endTime - oneDayMs + 1;
+      const rows24h = recentMapped.filter(
+        (r) =>
+          toNum(r.statsDate) >= last24hStart && toNum(r.statsDate) <= endTime
+      );
+      const last24h = sum(rows24h);
+      const last30d = sum(recentMapped);
+
+      const durationMs = Date.now() - tStart;
+      console.log("[LBank] Commission Summary", {
+        uid,
+        last24h: Number(last24h.toFixed(8)),
+        last30d: Number(last30d.toFixed(8)),
+        recordsFetched: recentMapped.length,
+        durationMs,
+      });
+
+      // Background: fetch prior 60d to compute 90d; use cache if available
+      const cache = LBANK_90D_CACHE.get(uid);
+      const cacheValid = cache && Date.now() - cache.ts < LBANK_CACHE_TTL_MS;
+      if (!cacheValid) {
+        (async () => {
+          try {
+            const older = await fetchPaged(fullStartTime, fastStartTime - 1);
+            const olderSum = older.reduce((s, row) => {
+              const c = row?.usdtAmount ?? row?.amount ?? "0";
+              return s + (parseFloat(String(c)) || 0);
+            }, 0);
+            const full90 = last30d + olderSum;
+            LBANK_90D_CACHE.set(uid, { value: full90, ts: Date.now() });
+            console.log("[LBank] Commission Summary (90d ready)", {
+              uid,
+              last90d: Number(full90.toFixed(8)),
+            });
+            console.log("[LBank] Commission Summary (final)", {
+              uid,
+              last24h: Number(last24h.toFixed(8)),
+              last30d: Number(last30d.toFixed(8)),
+              last90d: Number(full90.toFixed(8)),
+            });
+          } catch {
+            // ignore background errors
+          }
+        })();
+      } else {
+        console.log("[LBank] Commission Summary (cached 90d)", {
+          uid,
+          last90d: Number((cache?.value || 0).toFixed(8)),
+        });
+        console.log("[LBank] Commission Summary (final)", {
+          uid,
+          last24h: Number(last24h.toFixed(8)),
+          last30d: Number(last30d.toFixed(8)),
+          last90d: Number((cache?.value || 0).toFixed(8)),
+        });
+      }
+
+      // Return last 30d for UI
+      return recentMapped;
     } catch {
       return [];
     }

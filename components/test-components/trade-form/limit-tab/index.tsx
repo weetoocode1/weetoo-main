@@ -307,27 +307,27 @@ function LimitTabInner({
   const valueModeRecompute = () => {
     // Check if user is typing in the input field
     if (typeof window !== "undefined") {
-      const typingRef = (window as unknown as Record<string, unknown>)._limit_is_typing_ref as { current?: boolean } | undefined;
+      const typingRef = (window as unknown as Record<string, unknown>)
+        ._limit_is_typing_ref as { current?: boolean } | undefined;
       if (typingRef?.current === true) return;
     }
-    
+
     // Get the user's fixed capital amount
     const userCapital =
       (typeof window !== "undefined" &&
         window._limit_user_capital_ref?.current) ||
       0;
 
-    // Only recompute if we have stored capital (user used percentage buttons)
-    // Don't recompute if user manually typed a value
-    if (userCapital > 0 && price > 0 && placementMode === "value") {
-      // In value mode, input shows Order Value; qty is derived from it
-      const orderValue = userCapital * leverage; // reflect leverage in display
+    // Recompute if we have stored capital (user used percentage buttons)
+    // This ensures quantity updates when leverage changes, regardless of current mode
+    if (userCapital > 0 && price > 0) {
+      // Calculate order value with current leverage
+      const orderValue = userCapital * leverage;
       const nextQty = orderValue / price;
 
       if (Number.isFinite(nextQty)) {
         setQty(nextQty);
         setValueModeCapital(userCapital);
-        // Don't force mode change - let user stay in their chosen mode
       }
     }
   };
@@ -383,6 +383,7 @@ function LimitTabInner({
           price={price}
           valueModeCapital={valueModeCapital}
           onValueModeCapitalChange={setValueModeCapital}
+          symbol={symbol as string}
         />
       </div>
       {/* Percentage Buttons */}

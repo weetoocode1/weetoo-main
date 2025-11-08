@@ -150,9 +150,9 @@ function MarketTabInner({
       userCapital = capitalRef?.current || 0;
     }
 
-    // Only recompute if we have stored capital (user used percentage buttons)
-    // Don't recompute if user manually typed a value
-    if (userCapital > 0 && price > 0 && placementMode === "value") {
+    // Recompute if we have stored capital (user used percentage buttons)
+    // This ensures quantity updates when leverage changes, regardless of current mode
+    if (userCapital > 0 && price > 0) {
       const orderValue = userCapital * (leverage || 1);
       const nextQty = orderValue / price;
       if (Number.isFinite(nextQty)) {
@@ -316,6 +316,7 @@ function MarketTabInner({
         price={price}
         valueModeCapital={valueModeCapital}
         onValueModeCapitalChange={setValueModeCapital}
+        symbol={symbol as string}
       />
 
       <PercentageButtons onPercentageSelect={handlePercentageSelect} />
@@ -360,7 +361,7 @@ function MarketTabInner({
         qty={qty}
         orderType="market"
         symbol={symbol}
-        leverage={1}
+        leverage={leverage}
         feeRate={FEE_RATE}
         availableBalance={availableBalance}
         tpEnabled={tpEnabled}

@@ -30,14 +30,18 @@ interface DeepCoinUserListResponse {
 }
 
 interface DeepCoinRebateItem {
-  uid: number | string;
+  uid?: number;
+  level?: number;
+  uidUpLevel?: number;
+  rebateRate?: string;
+  commission?: string;
+  orderId?: string;
+  isAbnormalFreeze?: boolean;
+  createTime?: number;
   tradeAmount?: number | string;
   amount?: number | string;
   fee?: number | string;
   rebateAmount?: number | string;
-  rebateRate?: number | string;
-  level?: number;
-  createTime?: number;
   [key: string]: unknown;
 }
 
@@ -56,6 +60,13 @@ interface DeepCoinTradeItem {
 interface DeepCoinTradeListResponse {
   list: DeepCoinTradeItem[] | null;
 }
+
+// Lightweight cache for 60d totals so repeated calls don't refetch older data
+export const DEEPCOIN_60D_CACHE = new Map<
+  string,
+  { value: number; ts: number }
+>();
+const DEEPCOIN_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 export class DeepCoinAPI implements BrokerAPI {
   private baseURL = "https://api.deepcoin.com";
@@ -82,77 +93,44 @@ export class DeepCoinAPI implements BrokerAPI {
     baseURL: string
   ): Promise<number | null> {
     try {
-      console.log("DeepCoin Server Time: Trying HEAD request to", baseURL);
       const head = await fetch(baseURL, { method: "HEAD", cache: "no-store" });
       const dateHeader = head.headers.get("date");
-      console.log(
-        "DeepCoin Server Time: HEAD response date header:",
-        dateHeader
-      );
       if (dateHeader) {
         const ms = Date.parse(dateHeader);
         if (!Number.isNaN(ms)) {
-          console.log(
-            "DeepCoin Server Time: Parsed HEAD date successfully:",
-            ms
-          );
           return ms;
         }
       }
-    } catch (error) {
-      console.error("DeepCoin Server Time: HEAD request failed:", error);
+    } catch {
+      // Continue to fallback
     }
     try {
-      console.log("DeepCoin Server Time: Trying GET request to", baseURL);
       const getResp = await fetch(baseURL, {
         method: "GET",
         cache: "no-store",
       });
       const dateHeader = getResp.headers.get("date");
-      console.log(
-        "DeepCoin Server Time: GET response date header:",
-        dateHeader
-      );
       if (dateHeader) {
         const ms = Date.parse(dateHeader);
         if (!Number.isNaN(ms)) {
-          console.log(
-            "DeepCoin Server Time: Parsed GET date successfully:",
-            ms
-          );
           return ms;
         }
       }
-    } catch (error) {
-      console.error("DeepCoin Server Time: GET request failed:", error);
+    } catch {
+      // Continue to fallback
     }
-    console.log("DeepCoin Server Time: All methods failed, returning null");
     return null;
   }
 
   private static async syncUtcSkew(baseURL: string): Promise<void> {
-    console.log("DeepCoin Skew Sync: Starting sync...");
     const localNowMs = Date.now();
     const providerMs = await DeepCoinAPI.getDeepCoinServerUtcMs(baseURL);
-
-    console.log("DeepCoin Skew Sync Debug:", {
-      localNowMs,
-      providerMs,
-      baseURL,
-      providerFound: providerMs !== null,
-    });
 
     if (providerMs !== null) {
       DeepCoinAPI.cachedSkewMs = providerMs - localNowMs;
       DeepCoinAPI.lastSkewSyncAt = localNowMs;
-      console.log("DeepCoin Skew Sync: Updated with provider time", {
-        cachedSkewMs: DeepCoinAPI.cachedSkewMs,
-        lastSkewSyncAt: DeepCoinAPI.lastSkewSyncAt,
-      });
       return;
     }
-    // Fallback to trusted UTC source
-    console.log("DeepCoin Skew Sync: Provider time failed, trying fallback...");
     try {
       const resp = await fetch(
         "https://worldtimeapi.org/api/timezone/Etc/UTC",
@@ -162,15 +140,8 @@ export class DeepCoinAPI implements BrokerAPI {
       const remoteUtcMs = Date.parse(data.utc_datetime);
       DeepCoinAPI.cachedSkewMs = remoteUtcMs - localNowMs;
       DeepCoinAPI.lastSkewSyncAt = localNowMs;
-      console.log("DeepCoin Skew Sync: Updated with fallback time", {
-        cachedSkewMs: DeepCoinAPI.cachedSkewMs,
-        lastSkewSyncAt: DeepCoinAPI.lastSkewSyncAt,
-        remoteUtcMs,
-        dataUtc: data.utc_datetime,
-      });
-    } catch (fallbackError) {
-      console.error("DeepCoin Skew Sync: Fallback failed", fallbackError);
-      /* keep previous skew */
+    } catch {
+      // Keep previous skew on fallback failure
     }
   }
 
@@ -186,49 +157,16 @@ export class DeepCoinAPI implements BrokerAPI {
     // Example: 2020-12-08T09:08:57.715ZGET/api/v1/account
     const message = timestamp + method + requestPath + body;
 
-    // Debug the exact message being signed (without quotes for clarity)
-    console.log("DeepCoin HMAC Input Debug:", {
-      timestamp: timestamp,
-      method: method,
-      requestPath: requestPath,
-      body: body,
-      concatenated: message,
-      messageLength: message.length,
-      messageBytes: Buffer.from(message, "utf8").toString("hex"),
-      secretLength: this.apiSecret.length,
-      secretPreview: this.apiSecret.substring(0, 8) + "...",
-      // Add verification that matches DeepCoin docs
-      expectedFormat: "timestamp + method + requestPath + body",
-      example: "2020-12-08T09:08:57.715ZGET/api/v1/account",
-    });
-
     try {
-      // Use Node.js built-in crypto for more reliable HMAC-SHA256
       if (typeof crypto !== "undefined" && crypto.createHmac) {
         const hmac = crypto.createHmac("sha256", this.apiSecret);
-        hmac.update(message, "utf8"); // Explicitly specify UTF-8 encoding
+        hmac.update(message, "utf8");
         this.usedNodeCrypto = true;
-        const signature = hmac.digest("base64");
-
-        // Verify signature format
-        console.log("DeepCoin Signature Generation:", {
-          messageLength: message.length,
-          signatureLength: signature.length,
-          signatureFormat: "base64",
-          hmacAlgorithm: "sha256",
-          encoding: "utf8",
-        });
-
-        return signature;
-      } else {
-        throw new Error("Node.js crypto not available");
+        return hmac.digest("base64");
       }
+      throw new Error("Node.js crypto not available");
     } catch (_error) {
       this.usedNodeCrypto = false;
-      // Fallback to Web Crypto API if Node.js crypto not available
-      console.warn(
-        "Node.js crypto not available, falling back to Web Crypto API"
-      );
 
       const encoder = new TextEncoder();
       const keyData = encoder.encode(this.apiSecret);
@@ -279,23 +217,7 @@ export class DeepCoinAPI implements BrokerAPI {
       adjustedMs = nowMs - localOffset * 60 * 1000 + DeepCoinAPI.cachedSkewMs;
     }
 
-    const adjustedIso = new Date(adjustedMs).toISOString();
-
-    // Always log skew debug info to troubleshoot Vercel issues
-    console.log("DeepCoin Timestamp Debug:", {
-      localTime: new Date(nowMs).toString(),
-      localOffset: localOffset,
-      isUtcTimezone: isUtcTimezone,
-      adjustedUtc: adjustedIso,
-      adjustedMs,
-      cachedSkewMs: DeepCoinAPI.cachedSkewMs,
-      lastSkewSyncAt: DeepCoinAPI.lastSkewSyncAt,
-      environment: process.env.NODE_ENV || "unknown",
-    });
-
-    // CRITICAL: Return ISO timestamp per DeepCoin docs format: 2020-12-08T09:08:57.715Z
-    // Ensure we're sending the exact format they expect
-    return adjustedIso;
+    return new Date(adjustedMs).toISOString();
   }
 
   // Normalize request path by sorting query parameters deterministically
@@ -311,17 +233,7 @@ export class DeepCoinAPI implements BrokerAPI {
     );
     const sorted = new URLSearchParams();
     for (const [k, v] of entries) sorted.append(k, v);
-    const normalized = `${base}?${sorted.toString()}`;
-
-    console.log("DeepCoin Path Normalization:", {
-      original: requestPath,
-      normalized: normalized,
-      base: base,
-      queryParams: entries,
-      sortedParams: sorted.toString(),
-    });
-
-    return normalized;
+    return `${base}?${sorted.toString()}`;
   }
 
   // Make authenticated request through Fixie proxy
@@ -339,34 +251,6 @@ export class DeepCoinAPI implements BrokerAPI {
       normalizedPath,
       bodyString
     );
-
-    // Debug logging for Fixie proxy requests
-    console.log("DeepCoin API Request:", {
-      method: method,
-      endpoint: normalizedPath,
-      timestamp: timestamp,
-      signatureLength: signature.length,
-      fixieConfigured: !!this.fixieURL,
-      isServerSide: typeof window === "undefined",
-    });
-
-    // Store debug info for the broker route to access
-    (
-      this as DeepCoinAPI & { lastSignatureDebug?: unknown }
-    ).lastSignatureDebug = {
-      method,
-      endpoint: normalizedPath,
-      body: bodyString,
-      timestamp,
-      signatureLength: signature.length,
-      signaturePreview: signature.substring(0, 20) + "...",
-      signatureFull: signature,
-      hmacInput: `${timestamp}${method}${normalizedPath}${bodyString}`,
-      targetURL: `${this.baseURL}${normalizedPath}`,
-      serverTime: new Date().toISOString(),
-      proxyUsed: true,
-      fixieConfigured: !!this.fixieURL,
-    };
 
     // Check if Fixie is configured
     if (!this.fixieURL) {
@@ -394,19 +278,12 @@ export class DeepCoinAPI implements BrokerAPI {
     // Add proxy only on server-side
     if (isServerSide && this.fixieURL) {
       try {
-        // Use undici for proper Node.js fetch with proxy support
         const undici = await import("undici");
         // @ts-expect-error - Proxy configuration for Node.js fetch
         fetchOptions.dispatcher = new undici.ProxyAgent(this.fixieURL);
-        console.log("DeepCoin Fixie Proxy: Using undici proxy dispatcher");
-      } catch (error) {
-        console.warn("Failed to load undici proxy agent:", error);
+      } catch {
         // Continue without proxy if undici fails
       }
-    } else {
-      console.log(
-        "DeepCoin Fixie Proxy: Not using proxy (client-side or no FIXIE_URL)"
-      );
     }
 
     const response = await fetch(
@@ -449,7 +326,6 @@ export class DeepCoinAPI implements BrokerAPI {
       );
       return response.data;
     } catch (error) {
-      console.error("DeepCoin balance fetch failed:", error);
       throw error;
     }
   }
@@ -460,7 +336,6 @@ export class DeepCoinAPI implements BrokerAPI {
       const response = await this.makeRequest("GET", `/users/self/verify`);
       return response.data;
     } catch (error) {
-      console.error("DeepCoin current user info fetch failed:", error);
       throw error;
     }
   }
@@ -475,13 +350,8 @@ export class DeepCoinAPI implements BrokerAPI {
       // This is a placeholder - we need to find the proper DeepCoin endpoint
       // for UID ownership validation
 
-      // For now, return false to prevent security issues
-      console.warn(
-        "UID ownership validation not implemented - security measure"
-      );
       return false;
-    } catch (error) {
-      console.error("DeepCoin UID ownership validation failed:", error);
+    } catch {
       return false;
     }
   }
@@ -550,7 +420,6 @@ export class DeepCoinAPI implements BrokerAPI {
 
       // This return is no longer needed - handled above
     } catch (error) {
-      console.error("DeepCoin UID verification failed:", error);
       return {
         verified: false,
         reason: `API Error: ${
@@ -567,7 +436,6 @@ export class DeepCoinAPI implements BrokerAPI {
       // This is a placeholder - we need to find the actual DeepCoin affiliate endpoint
       throw new Error("DeepCoin affiliate endpoints not yet implemented");
     } catch (error) {
-      console.error("DeepCoin affiliate info fetch failed:", error);
       throw error;
     }
   }
@@ -600,7 +468,6 @@ export class DeepCoinAPI implements BrokerAPI {
       );
       return response.data;
     } catch (error) {
-      console.error("DeepCoin referral list fetch failed:", error);
       throw error;
     }
   }
@@ -631,15 +498,13 @@ export class DeepCoinAPI implements BrokerAPI {
       );
       return response.data;
     } catch (error) {
-      console.error("DeepCoin rebate summary fetch failed:", error);
       throw error;
     }
   }
 
-  // Get detailed rebate history and commission data
   async getRebateHistory(params?: {
     uid?: number;
-    type?: number; // 0: Normal, 1: Abnormal frozen, 2: Total
+    type?: number;
     startTime?: number;
     endTime?: number;
     pageNum?: number;
@@ -669,9 +534,20 @@ export class DeepCoinAPI implements BrokerAPI {
         "GET",
         endpoint
       );
+
+      // Log if response.data is null to debug API issues
+      if (!response.data && params?.startTime && params?.endTime) {
+        console.log("[DeepCoin] API returned null data in getRebateHistory:", {
+          endpoint,
+          params,
+          responseCode: response.code,
+          responseMsg: response.msg,
+          fullResponse: JSON.stringify(response).substring(0, 500),
+        });
+      }
+
       return response.data;
     } catch (error) {
-      console.error("DeepCoin rebate history fetch failed:", error);
       throw error;
     }
   }
@@ -687,31 +563,108 @@ export class DeepCoinAPI implements BrokerAPI {
       }
 
       return false;
-    } catch (error) {
-      console.error("DeepCoin referral check failed:", error);
+    } catch {
       return false;
     }
   }
 
-  // Get commission data for a specific referred UID
-  async getUIDCommission(
+  // Get commission data for a specific referred UID with pagination
+  private async fetchRebateHistoryPaged(
     uid: string,
-    startTime?: number,
-    endTime?: number
-  ): Promise<DeepCoinRebateListResponse> {
-    try {
-      const rebateData = await this.getRebateHistory({
-        uid: parseInt(uid),
-        startTime,
-        endTime,
-        pageSize: 1000, // Get all records for this UID
-      });
+    startTimeMs: number,
+    endTimeMs: number
+  ): Promise<DeepCoinRebateItem[]> {
+    const pageSize = 100;
+    let pageNum = 1;
+    const allItems: DeepCoinRebateItem[] = [];
 
-      return rebateData;
-    } catch (error) {
-      console.error("DeepCoin UID commission fetch failed:", error);
-      throw error;
+    const startTimeSeconds = Math.floor(startTimeMs / 1000);
+    const endTimeSeconds = Math.ceil(endTimeMs / 1000);
+
+    for (let page = 0; page < 200; page++) {
+      try {
+        if (pageNum > 1) {
+          await new Promise((resolve) => setTimeout(resolve, 120));
+        }
+
+        const rebateData = await this.getRebateHistory({
+          uid: parseInt(uid),
+          type: 0,
+          startTime: startTimeSeconds,
+          endTime: endTimeSeconds,
+          pageNum,
+          pageSize,
+        });
+
+        if (pageNum === 1) {
+          console.log("[DeepCoin] API Response (first page):", {
+            uid,
+            startTimeSeconds,
+            endTimeSeconds,
+            pageNum,
+            pageSize,
+            hasData: !!rebateData,
+            hasList: !!rebateData?.list,
+            listType: Array.isArray(rebateData?.list)
+              ? "array"
+              : typeof rebateData?.list,
+            listLength: Array.isArray(rebateData?.list)
+              ? rebateData.list.length
+              : "N/A",
+            fullResponse: JSON.stringify(rebateData).substring(0, 500),
+          });
+        }
+
+        const list = rebateData?.list || [];
+        if (!Array.isArray(list)) {
+          if (pageNum === 1) {
+            console.log("[DeepCoin] API returned non-array:", {
+              uid,
+              startTimeMs,
+              endTimeMs,
+              response: rebateData,
+            });
+          }
+          break;
+        }
+
+        if (list.length === 0) {
+          if (pageNum === 1) {
+            console.log("[DeepCoin] No records found for date range:", {
+              uid,
+              startTimeMs,
+              endTimeMs,
+              startTimeSeconds,
+              endTimeSeconds,
+              startDate: new Date(startTimeMs).toISOString(),
+              endDate: new Date(endTimeMs).toISOString(),
+              startDateUTC8: new Date(
+                startTimeMs + 8 * 60 * 60 * 1000
+              ).toISOString(),
+              endDateUTC8: new Date(
+                endTimeMs + 8 * 60 * 60 * 1000
+              ).toISOString(),
+            });
+          }
+          break;
+        }
+
+        allItems.push(...list);
+
+        if (list.length < pageSize) break;
+        pageNum++;
+      } catch (_error) {
+        // Log error but continue to next page if it's not a critical error
+        if (pageNum === 1) {
+          // If first page fails, break to avoid infinite loop
+          break;
+        }
+        // For subsequent pages, continue but log the error
+        break;
+      }
     }
+
+    return allItems;
   }
 
   // Get trading history for UID
@@ -728,7 +681,6 @@ export class DeepCoinAPI implements BrokerAPI {
         timestamp: trade.timestamp,
       }));
     } catch (error) {
-      console.error("DeepCoin trading history fetch failed:", error);
       throw error;
     }
   }
@@ -745,8 +697,7 @@ export class DeepCoinAPI implements BrokerAPI {
         0
       );
       return totalVolume.toFixed(2);
-    } catch (error) {
-      console.error("DeepCoin trading volume fetch failed:", error);
+    } catch {
       return "0.00";
     }
   }
@@ -757,7 +708,6 @@ export class DeepCoinAPI implements BrokerAPI {
       const response = await this.makeRequest("GET", `/users/self/verify`);
       return response.data;
     } catch (error) {
-      console.error("DeepCoin account info fetch failed:", error);
       throw error;
     }
   }
@@ -768,9 +718,6 @@ export class DeepCoinAPI implements BrokerAPI {
     date: string
   ): Promise<{ rebateAmount: number }> {
     try {
-      console.log(`Fetching daily rebates for UID ${uid} on date ${date}`);
-
-      // DeepCoin daily rebates endpoint (based on their API docs)
       const response = await this.makeRequest<DeepCoinRebateListResponse>(
         "GET",
         `/agents/users/rebates?uid=${uid}&date=${date}`
@@ -784,17 +731,11 @@ export class DeepCoinAPI implements BrokerAPI {
           return sum + rebateAmount;
         }, 0);
 
-        console.log(`UID ${uid} daily rebates for ${date}: $${totalRebate}`);
         return { rebateAmount: totalRebate };
       }
 
-      console.log(`No rebates found for UID ${uid} on date ${date}`);
       return { rebateAmount: 0 };
-    } catch (error) {
-      console.error(
-        `DeepCoin daily rebates fetch failed for UID ${uid}:`,
-        error
-      );
+    } catch {
       return { rebateAmount: 0 };
     }
   }
@@ -804,21 +745,155 @@ export class DeepCoinAPI implements BrokerAPI {
     uid: string,
     sourceType?: string
   ): Promise<CommissionData[]> {
+    if (!this.isAPIActive()) return [];
+
     try {
-      const rebateData = await this.getUIDCommission(uid);
-      if (rebateData?.list && Array.isArray(rebateData.list)) {
-        return rebateData.list.map((item) => ({
-          uid: String(item.uid),
-          tradeAmount: String(item.tradeAmount ?? item.amount ?? 0),
-          fee: String(item.fee ?? 0),
-          commission: String(item.rebateAmount ?? 0),
-          rebateRate: String(item.rebateRate ?? 0),
-          sourceType: sourceType || "PERPETUAL",
-        }));
+      const tStart = Date.now();
+      const now = Date.now();
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      const thirtyDaysMs = 30 * oneDayMs;
+      const sixtyDaysMs = 60 * oneDayMs;
+
+      // We aggregate up to yesterday to avoid partial/settlement-day effects
+      const queryEndTime = now - oneDayMs;
+      // Recent 30 days: from 30 days ago to yesterday
+      const fastStartTime = queryEndTime - thirtyDaysMs + 1;
+      // Full 60 days: from 60 days ago to yesterday
+      // API limit: "start time can not exceed 60 days" - checked against CURRENT time (now), not endTime
+      // So we need to ensure startTime is within 60 days of NOW, not endTime
+      // Use 59 days + 12 hours to be safely under the 60-day limit
+      const fullStartTime = now - (sixtyDaysMs - 12 * 60 * 60 * 1000);
+
+      const mapRows = (items: DeepCoinRebateItem[]): CommissionData[] =>
+        items.map((item) => {
+          const createTimeMs =
+            item.createTime && item.createTime > 0
+              ? item.createTime < 1e12
+                ? item.createTime * 1000
+                : item.createTime
+              : 0;
+
+          return {
+            uid: String(item.uid ?? ""),
+            tradeAmount: String(item.tradeAmount ?? item.amount ?? 0),
+            fee: String(item.fee ?? 0),
+            commission: String(
+              item.commission ?? item.rebateAmount ?? item.amount ?? 0
+            ),
+            rebateRate: String(item.rebateRate ?? 0),
+            sourceType: sourceType || "PERPETUAL",
+            statsDate: String(createTimeMs),
+          };
+        });
+
+      const sumCommission = (rows: CommissionData[]) =>
+        rows.reduce((s, r) => s + (parseFloat(String(r.commission)) || 0), 0);
+
+      // Fast path: fetch last 30 days synchronously
+      const recentItems = await this.fetchRebateHistoryPaged(
+        uid,
+        fastStartTime,
+        queryEndTime
+      );
+      const recentMapped = mapRows(recentItems);
+
+      // Compute 24h and 30d totals
+      const last24hStart = queryEndTime - oneDayMs + 1;
+      const rows24h = recentMapped.filter((r) => {
+        const createTime = parseInt(String(r.statsDate || 0));
+        return createTime >= last24hStart && createTime <= queryEndTime;
+      });
+      const last24h = sumCommission(rows24h);
+      const last30d = sumCommission(recentMapped);
+
+      const durationMs = Date.now() - tStart;
+      console.log("[DeepCoin] Commission Summary", {
+        uid,
+        last24h: Number(last24h.toFixed(8)),
+        last30d: Number(last30d.toFixed(8)),
+        recordsFetched: recentMapped.length,
+        durationMs,
+      });
+
+      // Background: fetch prior 30d to compute 60d; use cache if available
+      const cache = DEEPCOIN_60D_CACHE.get(uid);
+      const cacheValid = cache && Date.now() - cache.ts < DEEPCOIN_CACHE_TTL_MS;
+
+      if (!cacheValid) {
+        (async () => {
+          try {
+            // DeepCoin API seems to have a limit on date range queries
+            // Split 60-day query into two 30-day windows to avoid API returning null
+            const midPointTime = fastStartTime;
+
+            // First window: days 31-60 (older 30 days)
+            const olderItems = await this.fetchRebateHistoryPaged(
+              uid,
+              fullStartTime,
+              midPointTime - 1
+            );
+
+            // Second window: days 1-30 (recent 30 days - we already have this, but let's verify)
+            // Actually, we already fetched this in recentItems, so we can use that
+
+            // Combine both windows
+            const olderMapped = mapRows(olderItems);
+            const olderSum = sumCommission(olderMapped);
+            const full60Sum = last30d + olderSum;
+            DEEPCOIN_60D_CACHE.set(uid, { value: full60Sum, ts: Date.now() });
+            console.log("[DeepCoin] Commission Summary (60d ready)", {
+              uid,
+              last60d: Number(full60Sum.toFixed(8)),
+              last30d: Number(last30d.toFixed(8)),
+              olderSum: Number(olderSum.toFixed(8)),
+              olderRecords: olderMapped.length,
+              dateRange: {
+                olderWindow: {
+                  from: new Date(fullStartTime).toISOString(),
+                  to: new Date(midPointTime - 1).toISOString(),
+                  fromSeconds: Math.floor(fullStartTime / 1000),
+                  toSeconds: Math.ceil((midPointTime - 1) / 1000),
+                  daysSpan: Math.round(
+                    (midPointTime - 1 - fullStartTime) / (24 * 60 * 60 * 1000)
+                  ),
+                },
+                recentWindow: {
+                  from: new Date(midPointTime).toISOString(),
+                  to: new Date(queryEndTime).toISOString(),
+                  daysSpan: Math.round(
+                    (queryEndTime - midPointTime) / (24 * 60 * 60 * 1000)
+                  ),
+                },
+                totalDaysSpan: Math.round(
+                  (queryEndTime - fullStartTime) / (24 * 60 * 60 * 1000)
+                ),
+              },
+            });
+            console.log("[DeepCoin] Commission Summary (final)", {
+              uid,
+              last24h: Number(last24h.toFixed(8)),
+              last30d: Number(last30d.toFixed(8)),
+              last60d: Number(full60Sum.toFixed(8)),
+            });
+          } catch (error) {
+            console.error("[DeepCoin] Background 60d fetch error:", error);
+          }
+        })();
+      } else {
+        console.log("[DeepCoin] Commission Summary (cached 60d)", {
+          uid,
+          last60d: Number((cache?.value || 0).toFixed(8)),
+        });
+        console.log("[DeepCoin] Commission Summary (final)", {
+          uid,
+          last24h: Number(last24h.toFixed(8)),
+          last30d: Number(last30d.toFixed(8)),
+          last60d: Number((cache?.value || 0).toFixed(8)),
+        });
       }
-      return [];
-    } catch (error) {
-      console.error("DeepCoin commission data fetch failed:", error);
+
+      return recentMapped;
+    } catch {
       return [];
     }
   }
@@ -839,9 +914,7 @@ export class DeepCoinAPI implements BrokerAPI {
       // If getting all referrals fails, return empty array
       // The UI will handle this gracefully
       return [];
-    } catch (error) {
-      console.error("DeepCoin referrals fetch failed:", error);
-      // Return empty array instead of throwing error
+    } catch {
       return [];
     }
   }
@@ -857,28 +930,14 @@ export class DeepCoinAPI implements BrokerAPI {
         const hmac = crypto.createHmac("sha256", this.apiSecret);
         hmac.update(message, "utf8");
         const expectedSignature = hmac.digest("base64");
-
-        // Additional validation for DeepCoin requirements
         const isValidBase64 = /^[A-Za-z0-9+/]+={0,2}$/.test(signature);
-        const isValidLength = signature.length === 44; // Base64 SHA256 = 32 bytes = 44 chars
-        const exactMatch = signature === expectedSignature;
-
-        console.log("DeepCoin Signature Validation:", {
-          exactMatch,
-          isValidBase64,
-          isValidLength,
-          signatureLength: signature.length,
-          expectedLength: 44,
-          messageLength: message.length,
-          signaturePreview: signature.substring(0, 20) + "...",
-          expectedPreview: expectedSignature.substring(0, 20) + "...",
-        });
-
-        return exactMatch && isValidBase64 && isValidLength;
+        const isValidLength = signature.length === 44;
+        return (
+          signature === expectedSignature && isValidBase64 && isValidLength
+        );
       }
       return false;
-    } catch (error) {
-      console.error("DeepCoin Signature Validation Error:", error);
+    } catch {
       return false;
     }
   }

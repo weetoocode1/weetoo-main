@@ -26,6 +26,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  useBrokerAPIActive,
+  useBrokerReferrals,
+  useBrokerUIDVerification,
+} from "@/hooks/broker/use-broker-api";
 import { createClient } from "@/lib/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -47,11 +52,6 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { UidStatusIndicator } from "./uid-status-indicator";
-import {
-  useBrokerAPIActive,
-  useBrokerReferrals,
-  useBrokerUIDVerification,
-} from "@/hooks/broker/use-broker-api";
 
 interface UidRecord {
   id: string;
@@ -98,6 +98,15 @@ function UidStatusChecker({
 
   const referrals = useBrokerReferrals(brokerId, isBrokerActive.data === true);
 
+  // Commission data (for BingX, wait for referrals to avoid concurrency)
+  // const commission = useBrokerCommissionData(
+  //   brokerId,
+  //   uid,
+  //   "PERPETUAL",
+  //   isBrokerActive.data === true,
+  //   brokerId === "bingx" ? referrals : undefined
+  // );
+
   // Safely handle the referral data structure
   const referralData = referrals.data;
   const referralList = Array.isArray(referralData)
@@ -132,7 +141,14 @@ function UidStatusChecker({
       uidVerification.data?.data?.list?.[0]?.uidUpLevel) ||
     (brokerId === "orangex" &&
       uidVerification.isSuccess &&
-      uidVerification.data?.isReferral === true);
+      uidVerification.data?.isReferral === true) ||
+    // BingX: ONLY treat as referral if inviteRelationCheck explicitly confirms
+    // This endpoint is scoped to our account, so it only returns true if UID was invited by US
+    (brokerId === "bingx" &&
+      uidVerification.isSuccess &&
+      (uidVerification.data?.inviteResult === true ||
+        uidVerification.data?.existInviter === true ||
+        uidVerification.data?.verified === true));
 
   // For DeepCoin: If referrals work, use that to determine verification status
   const isDeepCoinVerified =
@@ -145,7 +161,13 @@ function UidStatusChecker({
   // Determine verified status
   const isVerified =
     (uidVerification.isSuccess && uidVerification.data?.verified) ||
-    isDeepCoinVerified;
+    isDeepCoinVerified ||
+    // BingX: verified only if inviteRelationCheck confirms (scoped to our account)
+    (brokerId === "bingx" &&
+      uidVerification.isSuccess &&
+      (uidVerification.data?.inviteResult === true ||
+        uidVerification.data?.existInviter === true ||
+        uidVerification.data?.verified === true));
 
   // UID is considered "active" if it's both verified AND a referral
   const isActive = isVerified && isReferral;

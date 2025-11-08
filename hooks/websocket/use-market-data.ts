@@ -156,16 +156,33 @@ export function useMarketData(options: UseMarketDataOptions = {}) {
     // Store latest data
     orderBookDataRef.current = data;
 
-    // Batch updates using requestAnimationFrame
-    if (orderBookRafRef.current) {
-      cancelAnimationFrame(orderBookRafRef.current);
-    }
-    orderBookRafRef.current = requestAnimationFrame(() => {
+    // Snapshots update immediately for fast initial load
+    // Deltas use requestAnimationFrame for smooth updates
+    const isSnapshot = data.type === "snapshot";
+
+    if (isSnapshot) {
+      // Cancel any pending RAF updates
+      if (orderBookRafRef.current) {
+        cancelAnimationFrame(orderBookRafRef.current);
+        orderBookRafRef.current = null;
+      }
+      // Update immediately for snapshots
       setMarketData((prev) => ({
         ...prev,
-        orderBook: orderBookDataRef.current || data,
+        orderBook: data,
       }));
-    });
+    } else {
+      // Batch delta updates using requestAnimationFrame
+      if (orderBookRafRef.current) {
+        cancelAnimationFrame(orderBookRafRef.current);
+      }
+      orderBookRafRef.current = requestAnimationFrame(() => {
+        setMarketData((prev) => ({
+          ...prev,
+          orderBook: orderBookDataRef.current || data,
+        }));
+      });
+    }
   }, []);
 
   const tradeRafRef = useRef<number | null>(null);

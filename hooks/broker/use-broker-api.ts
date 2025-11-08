@@ -66,9 +66,20 @@ export function useBrokerCommissionData(
   brokerType: string,
   uid: string,
   sourceType?: string,
-  enabled = true
+  enabled = true,
+  referralsQueryResult?: { isSuccess?: boolean; isLoading?: boolean }
 ) {
-  return useBroker(brokerType, "getCommissionData", uid, sourceType, enabled);
+  const waitForReferrals = brokerType === "bingx" && referralsQueryResult;
+  const referralsCompleted =
+    !waitForReferrals || referralsQueryResult?.isSuccess === true || !enabled;
+
+  return useBroker(
+    brokerType,
+    "getCommissionData",
+    uid,
+    sourceType,
+    enabled && referralsCompleted
+  );
 }
 
 export function useBrokerTradingHistory(
@@ -88,6 +99,21 @@ export function useBrokerTradingVolume(
 }
 
 export function useBrokerReferrals(brokerType: string, enabled = true) {
+  // BingX agent API does not provide a bulk "list referrals" endpoint we can rely on.
+  // Use relation-check per UID elsewhere; here return a no-op query to avoid backend calls.
+  if (brokerType === "bingx") {
+    return useQuery({
+      queryKey: ["broker", brokerType, "referrals", "noop"],
+      queryFn: async () => [],
+      enabled,
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      placeholderData: (prev) => prev,
+      retry: 0,
+    });
+  }
   return useBroker(brokerType, "getReferrals", undefined, undefined, enabled);
 }
 

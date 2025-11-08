@@ -435,13 +435,15 @@ export function TradingRoomsList() {
 
   const filteredDisplayRooms = useMemo(() => {
     if (roomViewMode === "live") {
-      // Show ALL rooms whose room_status is active (or isActive=true), regardless of streaming
-      const activeRooms = (roomsWithHostStatus || []).filter(
-        (r) => (r.room_status || "active") === "active" || r.isActive === true
-      );
+      const activeRooms = (roomsWithHostStatus || []).filter((r) => {
+        if (r.room_status === "ended") return false;
+        if (r.room_status === "active") return true;
+        if (r.room_status === "paused") return false;
+        if (r.isActive === false) return false;
+        return true;
+      });
       return activeRooms.map((room) => ({ room, variant: "live" as const }));
     }
-    // replay
     return displayRooms.filter((d) => d.variant === "replay");
   }, [displayRooms, roomViewMode, roomsWithHostStatus]);
 
@@ -464,9 +466,9 @@ export function TradingRoomsList() {
   };
 
   // Add a ref to store the Supabase channel for cleanup
-  const supabaseChannelRef = useRef<ReturnType<
-    ReturnType<typeof createClient>["channel"]
-  > | null>(null);
+  // const supabaseChannelRef = useRef<ReturnType<
+  //   ReturnType<typeof createClient>["channel"]
+  // > | null>(null);
   const presenceChannelsRef = useRef<
     Map<string, ReturnType<ReturnType<typeof createClient>["channel"]>>
   >(new Map());
@@ -810,7 +812,7 @@ export function TradingRoomsList() {
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
-      .channel("trading-rooms")
+      .channel("trading-rooms-realtime")
       .on(
         "postgres_changes",
         {
@@ -819,54 +821,54 @@ export function TradingRoomsList() {
           table: "trading_rooms",
         },
         async (payload: {
-          new?: { id?: string; room_status?: string };
-          record?: { id?: string; room_status?: string };
+          new?: { id?: string; room_status?: string; is_active?: boolean };
+          old?: { id?: string; room_status?: string; is_active?: boolean };
+          eventType?: string;
         }) => {
-          console.log("Room change detected:", payload);
-
           try {
-            const newRow = (payload && (payload.new || payload.record)) || {};
-            const roomId = newRow?.id;
-            const status = newRow?.room_status;
+            const newRow = payload.new || {};
+            const oldRow = payload.old || {};
+            const roomId = newRow.id || oldRow.id;
+            const newStatus = newRow.room_status;
+            const oldStatus = oldRow.room_status;
+            const isEnded =
+              newStatus === "ended" ||
+              (newRow.is_active === false && newStatus !== "active");
 
-            if (roomId && status === "ended") {
-              // Optimistically remove ended room from all cached lists immediately
-              queryClient.setQueriesData(
+            if (!roomId) return;
+
+            if (isEnded || (oldStatus !== "ended" && newStatus === "ended")) {
+              queryClient.setQueriesData<InfiniteData<TradingRoomsPage>>(
                 { queryKey: ["trading-rooms"] },
-                (oldData: unknown) => {
-                  if (
-                    !oldData ||
-                    typeof oldData !== "object" ||
-                    !("pages" in oldData)
-                  ) {
-                    return oldData;
-                  }
-                  const pages = (oldData as { pages: Array<{ data: unknown }> })
-                    .pages;
-                  const nextPages = pages.map((page) => {
-                    const data = Array.isArray(page.data)
+                (oldData) => {
+                  if (!oldData || !oldData.pages) return oldData;
+
+                  const updatedPages = oldData.pages.map((page) => {
+                    const filteredData = Array.isArray(page.data)
                       ? (page.data as TradingRoom[]).filter(
                           (room) => room.id !== roomId
                         )
                       : page.data;
-                    return { ...page, data };
+                    return { ...page, data: filteredData };
                   });
+
                   return {
-                    ...(oldData as object),
-                    pages: nextPages,
-                  } as unknown;
+                    ...oldData,
+                    pages: updatedPages,
+                  };
                 }
               );
-            }
 
-            // Invalidate and refetch active queries to ensure consistency
-            await queryClient.invalidateQueries({
-              queryKey: ["trading-rooms"],
-            });
-            await queryClient.refetchQueries({
-              queryKey: ["trading-rooms"],
-              type: "active",
-            });
+              queryClient.invalidateQueries({
+                queryKey: ["trading-rooms"],
+                refetchType: "active",
+              });
+            } else if (newStatus === "active" || newRow.is_active === true) {
+              queryClient.invalidateQueries({
+                queryKey: ["trading-rooms"],
+                refetchType: "active",
+              });
+            }
           } catch (error) {
             console.error(
               "Error handling trading_rooms realtime update:",
@@ -958,37 +960,6 @@ export function TradingRoomsList() {
   useEffect(() => {
     // This effect is now redundant as filteredRooms is derived from SWR
   }, [filteredRooms, searchTerm, selectedCategories, selectedAccess]);
-
-  // Add Supabase realtime subscription for trading_rooms updates
-  useEffect(() => {
-    const supabase = createClient();
-    // Subscribe to UPDATE events on trading_rooms
-    const channel = supabase
-      .channel("trading-rooms-list-updates")
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "trading_rooms",
-        },
-        (payload) => {
-          // If a room is closed (room_status changed to 'ended'), refetch the list
-          if (payload.new?.room_status === "ended") {
-            queryClient.invalidateQueries({
-              queryKey: ["trading-rooms"],
-            });
-          }
-        }
-      )
-      .subscribe();
-    supabaseChannelRef.current = channel;
-    return () => {
-      if (supabaseChannelRef.current) {
-        supabase.removeChannel(supabaseChannelRef.current);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     const supabase = createClient();

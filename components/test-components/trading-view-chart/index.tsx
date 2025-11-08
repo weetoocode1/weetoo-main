@@ -131,6 +131,9 @@ export function TradingViewChartTest({
   // Get synchronized ticker data for price consistency
   const tickerData = useTickerData((symbol as Symbol) || "BTCUSDT");
   const widgetRef = useRef<InstanceType<typeof widget> | null>(null);
+  
+  // Check if ticker data is loading
+  const isTickerLoading = !tickerData || !tickerData.lastPrice || tickerData.lastPrice === "0" || tickerData.lastPrice === "";
 
   // Persist ticker values to prevent flickering
   const tickerValuesRef = useRef<{ lastPrice: string; markPrice: string }>({
@@ -1781,13 +1784,17 @@ export function TradingViewChartTest({
         }}
       />
       <QuickTradePanel parentRef={wrapperRef} symbol={symbol} roomId={roomId} />
-      {(isLoading || isChangingPriceType) && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background">
-          <div className="text-muted-foreground">
-            {isChangingPriceType
-              ? t("loading.updatingPriceType")
-              : t("loading.loadingChart")}
-          </div>
+      {(isLoading || isChangingPriceType || isTickerLoading) && (
+        <div className="absolute inset-0 flex items-center justify-center bg-background z-10">
+          {isTickerLoading ? (
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+          ) : (
+            <div className="text-muted-foreground">
+              {isChangingPriceType
+                ? t("loading.updatingPriceType")
+                : t("loading.loadingChart")}
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -9,6 +9,8 @@ import { EyeIcon, VideoIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { StreamChat } from "./stream-chat";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 interface StreamData {
   streamId?: string;
@@ -22,10 +24,12 @@ interface ViewerProps {
 
 export function Viewer({ roomId }: ViewerProps) {
   const tInactive = useTranslations("stream.viewer.inactive");
+  const t = useTranslations("room");
   const [streamData, setStreamData] = useState<StreamData | undefined>();
   const [roomName, setRoomName] = useState<string | null>(null);
   const [roomDescription, setRoomDescription] = useState<string | null>(null);
   const [roomTags, setRoomTags] = useState<string[]>([]);
+  const [roomStatus, setRoomStatus] = useState<string | null>(null);
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [presenceCount, setPresenceCount] = useState<number>(0);
@@ -106,6 +110,7 @@ export function Viewer({ roomId }: ViewerProps) {
           setRoomName(data.name || null);
           setRoomDescription(data.description || null);
           setRoomTags(Array.isArray(data.tags) ? data.tags : []);
+          setRoomStatus(data.room_status || null);
         }
       } catch (error) {
         console.error("Error fetching room name:", error);
@@ -171,6 +176,33 @@ export function Viewer({ roomId }: ViewerProps) {
               status: newStream.status,
             };
           });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.current.removeChannel(channel);
+    };
+  }, [roomId]);
+
+  useEffect(() => {
+    if (!roomId) return;
+
+    const channel = supabase.current
+      .channel(`viewer-room-updates-${roomId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "trading_rooms",
+          filter: `id=eq.${roomId}`,
+        },
+        (payload) => {
+          const updatedRoom = payload.new;
+          if (updatedRoom.room_status) {
+            setRoomStatus(updatedRoom.room_status);
+          }
         }
       )
       .subscribe();
@@ -363,6 +395,42 @@ export function Viewer({ roomId }: ViewerProps) {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-sm text-muted-foreground">Loading stream...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (roomStatus === "ended") {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="text-center max-w-md mx-auto px-6">
+          <div className="mb-6">
+            <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-8 w-8 text-muted-foreground"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+          </div>
+          <h1 className="text-2xl font-semibold text-foreground mb-3">
+            {t("ended.title")}
+          </h1>
+          <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+            {t("ended.description")}
+          </p>
+          <Button asChild>
+            <Link href="/trading">{t("ended.goBackToTrading")}</Link>
+          </Button>
         </div>
       </div>
     );

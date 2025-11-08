@@ -614,3 +614,19 @@ body {
 .react-grid-item > *:not(.drag-handle) {
   pointer-events: auto !important;
 }
+
+/* Ensure dialog interactive elements are always clickable */
+[role="dialog"] button,
+[role="dialog"] input[type="checkbox"],
+[role="dialog"] input[type="number"],
+[role="dialog"] label {
+  pointer-events: auto !important;
+}
+
+/* Ensure TP/SL dialog content is interactive */
+div[class*="max-w-lg"] button,
+div[class*="max-w-lg"] input[type="checkbox"],
+div[class*="max-w-lg"] input[type="number"],
+div[class*="max-w-lg"] label {
+  pointer-events: auto !important;
+}

@@ -32,6 +32,7 @@ interface QuantityInputProps {
   price: number;
   valueModeCapital?: number; // USDT value when in value mode
   onValueModeCapitalChange?: (v: number) => void;
+  symbol?: string; // Trading symbol (e.g., "BTCUSDT", "ETHUSDT")
 }
 
 export function QuantityInput({
@@ -45,17 +46,26 @@ export function QuantityInput({
   price,
   valueModeCapital = 0,
   onValueModeCapitalChange,
+  symbol,
 }: QuantityInputProps) {
   const qtyInputId = "limit-qty-input";
   const t = useTranslations("trade.form");
 
+  const getBaseAsset = (sym?: string): string => {
+    if (!sym) return "BTC";
+    return sym.replace(/USDT$/, "") || "BTC";
+  };
+
+  const baseAsset = getBaseAsset(symbol);
+
   const [inputValue, setInputValue] = useState<string>("");
   const isUserTypingRef = useRef<boolean>(false);
-  
+
   // Share typing state with parent to prevent auto-recalculation
   React.useEffect(() => {
     if (typeof window !== "undefined") {
-      (window as unknown as Record<string, unknown>)._limit_is_typing_ref = isUserTypingRef;
+      (window as unknown as Record<string, unknown>)._limit_is_typing_ref =
+        isUserTypingRef;
     }
   }, []);
 
@@ -245,7 +255,9 @@ export function QuantityInput({
                       {t("quantity.dialog.orderByQty")}
                     </span>
                   </div>
-                  <span className="text-xs text-muted-foreground">BTC</span>
+                  <span className="text-xs text-muted-foreground">
+                    {baseAsset}
+                  </span>
                 </div>
                 <div className="mt-1 pl-5 text-[11px] leading-snug text-muted-foreground">
                   {t("quantity.dialog.orderByQtyHelp")}

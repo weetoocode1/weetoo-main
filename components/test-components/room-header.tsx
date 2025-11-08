@@ -10,15 +10,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -42,7 +33,6 @@ import {
   LockIcon,
   LogOutIcon,
   PencilIcon,
-  UploadIcon,
   VideoIcon,
   XIcon,
 } from "lucide-react";
@@ -95,7 +85,6 @@ export function RoomHeader({
   const [roomName, setRoomName] = useState(room.name);
   const [roomType, setRoomType] = useState(room.privacy);
   const [selectedSymbol, setSelectedSymbol] = useState(room.symbol);
-  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [, setIsDonationsDialogOpen] = useState(false);
   const [existingRoomNames, setExistingRoomNames] = useState<string[]>([]);
@@ -178,22 +167,29 @@ export function RoomHeader({
     setValidationTimeout(timeout);
   };
 
-  // Handle dialog open/close with stable state
   const handleDialogOpenChange = async (open: boolean) => {
     if (open) {
-      // Fetch existing room names when opening dialog
       await fetchExistingRoomNames();
     } else {
-      // Reset to original values when closing dialog
       setRoomName(room.name);
       setRoomType(room.privacy);
       setSelectedSymbol(room.symbol);
-      setThumbnailPreview(null);
       setRoomNameError(null);
       setSaveError(null);
     }
     setIsEditDialogOpen(open);
   };
+
+  useEffect(() => {
+    if (isEditDialogOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isEditDialogOpen]);
 
   // const donations = [
   //   { name: "Alex Johnson", amount: "$25.00" },
@@ -292,23 +288,6 @@ export function RoomHeader({
     };
   }, [room.id, room.virtual_balance, refreshCumulative, supabase]);
 
-  const handleThumbnailUpload = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setThumbnailPreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleRemoveThumbnail = () => {
-    setThumbnailPreview(null);
-  };
-
   const handleSave = async () => {
     // Validate room name before saving
     if (!validateRoomName(roomName)) {
@@ -360,11 +339,9 @@ export function RoomHeader({
   };
 
   const handleCancel = () => {
-    // Reset to original values when canceling
     setRoomName(room.name);
     setRoomType(room.privacy);
     setSelectedSymbol(room.symbol);
-    setThumbnailPreview(null);
     setIsEditDialogOpen(false);
   };
 
@@ -434,184 +411,165 @@ export function RoomHeader({
             </TooltipProvider>
           </div>
 
-          {/* <Dialog open={isEditDialogOpen} onOpenChange={handleDialogOpenChange}>
-            <DialogTrigger asChild>
-              <span className="align-middle cursor-pointer pointer-events-auto">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span>
-                        <PencilIcon className="h-4 w-4" />
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" align="center">
-                      <div className="flex flex-col items-center gap-0.5">
-                        <span>{t("edit.tooltip")}</span>
-                        <span className="text-xs text-muted-foreground font-medium">
-                          {navigator.platform.toLowerCase().includes("mac")
-                            ? t("edit.shortcutMac")
-                            : t("edit.shortcutWin")}
-                        </span>
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </span>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-lg !important">
-              <DialogHeader>
-                <DialogTitle>{t("edit.title")}</DialogTitle>
-                <DialogDescription>
-                  {t("edit.description")}
-                </DialogDescription>
-              </DialogHeader>
-
-              {saveError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                  <p className="text-sm text-red-600">{saveError}</p>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className="align-middle cursor-pointer pointer-events-auto"
+                  onClick={() => handleDialogOpenChange(true)}
+                >
+                  <PencilIcon className="h-4 w-4" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" align="center">
+                <div className="flex flex-col items-center gap-0.5">
+                  <span>{t("edit.tooltip")}</span>
+                  <span className="text-xs text-muted-foreground font-medium">
+                    {navigator.platform.toLowerCase().includes("mac")
+                      ? t("edit.shortcutMac")
+                      : t("edit.shortcutWin")}
+                  </span>
                 </div>
-              )}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-              <div className="space-y-6 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="room-name">{t("form.roomName")}</Label>
-                    <Input
-                      id="room-name"
-                      value={roomName}
-                      onChange={(e) => handleRoomNameChange(e.target.value)}
-                      placeholder={t("form.roomNamePlaceholder")}
-                      className={`h-10 ${
-                        roomNameError
-                          ? "border-red-500 focus:border-red-500"
-                          : ""
-                      }`}
-                    />
-                    {roomNameError && (
-                      <p className="text-sm text-red-500">{roomNameError}</p>
-                    )}
-                  </div>
+          {isEditDialogOpen && (
+            <div
+              className="fixed inset-0 z-[9999] flex items-center justify-center"
+              onClick={() => handleDialogOpenChange(false)}
+            >
+              <div className="absolute inset-0 bg-background/50 backdrop-blur-sm" />
 
-                  <div className="space-y-2">
-                    <Label htmlFor="room-type">{t("form.roomType")}</Label>
-                    <Select value={roomType} onValueChange={setRoomType}>
-                      <SelectTrigger className="h-10">
-                        <SelectValue placeholder={t("form.roomTypePlaceholder")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="public">
-                          <div className="flex items-center gap-2">
-                            <GlobeIcon className="h-4 w-4" />
-                            {t("labels.public")}
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="private">
-                          <div className="flex items-center gap-2">
-                            <LockIcon className="h-4 w-4" />
-                            {t("labels.private")}
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="trading-symbol">{t("form.tradingSymbol")}</Label>
-                  <Select
-                    value={selectedSymbol}
-                    onValueChange={setSelectedSymbol}
+              <div
+                className="relative z-[9999] w-full max-w-lg mx-4 bg-background border border-border rounded-lg p-6 shadow-lg animate-in fade-in-0 zoom-in-95"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="p-0 mb-5 flex items-center justify-between gap-3">
+                  <h2 className="text-lg font-semibold">{t("edit.title")}</h2>
+                  <button
+                    type="button"
+                    aria-label="Close"
+                    onClick={() => handleDialogOpenChange(false)}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-border cursor-pointer"
                   >
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder={t("form.tradingSymbolPlaceholder")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TRADING_SYMBOLS.map((symbol) => (
-                        <SelectItem key={symbol.value} value={symbol.value}>
-                          <div className="flex items-center gap-2">
-                            <span>{symbol.label}</span>
-                            {symbol.isNew && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-semibold text-emerald-600 bg-emerald-50 rounded-sm">
-                                {t("labels.new")}
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <XIcon className="h-4 w-4" />
+                  </button>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="room-thumbnail">{t("thumbnail.title")}</Label>
-                  <div className="space-y-3">
-                    <div className="relative w-full h-48 border border-border rounded-md overflow-hidden bg-muted/20">
-                      {thumbnailPreview ? (
-                        <>
-                          <img
-                            src={thumbnailPreview}
-                            alt={t("thumbnail.previewAlt")}
-                            className="w-full h-full object-cover"
-                          />
-                          <button
-                            onClick={handleRemoveThumbnail}
-                            className="absolute top-2 right-2 p-1 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
-                          >
-                            <XIcon className="h-4 w-4" />
-                          </button>
-                        </>
-                      ) : (
-                        <div className="flex items-center justify-center h-full text-muted-foreground">
-                          <div className="text-center">
-                            <UploadIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                            <p className="text-sm">{t("thumbnail.none")}</p>
-                          </div>
-                        </div>
-                      )}
+                <div className="space-y-5">
+                  {saveError && (
+                    <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md">
+                      <p className="text-sm text-red-600 dark:text-red-400">
+                        {saveError}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="room-name">{t("form.roomName")}</Label>
+                        <Input
+                          id="room-name"
+                          value={roomName}
+                          onChange={(e) => handleRoomNameChange(e.target.value)}
+                          placeholder={t("form.roomNamePlaceholder")}
+                          className={`h-10 ${
+                            roomNameError
+                              ? "border-red-500 focus:border-red-500"
+                              : ""
+                          }`}
+                        />
+                        {roomNameError && (
+                          <p className="text-sm text-red-500">
+                            {roomNameError}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="room-type">{t("form.roomType")}</Label>
+                        <Select value={roomType} onValueChange={setRoomType}>
+                          <SelectTrigger className="h-10">
+                            <SelectValue
+                              placeholder={t("form.roomTypePlaceholder")}
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="public">
+                              <div className="flex items-center gap-2">
+                                <GlobeIcon className="h-4 w-4" />
+                                {t("labels.public")}
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="private">
+                              <div className="flex items-center gap-2">
+                                <LockIcon className="h-4 w-4" />
+                                {t("labels.private")}
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
 
-                    <div className="relative">
-                      <Input
-                        id="room-thumbnail"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleThumbnailUpload}
-                        className="hidden"
-                      />
-                      <Label
-                        htmlFor="room-thumbnail"
-                        className="flex items-center justify-center gap-2 w-full h-10 border-2 border-dashed border-border rounded-md cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors"
-                      >
-                        <UploadIcon className="h-4 w-4" />
-                        <span className="text-sm">
-                          {thumbnailPreview
-                            ? t("thumbnail.change")
-                            : t("thumbnail.upload")}
-                        </span>
+                    <div className="space-y-2">
+                      <Label htmlFor="trading-symbol">
+                        {t("form.tradingSymbol")}
                       </Label>
+                      <Select
+                        value={selectedSymbol}
+                        onValueChange={setSelectedSymbol}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue
+                            placeholder={t("form.tradingSymbolPlaceholder")}
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TRADING_SYMBOLS.map((symbol) => (
+                            <SelectItem key={symbol.value} value={symbol.value}>
+                              <div className="flex items-center gap-2">
+                                <span>{symbol.label}</span>
+                                {symbol.isNew && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-semibold text-emerald-600 bg-emerald-50 rounded-sm">
+                                    {t("labels.new")}
+                                  </span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <div className="grid w-full grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleCancel}
+                      disabled={isSaving}
+                      className="h-10 bg-transparent"
+                    >
+                      {t("common.cancel")}
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handleSave}
+                      disabled={!!roomNameError || !roomName.trim() || isSaving}
+                      className="h-10"
+                    >
+                      {isSaving ? t("common.saving") : t("common.saveChanges")}
+                    </Button>
                   </div>
                 </div>
               </div>
-
-              <DialogFooter className="gap-2">
-                <Button
-                  variant="outline"
-                  className="rounded-md"
-                  onClick={handleCancel}
-                >
-                  {t("common.cancel")}
-                </Button>
-                <Button
-                  onClick={handleSave}
-                  className="rounded-md"
-                  disabled={!!roomNameError || !roomName.trim() || isSaving}
-                >
-                  {isSaving ? t("common.saving") : t("common.saveChanges")}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog> */}
+            </div>
+          )}
         </div>
       </div>
 
@@ -818,193 +776,168 @@ export function RoomHeader({
               </TooltipProvider>
             </div>
 
-            <Dialog
-              open={isEditDialogOpen}
-              onOpenChange={handleDialogOpenChange}
-            >
-              <DialogTrigger asChild>
-                <span className="align-middle cursor-pointer pointer-events-auto">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span>
-                          <PencilIcon className="h-3 w-3" />
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" align="center">
-                        <div className="flex flex-col items-center gap-0.5">
-                          <span>Edit Room</span>
-                          <span className="text-xs text-muted-foreground font-medium">
-                            {navigator.platform.toLowerCase().includes("mac")
-                              ? "⌘ + Shift + E"
-                              : "Ctrl + Shift + E"}
-                          </span>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </span>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-lg !important">
-                <DialogHeader>
-                  <DialogTitle>Edit Room</DialogTitle>
-                  <DialogDescription>
-                    Update your room settings and preferences.
-                  </DialogDescription>
-                </DialogHeader>
-
-                {saveError && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                    <p className="text-sm text-red-600">{saveError}</p>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    className="align-middle cursor-pointer pointer-events-auto"
+                    onClick={() => handleDialogOpenChange(true)}
+                  >
+                    <PencilIcon className="h-3 w-3" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" align="center">
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span>Edit Room</span>
+                    <span className="text-xs text-muted-foreground font-medium">
+                      {navigator.platform.toLowerCase().includes("mac")
+                        ? "⌘ + Shift + E"
+                        : "Ctrl + Shift + E"}
+                    </span>
                   </div>
-                )}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-                <div className="space-y-6 py-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="room-name">Room Name</Label>
-                      <Input
-                        id="room-name"
-                        value={roomName}
-                        onChange={(e) => handleRoomNameChange(e.target.value)}
-                        placeholder="Enter room name"
-                        className={`h-10 ${
-                          roomNameError
-                            ? "border-red-500 focus:border-red-500"
-                            : ""
-                        }`}
-                      />
-                      {roomNameError && (
-                        <p className="text-sm text-red-500">{roomNameError}</p>
-                      )}
-                    </div>
+            {isEditDialogOpen && (
+              <div
+                className="fixed inset-0 z-[9999] flex items-center justify-center"
+                onClick={() => handleDialogOpenChange(false)}
+              >
+                <div className="absolute inset-0 bg-background/50 backdrop-blur-sm" />
 
-                    {/* Room Type */}
-                    <div className="space-y-2">
-                      <Label htmlFor="room-type">Room Type</Label>
-                      <Select value={roomType} onValueChange={setRoomType}>
-                        <SelectTrigger className="h-10">
-                          <SelectValue placeholder="Select room type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="public">
-                            <div className="flex items-center gap-2">
-                              <GlobeIcon className="h-4 w-4" />
-                              Public
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="private">
-                            <div className="flex items-center gap-2">
-                              <LockIcon className="h-4 w-4" />
-                              Private
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Trading Symbol - Full Width */}
-                  <div className="space-y-2">
-                    <Label htmlFor="trading-symbol">Trading Symbol</Label>
-                    <Select
-                      value={selectedSymbol}
-                      onValueChange={setSelectedSymbol}
+                <div
+                  className="relative z-[9999] w-full max-w-lg mx-4 bg-background border border-border rounded-lg p-6 shadow-lg animate-in fade-in-0 zoom-in-95"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="p-0 mb-5 flex items-center justify-between gap-3">
+                    <h2 className="text-lg font-semibold">Edit Room</h2>
+                    <button
+                      type="button"
+                      aria-label="Close"
+                      onClick={() => handleDialogOpenChange(false)}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-border cursor-pointer"
                     >
-                      <SelectTrigger className="h-10">
-                        <SelectValue placeholder="Select trading symbol" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TRADING_SYMBOLS.map((symbol) => (
-                          <SelectItem key={symbol.value} value={symbol.value}>
-                            <div className="flex items-center gap-2">
-                              <span>{symbol.label}</span>
-                              {symbol.isNew && (
-                                <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-semibold text-emerald-600 bg-emerald-50 rounded-sm">
-                                  NEW
-                                </span>
-                              )}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <XIcon className="h-4 w-4" />
+                    </button>
                   </div>
 
-                  {/* Room Thumbnail - Full Width */}
-                  <div className="space-y-2">
-                    <Label htmlFor="room-thumbnail">Room Thumbnail</Label>
-                    <div className="space-y-3">
-                      {/* Image Preview Box - Always Visible */}
-                      <div className="relative w-full h-48 border border-border rounded-md overflow-hidden bg-muted/20">
-                        {thumbnailPreview ? (
-                          <>
-                            <img
-                              src={thumbnailPreview}
-                              alt="Room thumbnail preview"
-                              className="w-full h-full object-cover"
-                            />
-                            {/* Remove Button */}
-                            <button
-                              onClick={handleRemoveThumbnail}
-                              className="absolute top-2 right-2 p-1 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
-                            >
-                              <XIcon className="h-4 w-4" />
-                            </button>
-                          </>
-                        ) : (
-                          <div className="flex items-center justify-center h-full text-muted-foreground">
-                            <div className="text-center">
-                              <UploadIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                              <p className="text-sm">No thumbnail selected</p>
-                            </div>
-                          </div>
-                        )}
+                  <div className="space-y-5">
+                    {saveError && (
+                      <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md">
+                        <p className="text-sm text-red-600 dark:text-red-400">
+                          {saveError}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="room-name-mobile">Room Name</Label>
+                          <Input
+                            id="room-name-mobile"
+                            value={roomName}
+                            onChange={(e) =>
+                              handleRoomNameChange(e.target.value)
+                            }
+                            placeholder="Enter room name"
+                            className={`h-10 ${
+                              roomNameError
+                                ? "border-red-500 focus:border-red-500"
+                                : ""
+                            }`}
+                          />
+                          {roomNameError && (
+                            <p className="text-sm text-red-500">
+                              {roomNameError}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="room-type-mobile">Room Type</Label>
+                          <Select value={roomType} onValueChange={setRoomType}>
+                            <SelectTrigger className="h-10">
+                              <SelectValue placeholder="Select room type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="public">
+                                <div className="flex items-center gap-2">
+                                  <GlobeIcon className="h-4 w-4" />
+                                  Public
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="private">
+                                <div className="flex items-center gap-2">
+                                  <LockIcon className="h-4 w-4" />
+                                  Private
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
 
-                      {/* Upload Button */}
-                      <div className="relative">
-                        <Input
-                          id="room-thumbnail"
-                          type="file"
-                          accept="image/*"
-                          onChange={handleThumbnailUpload}
-                          className="hidden"
-                        />
-                        <Label
-                          htmlFor="room-thumbnail"
-                          className="flex items-center justify-center gap-2 w-full h-10 border-2 border-dashed border-border rounded-md cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors"
-                        >
-                          <UploadIcon className="h-4 w-4" />
-                          <span className="text-sm">
-                            {thumbnailPreview
-                              ? "Change thumbnail"
-                              : "Upload thumbnail"}
-                          </span>
+                      <div className="space-y-2">
+                        <Label htmlFor="trading-symbol-mobile">
+                          Trading Symbol
                         </Label>
+                        <Select
+                          value={selectedSymbol}
+                          onValueChange={setSelectedSymbol}
+                        >
+                          <SelectTrigger className="h-10">
+                            <SelectValue placeholder="Select trading symbol" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {TRADING_SYMBOLS.map((symbol) => (
+                              <SelectItem
+                                key={symbol.value}
+                                value={symbol.value}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span>{symbol.label}</span>
+                                  {symbol.isNew && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-semibold text-emerald-600 bg-emerald-50 rounded-sm">
+                                      NEW
+                                    </span>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <div className="grid w-full grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleCancel}
+                        disabled={isSaving}
+                        className="h-10 bg-transparent"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={
+                          !!roomNameError || !roomName.trim() || isSaving
+                        }
+                        className="h-10"
+                      >
+                        {isSaving ? "Saving..." : "Save Changes"}
+                      </Button>
                     </div>
                   </div>
                 </div>
-
-                <DialogFooter className="gap-2">
-                  <Button
-                    variant="outline"
-                    className="rounded-md"
-                    onClick={handleCancel}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleSave}
-                    className="rounded-md"
-                    disabled={!!roomNameError || !roomName.trim() || isSaving}
-                  >
-                    {isSaving ? "Saving..." : "Save Changes"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+              </div>
+            )}
           </div>
 
           {/* Mobile Stats */}

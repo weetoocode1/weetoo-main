@@ -36,6 +36,9 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
   const t = useTranslations("market.widget");
   // Get real-time ticker data
   const tickerData = useTickerData(symbol || "BTCUSDT");
+  
+  // Check if data is loading (no ticker data or invalid lastPrice)
+  const isLoading = !tickerData || !tickerData.lastPrice || tickerData.lastPrice === "0" || tickerData.lastPrice === "";
 
   // Resolve human-friendly asset name and label from config
   const { assetName } = useMemo(() => {
@@ -286,6 +289,14 @@ export function MarketWidget({ symbol }: MarketWidgetProps) {
     // Allow normal click interactions
     e.stopPropagation();
   };
+
+  if (isLoading) {
+    return (
+      <div className="w-full min-h-[60px] flex items-center justify-center border border-border rounded-none bg-background">
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div

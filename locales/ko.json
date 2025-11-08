@@ -1604,14 +1604,16 @@
       "allTransactions": "거래 내역",
       "korCoinsWithdrawal": "코코인 출금",
       "uidRegistration": "UID 등록",
-      "paybackWithdrawal": "페이백 출금"
+      "paybackWithdrawal": "페이백 출금",
+      "withdrawalStatus": "출금 상태"
     },
     "mobileLabels": {
       "accounts": "계정",
       "transactions": "거래",
       "korCoins": "KOR 코인",
       "uid": "UID",
-      "payback": "페이백"
+      "payback": "페이백",
+      "withdrawalStatus": "상태"
     },
     "verification": {
       "title": "본인 인증 필요",
@@ -1867,10 +1869,14 @@
       },
       "stats": {
         "totalAccumulatedPayback": "총 누적 페이백",
+        "totalAccumulatedPaybackTooltip": "이 금액은 거래 활동 및 브로커 리베이트를 기반으로 24시간마다 자동으로 누적됩니다.",
         "withdrawnAmount": "출금된 금액",
         "withdrawableBalance": "출금 가능 잔액",
         "totalLifetimeRebate": "총 누적 리베이트:",
-        "last24Hours": "최근 24시간:"
+        "last24Hours": "최근 24시간:",
+        "last30Days": "최근 30일 리베이트:",
+        "last60Days": "최근 60일 리베이트:",
+        "last90Days": "최근 90일 리베이트:"
       },
       "toast": {
         "uidCopied": "UID가 클립보드에 복사되었습니다"
@@ -1903,9 +1909,48 @@
         }
       }
     },
+    "withdrawalStatus": {
+      "title": "출금 상태",
+      "description": "리베이트 출금 요청 상태를 확인하세요",
+      "columns": {
+        "brokerUid": "브로커 / UID",
+        "amount": "금액",
+        "status": "상태",
+        "requested": "요청일",
+        "processed": "처리일"
+      },
+      "status": {
+        "approved": "승인됨",
+        "pending": "대기 중",
+        "rejected": "거부됨",
+        "processing": "처리 중",
+        "completed": "완료됨",
+        "failed": "실패"
+      },
+      "emptyState": {
+        "title": "출금 요청 없음",
+        "description": "아직 출금 요청을 제출하지 않았습니다"
+      }
+    },
     "paybackWithdrawal": {
       "title": "리베이트 출금 요청",
       "description": "등록된 UID로 브로커 리베이트를 출금하세요. 최소 출금 금액은 $50 입니다.",
+      "allBrokerAccounts": "모든 브로커 계정",
+      "labels": {
+        "inactive": "비활성",
+        "withdrawable": "출금 가능",
+        "accumulated": "누적",
+        "withdrawn": "출금됨",
+        "minAmount": "최소 $50",
+        "withdrawalAmount": "출금 금액 (USD)",
+        "minimum": "최소:",
+        "max": "최대",
+        "withdrawalAmountLabel": "출금 금액",
+        "remainingBalance": "남은 잔액",
+        "processing": "처리 중...",
+        "requestWithdrawal": "출금 요청",
+        "processedWithin": "24-48시간 내 처리됩니다"
+      },
       "form": {
         "selectUid": "UID 선택",
         "selectUidPlaceholder": "UID를 선택하세요...",
@@ -1923,6 +1968,11 @@
       "validation": {
         "minimumAmount": "최소 출금 금액은 $50 입니다",
         "insufficientBalance": "잔액이 부족합니다"
+      },
+      "toast": {
+        "minimumAmountError": "최소 출금 금액은 $50.00 입니다",
+        "insufficientBalanceError": "출금 가능한 잔액이 부족합니다",
+        "success": "출금 요청이 성공적으로 제출되었습니다"
       }
     },
     "form": {
@@ -2891,6 +2941,59 @@
         "activeUsers": {
           "title": "활성 사용자",
           "description": "전환율 {rate}%"
+        },
+        "pendingRequests": {
+          "title": "대기 중인 요청",
+          "description": "검토 대기 중인 출금"
+        },
+        "approved": {
+          "title": "승인됨",
+          "description": "성공적으로 승인된 출금"
+        },
+        "totalWithdrawable": {
+          "title": "총 출금 가능",
+          "description": "출금 가능한 총액"
+        },
+        "totalUids": {
+          "title": "총 UID",
+          "description": "등록된 모든 브로커 계정"
+        }
+      },
+      "withdrawalManagementTable": {
+        "columns": {
+          "user": "사용자",
+          "brokerUid": "브로커 / UID",
+          "accumulated": "누적",
+          "withdrawn": "출금됨",
+          "withdrawable": "출금 가능",
+          "status": "상태",
+          "actions": "작업"
+        },
+        "status": {
+          "approved": "승인됨",
+          "pending": "대기 중",
+          "rejected": "거부됨",
+          "noRequest": "요청 없음"
+        },
+        "selectOptions": {
+          "noRequest": "요청 없음",
+          "pending": "대기 중",
+          "approved": "승인됨",
+          "rejected": "거부됨"
+        },
+        "labels": {
+          "locked": "잠김",
+          "user": "사용자"
+        },
+        "empty": {
+          "title": "대기 중인 요청 없음",
+          "subtitle": "검토 대기 중인 출금 요청이 없습니다"
+        },
+        "toast": {
+          "newRequestReceived": "새 출금 요청이 접수되었습니다",
+          "statusUpdated": "출금 상태가 성공적으로 업데이트되었습니다",
+          "updateFailed": "상태 업데이트에 실패했습니다",
+          "withdrawalUpdateFailed": "출금 상태 업데이트에 실패했습니다"
         }
       },
       "withdrawalRequests": {
@@ -5765,6 +5868,11 @@
         "saveFailed": "변경 사항 저장에 실패했습니다"
       },
       "toasts": { "leaveFailed": "방 나가기에 실패했습니다" }
+    },
+    "ended": {
+      "title": "이 거래 방이 종료되었습니다",
+      "description": "이 거래 방은 더 이상 활성화되지 않습니다. 세션이 종료되었습니다.",
+      "goBackToTrading": "거래로 돌아가기"
     },
     "donation": {
       "openButton": "후원",

@@ -37,13 +37,7 @@ export const signBingxHmacSha256 = (
     .update(queryString)
     .digest("hex");
 
-  // Debug logging
-  console.log("BingX Signature Debug:", {
-    queryString,
-    signature,
-    timestamp,
-    secretKeyLength: secretKey.length,
-  });
+  // Silent in production: no signature debug logs
 
   return { signature, timestamp, queryString };
 };

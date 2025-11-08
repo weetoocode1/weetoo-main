@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { fetch24hRebateFromBroker } from "@/lib/utils/fetch-24h-rebate";
 
 const UID_REGEX = /^[0-9]{3,20}$/;
 const LBANK_UID_REGEX = /^[A-Za-z0-9_-]{1,64}$/;
@@ -83,13 +84,14 @@ setInterval(() => {
 
 export async function GET() {
   try {
-    const { supabase } = await requireSessionUserId();
+    const { supabase, userId } = await requireSessionUserId();
 
     const { data, error } = await supabase
       .from("user_broker_uids")
       .select(
-        "id, exchange_id, uid, is_active, created_at, updated_at, rebate_balance_usd, rebate_lifetime_usd, rebate_last_day_usd, rebate_last_sync_at"
+        "id, exchange_id, uid, is_active, created_at, updated_at, accumulated_24h_payback, last_24h_value, last_24h_fetch_date, withdrawn_amount, withdrawable_balance"
       )
+      .eq("user_id", userId)
       .order("created_at", { ascending: true });
     if (error) throw error;
     return NextResponse.json({ uids: data || [] });
@@ -174,32 +176,63 @@ export async function POST(req: NextRequest) {
     // Auto-activate if this is the first UID for this exchange
     const shouldActivate = existingUids.length === 0;
 
-    // If setting as active or auto-activating, deactivate others for the same exchange
-    if (is_active === true || shouldActivate) {
-      const { error: deactivateError } = await supabase
-        .from("user_broker_uids")
-        .update({
-          is_active: false,
-          updated_by: userId,
-        })
-        .eq("user_id", userId)
-        .eq("exchange_id", sanitizedExchangeId);
+    const insertData: {
+      user_id: string;
+      uid: string;
+      exchange_id: string;
+      is_active: boolean;
+      updated_by: string;
+      accumulated_24h_payback?: number;
+      last_24h_value?: number;
+      last_24h_fetch_date?: string;
+    } = {
+      user_id: userId,
+      uid: sanitizedUid,
+      exchange_id: sanitizedExchangeId,
+      is_active: shouldActivate || !!is_active,
+      updated_by: userId,
+    };
 
-      if (deactivateError) {
-        console.error("Failed to deactivate other UIDs:", deactivateError);
-        // Continue anyway - this is not critical
+    const today = new Date().toISOString().split("T")[0];
+
+    try {
+      const rebateResult = await fetch24hRebateFromBroker(
+        sanitizedExchangeId as "deepcoin" | "orangex" | "lbank" | "bingx",
+        sanitizedUid,
+        "PERPETUAL"
+      );
+
+      if (rebateResult.success && rebateResult.last24h > 0) {
+        insertData.accumulated_24h_payback = rebateResult.last24h;
+        insertData.last_24h_value = rebateResult.last24h;
+        insertData.last_24h_fetch_date = today;
+        console.log(
+          `[UID Registration] Initial 24h rebate for ${sanitizedExchangeId} UID ${sanitizedUid}: $${rebateResult.last24h}`
+        );
+      } else {
+        insertData.accumulated_24h_payback = 0;
+        insertData.last_24h_value = 0;
+        insertData.last_24h_fetch_date = today;
+        if (rebateResult.error) {
+          console.warn(
+            `[UID Registration] Failed to fetch initial 24h rebate for ${sanitizedExchangeId} UID ${sanitizedUid}:`,
+            rebateResult.error
+          );
+        }
       }
+    } catch (rebateError) {
+      console.error(
+        `[UID Registration] Error fetching initial 24h rebate:`,
+        rebateError
+      );
+      insertData.accumulated_24h_payback = 0;
+      insertData.last_24h_value = 0;
+      insertData.last_24h_fetch_date = today;
     }
 
     const { data, error } = await supabase
       .from("user_broker_uids")
-      .insert({
-        user_id: userId,
-        uid: sanitizedUid,
-        exchange_id: sanitizedExchangeId,
-        is_active: shouldActivate || !!is_active,
-        updated_by: userId,
-      })
+      .insert(insertData)
       .select("id, exchange_id, uid, is_active, created_at, updated_at")
       .single();
     if (error) throw error;
@@ -234,6 +267,21 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "id required" }, { status: 400 });
 
     const { supabase, userId } = await requireSessionUserId();
+
+    // First verify the UID belongs to this user
+    const { data: existingUid, error: checkError } = await supabase
+      .from("user_broker_uids")
+      .select("id, user_id")
+      .eq("id", id)
+      .eq("user_id", userId)
+      .single();
+
+    if (checkError || !existingUid) {
+      return NextResponse.json(
+        { error: "UID not found or access denied" },
+        { status: 403 }
+      );
+    }
 
     const update: Partial<{
       uid: string;
@@ -270,34 +318,6 @@ export async function PATCH(req: NextRequest) {
 
     // Add audit trail
     update.updated_by = userId;
-
-    // Business rule: If setting this UID as active, deactivate others for the same exchange
-    if (update.is_active === true) {
-      // Get the target exchange_id for deactivation (use sanitized values)
-      const targetExchangeId = update.exchange_id || exchange_id;
-      if (targetExchangeId) {
-        const sanitizedTargetExchangeId = sanitizeString(
-          String(targetExchangeId),
-          50
-        );
-        if (validateExchangeId(sanitizedTargetExchangeId)) {
-          const { error: deactivateError } = await supabase
-            .from("user_broker_uids")
-            .update({
-              is_active: false,
-              updated_by: userId,
-            })
-            .eq("user_id", userId)
-            .eq("exchange_id", sanitizedTargetExchangeId)
-            .neq("id", id);
-
-          if (deactivateError) {
-            console.error("Failed to deactivate other UIDs:", deactivateError);
-            // Continue anyway - this is not critical
-          }
-        }
-      }
-    }
 
     const { data, error } = await supabase
       .from("user_broker_uids")
@@ -340,11 +360,12 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
     }
 
-    const { supabase } = await requireSessionUserId();
+    const { supabase, userId } = await requireSessionUserId();
     const { error } = await supabase
       .from("user_broker_uids")
       .delete()
-      .eq("id", sanitizedId);
+      .eq("id", sanitizedId)
+      .eq("user_id", userId);
     if (error) throw error;
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
