@@ -6,20 +6,26 @@ import {
   useBrokerReferrals,
   useBrokerUIDVerification,
 } from "@/hooks/broker/use-broker-api";
-import { useBrokerRebateWithdrawals } from "@/hooks/use-broker-rebate-withdrawals";
 import { useAddUserUid, useUserUids } from "@/hooks/use-user-uids";
 import {
   BadgeCheck,
   ChevronRight,
   Copy,
+  Info,
   KeyRoundIcon,
   PlusIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../ui/tooltip";
 import { UidRegistrationDialog } from "../uid/uid-registration-dialog";
 
 // Broker data with logos
@@ -147,9 +153,9 @@ interface UidRecord {
   uid: string;
   status: "pending" | "verified" | "failed";
   paybackRate: number;
-  rebateBalanceUsd?: number;
-  rebateLifetimeUsd?: number;
-  rebateLastDayUsd?: number;
+  accumulated24hPayback?: number;
+  withdrawnAmount?: number;
+  withdrawableBalance?: number;
 }
 
 type ServerUidRow = {
@@ -157,9 +163,11 @@ type ServerUidRow = {
   exchange_id: string;
   uid: string;
   is_active: boolean;
-  rebate_balance_usd?: number;
-  rebate_lifetime_usd?: number;
-  rebate_last_day_usd?: number;
+  accumulated_24h_payback?: number;
+  last_24h_value?: number;
+  last_24h_fetch_date?: string;
+  withdrawn_amount?: number;
+  withdrawable_balance?: number;
 };
 
 export function UidRegistration() {
@@ -197,9 +205,9 @@ export function UidRegistration() {
           | "verified"
           | "failed",
         paybackRate: broker?.paybackRate ?? 0,
-        rebateBalanceUsd: row.rebate_balance_usd || 0,
-        rebateLifetimeUsd: row.rebate_lifetime_usd || 0,
-        rebateLastDayUsd: row.rebate_last_day_usd || 0,
+        accumulated24hPayback: Number(row.accumulated_24h_payback) || 0,
+        withdrawnAmount: Number(row.withdrawn_amount) || 0,
+        withdrawableBalance: Number(row.withdrawable_balance) || 0,
       } as UidRecord;
     }
   );
@@ -322,35 +330,162 @@ function UIDCard({
   );
 
   // Get commission data - only active when broker API is active
+  // For BingX, wait for referrals to complete to avoid concurrent requests
   const commission = useBrokerCommissionData(
     record.brokerId,
     record.uid,
     "PERPETUAL",
-    isBrokerActive.data === true
+    isBrokerActive.data === true,
+    record.brokerId === "bingx" ? referrals : undefined
   );
 
-  // User withdrawals to compute Withdrawn and Withdrawable
-  const { data: userWithdrawals } = useBrokerRebateWithdrawals();
-  const withdrawnSum = (userWithdrawals || [])
-    .filter(
-      (w) => w.user_broker_uid_id === record.id && w.status === "completed"
-    )
-    .reduce((sum: number, w) => sum + (w.amount_usd || 0), 0);
+  // Use database values directly (calculated by DB trigger)
+  const accumulatedPayback = record.accumulated24hPayback || 0;
+  const withdrawnAmount = record.withdrawnAmount || 0;
+  const withdrawableBalance = record.withdrawableBalance || 0;
 
-  const pendingSum = (userWithdrawals || [])
-    .filter(
-      (w) =>
-        w.user_broker_uid_id === record.id &&
-        (w.status === "pending" || w.status === "processing")
-    )
-    .reduce((sum: number, w) => sum + (w.amount_usd || 0), 0);
+  // Get commission totals from API response (backend provides cached totals)
+  const getCommissionTotals = () => {
+    if (!commission.data) {
+      return {
+        last30d: 0,
+        last60d: 0,
+        last90d: 0,
+      };
+    }
 
-  // Use the new rebate_balance_usd from user_broker_uids table
-  // This is now calculated by our internal ledger system
-  const withdrawableComputed = Math.max(
-    (record.rebateBalanceUsd || 0) - pendingSum,
-    0
-  );
+    // Check if response has new format with totals (from API route)
+    if (
+      typeof commission.data === "object" &&
+      commission.data !== null &&
+      "totals" in commission.data &&
+      "data" in commission.data
+    ) {
+      const response = commission.data as {
+        data: unknown[];
+        totals: {
+          last30d?: number;
+          last60d?: number;
+          last90d?: number;
+        };
+      };
+      return {
+        last30d: response.totals.last30d || 0,
+        last60d: response.totals.last60d || 0,
+        last90d: response.totals.last90d || 0,
+      };
+    }
+
+    // Fallback: calculate from data array (backward compatibility)
+    if (Array.isArray(commission.data)) {
+      const now = Date.now();
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      const thirtyDaysMs = 30 * oneDayMs;
+      const queryEndTime = now - oneDayMs;
+      const last30dStart = queryEndTime - thirtyDaysMs + 1;
+
+      const toNum = (v: unknown): number => {
+        if (typeof v === "number") return v;
+        if (typeof v === "string") {
+          const n = parseInt(v, 10);
+          return Number.isFinite(n) ? n : 0;
+        }
+        return 0;
+      };
+
+      const sumCommission = (rows: typeof commission.data) =>
+        (rows || []).reduce(
+          (s, r) => s + (parseFloat(String(r?.commission || 0)) || 0),
+          0
+        );
+
+      const rows30d = commission.data.filter((r) => {
+        const statsDate = toNum((r as { statsDate?: unknown })?.statsDate);
+        return statsDate >= last30dStart && statsDate <= queryEndTime;
+      });
+
+      return {
+        last30d: sumCommission(rows30d),
+        last60d: 0,
+        last90d: 0,
+      };
+    }
+
+    return {
+      last30d: 0,
+      last60d: 0,
+      last90d: 0,
+    };
+  };
+
+  const commissionTotals = getCommissionTotals();
+  const isCommissionLoading = commission.isLoading || commission.isFetching;
+  const hasRefetchedRef = useRef(false);
+  const refetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Detect when 60d/90d totals are missing but 30d is available, then refetch
+  useEffect(() => {
+    // Clear any pending timeout when component unmounts or data changes
+    if (refetchTimeoutRef.current) {
+      clearTimeout(refetchTimeoutRef.current);
+      refetchTimeoutRef.current = null;
+    }
+
+    if (
+      !isCommissionLoading &&
+      commission.isSuccess &&
+      commissionTotals.last30d > 0 &&
+      !hasRefetchedRef.current
+    ) {
+      const expectedTotalKey =
+        record.brokerId === "deepcoin" ? "last60d" : "last90d";
+      
+      // Check if response has totals object
+      const hasTotalsObject =
+        commission.data &&
+        typeof commission.data === "object" &&
+        commission.data !== null &&
+        "totals" in commission.data;
+
+      if (hasTotalsObject) {
+        const response = commission.data as {
+          totals: {
+            last30d?: number;
+            last60d?: number;
+            last90d?: number;
+          };
+        };
+        
+        // Check if the expected key exists in totals object
+        // If key is missing (undefined), cache is not ready yet
+        const totalsHasKey = expectedTotalKey in response.totals;
+        
+        // If totals object exists but the expected key is missing, cache is being populated
+        if (!totalsHasKey) {
+          hasRefetchedRef.current = true;
+          // Wait for background cache to populate (background fetch typically takes 1-3 seconds)
+          refetchTimeoutRef.current = setTimeout(() => {
+            commission.refetch();
+            refetchTimeoutRef.current = null;
+          }, 3000);
+        }
+      }
+    }
+
+    return () => {
+      if (refetchTimeoutRef.current) {
+        clearTimeout(refetchTimeoutRef.current);
+        refetchTimeoutRef.current = null;
+      }
+    };
+  }, [
+    commission.isSuccess,
+    commission.data,
+    commissionTotals.last30d,
+    isCommissionLoading,
+    record.brokerId,
+    commission.refetch,
+  ]);
 
   // Safely handle the referral data structure
   const referralData = referrals.data;
@@ -400,7 +535,13 @@ function UIDCard({
     (record.brokerId === "orangex" &&
       commission.isSuccess &&
       commission.data &&
-      commission.data.length > 0) ||
+      (Array.isArray(commission.data)
+        ? commission.data.length > 0
+        : typeof commission.data === "object" &&
+          commission.data !== null &&
+          "data" in commission.data &&
+          Array.isArray((commission.data as { data: unknown[] }).data) &&
+          (commission.data as { data: unknown[] }).data.length > 0)) ||
     // Method 5: For LBank, check if UID verification data shows it's verified
     (record.brokerId === "lbank" &&
       uidVerification.isSuccess &&
@@ -413,6 +554,15 @@ function UIDCard({
 
   // For BingX: instant referral determination from inviteRelationCheck
   const bingxReferralFast =
+    record.brokerId === "bingx" &&
+    uidVerification.isSuccess &&
+    (uidVerification.data?.inviteResult === true ||
+      uidVerification.data?.existInviter === true ||
+      uidVerification.data?.verified === true);
+
+  // For BingX: verified ONLY if inviteRelationCheck confirms (scoped to our account)
+  // Don't use commission as fallback - inviteRelationCheck is the authoritative source
+  const isBingxVerified =
     record.brokerId === "bingx" &&
     uidVerification.isSuccess &&
     (uidVerification.data?.inviteResult === true ||
@@ -453,7 +603,12 @@ function UIDCard({
     (uidVerification.data?.verified ||
       uidVerification.data?.data?.list?.[0]?.uidUpLevel) === true;
 
-  if (uidVerification.isSuccess && verifiedFromAPI) {
+  if (
+    (uidVerification.isSuccess && verifiedFromAPI) ||
+    isDeepCoinVerified ||
+    isLBankVerified ||
+    isBingxVerified
+  ) {
     lastVerifiedRef.current[record.id] = true;
   }
 
@@ -464,7 +619,8 @@ function UIDCard({
     (uidVerification.isSuccess && verifiedFromAPI) ||
     (!uidVerification.isSuccess && verifiedFallback) ||
     isDeepCoinVerified ||
-    isLBankVerified;
+    isLBankVerified ||
+    isBingxVerified;
 
   // Determine if UID is actually active based on DB + overall verification
   const isUidActuallyActive =
@@ -483,13 +639,13 @@ function UIDCard({
         {/* Header Layout: stack on mobile, row on larger screens */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:flex-wrap gap-3 sm:gap-4 mb-3 w-full">
           {/* Image on the left */}
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-muted flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-muted flex items-center justify-center shrink-0 rounded-full overflow-hidden">
             <Image
               src={BROKERS.find((b) => b.id === record.brokerId)?.logo || ""}
               alt={`${record.brokerName} logo`}
               width={32}
               height={32}
-              className="h-full w-full object-contain"
+              className="h-full w-full object-contain rounded-full"
             />
           </div>
 
@@ -588,10 +744,20 @@ function UIDCard({
           {/* Total accumulated payback */}
           <div className="p-3 sm:p-4 border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 text-center">
             <div className="text-xl sm:text-2xl font-semibold text-emerald-700 dark:text-emerald-300 font-mono mb-1 sm:mb-2">
-              ${record.rebateLifetimeUsd?.toFixed(2) || "0.00"}
+              ${accumulatedPayback.toFixed(4)}
             </div>
-            <div className="text-[11px] sm:text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-              {t("stats.totalAccumulatedPayback")}
+            <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+              <span>{t("stats.totalAccumulatedPayback")}</span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="w-3 h-3 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p className="text-xs">{t("stats.totalAccumulatedPaybackTooltip")}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
 
@@ -599,7 +765,7 @@ function UIDCard({
           <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <div className="p-2.5 sm:p-3 border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 text-center">
               <div className="text-base sm:text-lg font-semibold text-blue-700 dark:text-blue-300 font-mono mb-0.5 sm:mb-1">
-                ${withdrawnSum.toFixed(2)}
+                ${withdrawnAmount.toFixed(4)}
               </div>
               <div className="text-[11px] sm:text-xs text-blue-600 dark:text-blue-400 font-medium">
                 {t("stats.withdrawnAmount")}
@@ -608,7 +774,7 @@ function UIDCard({
 
             <div className="p-2.5 sm:p-3 border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 text-center">
               <div className="text-base sm:text-lg font-semibold text-amber-700 dark:text-amber-300 font-mono mb-0.5 sm:mb-1">
-                ${withdrawableComputed.toFixed(2)}
+                ${withdrawableBalance.toFixed(4)}
               </div>
               <div className="text-[11px] sm:text-xs text-amber-600 dark:text-amber-400 font-medium">
                 {t("stats.withdrawableBalance")}
@@ -621,16 +787,31 @@ function UIDCard({
       <div className="p-4 sm:p-5 border-t border-border">
         <div className="space-y-2 text-[11px] sm:text-xs text-muted-foreground">
           <div className="flex items-center justify-between gap-2">
-            <span>{t("stats.totalLifetimeRebate")}</span>
-            <span className="text-foreground font-medium font-mono">
-              ${record.rebateLifetimeUsd?.toFixed(2) || "0.00"}
+            <span>
+              {record.brokerId === "deepcoin"
+                ? t("stats.last60Days")
+                : t("stats.last90Days")}
             </span>
+            {isCommissionLoading ? (
+              <div className="h-4 w-16 bg-muted animate-pulse rounded" />
+            ) : (
+              <span className="text-foreground font-medium font-mono">
+                $
+                {record.brokerId === "deepcoin"
+                  ? commissionTotals.last60d.toFixed(4)
+                  : commissionTotals.last90d.toFixed(4)}
+              </span>
+            )}
           </div>
           <div className="flex items-center justify-between gap-2">
-            <span>{t("stats.last24Hours")}</span>
-            <span className="text-foreground font-medium font-mono">
-              ${record.rebateLastDayUsd?.toFixed(2) || "0.00"}
-            </span>
+            <span>{t("stats.last30Days")}</span>
+            {isCommissionLoading ? (
+              <div className="h-4 w-16 bg-muted animate-pulse rounded" />
+            ) : (
+              <span className="text-foreground font-medium font-mono">
+                ${commissionTotals.last30d.toFixed(4)}
+              </span>
+            )}
           </div>
         </div>
       </div>

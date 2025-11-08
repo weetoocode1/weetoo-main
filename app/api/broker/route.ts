@@ -118,10 +118,26 @@ export async function POST(request: NextRequest) {
       } catch (methodError) {
         console.error(`Method ${action} execution failed:`, methodError);
 
+        const errorMessage =
+          methodError instanceof Error
+            ? methodError.message
+            : String(methodError);
+        const errorStack =
+          methodError instanceof Error ? methodError.stack : undefined;
+
+        console.error(`Error details for ${broker}.${action}:`, {
+          message: errorMessage,
+          stack: errorStack,
+          params: { uid, sourceType },
+        });
+
         // Add debug headers for DeepCoin errors
         if (broker === "deepcoin") {
           const errorResponse = NextResponse.json(
-            { error: `Failed to execute ${action}` },
+            {
+              error: `Failed to execute ${action}`,
+              details: errorMessage,
+            },
             { status: 500 }
           );
 
@@ -129,9 +145,87 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json(
-          { error: `Failed to execute ${action}` },
+          {
+            error: `Failed to execute ${action}`,
+            details: errorMessage,
+          },
           { status: 500 }
         );
+      }
+
+      // For commission data, include cached totals in response
+      if (action === "getCommissionData" || action === "spot-commission") {
+        if (Array.isArray(result) && uid) {
+          const totals: {
+            last30d?: number;
+            last60d?: number;
+            last90d?: number;
+          } = {};
+
+          const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+          if (broker === "deepcoin") {
+            const { DEEPCOIN_60D_CACHE } = await import(
+              "@/lib/broker/deepcoin-api"
+            );
+            const cache = DEEPCOIN_60D_CACHE.get(uid);
+            const cacheValid = cache && Date.now() - cache.ts < CACHE_TTL_MS;
+            if (cacheValid) {
+              totals.last60d = cache.value;
+            }
+            // Calculate 30d from the data array (backend returns last 30d records)
+            const last30d = result.reduce(
+              (sum, r) => sum + (parseFloat(String(r?.commission || 0)) || 0),
+              0
+            );
+            totals.last30d = last30d;
+          } else if (broker === "bingx") {
+            const { BINGX_90D_CACHE } = await import("@/lib/broker/bingx-api");
+            const cache = BINGX_90D_CACHE.get(uid);
+            const cacheValid = cache && Date.now() - cache.ts < CACHE_TTL_MS;
+            if (cacheValid) {
+              totals.last90d = cache.value;
+            }
+            // Calculate 30d from the data array (backend returns last 30d records)
+            const last30d = result.reduce(
+              (sum, r) => sum + (parseFloat(String(r?.commission || 0)) || 0),
+              0
+            );
+            totals.last30d = last30d;
+          } else if (broker === "orangex") {
+            const { OrangeXAPI } = await import("@/lib/broker/orangex-api");
+            const cache = OrangeXAPI.NINETY_DAY_CACHE?.get(uid);
+            const cacheValid = cache && Date.now() - cache.ts < CACHE_TTL_MS;
+            if (cacheValid) {
+              totals.last90d = cache.value;
+            }
+            // Calculate 30d from the data array (backend returns last 30d records)
+            // Note: OrangeX rows don't have statsDate, but all rows are from 30d period
+            const last30d = result.reduce(
+              (sum, r) => sum + (parseFloat(String(r?.commission || 0)) || 0),
+              0
+            );
+            totals.last30d = last30d;
+          } else if (broker === "lbank") {
+            const { LBANK_90D_CACHE } = await import("@/lib/broker/lbank-api");
+            const cache = LBANK_90D_CACHE.get(uid);
+            const cacheValid = cache && Date.now() - cache.ts < CACHE_TTL_MS;
+            if (cacheValid) {
+              totals.last90d = cache.value;
+            }
+            // Calculate 30d from the data array (backend returns last 30d records)
+            const last30d = result.reduce(
+              (sum, r) => sum + (parseFloat(String(r?.commission || 0)) || 0),
+              0
+            );
+            totals.last30d = last30d;
+          }
+
+          return NextResponse.json({
+            data: result,
+            totals,
+          });
+        }
       }
 
       return NextResponse.json(result);

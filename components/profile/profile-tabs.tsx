@@ -130,6 +130,26 @@ const PaybackWithdrawal = dynamic(
   }
 );
 
+const WithdrawalStatus = dynamic(
+  () =>
+    import("./withdrawal-status").then((mod) => ({
+      default: mod.WithdrawalStatus,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p className="text-sm text-muted-foreground">
+            Loading withdrawal status...
+          </p>
+        </div>
+      </div>
+    ),
+  }
+);
+
 const TABS = [
   {
     key: "profile",
@@ -173,6 +193,12 @@ const TABS = [
     icon: <CreditCardIcon className="w-4 h-4" />,
     requiresVerification: true,
   },
+  {
+    key: "withdrawal-status",
+    translationKey: "withdrawalStatus",
+    icon: <HistoryIcon className="w-4 h-4" />,
+    requiresVerification: true,
+  },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -185,6 +211,7 @@ const TAB_COMPONENTS = {
   "kor-coins-withdrawal": <KORCoinsWithdrawal />,
   "uid-registration": <UidRegistration />,
   "payback-withdrawal": <PaybackWithdrawal />,
+  "withdrawal-status": <WithdrawalStatus />,
 };
 
 export function ProfileTabs() {
@@ -298,6 +325,8 @@ export function ProfileTabs() {
                   ? t("mobileLabels.uid")
                   : tab.key === "payback-withdrawal"
                   ? t("mobileLabels.payback")
+                  : tab.key === "withdrawal-status"
+                  ? t("mobileLabels.withdrawalStatus") || "Status"
                   : t(`tabs.${tab.translationKey}`).split(" ")[0]}
               </span>
             </button>
@@ -349,6 +378,8 @@ export function ProfileTabs() {
                         ? t("mobileLabels.uid")
                         : tab.key === "payback-withdrawal"
                         ? t("mobileLabels.payback")
+                        : tab.key === "withdrawal-status"
+                        ? t("mobileLabels.withdrawalStatus") || "Status"
                         : t(`tabs.${tab.translationKey}`).split(" ")[0]}
                     </span>
                     {isDisabled && (

@@ -43,11 +43,13 @@ export function UidStatusIndicator({
   const referrals = useBrokerReferrals(brokerId, isBrokerActive.data === true);
 
   // Get commission data - only active when broker API is active
+  // For BingX, wait for referrals to complete to avoid concurrent requests
   const commission = useBrokerCommissionData(
     brokerId,
     uid,
     "PERPETUAL",
-    isBrokerActive.data === true
+    isBrokerActive.data === true,
+    brokerId === "bingx" ? referrals : undefined
   );
 
   // Safely handle the referral data structure
@@ -92,7 +94,14 @@ export function UidStatusIndicator({
     (brokerId === "orangex" &&
       commission.isSuccess &&
       commission.data &&
-      commission.data.length > 0);
+      commission.data.length > 0) ||
+    // BingX: ONLY treat as referral if inviteRelationCheck explicitly confirms
+    // This endpoint is scoped to our account, so it only returns true if UID was invited by US
+    (brokerId === "bingx" &&
+      uidVerification.isSuccess &&
+      (uidVerification.data?.inviteResult === true ||
+        uidVerification.data?.existInviter === true ||
+        uidVerification.data?.verified === true));
 
   // For DeepCoin: If referrals work, use that to determine verification status
   const isDeepCoinVerified =
@@ -110,7 +119,18 @@ export function UidStatusIndicator({
     (uidVerification.data?.verified ||
       uidVerification.data?.data?.list?.[0]?.uidUpLevel) === true;
 
+  // BingX: verified only if inviteRelationCheck confirms (scoped to our account)
+  const isBingxVerified =
+    brokerId === "bingx" &&
+    uidVerification.isSuccess &&
+    (uidVerification.data?.inviteResult === true ||
+      uidVerification.data?.existInviter === true ||
+      uidVerification.data?.verified === true);
+
   if (uidVerification.isSuccess && verifiedFromAPI) {
+    lastVerifiedRef.current[uidId] = true;
+  }
+  if (isBingxVerified) {
     lastVerifiedRef.current[uidId] = true;
   }
 
@@ -129,7 +149,8 @@ export function UidStatusIndicator({
         {uidVerification.isLoading && !uidVerification.isError ? (
           <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
         ) : (uidVerification.isSuccess && uidVerification.data?.verified) ||
-          isDeepCoinVerified ? (
+          isDeepCoinVerified ||
+          isBingxVerified ? (
           <div className="flex items-center gap-1">
             <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
             <BadgeCheck className="h-3 w-3 text-emerald-500" />
@@ -141,7 +162,8 @@ export function UidStatusIndicator({
           {uidVerification.isLoading && !uidVerification.isError
             ? "Verifying..."
             : (uidVerification.isSuccess && uidVerification.data?.verified) ||
-              isDeepCoinVerified
+              isDeepCoinVerified ||
+              isBingxVerified
             ? t("verified")
             : uidVerification.isSuccess && uidVerification.data?.reason
             ? uidVerification.data.reason

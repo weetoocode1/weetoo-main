@@ -162,17 +162,6 @@ export function useUpdateUserUid() {
           if (uid.id === payload.id) {
             return { ...uid, ...payload, updated_at: new Date().toISOString() };
           }
-          // If setting this UID as active, deactivate others for same exchange
-          if (
-            payload.is_active === true &&
-            uid.exchange_id === uid.exchange_id
-          ) {
-            return {
-              ...uid,
-              is_active: false,
-              updated_at: new Date().toISOString(),
-            };
-          }
           return uid;
         });
       });

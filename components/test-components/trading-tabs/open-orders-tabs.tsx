@@ -71,16 +71,16 @@ const TpSlIndicator = ({
   const hasSl = order.sl_enabled && order.stop_loss_price;
 
   if (!hasTp && !hasSl) {
-    return (
-      <button
-        type="button"
+  return (
+        <button
+          type="button"
         onClick={() => onEdit()}
         className="action-btn flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded transition-colors cursor-pointer"
-        title="Add TP/SL"
-      >
-        <PencilIcon className="h-3 w-3" />
+          title="Add TP/SL"
+        >
+          <PencilIcon className="h-3 w-3" />
         <span>Add TP/SL</span>
-      </button>
+        </button>
     );
   }
 
@@ -98,14 +98,14 @@ const TpSlIndicator = ({
               </span>
             )}
           </div>
-      <button
-        type="button"
+          <button
+            type="button"
         onClick={() => onEdit()}
         className="action-btn p-0.5 text-muted-foreground hover:text-foreground transition-colors rounded"
-        title="Edit TP/SL"
-      >
-        <PencilIcon className="h-3 w-3" />
-      </button>
+            title="Edit TP/SL"
+          >
+            <PencilIcon className="h-3 w-3" />
+          </button>
     </div>
   );
 };

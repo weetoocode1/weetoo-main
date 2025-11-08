@@ -196,7 +196,10 @@ export function EditPositionTpSlDialog({
     >
       <div className="absolute inset-0 bg-background/50 backdrop-blur-sm" />
 
-      <div className="relative z-50 w-full max-w-lg mx-4 bg-background border border-border rounded-lg p-6 shadow-lg animate-in fade-in-0 zoom-in-95">
+      <div
+        className="relative z-50 w-full max-w-lg mx-4 bg-background border border-border rounded-lg p-6 shadow-lg animate-in fade-in-0 zoom-in-95"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="p-0 mb-5 flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">{t("title")}</h2>
           <button

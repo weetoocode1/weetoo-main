@@ -78,44 +78,103 @@ export async function POST(request: NextRequest) {
     // First, verify the UID belongs to the user and get broker details
     const { data: uidData, error: uidError } = await supabase
       .from("user_broker_uids")
-      .select("id, exchange_id, uid, rebate_balance_usd, is_active")
+      .select(
+        "id, exchange_id, uid, withdrawable_balance, withdrawn_amount, accumulated_24h_payback, is_active"
+      )
       .eq("id", user_broker_uid_id)
       .eq("user_id", userId)
-      .eq("is_active", true)
       .single();
 
     if (uidError || !uidData) {
-      return NextResponse.json(
-        { error: "UID not found or not active" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "UID not found" }, { status: 404 });
     }
 
-    // Check if user has sufficient balance
-    if (uidData.rebate_balance_usd < amount_usd) {
+    // Check if user has sufficient withdrawable balance (with fresh read to prevent race condition)
+    const withdrawableBalance = Number(uidData.withdrawable_balance) || 0;
+    if (withdrawableBalance < amount_usd) {
       return NextResponse.json(
-        { error: "Insufficient balance" },
+        { error: "Insufficient withdrawable balance" },
         { status: 400 }
       );
     }
 
-    // Check if user has any pending withdrawals for this UID
-    const { data: pendingWithdrawals, error: pendingError } = await supabase
-      .from("broker_rebate_withdrawals")
+    // Calculate new withdrawn amount
+    const currentWithdrawn = Number(uidData.withdrawn_amount) || 0;
+    const newWithdrawnAmount = currentWithdrawn + amount_usd;
+
+    // Verify balance again after calculation to prevent race condition
+    const accumulatedPayback = Number(uidData.accumulated_24h_payback) || 0;
+    const newWithdrawableBalance = accumulatedPayback - newWithdrawnAmount;
+
+    if (newWithdrawableBalance < 0) {
+      return NextResponse.json(
+        { error: "Insufficient withdrawable balance" },
+        { status: 400 }
+      );
+    }
+
+    // Update the UID with new withdrawn_amount (this will trigger balance recalculation)
+    // Use optimistic locking: only update if withdrawable_balance hasn't changed
+    const { data: updateData, error: updateError } = await supabase
+      .from("user_broker_uids")
+      .update({
+        withdrawn_amount: newWithdrawnAmount,
+        withdrawal_status: "pending",
+      })
+      .eq("id", user_broker_uid_id)
+      .eq("withdrawable_balance", withdrawableBalance) // Optimistic locking to prevent race condition
       .select("id")
-      .eq("user_broker_uid_id", user_broker_uid_id)
-      .eq("status", "pending");
+      .single();
 
-    if (pendingError) throw pendingError;
-
-    if (pendingWithdrawals && pendingWithdrawals.length > 0) {
-      return NextResponse.json(
-        { error: "You already have a pending withdrawal for this UID" },
-        { status: 400 }
+    // If update affected 0 rows, it means balance changed (race condition detected)
+    if (updateError || !updateData) {
+      console.error(
+        "Error updating withdrawn_amount or race condition detected:",
+        updateError
       );
+
+      // Retry with fresh data to check if balance is still sufficient
+      const { data: retryUidData } = await supabase
+        .from("user_broker_uids")
+        .select(
+          "withdrawable_balance, withdrawn_amount, accumulated_24h_payback"
+        )
+        .eq("id", user_broker_uid_id)
+        .single();
+
+      if (retryUidData) {
+        const retryBalance = Number(retryUidData.withdrawable_balance) || 0;
+        if (retryBalance < amount_usd) {
+          return NextResponse.json(
+            {
+              error:
+                "Insufficient withdrawable balance (concurrent request detected)",
+            },
+            { status: 400 }
+          );
+        }
+        // If balance is still sufficient, retry the update without optimistic lock
+        const { error: retryUpdateError } = await supabase
+          .from("user_broker_uids")
+          .update({
+            withdrawn_amount:
+              Number(retryUidData.withdrawn_amount) + amount_usd,
+            withdrawal_status: "pending",
+          })
+          .eq("id", user_broker_uid_id);
+
+        if (retryUpdateError) {
+          return NextResponse.json(
+            { error: "Failed to update withdrawal amount" },
+            { status: 500 }
+          );
+        }
+      } else {
+        return NextResponse.json({ error: "UID not found" }, { status: 404 });
+      }
     }
 
-    // Create withdrawal request
+    // Create withdrawal request AFTER updating withdrawn_amount to ensure consistency
     const { data: withdrawal, error: createError } = await supabase
       .from("broker_rebate_withdrawals")
       .insert({
@@ -132,6 +191,29 @@ export async function POST(request: NextRequest) {
 
     if (createError) {
       console.error("Create withdrawal error:", createError);
+
+      // Rollback: revert withdrawn_amount if withdrawal creation failed
+      // Get current withdrawn_amount first to calculate rollback value
+      const { data: currentUidData } = await supabase
+        .from("user_broker_uids")
+        .select("withdrawn_amount")
+        .eq("id", user_broker_uid_id)
+        .single();
+
+      if (currentUidData) {
+        const rollbackAmount = Math.max(
+          0,
+          Number(currentUidData.withdrawn_amount) - amount_usd
+        );
+        await supabase
+          .from("user_broker_uids")
+          .update({
+            withdrawn_amount: rollbackAmount,
+            withdrawal_status: null,
+          })
+          .eq("id", user_broker_uid_id);
+      }
+
       // If table doesn't exist, return helpful error
       if (
         createError.message.includes("relation") &&

@@ -21,7 +21,14 @@ import {
 import type { Symbol } from "@/types/market";
 import { MoreHorizontalIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+  startTransition,
+} from "react";
 
 // Consistent number formatting function to prevent hydration mismatches
 const formatNumber = (num: number, decimals: number = 2): string => {
@@ -122,9 +129,11 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
     asks: [],
     bids: [],
   });
+  const processingRef = useRef(false);
+  const rafRef = useRef<number | null>(null);
+  const hasReceivedSnapshotRef = useRef(false);
 
-  // No more debouncing - unified throttling handled in bybit-client
-
+  // No more debouncing - unified throttling handled in bybit-clien?
   // Debug: log raw websocket payloads to verify flow
   // useEffect(() => {
   //   if (ob) {
@@ -158,68 +167,151 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
   //   }
   // }, [trades]);
 
+  // Optimized build function - minimize allocations and calculations
+  const buildOrderBookLevels = useCallback(
+    (map: Map<number, number>, asc: boolean) => {
+      const size = map.size;
+      if (size === 0) return [];
+
+      const entries: Array<[number, number]> = [];
+      entries.length = size;
+      let idx = 0;
+      for (const [price, qty] of map.entries()) {
+        if (qty > 0 && price > 0) {
+          entries[idx++] = [price, qty];
+        }
+      }
+      entries.length = idx;
+
+      if (idx === 0) return [];
+
+      entries.sort((a, b) => (asc ? a[0] - b[0] : b[0] - a[0]));
+      const limit = Math.min(depth, idx);
+
+      let cum = 0;
+      let maxTotal = 0;
+      for (let i = 0; i < limit; i++) {
+        maxTotal += entries[i][1];
+      }
+
+      const result: OrderBookLevel[] = [];
+      result.length = limit;
+      const maxTotalInv = maxTotal > 0 ? 100 / maxTotal : 0;
+
+      for (let i = 0; i < limit; i++) {
+        const price = entries[i][0];
+        const qty = entries[i][1];
+        const total = (cum += qty);
+        const currentValue = price * qty;
+        const totalValue = price * total;
+        const width = `${total * maxTotalInv}%`;
+
+        result[i] = {
+          Id: price,
+          price: price,
+          qty: qty,
+          side: asc ? "Sell" : "Buy",
+          size: qty,
+          symbol: currentSymbol,
+          total: total,
+          currentValue: currentValue,
+          totalValue: totalValue,
+          inc: true,
+          width: width,
+        };
+      }
+      return result;
+    },
+    [depth, currentSymbol]
+  );
+
   useEffect(() => {
     if (!ob) return;
 
-    // console.log("🔄 Processing order book:", {
-    //   type: ob.type,
-    //   symbol: ob.symbol,
-    //   bidsCount: ob.bids?.length || 0,
-    //   asksCount: ob.asks?.length || 0,
-    //   sampleBid: ob.bids?.[0],
-    //   sampleAsk: ob.asks?.[0],
-    //   timestamp: new Date().toISOString(),
-    // });
-
-    // Check if this is a snapshot (initial load) or delta update
     const isSnapshot = ob.type === "snapshot";
 
-    // console.log("🔍 Snapshot detection:", {
-    //   type: ob.type,
-    //   isSnapshot,
-    //   hasData: (ob.bids?.length || 0) > 0 || (ob.asks?.length || 0) > 0,
-    // });
-
-    // For snapshots, process all data at once for instant display
     if (isSnapshot) {
-      // console.log(
-      //   "📸 Processing SNAPSHOT - clearing and rebuilding order book"
-      // );
-      // Clear maps for clean state
+      hasReceivedSnapshotRef.current = true;
       asksMapRef.current.clear();
       bidsMapRef.current.clear();
 
-      // Process all asks at once
       const asks = ob.asks || [];
-      for (const l of asks) {
-        const isTuple = Array.isArray(l);
-        const price = isTuple ? parseFloat(l[0]) : parseFloat(l?.price);
-        const qty = isTuple ? parseFloat(l[1]) : parseFloat(l?.qty);
-        if (Number.isFinite(price) && Number.isFinite(qty) && qty > 0) {
-          asksMapRef.current.set(price, qty);
+      const asksLength = asks.length;
+      for (let i = 0; i < asksLength; i++) {
+        const l = asks[i];
+        if (Array.isArray(l) && l.length >= 2) {
+          const price = parseFloat(l[0]);
+          const qty = parseFloat(l[1]);
+          if (
+            Number.isFinite(price) &&
+            Number.isFinite(qty) &&
+            qty > 0 &&
+            price > 0
+          ) {
+            asksMapRef.current.set(price, qty);
+          }
+        } else if (l && typeof l === "object" && !Array.isArray(l)) {
+          const lObj = l as unknown as Record<string, unknown>;
+          const price = parseFloat(String(lObj?.price || "0"));
+          const qty = parseFloat(String(lObj?.qty || "0"));
+          if (
+            Number.isFinite(price) &&
+            Number.isFinite(qty) &&
+            qty > 0 &&
+            price > 0
+          ) {
+            asksMapRef.current.set(price, qty);
+          }
         }
       }
 
-      // Process all bids at once
       const bids = ob.bids || [];
-      for (const l of bids) {
-        const isTuple = Array.isArray(l);
-        const price = isTuple ? parseFloat(l[0]) : parseFloat(l?.price);
-        const qty = isTuple ? parseFloat(l[1]) : parseFloat(l?.qty);
-        if (Number.isFinite(price) && Number.isFinite(qty) && qty > 0) {
-          bidsMapRef.current.set(price, qty);
+      const bidsLength = bids.length;
+      for (let i = 0; i < bidsLength; i++) {
+        const l = bids[i];
+        if (Array.isArray(l) && l.length >= 2) {
+          const price = parseFloat(l[0]);
+          const qty = parseFloat(l[1]);
+          if (
+            Number.isFinite(price) &&
+            Number.isFinite(qty) &&
+            qty > 0 &&
+            price > 0
+          ) {
+            bidsMapRef.current.set(price, qty);
+          }
+        } else if (l && typeof l === "object" && !Array.isArray(l)) {
+          const lObj = l as unknown as Record<string, unknown>;
+          const price = parseFloat(String(lObj?.price || "0"));
+          const qty = parseFloat(String(lObj?.qty || "0"));
+          if (
+            Number.isFinite(price) &&
+            Number.isFinite(qty) &&
+            qty > 0 &&
+            price > 0
+          ) {
+            bidsMapRef.current.set(price, qty);
+          }
         }
       }
+
+      // Process snapshot immediately without batching
+      const newMergedBook = {
+        asks: buildOrderBookLevels(asksMapRef.current, true),
+        bids: buildOrderBookLevels(bidsMapRef.current, false),
+      };
+      setMergedBook(newMergedBook);
     } else {
-      // For deltas, apply incremental updates
+      if (processingRef.current) return;
+
       const apply = (
         side: "asks" | "bids",
         levels: Record<string, unknown>[]
       ) => {
         const mapRef =
           side === "asks" ? asksMapRef.current : bidsMapRef.current;
-
-        for (const l of levels || []) {
+        for (let i = 0; i < levels.length; i++) {
+          const l = levels[i];
           const isTuple = Array.isArray(l);
           const price = isTuple
             ? parseFloat(l[0] as string)
@@ -239,58 +331,34 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
 
       apply("asks", (ob.asks || []) as unknown as Record<string, unknown>[]);
       apply("bids", (ob.bids || []) as unknown as Record<string, unknown>[]);
-    }
 
-    // Build sorted arrays and cumulative totals, limit by depth (Bybit-style processing)
-    const build = (map: Map<number, number>, asc: boolean) => {
-      const arr = Array.from(map.entries())
-        .map(([price, qty]) => ({ price, qty }))
-        .filter((x) => x.qty > 0)
-        .sort((a, b) => (asc ? a.price - b.price : b.price - a.price))
-        .slice(0, depth);
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
 
-      let cum = 0;
-      const maxTotal = arr.reduce((sum, x) => sum + x.qty, 0);
-
-      return arr.map((x) => {
-        const total = (cum += x.qty);
-        const currentValue = x.price * x.qty;
-        const totalValue = x.price * total;
-        const width = maxTotal > 0 ? `${(total / maxTotal) * 100}%` : "0%";
-
-        return {
-          Id: x.price,
-          price: x.price,
-          qty: x.qty,
-          side: asc ? "Sell" : "Buy",
-          size: x.qty,
-          symbol: currentSymbol,
-          total: total,
-          currentValue: currentValue,
-          totalValue: totalValue,
-          inc: true,
-          width: width,
-        };
+      processingRef.current = true;
+      rafRef.current = requestAnimationFrame(() => {
+        startTransition(() => {
+          const newMergedBook = {
+            asks: buildOrderBookLevels(asksMapRef.current, true),
+            bids: buildOrderBookLevels(bidsMapRef.current, false),
+          };
+          setMergedBook(newMergedBook);
+          processingRef.current = false;
+        });
       });
+    }
+  }, [ob, buildOrderBookLevels]);
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      processingRef.current = false;
     };
-
-    const newMergedBook = {
-      asks: build(asksMapRef.current, true),
-      bids: build(bidsMapRef.current, false),
-    };
-
-    // console.log("🔄 UI Order Book Update (Direct):", {
-    //   asksCount: newMergedBook.asks.length,
-    //   bidsCount: newMergedBook.bids.length,
-    //   sampleAsk: newMergedBook.asks[0],
-    //   sampleBid: newMergedBook.bids[0],
-    //   timestamp: new Date().toISOString(),
-    // });
-
-    setMergedBook(newMergedBook);
-  }, [ob, depth]);
-
-  // No cleanup needed - no more timeouts in UI
+  }, []);
 
   // Update lastKnownValues when ticker data changes
   useEffect(() => {
@@ -302,10 +370,18 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
     };
 
     // Check if ticker data has actual values (not just "0" strings or empty)
-    const hasLastPrice = ticker.lastPrice && ticker.lastPrice !== "0" && ticker.lastPrice !== "";
-    const hasMarkPrice = ticker.markPrice && ticker.markPrice !== "0" && ticker.markPrice !== "";
-    const hasIndexPrice = ticker.indexPrice && ticker.indexPrice !== "0" && ticker.indexPrice !== "";
-    const hasFundingRate = ticker.fundingRate && ticker.fundingRate !== "0" && ticker.fundingRate !== "";
+    const hasLastPrice =
+      ticker.lastPrice && ticker.lastPrice !== "0" && ticker.lastPrice !== "";
+    const hasMarkPrice =
+      ticker.markPrice && ticker.markPrice !== "0" && ticker.markPrice !== "";
+    const hasIndexPrice =
+      ticker.indexPrice &&
+      ticker.indexPrice !== "0" &&
+      ticker.indexPrice !== "";
+    const hasFundingRate =
+      ticker.fundingRate &&
+      ticker.fundingRate !== "0" &&
+      ticker.fundingRate !== "";
 
     setLastKnownValues((prev) => {
       const lastParsed = parseNum(ticker.lastPrice);
@@ -316,17 +392,27 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
       return {
         // Update if we have valid new data, otherwise preserve previous value
         currentPrice:
-          hasLastPrice && lastParsed && lastParsed > 0 ? lastParsed : prev.currentPrice,
-        markPrice: hasMarkPrice && markParsed && markParsed > 0 ? markParsed : prev.markPrice,
+          hasLastPrice && lastParsed && lastParsed > 0
+            ? lastParsed
+            : prev.currentPrice,
+        markPrice:
+          hasMarkPrice && markParsed && markParsed > 0
+            ? markParsed
+            : prev.markPrice,
         indexPrice:
-          hasIndexPrice && indexParsed && indexParsed > 0 ? indexParsed : prev.indexPrice,
+          hasIndexPrice && indexParsed && indexParsed > 0
+            ? indexParsed
+            : prev.indexPrice,
         change24hAmount:
           parseNum(
             (ticker as unknown as Record<string, unknown>).change24h as string
           ) ?? prev.change24hAmount,
         change24hPercent:
           parseNum(ticker.price24hPcnt) ?? prev.change24hPercent,
-        fundingRate: hasFundingRate && fundingParsed !== null ? fundingParsed : prev.fundingRate,
+        fundingRate:
+          hasFundingRate && fundingParsed !== null
+            ? fundingParsed
+            : prev.fundingRate,
         nextFundingTimeMs: ticker.nextFundingTime
           ? parseInt(ticker.nextFundingTime)
           : prev.nextFundingTimeMs,
@@ -500,6 +586,19 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
 
   // const precisionOptions = ["0.01", "0.1", "1"];
 
+  // Check if order book data is loading - only show loading if we haven't received initial snapshot
+  const isLoading =
+    !hasReceivedSnapshotRef.current &&
+    (!ob || (mergedBook.asks.length === 0 && mergedBook.bids.length === 0));
+
+  if (isLoading) {
+    return (
+      <div className="border border-border bg-background rounded-none h-full flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   return (
     <TooltipProvider delayDuration={80}>
       <div className="border border-border bg-background rounded-none text-sm h-full flex flex-col scrollbar-none">
@@ -562,12 +661,12 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
               >
                 <div className="flex w-4 h-4">
                   {/* Left: red over green */}
-                  <div className="flex flex-col gap-[1px] w-1/2">
+                  <div className="flex flex-col gap-px w-1/2">
                     <div className="bg-loss w-full h-1/2 rounded-[1px]"></div>
                     <div className="bg-profit w-full h-1/2 rounded-[1px]"></div>
                   </div>
                   {/* Right: two rectangles */}
-                  <div className="flex flex-col gap-[1px] w-1/2 pl-[1px]">
+                  <div className="flex flex-col gap-px w-1/2 pl-px">
                     <div className="bg-muted-foreground/50 w-full h-1/2 rounded-[1px]"></div>
                     <div className="bg-muted-foreground/50 w-full h-1/2 rounded-[1px]"></div>
                   </div>
@@ -589,7 +688,7 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
               >
                 <div className="flex w-4 h-4">
                   <div className="bg-loss w-1/2 h-full rounded-[1px]"></div>
-                  <div className="flex flex-col gap-[1px] w-1/2 pl-[1px]">
+                  <div className="flex flex-col gap-px w-1/2 pl-px">
                     <div className="bg-muted-foreground/60 h-1/2 w-full rounded-[1px]"></div>
                     <div className="bg-muted-foreground/60 h-1/2 w-full rounded-[1px]"></div>
                   </div>
@@ -611,7 +710,7 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
               >
                 <div className="flex w-4 h-4">
                   <div className="bg-profit w-1/2 h-full rounded-[1px]"></div>
-                  <div className="flex flex-col gap-[1px] w-1/2 pl-[1px]">
+                  <div className="flex flex-col gap-px w-1/2 pl-px">
                     <div className="bg-muted-foreground/60 h-1/2 w-full rounded-[1px]"></div>
                     <div className="bg-muted-foreground/60 h-1/2 w-full rounded-[1px]"></div>
                   </div>
@@ -692,7 +791,7 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
                       value={totalUnit}
                       onValueChange={(v) => setTotalUnit(v as string)}
                     >
-                      <SelectTrigger className="text-xs text-muted-foreground rounded-none border-none px-6 !h-0">
+                      <SelectTrigger className="text-xs text-muted-foreground rounded-none border-none px-6 h-0!">
                         <SelectValue
                           placeholder={t("headers.totalBase", {
                             base: baseAsset,
@@ -703,7 +802,7 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
                             : t("headers.totalUsdt")}
                         </SelectValue>
                       </SelectTrigger>
-                      <SelectContent className="!text-xs rounded-none min-w-[130px]">
+                      <SelectContent className="text-xs! rounded-none min-w-[130px]">
                         <SelectItem
                           value={baseAsset}
                           className="text-xs rounded-none"
@@ -998,7 +1097,7 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
                     {/* Buy segment */}
 
                     <div
-                      className="absolute left-0 top-0 h-full bg-gradient-to-r from-order-book-buy to-order-book-buy/80 flex items-center transition-all duration-500 ease-out"
+                      className="absolute left-0 top-0 h-full bg-linear-to-r from-order-book-buy to-order-book-buy/80 flex items-center transition-all duration-500 ease-out"
                       style={{
                         width: `${orderBookData.buyPercentage}%`,
                         clipPath: orderBookData.buyClipPath,
@@ -1007,7 +1106,7 @@ export function OrderBookTest({ symbol }: OrderBookTestProps) {
 
                     {/* Sell segment */}
                     <div
-                      className="absolute right-0 top-0 h-full bg-gradient-to-l from-order-book-sell to-order-book-sell/80 flex items-center justify-end transition-all duration-500 ease-out"
+                      className="absolute right-0 top-0 h-full bg-linear-to-l from-order-book-sell to-order-book-sell/80 flex items-center justify-end transition-all duration-500 ease-out"
                       style={{
                         width: `${orderBookData.sellPercentage}%`,
                         clipPath: orderBookData.sellClipPath,

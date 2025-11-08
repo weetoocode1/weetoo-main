@@ -2682,14 +2682,16 @@
         "export": "Export",
         "exporting": "Exporting...",
         "exportSuccess": "Successfully exported {count} UID records to CSV!",
-        "exportError": "Failed to export UID records. Please try again."
-      },
-      "deleteDialog": {
-        "title": "Delete UID",
-        "description": "Are you sure you want to delete this UID? This action cannot be undone.",
-        "cancel": "Cancel",
-        "confirm": "Delete",
-        "exchange": "Exchange"
+        "exportError": "Failed to export UID records. Please try again.",
+        "deleteSuccess": "UID deleted successfully",
+        "deleteError": "Failed to delete UID",
+        "deleteDialog": {
+          "title": "Delete UID",
+          "description": "Are you sure you want to delete this UID? This action cannot be undone.",
+          "cancel": "Cancel",
+          "confirm": "Delete",
+          "exchange": "Exchange"
+        }
       },
       "deleteSuccess": "UID deleted successfully",
       "deleteError": "Failed to delete UID",
@@ -2892,6 +2894,59 @@
         "activeUsers": {
           "title": "Active Users",
           "description": "{rate}% conversion rate"
+        },
+        "pendingRequests": {
+          "title": "Pending Requests",
+          "description": "Withdrawals awaiting review"
+        },
+        "approved": {
+          "title": "Approved",
+          "description": "Successfully approved withdrawals"
+        },
+        "totalWithdrawable": {
+          "title": "Total Withdrawable",
+          "description": "Total available for withdrawal"
+        },
+        "totalUids": {
+          "title": "Total UIDs",
+          "description": "All broker accounts registered"
+        }
+      },
+      "withdrawalManagementTable": {
+        "columns": {
+          "user": "User",
+          "brokerUid": "Broker / UID",
+          "accumulated": "Accumulated",
+          "withdrawn": "Withdrawn",
+          "withdrawable": "Withdrawable",
+          "status": "Status",
+          "actions": "Actions"
+        },
+        "status": {
+          "approved": "Approved",
+          "pending": "Pending",
+          "rejected": "Rejected",
+          "noRequest": "No Request"
+        },
+        "selectOptions": {
+          "noRequest": "No Request",
+          "pending": "Pending",
+          "approved": "Approved",
+          "rejected": "Rejected"
+        },
+        "labels": {
+          "locked": "Locked",
+          "user": "User"
+        },
+        "empty": {
+          "title": "No pending requests",
+          "subtitle": "No withdrawal requests awaiting review"
+        },
+        "toast": {
+          "newRequestReceived": "New withdrawal request received",
+          "statusUpdated": "Withdrawal status updated successfully",
+          "updateFailed": "Failed to update status",
+          "withdrawalUpdateFailed": "Failed to update withdrawal status"
         }
       },
       "withdrawalRequests": {
@@ -3343,7 +3398,8 @@
       "allTransactions": "All Transactions",
       "korCoinsWithdrawal": "KOR Coins Withdrawal",
       "uidRegistration": "UID Registration",
-      "paybackWithdrawal": "Payback Withdrawal"
+      "paybackWithdrawal": "Payback Withdrawal",
+      "withdrawalStatus": "Withdrawal Status"
     },
     "table": {
       "filters": "Filters",
@@ -3364,7 +3420,8 @@
       "transactions": "Transactions",
       "korCoins": "KOR Coins",
       "uid": "UID",
-      "payback": "Payback"
+      "payback": "Payback",
+      "withdrawalStatus": "Status"
     },
     "verification": {
       "title": "Identity Verification Required",
@@ -3650,10 +3707,14 @@
       },
       "stats": {
         "totalAccumulatedPayback": "Total Accumulated Payback",
+        "totalAccumulatedPaybackTooltip": "This amount accumulates automatically every 24 hours based on your trading activity and broker rebates.",
         "withdrawnAmount": "Withdrawn Amount",
         "withdrawableBalance": "Withdrawable Balance",
         "totalLifetimeRebate": "Total Lifetime Rebate:",
-        "last24Hours": "Last 24 Hours:"
+        "last24Hours": "Last 24 Hours:",
+        "last30Days": "Last 30 Days Rebate:",
+        "last60Days": "Last 60 Days Rebate:",
+        "last90Days": "Last 90 Days Rebate:"
       },
       "toast": {
         "uidCopied": "UID copied to clipboard"
@@ -3689,6 +3750,22 @@
     "paybackWithdrawal": {
       "title": "Request Rebate Withdrawal",
       "description": "Withdraw your broker rebates to your registered UID. Minimum withdrawal amount is $50.",
+      "allBrokerAccounts": "All Broker Accounts",
+      "labels": {
+        "inactive": "Inactive",
+        "withdrawable": "Withdrawable",
+        "accumulated": "Accumulated",
+        "withdrawn": "Withdrawn",
+        "minAmount": "Min $50",
+        "withdrawalAmount": "Withdrawal Amount (USD)",
+        "minimum": "Minimum:",
+        "max": "Max",
+        "withdrawalAmountLabel": "Withdrawal Amount",
+        "remainingBalance": "Remaining Balance",
+        "processing": "Processing...",
+        "requestWithdrawal": "Request Withdrawal",
+        "processedWithin": "Processed within 24-48 hours"
+      },
       "form": {
         "selectUid": "Select UID",
         "selectUidPlaceholder": "Choose a UID...",
@@ -3706,6 +3783,34 @@
       "validation": {
         "minimumAmount": "Minimum withdrawal amount is $50",
         "insufficientBalance": "Insufficient balance"
+      },
+      "toast": {
+        "minimumAmountError": "Minimum withdrawal amount is $50.00",
+        "insufficientBalanceError": "Insufficient withdrawable balance",
+        "success": "Withdrawal request submitted successfully"
+      }
+    },
+    "withdrawalStatus": {
+      "title": "Withdrawal Status",
+      "description": "Track the status of your rebate withdrawal requests",
+      "columns": {
+        "brokerUid": "Broker / UID",
+        "amount": "Amount",
+        "status": "Status",
+        "requested": "Requested",
+        "processed": "Processed"
+      },
+      "status": {
+        "approved": "Approved",
+        "pending": "Pending",
+        "rejected": "Rejected",
+        "processing": "Processing",
+        "completed": "Completed",
+        "failed": "Failed"
+      },
+      "emptyState": {
+        "title": "No withdrawal requests",
+        "description": "You haven't submitted any withdrawal requests yet"
       }
     }
   },
@@ -4547,6 +4652,11 @@
         "saveFailed": "Failed to save changes"
       },
       "toasts": { "leaveFailed": "Failed to leave room" }
+    },
+    "ended": {
+      "title": "This Trading Room Has Ended",
+      "description": "This trading room is no longer active. The session has been closed.",
+      "goBackToTrading": "Go Back to Trading"
     },
     "donation": {
       "openButton": "Donation",

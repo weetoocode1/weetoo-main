@@ -481,8 +481,156 @@ if (shouldRunScheduler && !globalAny.__schedulerStarted) {
     }
   );
 
+  cron.schedule(
+    "0 */12 * * *",
+    async () => {
+      try {
+        console.log(
+          "🔄 Starting 12h check for 24h rebate accumulation update at:",
+          new Date().toISOString()
+        );
+
+        const supabase = await createServiceClient();
+        const { fetch24hRebateFromBroker } = await import(
+          "@/lib/utils/fetch-24h-rebate"
+        );
+
+        const { data: allUids, error: fetchError } = await supabase
+          .from("user_broker_uids")
+          .select(
+            "id, exchange_id, uid, accumulated_24h_payback, last_24h_fetch_date"
+          )
+          .not("exchange_id", "is", null);
+
+        if (fetchError) {
+          console.error(
+            "❌ Error fetching UIDs for 24h rebate update:",
+            fetchError
+          );
+          return;
+        }
+
+        if (!allUids || allUids.length === 0) {
+          console.log("✅ No UIDs found for 24h rebate update");
+          return;
+        }
+
+        console.log(`📋 Found ${allUids.length} UIDs to update`);
+
+        let processed = 0;
+        let updated = 0;
+        let errors = 0;
+        const today = new Date().toISOString().split("T")[0];
+
+        for (const uidRecord of allUids) {
+          try {
+            processed++;
+
+            const lastFetchDate = uidRecord.last_24h_fetch_date;
+            if (lastFetchDate === today) {
+              console.log(
+                `⏭️ Skipping UID ${uidRecord.uid} (${uidRecord.exchange_id}) - already updated today (24h update limit)`
+              );
+              continue;
+            }
+
+            const broker = uidRecord.exchange_id as
+              | "deepcoin"
+              | "orangex"
+              | "lbank"
+              | "bingx";
+
+            if (!["deepcoin", "orangex", "lbank", "bingx"].includes(broker)) {
+              console.log(
+                `⏭️ Skipping UID ${uidRecord.uid} - unsupported broker: ${broker}`
+              );
+              continue;
+            }
+
+            console.log(
+              `🔄 Fetching 24h rebate for ${broker} UID ${uidRecord.uid}...`
+            );
+
+            const rebateResult = await fetch24hRebateFromBroker(
+              broker,
+              uidRecord.uid,
+              "PERPETUAL"
+            );
+
+            if (!rebateResult.success) {
+              console.error(
+                `❌ Failed to fetch 24h rebate for ${broker} UID ${uidRecord.uid}:`,
+                rebateResult.error
+              );
+              errors++;
+              continue;
+            }
+
+            const new24hValue = rebateResult.last24h || 0;
+            const currentAccumulated =
+              Number(uidRecord.accumulated_24h_payback) || 0;
+            const newAccumulated = currentAccumulated + new24hValue;
+
+            const { error: updateError } = await supabase
+              .from("user_broker_uids")
+              .update({
+                accumulated_24h_payback: newAccumulated,
+                last_24h_value: new24hValue,
+                last_24h_fetch_date: today,
+              })
+              .eq("id", uidRecord.id);
+
+            if (updateError) {
+              console.error(
+                `❌ Failed to update 24h rebate for ${broker} UID ${uidRecord.uid}:`,
+                updateError
+              );
+              errors++;
+            } else {
+              updated++;
+              console.log(
+                `✅ Updated ${broker} UID ${
+                  uidRecord.uid
+                }: accumulated $${currentAccumulated.toFixed(
+                  4
+                )} + new $${new24hValue.toFixed(4)} = $${newAccumulated.toFixed(
+                  4
+                )}`
+              );
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          } catch (uidError) {
+            console.error(
+              `❌ Error processing UID ${uidRecord.uid}:`,
+              uidError
+            );
+            errors++;
+          }
+        }
+
+        console.log(
+          `✅ 12h check complete: ${processed} processed, ${updated} updated (24h limit), ${errors} errors`
+        );
+      } catch (error) {
+        console.error(
+          "❌ Error in daily 24h rebate accumulation update:",
+          error
+        );
+      }
+    },
+    {
+      timezone: "UTC",
+    }
+  );
+
   console.log("✅ Scheduled order execution engine started successfully");
-  console.log("✅ Mux stream status sync fallback started (every 2 minutes - webhooks are primary)");
+  console.log(
+    "✅ Mux stream status sync fallback started (every 2 minutes - webhooks are primary)"
+  );
+  console.log(
+    "✅ 24h rebate accumulation check scheduled (runs every 12 hours, updates once per 24h)"
+  );
 } else {
   console.log("⚠️ Scheduled order execution engine disabled");
 }

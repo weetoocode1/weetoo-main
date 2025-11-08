@@ -50,6 +50,9 @@ import { cn } from "@/lib/utils";
 import { useTickerData } from "@/hooks/websocket/use-market-data";
 import { usePageVisibility } from "@/hooks/use-page-visibility";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useTranslations } from "next-intl";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
@@ -681,9 +684,48 @@ export function TradingRoomPageClient({
     </div>
   );
 
+  const t = useTranslations("room");
+
   // Show loading while checking authentication
   if (isCheckingAuth) {
     return <LoadingMessage />;
+  }
+
+  // Show ended room message if room status is ended
+  if (currentRoom.room_status === "ended") {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="text-center max-w-md mx-auto px-6">
+          <div className="mb-6">
+            <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-8 w-8 text-muted-foreground"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+          </div>
+          <h1 className="text-2xl font-semibold text-foreground mb-3">
+            {t("ended.title")}
+          </h1>
+          <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+            {t("ended.description")}
+          </p>
+          <Button asChild>
+            <Link href="/trading">{t("ended.goBackToTrading")}</Link>
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   // Show viewer interface for non-creators

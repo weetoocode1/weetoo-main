@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 interface StreamPageClientProps {
   roomId: string;
@@ -25,8 +27,14 @@ interface StreamData {
   customThumbnailUrl?: string;
 }
 
+interface RoomData {
+  creator_id: string;
+  room_status: string;
+}
+
 export function StreamPageClient({ roomId }: StreamPageClientProps) {
   const tDash = useTranslations("stream.dashboard");
+  const t = useTranslations("room");
   const [popoutMode, setPopoutMode] = useState<null | boolean>(null);
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
@@ -34,6 +42,7 @@ export function StreamPageClient({ roomId }: StreamPageClientProps) {
   }, []);
   // Only the room creator can access this page. Others are redirected.
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const [roomData, setRoomData] = useState<RoomData | null>(null);
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -47,13 +56,14 @@ export function StreamPageClient({ roomId }: StreamPageClientProps) {
         }
         const { data: room } = await supabase
           .from("trading_rooms")
-          .select("creator_id")
+          .select("creator_id, room_status")
           .eq("id", roomId)
           .single();
         if (!room || room.creator_id !== user.id) {
           window.location.assign("/trading");
           return;
         }
+        setRoomData(room);
         setIsAuthorized(true);
       } catch {
         window.location.assign("/trading");
@@ -196,13 +206,49 @@ export function StreamPageClient({ roomId }: StreamPageClientProps) {
     );
   }
 
+  if (roomData?.room_status === "ended") {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="text-center max-w-md mx-auto px-6">
+          <div className="mb-6">
+            <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-8 w-8 text-muted-foreground"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+          </div>
+          <h1 className="text-2xl font-semibold text-foreground mb-3">
+            {t("ended.title")}
+          </h1>
+          <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+            {t("ended.description")}
+          </p>
+          <Button asChild>
+            <Link href="/trading">{t("ended.goBackToTrading")}</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full w-full gap-2 p-4 overflow-y-auto scrollbar-none flex-col lg:flex-row">
       <div className="flex-1 min-w-0">
         <StreamDashboard streamData={streamData} roomId={roomId} />
       </div>
       <div className="w-full lg:w-[420px] shrink-0 lg:h-full">
-      <StreamChat />
+        <StreamChat />
       </div>
     </div>
   );
