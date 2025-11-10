@@ -228,7 +228,7 @@ export function QuantityInput({
               {unitSymbol} <ChevronDownIcon className="h-3.5 w-3.5" />
             </button>
           </DialogTrigger>
-          <DialogContent className="!sm:max-w-lg !max-w-lg">
+          <DialogContent className="!sm:max-w-lg max-w-lg!">
             <DialogHeader>
               <DialogTitle className="text-base">
                 {t("quantity.dialog.title")}

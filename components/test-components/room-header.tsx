@@ -385,7 +385,7 @@ export function RoomHeader({
   }, []);
 
   return (
-    <div className="w-full lg:h-[50px] h-auto flex flex-col lg:flex-row items-center border border-border rounded-none text-sm px-3 flex-shrink-0 py-2 lg:py-0">
+    <div className="w-full lg:h-[50px] h-auto flex flex-col lg:flex-row items-center border border-border rounded-none text-sm px-3 shrink-0 py-2 lg:py-0">
       {/* Desktop Layout - Side by side */}
       <div className="hidden lg:flex items-center justify-between w-full">
         <div className="flex items-center gap-2">
@@ -436,13 +436,13 @@ export function RoomHeader({
 
           {isEditDialogOpen && (
             <div
-              className="fixed inset-0 z-[9999] flex items-center justify-center"
+              className="fixed inset-0 z-9999 flex items-center justify-center"
               onClick={() => handleDialogOpenChange(false)}
             >
               <div className="absolute inset-0 bg-background/50 backdrop-blur-sm" />
 
               <div
-                className="relative z-[9999] w-full max-w-lg mx-4 bg-background border border-border rounded-lg p-6 shadow-lg animate-in fade-in-0 zoom-in-95"
+                className="relative z-9999 w-full max-w-lg mx-4 bg-background border border-border rounded-lg p-6 shadow-lg animate-in fade-in-0 zoom-in-95"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="p-0 mb-5 flex items-center justify-between gap-3">
@@ -577,7 +577,7 @@ export function RoomHeader({
       <div className="hidden lg:flex items-center gap-2">
         <Button
           variant="outline"
-          className="rounded-md h-9 !bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-600"
+          className="rounded-md h-9 bg-blue-50! hover:bg-blue-100 text-blue-600 hover:text-blue-600"
           asChild
         >
           <Link href={`/trading-room/${room.id}/stream`}>
@@ -801,13 +801,13 @@ export function RoomHeader({
 
             {isEditDialogOpen && (
               <div
-                className="fixed inset-0 z-[9999] flex items-center justify-center"
+                className="fixed inset-0 z-9999 flex items-center justify-center"
                 onClick={() => handleDialogOpenChange(false)}
               >
                 <div className="absolute inset-0 bg-background/50 backdrop-blur-sm" />
 
                 <div
-                  className="relative z-[9999] w-full max-w-lg mx-4 bg-background border border-border rounded-lg p-6 shadow-lg animate-in fade-in-0 zoom-in-95"
+                  className="relative z-9999 w-full max-w-lg mx-4 bg-background border border-border rounded-lg p-6 shadow-lg animate-in fade-in-0 zoom-in-95"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="p-0 mb-5 flex items-center justify-between gap-3">
@@ -967,7 +967,7 @@ export function RoomHeader({
         <div className="flex items-center justify-between w-full gap-2">
           <Button
             variant="outline"
-            className="rounded-md h-8 text-xs !bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-600"
+            className="rounded-md h-8 text-xs bg-blue-50! hover:bg-blue-100 text-blue-600 hover:text-blue-600"
             asChild
           >
             <Link href={`/trading-room/${room.id}/stream`}>

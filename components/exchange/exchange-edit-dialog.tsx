@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
   TooltipContent,
@@ -19,7 +20,6 @@ import {
 import { Check, Edit3, Info, Save, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import { type Exchange } from "./exchanges-data";
 
 interface ExchangeEditDialogProps {
@@ -64,10 +64,8 @@ export function ExchangeEditDialog({
       };
 
       await onSave(payload);
-      toast.success(t("toast.updated", { name: editedExchange.name }));
       onOpenChange(false);
     } catch (_error) {
-      toast.error(t("toast.updateFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -181,10 +179,10 @@ export function ExchangeEditDialog({
   const scoreBreakdown = calculateScoreBreakdown(editedExchange);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
       <DialogContent className="max-w-4xl h-[70vh] flex flex-col">
         {/* Fixed Header */}
-        <DialogHeader className="flex-shrink-0 pb-4">
+        <DialogHeader className="shrink-0 pb-4">
           <DialogTitle className="flex items-center gap-2">
             <Edit3 className="w-5 h-5" />
             {t("editExchange")}: {exchange.name}
@@ -364,6 +362,46 @@ export function ExchangeEditDialog({
               </div>
             </div>
 
+            {/* Description */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">
+                {t("description")}
+              </h3>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="description">{t("description")}</Label>
+                  <span
+                    className={`text-xs ${
+                      (editedExchange.description?.length || 0) > 1000
+                        ? "text-red-500"
+                        : (editedExchange.description?.length || 0) > 800
+                        ? "text-amber-500"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {editedExchange.description?.length || 0}/1000
+                  </span>
+                </div>
+                <Textarea
+                  id="description"
+                  value={editedExchange.description || ""}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value.length <= 1000) {
+                      handleInputChange("description", value);
+                    }
+                  }}
+                  placeholder={
+                    t("descriptionPlaceholder") ||
+                    "Enter exchange description..."
+                  }
+                  rows={7}
+                  className="resize-none min-h-[160px]"
+                  maxLength={1000}
+                />
+              </div>
+            </div>
+
             {/* Tags Management (bottom) */}
             <div className="space-y-3 pt-2">
               <h3 className="text-lg font-semibold border-b pb-2">
@@ -405,7 +443,7 @@ export function ExchangeEditDialog({
         </ScrollArea>
 
         {/* Fixed Footer */}
-        <div className="flex-shrink-0 flex justify-end gap-3 pt-6 border-t mt-4">
+        <div className="shrink-0 flex justify-end gap-3 pt-6 border-t mt-4">
           <Button
             variant="outline"
             onClick={handleCancel}

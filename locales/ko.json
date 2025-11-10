@@ -1545,6 +1545,8 @@
     "cancel": "취소",
     "saveChanges": "변경사항 저장",
     "saving": "저장 중...",
+    "description": "설명",
+    "descriptionPlaceholder": "거래소 설명을 입력하세요...",
     "toast": {
       "uidAdded": "UID가 성공적으로 추가되었습니다",
       "uidAddFailed": "UID 추가에 실패했습니다. 다시 시도해 주세요.",

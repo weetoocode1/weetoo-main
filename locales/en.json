@@ -1751,6 +1751,8 @@
     "cancel": "Cancel",
     "saveChanges": "Save Changes",
     "saving": "Saving...",
+    "description": "Description",
+    "descriptionPlaceholder": "Enter exchange description...",
     "toast": {
       "updated": "Updated {name} successfully",
       "updateFailed": "Failed to update exchange"
