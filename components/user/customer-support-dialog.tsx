@@ -19,7 +19,7 @@ import { useTranslations } from "next-intl";
 export function CustomerSupportDialog() {
   const t = useTranslations("customerSupport");
   return (
-    <Dialog>
+    <Dialog modal={false}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="rounded-lg">
           <TooltipProvider>

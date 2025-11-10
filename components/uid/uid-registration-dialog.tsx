@@ -43,13 +43,6 @@ const BROKERS = [
     logo: "/broker/bingx.png",
   },
   {
-    id: "okx",
-    name: "OKX",
-    paybackRate: 70,
-    status: "coming-soon",
-    logo: "/broker/okx.png",
-  },
-  {
     id: "orangex",
     name: "OrangeX",
     paybackRate: 50,

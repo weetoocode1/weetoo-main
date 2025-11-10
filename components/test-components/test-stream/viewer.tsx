@@ -531,7 +531,7 @@ export function Viewer({ roomId }: ViewerProps) {
           {roomDescription ? (
             <div className="mt-3">
               <div className={showFullDesc ? "" : "line-clamp-2"}>
-                <p className="text-sm text-muted-foreground leading-6 whitespace-pre-wrap break-words">
+                <p className="text-sm text-muted-foreground leading-6 whitespace-pre-wrap wrap-break-word">
                   {roomDescription}
                 </p>
               </div>

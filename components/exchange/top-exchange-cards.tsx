@@ -179,10 +179,10 @@ const TraderCard = memo(
               <Badge
                 className={
                   data.rank === 1
-                    ? "bg-yellow-400/20 text-yellow-200 border border-yellow-400/60 px-4 py-2.5 text-base font-bold shadow-lg"
+                    ? "bg-yellow-400/20 text-primary dark:text-yellow-200 border border-yellow-400/60 px-4 py-2.5 text-base font-bold shadow-lg"
                     : data.rank === 2
-                    ? "bg-slate-200/10 text-slate-200 border border-slate-400/50 px-3.5 py-2 text-sm font-semibold shadow-md"
-                    : "bg-amber-700/20 text-amber-300 border border-amber-500/50 px-3.5 py-2 text-sm font-semibold shadow-md"
+                    ? "bg-slate-200/10 text-primary dark:text-slate-200 border border-slate-400/50 px-3.5 py-2 text-sm font-semibold shadow-md"
+                    : "bg-amber-700/20 text-primary dark:text-amber-300 border border-amber-500/50 px-3.5 py-2 text-sm font-semibold shadow-md"
                 }
               >
                 {data.rank === 1 ? (

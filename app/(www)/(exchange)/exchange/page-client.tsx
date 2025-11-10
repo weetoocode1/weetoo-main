@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { PartnerExchangeComparison } from "@/components/exchange/partner-exchange-comparison";
 import { TopExchangeCards } from "@/components/exchange/top-exchange-cards";
+import { PaybackAnnouncementDialog } from "@/components/exchange/payback-announcement-dialog";
 
 export function BrokerPageClient() {
   const t = useTranslations("broker");
@@ -32,6 +33,7 @@ export function BrokerPageClient() {
         <TopExchangeCards />
       </div>
       <PartnerExchangeComparison />
+      <PaybackAnnouncementDialog />
     </div>
   );
 }

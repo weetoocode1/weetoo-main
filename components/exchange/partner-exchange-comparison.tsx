@@ -147,7 +147,10 @@ export const PartnerExchangeComparison = () => {
   };
 
   const filteredAndSortedExchanges = useMemo(() => {
-    let filtered = [...exchanges];
+    const exchangesWithUidAndSignup = ["deepcoin", "orangex", "lbank", "bingx"];
+    let filtered = exchanges.filter((exchange) =>
+      exchangesWithUidAndSignup.includes(exchange.id)
+    );
 
     switch (activeFilter) {
       case "recommended":
@@ -309,7 +312,7 @@ export const PartnerExchangeComparison = () => {
               className="bg-background border border-border/35 rounded-lg p-6 animate-pulse"
             >
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-muted rounded-lg" />
+                <div className="w-12 h-12 bg-muted rounded-full" />
                 <div className="flex-1">
                   <div className="h-4 bg-muted rounded mb-2" />
                   <div className="h-3 bg-muted rounded w-2/3" />
@@ -432,32 +435,32 @@ export const PartnerExchangeComparison = () => {
                           )}
                         </div>
                       </td>
-                      <td className="text-center p-5">
-                        <div className="flex items-center justify-center gap-4">
+                      <td className="p-5">
+                        <div className="flex items-center gap-4">
                           {exchange.logoImage ? (
-                            <div className="w-14 h-14 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden bg-muted/20 shadow-sm ring-1 ring-border/20">
+                            <div className="w-14 h-14 rounded-full shrink-0 flex items-center justify-center overflow-hidden bg-muted/20 shadow-sm ring-1 ring-border/20">
                               <Image
                                 src={exchange.logoImage}
                                 alt={`${exchange.name} logo`}
                                 width={56}
                                 height={56}
-                                className="object-contain rounded-full"
+                                className="object-contain w-full h-full p-1.5"
                                 draggable={false}
                               />
                             </div>
                           ) : (
                             <div
-                              className="w-14 h-14 rounded-xl flex-shrink-0 flex items-center justify-center text-white font-medium text-sm shadow-sm ring-1 ring-border/20"
+                              className="w-14 h-14 rounded-full shrink-0 flex items-center justify-center text-white font-medium text-sm shadow-sm ring-1 ring-border/20"
                               style={{ backgroundColor: exchange.logoColor }}
                             >
                               {exchange.logo}
                             </div>
                           )}
-                          <div className="text-center">
-                            <div className="font-semibold text-foreground text-lg">
+                          <div className="flex flex-col justify-center">
+                            <div className="font-semibold text-foreground text-lg leading-tight">
                               {exchange.name}
                             </div>
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-sm text-muted-foreground leading-tight">
                               {exchange.website}
                             </div>
                           </div>
@@ -553,16 +556,13 @@ export const PartnerExchangeComparison = () => {
                     </tr>
                     {expandedExchangeId === exchange.id && (
                       <tr className="bg-muted/10">
-                        <td
-                          colSpan={isSuperAdmin ? 10 : 9}
-                          className="text-center p-5"
-                        >
+                        <td colSpan={isSuperAdmin ? 10 : 9} className="p-5">
                           <div className="flex flex-col gap-4 rounded-lg border border-border/40 bg-gradient-to-r from-muted/40 to-muted/20 p-4">
-                            {(descriptionOverrides[exchange.id] ||
-                              exchange.description) && (
-                              <div className="text-sm text-foreground/90">
-                                {descriptionOverrides[exchange.id] ||
-                                  exchange.description}
+                            {(exchange.description ||
+                              descriptionOverrides[exchange.id]) && (
+                              <div className="text-sm text-foreground/90 text-left break-words leading-relaxed">
+                                {exchange.description ||
+                                  descriptionOverrides[exchange.id]}
                               </div>
                             )}
                             {/* Highlights removed as requested */}
@@ -703,19 +703,19 @@ export const PartnerExchangeComparison = () => {
               >
                 <div className="flex items-center gap-3 mb-4">
                   {exchange.logoImage ? (
-                    <div className="w-16 h-16 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
+                    <div className="w-16 h-16 rounded-full shrink-0 flex items-center justify-center overflow-hidden bg-muted/20 shadow-sm ring-1 ring-border/20">
                       <Image
                         src={exchange.logoImage}
                         alt={`${exchange.name} logo`}
                         width={60}
                         height={60}
-                        className="object-contain rounded-full"
+                        className="object-contain w-full h-full p-1.5"
                         draggable={false}
                       />
                     </div>
                   ) : (
                     <div
-                      className="w-12 h-12 rounded-lg flex-shrink-0 flex items-center justify-center text-white font-medium text-sm border border-border"
+                      className="w-16 h-16 rounded-full shrink-0 flex items-center justify-center text-white font-medium text-sm shadow-sm ring-1 ring-border/20"
                       style={{ backgroundColor: exchange.logoColor }}
                     >
                       {exchange.logo}

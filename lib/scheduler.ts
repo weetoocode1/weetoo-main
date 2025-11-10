@@ -527,7 +527,11 @@ if (shouldRunScheduler && !globalAny.__schedulerStarted) {
             processed++;
 
             const lastFetchDate = uidRecord.last_24h_fetch_date;
-            if (lastFetchDate === today) {
+            const lastFetchDateStr = lastFetchDate
+              ? new Date(lastFetchDate).toISOString().split("T")[0]
+              : null;
+            
+            if (lastFetchDateStr === today) {
               console.log(
                 `⏭️ Skipping UID ${uidRecord.uid} (${uidRecord.exchange_id}) - already updated today (24h update limit)`
               );
@@ -571,14 +575,15 @@ if (shouldRunScheduler && !globalAny.__schedulerStarted) {
               Number(uidRecord.accumulated_24h_payback) || 0;
             const newAccumulated = currentAccumulated + new24hValue;
 
-            const { error: updateError } = await supabase
+            const { data: updateData, error: updateError } = await supabase
               .from("user_broker_uids")
               .update({
                 accumulated_24h_payback: newAccumulated,
                 last_24h_value: new24hValue,
                 last_24h_fetch_date: today,
               })
-              .eq("id", uidRecord.id);
+              .eq("id", uidRecord.id)
+              .select("id, last_24h_fetch_date");
 
             if (updateError) {
               console.error(
@@ -586,8 +591,14 @@ if (shouldRunScheduler && !globalAny.__schedulerStarted) {
                 updateError
               );
               errors++;
+            } else if (!updateData || updateData.length === 0) {
+              console.error(
+                `❌ No rows updated for ${broker} UID ${uidRecord.uid} (ID: ${uidRecord.id}) - row may not exist`
+              );
+              errors++;
             } else {
               updated++;
+              const updatedDate = updateData[0]?.last_24h_fetch_date;
               console.log(
                 `✅ Updated ${broker} UID ${
                   uidRecord.uid
@@ -595,7 +606,7 @@ if (shouldRunScheduler && !globalAny.__schedulerStarted) {
                   4
                 )} + new $${new24hValue.toFixed(4)} = $${newAccumulated.toFixed(
                   4
-                )}`
+                )}, last_24h_fetch_date: ${updatedDate || "NOT SET"}`
               );
             }
 

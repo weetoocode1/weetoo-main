@@ -1174,7 +1174,7 @@ export function TradingRoomsList() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-9 px-3 flex-shrink-0"
+                    className="h-9 px-3 shrink-0"
                   >
                     <FilterIcon className="h-4 w-4 mr-2" />
                     {t("typeFilter")}
@@ -1245,7 +1245,7 @@ export function TradingRoomsList() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-9 px-3 flex-shrink-0"
+                    className="h-9 px-3 shrink-0"
                   >
                     <FilterIcon className="h-4 w-4 mr-2" />
                     {t("accessFilter")}
@@ -1291,7 +1291,7 @@ export function TradingRoomsList() {
           </div>
 
           {/* Create Room Button */}
-          <div className="flex-shrink-0 ml-2">
+          <div className="shrink-0 ml-2">
             <CreateRoom />
           </div>
         </div>
@@ -1474,17 +1474,17 @@ export function TradingRoomsList() {
             >
               {/* Thumbnail Container Skeleton */}
               <div className="relative aspect-video rounded-t-lg overflow-hidden bg-muted">
-                <div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-muted/30 animate-pulse" />
+                <div className="absolute inset-0 bg-linear-to-br from-muted/50 to-muted/30 animate-pulse" />
               </div>
 
               {/* Content Area Skeleton */}
-              <div className="relative p-4 border border-border border-t-0 bg-gradient-to-br from-card/80 via-card/60 to-card/40 backdrop-blur-sm rounded-b-lg overflow-hidden">
+              <div className="relative p-4 border border-border border-t-0 bg-linear-to-br from-card/80 via-card/60 to-card/40 backdrop-blur-sm rounded-b-lg overflow-hidden">
                 {/* Top section with avatar and title */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     {/* Avatar skeleton */}
                     <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-muted/30 to-muted/10 rounded-full blur-sm" />
+                      <div className="absolute inset-0 bg-linear-to-r from-muted/30 to-muted/10 rounded-full blur-sm" />
                       <Skeleton className="h-10 w-10 rounded-full relative z-10" />
                     </div>
 
@@ -1498,7 +1498,7 @@ export function TradingRoomsList() {
 
                   {/* Status badge skeleton */}
                   <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-muted/20 to-muted/10 rounded-full blur-sm" />
+                    <div className="absolute inset-0 bg-linear-to-r from-muted/20 to-muted/10 rounded-full blur-sm" />
                     <Skeleton className="h-6 w-16 rounded-full relative z-10" />
                   </div>
                 </div>
@@ -1537,13 +1537,13 @@ export function TradingRoomsList() {
                 className="group relative bg-background rounded-lg overflow-hidden border border-border"
               >
                 <div className="relative aspect-video rounded-t-lg overflow-hidden bg-muted">
-                  <div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-muted/30 animate-pulse" />
+                  <div className="absolute inset-0 bg-linear-to-br from-muted/50 to-muted/30 animate-pulse" />
                 </div>
-                <div className="relative p-4 border border-border border-t-0 bg-gradient-to-br from-card/80 via-card/60 to-card/40 backdrop-blur-sm rounded-b-lg overflow-hidden">
+                <div className="relative p-4 border border-border border-t-0 bg-linear-to-br from-card/80 via-card/60 to-card/40 backdrop-blur-sm rounded-b-lg overflow-hidden">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className="relative">
-                        <div className="absolute inset-0 bg-gradient-to-r from-muted/30 to-muted/10 rounded-full blur-sm" />
+                        <div className="absolute inset-0 bg-linear-to-r from-muted/30 to-muted/10 rounded-full blur-sm" />
                         <Skeleton className="h-10 w-10 rounded-full relative z-10" />
                       </div>
                       <div className="min-w-0">
@@ -1552,7 +1552,7 @@ export function TradingRoomsList() {
                       </div>
                     </div>
                     <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-muted/20 to-muted/10 rounded-full blur-sm" />
+                      <div className="absolute inset-0 bg-linear-to-r from-muted/20 to-muted/10 rounded-full blur-sm" />
                       <Skeleton className="h-6 w-16 rounded-full relative z-10" />
                     </div>
                   </div>
@@ -1701,12 +1701,12 @@ export function TradingRoomsList() {
                 </div>
 
                 {/* Video Info */}
-                <div className="relative p-4 border border-border border-t-0 bg-gradient-to-br from-card/80 via-card/60 to-card/40 backdrop-blur-sm rounded-b-lg overflow-hidden group">
+                <div className="relative p-4 border border-border border-t-0 bg-linear-to-br from-card/80 via-card/60 to-card/40 backdrop-blur-sm rounded-b-lg overflow-hidden group">
                   {/* Animated background gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="absolute inset-0 bg-linear-to-r from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
                   {/* Glow effect on hover */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-primary/20 opacity-0 group-hover:opacity-100 transition-all duration-300 blur-xl" />
+                  <div className="absolute inset-0 bg-linear-to-r from-primary/20 via-transparent to-primary/20 opacity-0 group-hover:opacity-100 transition-all duration-300 blur-xl" />
 
                   {/* Main content */}
                   <div className="relative z-10">
@@ -1715,13 +1715,13 @@ export function TradingRoomsList() {
                       <div className="flex items-center gap-3">
                         {/* Glowing avatar */}
                         <div className="relative">
-                          <div className="absolute inset-0 bg-gradient-to-r from-primary/30 to-primary/10 rounded-full blur-sm group-hover:blur-md transition-all duration-300" />
-                          <Avatar className="h-10 w-10 flex-shrink-0 relative z-10 ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all duration-300">
+                          <div className="absolute inset-0 bg-linear-to-r from-primary/30 to-primary/10 rounded-full blur-sm group-hover:blur-md transition-all duration-300" />
+                          <Avatar className="h-10 w-10 shrink-0 relative z-10 ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all duration-300">
                             <AvatarImage
                               src={room.creator.avatar}
                               alt={room.creator.name}
                             />
-                            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary-foreground text-sm font-bold">
+                            <AvatarFallback className="bg-linear-to-br from-primary/20 to-primary/10 text-primary-foreground text-sm font-bold">
                               {room.creator.name.charAt(0)}
                             </AvatarFallback>
                           </Avatar>
@@ -1739,13 +1739,13 @@ export function TradingRoomsList() {
 
                       {/* Floating status badge */}
                       <div className="relative">
-                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 rounded-full blur-sm group-hover:blur-md transition-all duration-300" />
+                        <div className="absolute inset-0 bg-linear-to-r from-emerald-500/20 to-blue-500/20 rounded-full blur-sm group-hover:blur-md transition-all duration-300" />
                         <div
                           className={cn(
                             "relative z-10 px-3 py-1 rounded-full text-xs font-bold text-white backdrop-blur-sm border border-white/20",
                             room.category === "voice"
-                              ? "bg-gradient-to-r from-blue-500 to-blue-600"
-                              : "bg-gradient-to-br from-emerald-500 to-emerald-600"
+                              ? "bg-linear-to-r from-blue-500 to-blue-600"
+                              : "bg-linear-to-br from-emerald-500 to-emerald-600"
                           )}
                         >
                           {room.category === "voice" ? t("voice") : t("chat")}
