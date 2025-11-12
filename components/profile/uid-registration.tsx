@@ -4,6 +4,7 @@ import {
   useBrokerAPIActive,
   useBrokerCommissionData,
   useBrokerReferrals,
+  useBrokerTradingHistory,
   useBrokerUIDVerification,
 } from "@/hooks/broker/use-broker-api";
 import { useAddUserUid, useUserUids } from "@/hooks/use-user-uids";
@@ -154,6 +155,7 @@ interface UidRecord {
   status: "pending" | "verified" | "failed";
   paybackRate: number;
   accumulated24hPayback?: number;
+  last24hValue?: number;
   withdrawnAmount?: number;
   withdrawableBalance?: number;
 }
@@ -206,6 +208,7 @@ export function UidRegistration() {
           | "failed",
         paybackRate: broker?.paybackRate ?? 0,
         accumulated24hPayback: Number(row.accumulated_24h_payback) || 0,
+        last24hValue: Number(row.last_24h_value) || 0,
         withdrawnAmount: Number(row.withdrawn_amount) || 0,
         withdrawableBalance: Number(row.withdrawable_balance) || 0,
       } as UidRecord;
@@ -339,15 +342,49 @@ function UIDCard({
     record.brokerId === "bingx" ? referrals : undefined
   );
 
+  // Get trading history - only active when broker API is active
+  const tradingHistory = useBrokerTradingHistory(
+    record.brokerId,
+    record.uid,
+    isBrokerActive.data === true
+  );
+
   // Use database values directly (calculated by DB trigger)
   const accumulatedPayback = record.accumulated24hPayback || 0;
   const withdrawnAmount = record.withdrawnAmount || 0;
   const withdrawableBalance = record.withdrawableBalance || 0;
+  // Note: displayedTotal calculated after commissionTotals is available
 
   // Get commission totals from API response (backend provides cached totals)
   const getCommissionTotals = () => {
+    // For LBank and OrangeX, use trading history summaries if available
+    if (
+      (record.brokerId === "lbank" || record.brokerId === "orangex") &&
+      tradingHistory.data &&
+      Array.isArray(tradingHistory.data) &&
+      tradingHistory.data.length > 0
+    ) {
+      const firstTrade = tradingHistory.data[0] as {
+        _summaries?: {
+          last24h?: { commissionUsdt?: number };
+          last30d?: { commissionUsdt?: number };
+          last90d?: { commissionUsdt?: number };
+        };
+      };
+
+      if (firstTrade?._summaries) {
+        return {
+          last24h: firstTrade._summaries.last24h?.commissionUsdt || 0,
+          last30d: firstTrade._summaries.last30d?.commissionUsdt || 0,
+          last60d: 0,
+          last90d: firstTrade._summaries.last90d?.commissionUsdt || 0,
+        };
+      }
+    }
+
     if (!commission.data) {
       return {
+        last24h: 0,
         last30d: 0,
         last60d: 0,
         last90d: 0,
@@ -370,6 +407,7 @@ function UIDCard({
         };
       };
       return {
+        last24h: 0,
         last30d: response.totals.last30d || 0,
         last60d: response.totals.last60d || 0,
         last90d: response.totals.last90d || 0,
@@ -405,6 +443,7 @@ function UIDCard({
       });
 
       return {
+        last24h: 0,
         last30d: sumCommission(rows30d),
         last60d: 0,
         last90d: 0,
@@ -412,6 +451,7 @@ function UIDCard({
     }
 
     return {
+      last24h: 0,
       last30d: 0,
       last60d: 0,
       last90d: 0,
@@ -420,6 +460,30 @@ function UIDCard({
 
   const commissionTotals = getCommissionTotals();
   const isCommissionLoading = commission.isLoading || commission.isFetching;
+  const isTradingHistoryLoading =
+    tradingHistory.isLoading || tradingHistory.isFetching;
+
+  // For LBank and OrangeX, use trading history loading state; for others, use commission loading
+  const isLoadingTotals =
+    record.brokerId === "lbank" || record.brokerId === "orangex"
+      ? isTradingHistoryLoading
+      : isCommissionLoading;
+
+  // Displayed total: persisted accumulated + today's 24h (prefer DB; fallback to live for LBank/OrangeX)
+  const liveLast24h =
+    (record.brokerId === "lbank" || record.brokerId === "orangex") &&
+    commissionTotals?.last24h
+      ? Number(commissionTotals.last24h) || 0
+      : 0;
+  const dbLast24h = record.last24hValue ?? 0;
+  // Do NOT double-count: prefer accumulated (already includes today's 24h on registration),
+  // otherwise use DB last_24h_value, otherwise fallback to live for LBank.
+  const displayedTotal =
+    accumulatedPayback > 0
+      ? accumulatedPayback
+      : dbLast24h > 0
+      ? dbLast24h
+      : liveLast24h;
   const hasRefetchedRef = useRef(false);
   const refetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -439,7 +503,7 @@ function UIDCard({
     ) {
       const expectedTotalKey =
         record.brokerId === "deepcoin" ? "last60d" : "last90d";
-      
+
       // Check if response has totals object
       const hasTotalsObject =
         commission.data &&
@@ -455,11 +519,11 @@ function UIDCard({
             last90d?: number;
           };
         };
-        
+
         // Check if the expected key exists in totals object
         // If key is missing (undefined), cache is not ready yet
         const totalsHasKey = expectedTotalKey in response.totals;
-        
+
         // If totals object exists but the expected key is missing, cache is being populated
         if (!totalsHasKey) {
           hasRefetchedRef.current = true;
@@ -660,7 +724,7 @@ function UIDCard({
 
             {/* UID below the name */}
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-[10px] sm:text-xs text-muted-foreground font-mono bg-muted px-2 py-1 truncate max-w-[60%] sm:max-w-none">
+              <span className="text-[10px] sm:text-xs text-muted-foreground font-mono bg-muted px-2 py-1 truncate max-w-[80%] sm:max-w-none">
                 {record.uid}
               </span>
               <Button
@@ -698,7 +762,7 @@ function UIDCard({
 
             {/* Status Indicators - Bottom line */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-3 text-[11px] sm:text-xs text-muted-foreground w-full">
-              <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 break-words whitespace-normal">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 whitespace-normal">
                 <div className="flex items-center gap-1.5">
                   {uidVerification.isLoading && !uidVerification.isError ? (
                     <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
@@ -741,24 +805,44 @@ function UIDCard({
       {/* Stats Grid */}
       <div className="p-4 sm:p-5 pb-2">
         <div className="grid grid-cols-1 gap-3">
-          {/* Total accumulated payback */}
+          {/* Total accumulated payback (includes today's 24h if available) */}
           <div className="p-3 sm:p-4 border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 text-center">
             <div className="text-xl sm:text-2xl font-semibold text-emerald-700 dark:text-emerald-300 font-mono mb-1 sm:mb-2">
-              ${accumulatedPayback.toFixed(4)}
+              ${displayedTotal.toFixed(4)}
             </div>
-            <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+            <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1">
               <span>{t("stats.totalAccumulatedPayback")}</span>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="w-3 h-3 cursor-help" />
                   </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs">
-                    <p className="text-xs">{t("stats.totalAccumulatedPaybackTooltip")}</p>
+                  <TooltipContent side="top" className="max-w-sm">
+                    <div className="text-xs space-y-1">
+                      <p>{t("stats.totalAccumulatedPaybackTooltip")}</p>
+
+                      {(record.brokerId === "lbank" ||
+                        record.brokerId === "orangex") &&
+                        accumulatedPayback <= 0 &&
+                        dbLast24h <= 0 &&
+                        liveLast24h > 0 && (
+                          <p className="text-emerald-600 dark:text-emerald-400">
+                            Includes today&apos;s 24h (live): $
+                            {liveLast24h.toFixed(4)}
+                          </p>
+                        )}
+                    </div>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
+            {/* Live 24h value from trading history (LBank and OrangeX) */}
+            {(record.brokerId === "lbank" || record.brokerId === "orangex") &&
+              commissionTotals.last24h > 0 && (
+                <div className="text-[0.75rem] text-emerald-500 dark:text-emerald-400 font-medium mt-1">
+                  Last 24h: ${commissionTotals.last24h.toFixed(4)}
+                </div>
+              )}
           </div>
 
           {/* Withdrawn and Withdrawable */}
@@ -792,7 +876,7 @@ function UIDCard({
                 ? t("stats.last60Days")
                 : t("stats.last90Days")}
             </span>
-            {isCommissionLoading ? (
+            {isLoadingTotals ? (
               <div className="h-4 w-16 bg-muted animate-pulse rounded" />
             ) : (
               <span className="text-foreground font-medium font-mono">
@@ -805,7 +889,7 @@ function UIDCard({
           </div>
           <div className="flex items-center justify-between gap-2">
             <span>{t("stats.last30Days")}</span>
-            {isCommissionLoading ? (
+            {isLoadingTotals ? (
               <div className="h-4 w-16 bg-muted animate-pulse rounded" />
             ) : (
               <span className="text-foreground font-medium font-mono">

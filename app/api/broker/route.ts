@@ -109,11 +109,28 @@ export async function POST(request: NextRequest) {
             }
           } else if (action === "isReferral") {
             params = [uid];
+          } else if (action === "getTradingHistory") {
+            params = [uid];
+            console.log("[API Broker] Calling getTradingHistory", {
+              broker,
+              uid,
+              params,
+            });
           } else {
             params = [uid];
           }
 
+          console.log("[API Broker] About to call method", {
+            broker,
+            action,
+            params,
+          });
           result = await method.call(brokerInstance, ...params);
+          console.log("[API Broker] Method call completed", {
+            broker,
+            action,
+            resultLength: Array.isArray(result) ? result.length : "not array",
+          });
         }
       } catch (methodError) {
         console.error(`Method ${action} execution failed:`, methodError);

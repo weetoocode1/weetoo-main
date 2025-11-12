@@ -482,7 +482,7 @@ if (shouldRunScheduler && !globalAny.__schedulerStarted) {
   );
 
   cron.schedule(
-    "0 */12 * * *",
+    "* * * * *",
     async () => {
       try {
         console.log(
@@ -507,11 +507,17 @@ if (shouldRunScheduler && !globalAny.__schedulerStarted) {
             "❌ Error fetching UIDs for 24h rebate update:",
             fetchError
           );
+          console.log(
+            "✅ 12h check complete: 0 processed, 0 updated, 1 errors"
+          );
           return;
         }
 
         if (!allUids || allUids.length === 0) {
           console.log("✅ No UIDs found for 24h rebate update");
+          console.log(
+            "✅ 12h check complete: 0 processed, 0 updated, 0 errors"
+          );
           return;
         }
 
@@ -526,18 +532,6 @@ if (shouldRunScheduler && !globalAny.__schedulerStarted) {
           try {
             processed++;
 
-            const lastFetchDate = uidRecord.last_24h_fetch_date;
-            const lastFetchDateStr = lastFetchDate
-              ? new Date(lastFetchDate).toISOString().split("T")[0]
-              : null;
-            
-            if (lastFetchDateStr === today) {
-              console.log(
-                `⏭️ Skipping UID ${uidRecord.uid} (${uidRecord.exchange_id}) - already updated today (24h update limit)`
-              );
-              continue;
-            }
-
             const broker = uidRecord.exchange_id as
               | "deepcoin"
               | "orangex"
@@ -547,6 +541,17 @@ if (shouldRunScheduler && !globalAny.__schedulerStarted) {
             if (!["deepcoin", "orangex", "lbank", "bingx"].includes(broker)) {
               console.log(
                 `⏭️ Skipping UID ${uidRecord.uid} - unsupported broker: ${broker}`
+              );
+              continue;
+            }
+
+            // Skip if we've already updated this UID today
+            if (
+              uidRecord.last_24h_fetch_date &&
+              String(uidRecord.last_24h_fetch_date) === today
+            ) {
+              console.log(
+                `⏭️ Skipping ${broker} UID ${uidRecord.uid} - already updated for ${today}`
               );
               continue;
             }
@@ -621,7 +626,7 @@ if (shouldRunScheduler && !globalAny.__schedulerStarted) {
         }
 
         console.log(
-          `✅ 12h check complete: ${processed} processed, ${updated} updated (24h limit), ${errors} errors`
+          `✅ 12h check complete: ${processed} processed, ${updated} updated, ${errors} errors`
         );
       } catch (error) {
         console.error(
@@ -640,7 +645,7 @@ if (shouldRunScheduler && !globalAny.__schedulerStarted) {
     "✅ Mux stream status sync fallback started (every 2 minutes - webhooks are primary)"
   );
   console.log(
-    "✅ 24h rebate accumulation check scheduled (runs every 12 hours, updates once per 24h)"
+    "✅ 24h rebate accumulation check scheduled (runs every 1 minute, updates once per 24h)"
   );
 } else {
   console.log("⚠️ Scheduled order execution engine disabled");
