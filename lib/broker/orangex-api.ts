@@ -313,50 +313,128 @@ export class OrangeXAPI implements BrokerAPI {
 
   async getTradingHistory(
     uid: string,
-    startTime?: number,
-    endTime?: number,
-    userType?: string
+    startTime?: number | string,
+    endTime?: number | string
   ): Promise<TradingHistory[]> {
     const tStart = Date.now();
-    const now = Date.now();
-    const oneDayMs = 24 * 60 * 60 * 1000;
-    const thirtyDaysMs = 30 * oneDayMs;
-    const ninetyDaysMs = 90 * oneDayMs;
+    console.log("=".repeat(80));
+    console.log("[OrangeX] getTradingHistory: METHOD CALLED!");
+    console.log("[OrangeX] getTradingHistory: Parameters", {
+      uid,
+      startTime: startTime
+        ? typeof startTime === "number"
+          ? new Date(startTime).toISOString()
+          : startTime
+        : "none",
+      endTime: endTime
+        ? typeof endTime === "number"
+          ? new Date(endTime).toISOString()
+          : endTime
+        : "none",
+      hasCreds: this.isAPIActive(),
+    });
+    console.log("=".repeat(80));
 
-    const defaultEndTime = endTime ?? now - oneDayMs;
-    const defaultStartTime = startTime ?? defaultEndTime - ninetyDaysMs + 1;
+    if (!this.isAPIActive()) {
+      console.log(
+        "[OrangeX] getTradingHistory: API credentials not configured"
+      );
+      return [];
+    }
 
     try {
+      const now = Date.now();
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      const thirtyDaysMs = 30 * oneDayMs;
+      const ninetyDaysMs = 90 * oneDayMs;
+
+      // Convert time parameters to timestamps if needed
+      const convertToTimestamp = (
+        time?: number | string
+      ): number | undefined => {
+        if (time === undefined) return undefined;
+        if (typeof time === "number") return time;
+        if (typeof time === "string") {
+          const parsed = parseInt(time, 10);
+          return isNaN(parsed) ? undefined : parsed;
+        }
+        return undefined;
+      };
+
+      const startTimeNum = convertToTimestamp(startTime);
+      const endTimeNum = convertToTimestamp(endTime);
+
+      // Default time window: last 90 days
+      // const defaultEndTime = endTimeNum ?? now;
+      // const defaultStartTime = startTimeNum ?? defaultEndTime - ninetyDaysMs;
+
+      // Fetch trading history with pagination
       const pageSize = 100;
       const maxPages = 200;
       let offset = 1;
-      const allTrades: OrangeXTradingHistoryResponse["result"]["data"] = [];
+      const allTrades: OrangeXTrade[] = [];
 
       for (let page = 0; page < maxPages; page++) {
-        const response = await this.makeRequest<
-          {
-            offset: number;
-            count: number;
-            uid: string;
-            startTime?: number;
-            endTime?: number;
-          },
-          OrangeXTradingHistoryResult
-        >("/multilevelPartnerDataStatistics/historicalTransaction", {
+        const requestParams: {
+          offset: number;
+          count: number;
+          uid: string;
+          startTime?: number;
+          endTime?: number;
+        } = {
           offset,
           count: pageSize,
           uid: uid,
-          startTime: defaultStartTime,
-          endTime: defaultEndTime,
+        };
+
+        // Add time range if provided
+        if (startTimeNum !== undefined) {
+          requestParams.startTime = startTimeNum;
+        }
+        if (endTimeNum !== undefined) {
+          requestParams.endTime = endTimeNum;
+        }
+
+        console.log("[OrangeX] getTradingHistory: Fetching page", {
+          page: page + 1,
+          offset,
+          pageSize,
+          startTime: requestParams.startTime
+            ? new Date(requestParams.startTime).toISOString()
+            : "none",
+          endTime: requestParams.endTime
+            ? new Date(requestParams.endTime).toISOString()
+            : "none",
         });
+
+        const response = await this.makeRequest<
+          typeof requestParams,
+          OrangeXTradingHistoryResult
+        >(
+          "/multilevelPartnerDataStatistics/historicalTransaction",
+          requestParams
+        );
 
         const items = response.result?.data ?? [];
         allTrades.push(...items);
 
+        console.log("[OrangeX] getTradingHistory: Raw API Response", {
+          page: page + 1,
+          resultListLength: items.length,
+          totalCount: response.result?.total,
+          hasMore: items.length === pageSize,
+        });
+
+        // Check if we've reached the last page
         if (
           items.length < pageSize ||
-          offset >= (response.result?.totalPage ?? 1)
+          !response.result?.total ||
+          allTrades.length >= response.result.total
         ) {
+          console.log("[OrangeX] getTradingHistory: Reached last page", {
+            totalPages: page + 1,
+            totalRecords: allTrades.length,
+          });
           break;
         }
 
@@ -364,123 +442,177 @@ export class OrangeXAPI implements BrokerAPI {
         await new Promise((r) => setTimeout(r, 120));
       }
 
-      const mapped: TradingHistory[] = allTrades.map((trade) => ({
-        uid: trade.uid,
-        tradeAmount: trade.amount,
-        timestamp: trade.createTime,
-        instrumentName: trade.instrumentName,
-        direction: trade.direction,
-        price: trade.price,
-        orderType: trade.orderType,
-        orderId: trade.orderId,
-        tradeId: trade.tradeId,
-        fee: trade.fee,
-        feeCoinType: trade.feeCoinType,
-        rpl: trade.rpl,
-        role: trade.role,
-        commissionUsdt: "0",
-        status: "Not Distributed",
-      }));
+      // Map trades to TradingHistory format
+      const mapped: TradingHistory[] = allTrades.map((trade) => {
+        const createTimeMs =
+          typeof trade.createTime === "string"
+            ? parseInt(trade.createTime, 10)
+            : trade.createTime;
 
-      // const last24hStart = now - oneDayMs;
-      // const last30dStart = now - thirtyDaysMs;
-      // const last90dStart = now - ninetyDaysMs;
+        return {
+          uid: trade.uid,
+          tradeAmount: trade.amount,
+          timestamp: createTimeMs,
+          tradeTimeMs: createTimeMs,
+          insertTimeMs: createTimeMs,
+          instrumentName: trade.instrumentName,
+          direction: trade.direction,
+          price: trade.price,
+          orderType: trade.orderType,
+          orderId: trade.orderId,
+          tradeId: trade.tradeId,
+          fee: trade.fee,
+          feeCoinType: trade.feeCoinType,
+          rpl: trade.rpl,
+          role: trade.role,
+        };
+      });
 
-      const endTimeForCommission = now - oneDayMs;
-      const start24ForCommission = endTimeForCommission - oneDayMs + 1;
-      const start30ForCommission = endTimeForCommission - thirtyDaysMs + 1;
-      const start90ForCommission = endTimeForCommission - ninetyDaysMs + 1;
+      // Fetch actual commission data for accurate summaries
+      // OrangeX dashboard shows data up to current time, not T+1
+      // So we use 'now' as end time to match the dashboard
+      const commissionEndTime = now;
+      // Last 24h: from 24 hours ago to now
+      const last24hStart = now - oneDayMs + 1;
+      // Last 30d: from 30 days ago to now
+      const last30dStart = now - thirtyDaysMs + 1;
+      // Last 90d: from 90 days ago to now
+      const last90dStart = now - ninetyDaysMs + 1;
 
-      const fetchCommissionRange = async (
+      const fetchCommissionForPeriod = async (
         startTime: number,
-        endTimeMs: number
+        endTime: number,
+        periodLabel: string
       ): Promise<number> => {
         const pageSize = 100;
         let offset = 1;
         let total = 0;
+        let totalRows = 0;
         for (let page = 0; page < 200; page++) {
-          const res = await this.makeRequest<
-            {
-              offset: number;
-              count: number;
-              uid: string;
-              sourceType: string;
-              startTime: number;
-              endTime: number;
-            },
-            OrangeXCommissionResult
-          >("/multilevelPartnerDataStatistics/userCommissionStatistics", {
-            offset,
-            count: pageSize,
-            uid,
-            sourceType: "PERPETUAL",
-            startTime,
-            endTime: endTimeMs,
-          });
-          const list = Array.isArray(res.result?.data) ? res.result.data : [];
-          total += list.reduce(
-            (sum, r) => sum + (parseFloat(String(r?.myCommission || 0)) || 0),
-            0
-          );
-          if (list.length < pageSize) break;
-          offset += 1;
-          await new Promise((r) => setTimeout(r, 120));
+          try {
+            const res = await this.makeRequest<
+              {
+                offset: number;
+                count: number;
+                uid: string;
+                sourceType: string;
+                startTime: number;
+                endTime: number;
+              },
+              OrangeXCommissionResult
+            >("/multilevelPartnerDataStatistics/userCommissionStatistics", {
+              offset,
+              count: pageSize,
+              uid,
+              sourceType: "PERPETUAL",
+              startTime,
+              endTime,
+            });
+            const list = Array.isArray(res.result?.data) ? res.result.data : [];
+            totalRows += list.length;
+            const periodSum = list.reduce(
+              (sum, row) =>
+                sum + (parseFloat(String(row.myCommission ?? "0")) || 0),
+              0
+            );
+            total += periodSum;
+            console.log(
+              `[OrangeX] getTradingHistory: Commission ${periodLabel} - Page ${
+                page + 1
+              }`,
+              {
+                startTime: new Date(startTime).toISOString(),
+                endTime: new Date(endTime).toISOString(),
+                rowsInPage: list.length,
+                pageSum: periodSum,
+                cumulativeTotal: total,
+              }
+            );
+            if (list.length < pageSize) break;
+            offset += 1;
+            await new Promise((r) => setTimeout(r, 120));
+          } catch (err) {
+            console.log(
+              `[OrangeX] getTradingHistory: Commission ${periodLabel} fetch error`,
+              {
+                startTime: new Date(startTime).toISOString(),
+                endTime: new Date(endTime).toISOString(),
+                error: err instanceof Error ? err.message : String(err),
+              }
+            );
+            break;
+          }
         }
+        console.log(
+          `[OrangeX] getTradingHistory: Commission ${periodLabel} - Final`,
+          {
+            startTime: new Date(startTime).toISOString(),
+            endTime: new Date(endTime).toISOString(),
+            totalRows,
+            totalCommission: total,
+          }
+        );
         return total;
       };
 
-      const [last24hCommission, last30dCommission] = await Promise.all([
-        fetchCommissionRange(start24ForCommission, endTimeForCommission),
-        fetchCommissionRange(start30ForCommission, endTimeForCommission),
+      // Fetch commission data for each period separately
+      // Note: OrangeX API aggregates by time range, so each query returns data for that specific range
+      const [commission24h, commission30d, commission90d] = await Promise.all([
+        fetchCommissionForPeriod(last24hStart, commissionEndTime, "24h"),
+        fetchCommissionForPeriod(last30dStart, commissionEndTime, "30d"),
+        fetchCommissionForPeriod(last90dStart, commissionEndTime, "90d"),
       ]);
 
-      const cached = OrangeXAPI.NINETY_DAY_CACHE.get(uid);
-      const cacheValid =
-        cached && Date.now() - cached.ts < OrangeXAPI.CACHE_TTL_MS;
-      const last90dCommission = cacheValid
-        ? cached.value
-        : await fetchCommissionRange(
-            start90ForCommission,
-            endTimeForCommission
-          );
-
       const summary24h = {
-        commission: 0,
-        commissionUsdt: last24hCommission,
+        commission: commission24h,
+        commissionUsdt: commission24h,
       };
       const summary30d = {
-        commission: 0,
-        commissionUsdt: last30dCommission,
+        commission: commission30d,
+        commissionUsdt: commission30d,
       };
       const summary90d = {
-        commission: 0,
-        commissionUsdt: last90dCommission,
+        commission: commission90d,
+        commissionUsdt: commission90d,
       };
 
       const summaries = {
-        last24h: summary24h,
-        last30d: summary30d,
-        last90d: summary90d,
+        last24h: {
+          commission: Number(summary24h.commission.toFixed(8)),
+          commissionUsdt: Number(summary24h.commissionUsdt.toFixed(8)),
+        },
+        last30d: {
+          commission: Number(summary30d.commission.toFixed(8)),
+          commissionUsdt: Number(summary30d.commissionUsdt.toFixed(8)),
+        },
+        last90d: {
+          commission: Number(summary90d.commission.toFixed(8)),
+          commissionUsdt: Number(summary90d.commissionUsdt.toFixed(8)),
+        },
       };
 
       const durationMs = Date.now() - tStart;
-      console.log("[OrangeX] getTradingHistory: Summary", {
-        uid,
-        totalRecords: mapped.length,
-        summaries: {
-          last24h: {
-            commissionUsdt: Number(summary24h.commissionUsdt.toFixed(8)),
-          },
-          last30d: {
-            commissionUsdt: Number(summary30d.commissionUsdt.toFixed(8)),
-          },
-          last90d: {
-            commissionUsdt: Number(summary90d.commissionUsdt.toFixed(8)),
-          },
-        },
-        durationMs: `${durationMs}ms`,
-      });
 
+      if (mapped.length > 0) {
+        console.log(
+          "[OrangeX] getTradingHistory: ✅ SUCCESS - Data Retrieved",
+          {
+            uid,
+            totalRecords: mapped.length,
+            durationMs: `${durationMs}ms`,
+            summaries,
+          }
+        );
+      } else {
+        console.log("[OrangeX] getTradingHistory: ⚠️ NO DATA - Empty Result", {
+          uid,
+          totalRecords: 0,
+          durationMs: `${durationMs}ms`,
+          summaries,
+        });
+      }
+
+      // Attach summaries to each trade (like LBank)
       const resultWithSummaries = mapped.map((trade) => ({
         ...trade,
         _summaries: summaries,
@@ -488,13 +620,12 @@ export class OrangeXAPI implements BrokerAPI {
 
       return resultWithSummaries;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      console.error("[OrangeX] getTradingHistory: Error", {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.log("[OrangeX] getTradingHistory: Error", {
         uid,
-        error: errorMessage,
-        durationMs: Date.now() - tStart,
+        error: errMsg,
       });
+      // Return empty array on error (graceful degradation)
       return [];
     }
   }
@@ -504,7 +635,6 @@ export class OrangeXAPI implements BrokerAPI {
     sourceType: "PERPETUAL" | "Copy Trading" | "SPOT" = "PERPETUAL"
   ): Promise<CommissionData[]> {
     // Time windows
-    const tStart = Date.now();
     const oneDayMs = 24 * 60 * 60 * 1000;
     const thirtyDaysMs = 30 * oneDayMs;
     const ninetyDaysMs = 90 * oneDayMs;
@@ -574,20 +704,6 @@ export class OrangeXAPI implements BrokerAPI {
       // 30d total
       const last30d = sumCommission(recentMapped);
 
-      // 24h total requires a 24h-specific query because rows have no date field
-      const start24 = endTime - oneDayMs + 1;
-      const last24Rows = await fetchRange(start24, endTime);
-      const last24h = sumCommission(mapRows(last24Rows));
-
-      const durationMs = Date.now() - tStart;
-      console.log("[OrangeX] Commission Summary", {
-        uid,
-        last24h: Number(last24h.toFixed(8)),
-        last30d: Number(last30d.toFixed(8)),
-        recordsFetched: recentMapped.length,
-        durationMs,
-      });
-
       // 90d cached/background computation
       const cached = OrangeXAPI.NINETY_DAY_CACHE.get(uid);
       const cacheValid =
@@ -603,31 +719,10 @@ export class OrangeXAPI implements BrokerAPI {
               value: full90,
               ts: Date.now(),
             });
-            console.log("[OrangeX] Commission Summary (90d ready)", {
-              uid,
-              last90d: Number(full90.toFixed(8)),
-            });
-            console.log("[OrangeX] Commission Summary (final)", {
-              uid,
-              last24h: Number(last24h.toFixed(8)),
-              last30d: Number(last30d.toFixed(8)),
-              last90d: Number(full90.toFixed(8)),
-            });
           } catch {
             // ignore background errors
           }
         })();
-      } else {
-        console.log("[OrangeX] Commission Summary (cached 90d)", {
-          uid,
-          last90d: Number((cached?.value || 0).toFixed(8)),
-        });
-        console.log("[OrangeX] Commission Summary (final)", {
-          uid,
-          last24h: Number(last24h.toFixed(8)),
-          last30d: Number(last30d.toFixed(8)),
-          last90d: Number((cached?.value || 0).toFixed(8)),
-        });
       }
 
       // Return last 30d records (consistent with other brokers)
