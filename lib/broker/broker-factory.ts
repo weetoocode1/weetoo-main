@@ -3,6 +3,24 @@
 import { BrokerAPI, BrokerType } from "./broker-types";
 import { hasBrokerCredentials } from "./broker-utils";
 
+// Broker registry: maps broker type to module path
+const BROKER_REGISTRY: Record<string, string> = {
+  deepcoin: "./deepcoin-api",
+  orangex: "./orangex-api",
+  lbank: "./lbank-api",
+} as const;
+
+// Unimplemented brokers
+const UNIMPLEMENTED_BROKERS: Set<BrokerType> = new Set([
+  "bingx",
+  "okx",
+  "bybit",
+  "gate",
+  "kucoin",
+  "mexc",
+  "binance",
+]);
+
 export class BrokerFactory {
   /**
    * Create a broker API instance based on broker type
@@ -16,31 +34,23 @@ export class BrokerFactory {
       return null;
     }
 
+    // Check if broker is unimplemented
+    if (UNIMPLEMENTED_BROKERS.has(brokerType)) {
+      console.warn(`${brokerType} API not yet implemented`);
+      return null;
+    }
+
+    // Get module path from registry
+    const modulePath = BROKER_REGISTRY[brokerType];
+    if (!modulePath) {
+      console.error(`Unknown broker type: ${brokerType}`);
+      return null;
+    }
+
     try {
-      switch (brokerType) {
-        case "deepcoin":
-          const { DeepCoinAPI } = await import("./deepcoin-api");
-          return new DeepCoinAPI();
-
-        case "orangex":
-          const { OrangeXAPI } = await import("./orangex-api");
-          return new OrangeXAPI();
-
-        // Future brokers will be added here
-        case "bingx":
-        case "okx":
-        case "bybit":
-        case "gate":
-        case "kucoin":
-        case "mexc":
-        case "binance":
-          console.warn(`${brokerType} API not yet implemented`);
-          return null;
-
-        default:
-          console.error(`Unknown broker type: ${brokerType}`);
-          return null;
-      }
+      // Dynamically import and instantiate the broker API
+      const BrokerAPIClass = await import(modulePath).then((m) => m.default);
+      return new BrokerAPIClass();
     } catch (error) {
       console.error(`Failed to create ${brokerType} API instance:`, error);
       return null;
@@ -52,16 +62,9 @@ export class BrokerFactory {
    */
   static getAvailableBrokers(): BrokerType[] {
     const allBrokers: BrokerType[] = [
-      "deepcoin",
-      "orangex",
-      "bingx",
-      "okx",
-      "bybit",
-      "gate",
-      "kucoin",
-      "mexc",
-      "binance",
-    ];
+      ...Object.keys(BROKER_REGISTRY),
+      ...Array.from(UNIMPLEMENTED_BROKERS),
+    ] as BrokerType[];
 
     return allBrokers.filter((brokerType) => hasBrokerCredentials(brokerType));
   }

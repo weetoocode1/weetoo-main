@@ -49,17 +49,17 @@ interface DeepCoinRebateListResponse {
   list: DeepCoinRebateItem[] | null;
 }
 
-interface DeepCoinTradeItem {
-  uid: number | string;
-  tradeAmount?: number | string;
-  amount?: number | string;
-  timestamp?: number;
-  [key: string]: unknown;
-}
+// interface DeepCoinTradeItem {
+//   uid: number | string;
+//   tradeAmount?: number | string;
+//   amount?: number | string;
+//   timestamp?: number;
+//   [key: string]: unknown;
+// }
 
-interface DeepCoinTradeListResponse {
-  list: DeepCoinTradeItem[] | null;
-}
+// interface DeepCoinTradeListResponse {
+//   list: DeepCoinTradeItem[] | null;
+// }
 
 // Lightweight cache for 60d totals so repeated calls don't refetch older data
 export const DEEPCOIN_60D_CACHE = new Map<
@@ -535,17 +535,6 @@ export class DeepCoinAPI implements BrokerAPI {
         endpoint
       );
 
-      // Log if response.data is null to debug API issues
-      if (!response.data && params?.startTime && params?.endTime) {
-        console.log("[DeepCoin] API returned null data in getRebateHistory:", {
-          endpoint,
-          params,
-          responseCode: response.code,
-          responseMsg: response.msg,
-          fullResponse: JSON.stringify(response).substring(0, 500),
-        });
-      }
-
       return response.data;
     } catch (error) {
       throw error;
@@ -572,7 +561,8 @@ export class DeepCoinAPI implements BrokerAPI {
   private async fetchRebateHistoryPaged(
     uid: string,
     startTimeMs: number,
-    endTimeMs: number
+    endTimeMs: number,
+    retryCount = 0
   ): Promise<DeepCoinRebateItem[]> {
     const pageSize = 100;
     let pageNum = 1;
@@ -596,55 +586,30 @@ export class DeepCoinAPI implements BrokerAPI {
           pageSize,
         });
 
-        if (pageNum === 1) {
-          console.log("[DeepCoin] API Response (first page):", {
-            uid,
-            startTimeSeconds,
-            endTimeSeconds,
-            pageNum,
-            pageSize,
-            hasData: !!rebateData,
-            hasList: !!rebateData?.list,
-            listType: Array.isArray(rebateData?.list)
-              ? "array"
-              : typeof rebateData?.list,
-            listLength: Array.isArray(rebateData?.list)
-              ? rebateData.list.length
-              : "N/A",
-            fullResponse: JSON.stringify(rebateData).substring(0, 500),
-          });
-        }
-
         const list = rebateData?.list || [];
         if (!Array.isArray(list)) {
-          if (pageNum === 1) {
-            console.log("[DeepCoin] API returned non-array:", {
-              uid,
-              startTimeMs,
-              endTimeMs,
-              response: rebateData,
-            });
-          }
           break;
         }
 
         if (list.length === 0) {
-          if (pageNum === 1) {
-            console.log("[DeepCoin] No records found for date range:", {
+          // If first page returns empty and we haven't retried, retry once
+          if (pageNum === 1 && retryCount === 0 && allItems.length === 0) {
+            console.log(
+              "[DeepCoin] fetchRebateHistoryPaged: First page empty, retrying...",
+              {
+                uid,
+                startTime: new Date(startTimeMs).toISOString(),
+                endTime: new Date(endTimeMs).toISOString(),
+              }
+            );
+            // Wait a bit and retry
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            return this.fetchRebateHistoryPaged(
               uid,
               startTimeMs,
               endTimeMs,
-              startTimeSeconds,
-              endTimeSeconds,
-              startDate: new Date(startTimeMs).toISOString(),
-              endDate: new Date(endTimeMs).toISOString(),
-              startDateUTC8: new Date(
-                startTimeMs + 8 * 60 * 60 * 1000
-              ).toISOString(),
-              endDateUTC8: new Date(
-                endTimeMs + 8 * 60 * 60 * 1000
-              ).toISOString(),
-            });
+              retryCount + 1
+            );
           }
           break;
         }
@@ -653,13 +618,26 @@ export class DeepCoinAPI implements BrokerAPI {
 
         if (list.length < pageSize) break;
         pageNum++;
-      } catch (_error) {
+      } catch (error) {
         // Log error but continue to next page if it's not a critical error
-        if (pageNum === 1) {
-          // If first page fails, break to avoid infinite loop
-          break;
+        if (pageNum === 1 && retryCount === 0) {
+          // If first page fails and we haven't retried, retry once
+          console.log(
+            "[DeepCoin] fetchRebateHistoryPaged: First page error, retrying...",
+            {
+              uid,
+              error: error instanceof Error ? error.message : String(error),
+            }
+          );
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          return this.fetchRebateHistoryPaged(
+            uid,
+            startTimeMs,
+            endTimeMs,
+            retryCount + 1
+          );
         }
-        // For subsequent pages, continue but log the error
+        // For subsequent pages or after retry, break
         break;
       }
     }
@@ -667,21 +645,299 @@ export class DeepCoinAPI implements BrokerAPI {
     return allItems;
   }
 
-  // Get trading history for UID
-  async getTradingHistory(uid: string): Promise<TradingHistory[]> {
-    try {
-      const response = await this.makeRequest<DeepCoinTradeListResponse>(
-        "GET",
-        `/deepcoin/trade/fills?uid=${uid}&limit=100`
+  // Get trading history for UID with commission summaries (similar to LBank/OrangeX)
+  async getTradingHistory(
+    uid: string,
+    startTime?: number,
+    endTime?: number
+  ): Promise<TradingHistory[]> {
+    const tStart = Date.now();
+    console.log("=".repeat(80));
+    console.log("[DeepCoin] getTradingHistory: METHOD CALLED!");
+    console.log("[DeepCoin] getTradingHistory: Parameters", {
+      uid,
+      startTime: startTime ? new Date(startTime).toISOString() : "none",
+      endTime: endTime ? new Date(endTime).toISOString() : "none",
+      hasCreds: this.isAPIActive(),
+    });
+    console.log("=".repeat(80));
+
+    if (!this.isAPIActive()) {
+      console.log(
+        "[DeepCoin] getTradingHistory: API credentials not configured"
       );
-      const items = response.data?.list ?? [];
-      return items.map((trade) => ({
-        uid: String(trade.uid),
-        tradeAmount: String(trade.tradeAmount ?? trade.amount ?? 0),
-        timestamp: trade.timestamp,
+      return [];
+    }
+
+    try {
+      const now = Date.now();
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      const thirtyDaysMs = 30 * oneDayMs;
+      const sixtyDaysMs = 60 * oneDayMs;
+
+      // Convert time parameters to timestamps if needed
+      const convertToTimestamp = (time?: number): number | undefined => {
+        if (time === undefined) return undefined;
+        if (typeof time === "number") return time;
+        return undefined;
+      };
+
+      const startTimeNum = convertToTimestamp(startTime);
+      const endTimeNum = convertToTimestamp(endTime);
+
+      // DeepCoin uses UTC+8 timezone (like LBank)
+      // Align time windows to UTC+8 for accurate filtering
+      const UTC8_OFFSET_MS = 8 * 60 * 60 * 1000;
+      const utc8Now = now + UTC8_OFFSET_MS;
+      const utc8StartOfToday = Math.floor(utc8Now / oneDayMs) * oneDayMs;
+      // const utc8EndOfToday = utc8StartOfToday + oneDayMs - 1;
+      // const utc8EndOfTodayInUtc = utc8EndOfToday - UTC8_OFFSET_MS;
+
+      // Default time window for main fetch: use last 30 days to get all rebates
+      const defaultEndTime = endTimeNum ?? now;
+      const utc8StartOf30DaysAgo = utc8StartOfToday - thirtyDaysMs;
+      const last30dStart = utc8StartOf30DaysAgo - UTC8_OFFSET_MS;
+      const defaultStartTime = startTimeNum ?? last30dStart;
+
+      // Fetch all rebate history first (this is the reliable source)
+      const rebateItems = await this.fetchRebateHistoryPaged(
+        uid,
+        defaultStartTime,
+        defaultEndTime
+      );
+
+      console.log("[DeepCoin] getTradingHistory: Fetched rebate history", {
+        uid,
+        totalItems: rebateItems.length,
+        timeWindow: {
+          start: new Date(defaultStartTime).toISOString(),
+          end: new Date(defaultEndTime).toISOString(),
+        },
+      });
+
+      // Helper function to truncate to 4 decimal places (no rounding)
+      const truncateTo4Decimals = (value: number | string): string => {
+        const numValue =
+          typeof value === "string" ? parseFloat(value) || 0 : value;
+        const multiplier = 10000;
+        const truncated = Math.floor(numValue * multiplier) / multiplier;
+        return truncated.toFixed(4);
+      };
+
+      // Log all items with details (4 decimal places, matching dashboard - truncated, not rounded)
+      console.log("[DeepCoin] getTradingHistory: All rebate items", {
+        uid,
+        totalItems: rebateItems.length,
+        items: rebateItems.map((item, index) => {
+          const createTimeMs =
+            item.createTime && item.createTime > 0
+              ? item.createTime < 1e12
+                ? item.createTime * 1000
+                : item.createTime
+              : undefined;
+          const commissionValue =
+            parseFloat(String(item.commission ?? "0")) || 0;
+          const rebateValue =
+            parseFloat(String(item.rebateAmount ?? item.commission ?? "0")) ||
+            0;
+          return {
+            index: index + 1,
+            createTime: item.createTime,
+            createTimeMs: createTimeMs,
+            createTimeFormatted: createTimeMs
+              ? new Date(createTimeMs).toISOString()
+              : "N/A",
+            commission: truncateTo4Decimals(commissionValue),
+            rebateAmount: truncateTo4Decimals(rebateValue),
+            amount: item.amount,
+            tradeAmount: item.tradeAmount,
+            fee: item.fee,
+            rebateRate: item.rebateRate,
+            uid: item.uid,
+            level: item.level,
+          };
+        }),
+      });
+
+      // Calculate summaries from the fetched data (more reliable than separate API calls)
+      // DeepCoin API returns 'commission' field as the rebate amount
+      const calculateSummary = (
+        items: DeepCoinRebateItem[],
+        startTimeMs: number,
+        endTimeMs: number
+      ): number => {
+        return items.reduce((sum, item) => {
+          // Convert createTime to milliseconds for comparison
+          const createTimeMs =
+            item.createTime && item.createTime > 0
+              ? item.createTime < 1e12
+                ? item.createTime * 1000
+                : item.createTime
+              : 0;
+
+          // Filter by createTime within the period
+          if (createTimeMs < startTimeMs || createTimeMs > endTimeMs) {
+            return sum;
+          }
+
+          // Use commission as the rebate amount (this is what the API returns)
+          const rebate =
+            item.commission ?? item.rebateAmount ?? item.amount ?? "0";
+          const rebateNum = parseFloat(String(rebate)) || 0;
+          return sum + rebateNum;
+        }, 0);
+      };
+
+      // Calculate time windows for summaries
+      const commissionEndTime = now;
+      const last24hStart = utc8StartOfToday - UTC8_OFFSET_MS;
+      const last30dStartCalc = utc8StartOf30DaysAgo - UTC8_OFFSET_MS;
+      const utc8StartOf60DaysAgo =
+        utc8StartOfToday - (sixtyDaysMs - 12 * 60 * 60 * 1000);
+      const last60dStart = utc8StartOf60DaysAgo - UTC8_OFFSET_MS;
+
+      // Calculate summaries from fetched data
+      const commission24h = calculateSummary(
+        rebateItems,
+        last24hStart,
+        commissionEndTime
+      );
+      const commission30d = calculateSummary(
+        rebateItems,
+        last30dStartCalc,
+        commissionEndTime
+      );
+      const commission60d = calculateSummary(
+        rebateItems,
+        last60dStart,
+        commissionEndTime
+      );
+
+      console.log("[DeepCoin] getTradingHistory: Calculated summaries", {
+        last24h: {
+          start: new Date(last24hStart).toISOString(),
+          end: new Date(commissionEndTime).toISOString(),
+          total: commission24h,
+        },
+        last30d: {
+          start: new Date(last30dStartCalc).toISOString(),
+          end: new Date(commissionEndTime).toISOString(),
+          total: commission30d,
+        },
+        last60d: {
+          start: new Date(last60dStart).toISOString(),
+          end: new Date(commissionEndTime).toISOString(),
+          total: commission60d,
+        },
+      });
+
+      const summary24h = {
+        commission: commission24h,
+        commissionUsdt: commission24h,
+      };
+      const summary30d = {
+        commission: commission30d,
+        commissionUsdt: commission30d,
+      };
+      const summary60d = {
+        commission: commission60d,
+        commissionUsdt: commission60d,
+      };
+
+      const summaries = {
+        last24h: {
+          commission: Number(summary24h.commission.toFixed(8)),
+          commissionUsdt: Number(summary24h.commissionUsdt.toFixed(8)),
+        },
+        last30d: {
+          commission: Number(summary30d.commission.toFixed(8)),
+          commissionUsdt: Number(summary30d.commissionUsdt.toFixed(8)),
+        },
+        last60d: {
+          commission: Number(summary60d.commission.toFixed(8)),
+          commissionUsdt: Number(summary60d.commissionUsdt.toFixed(8)),
+        },
+      };
+
+      const mapped: TradingHistory[] = rebateItems.map((item) => {
+        const createTimeMs =
+          item.createTime && item.createTime > 0
+            ? item.createTime < 1e12
+              ? item.createTime * 1000
+              : item.createTime
+            : undefined;
+
+        // DeepCoin API: commission = rebate amount (they are the same)
+        const rebateValue =
+          item.commission ?? item.rebateAmount ?? item.amount ?? "0";
+        const rebateNum = parseFloat(String(rebateValue)) || 0;
+
+        return {
+          uid: String(item.uid ?? uid),
+          tradeAmount: String(item.tradeAmount ?? item.amount ?? 0),
+          timestamp: createTimeMs,
+          tradeTimeMs: createTimeMs,
+          insertTimeMs: createTimeMs,
+          commission: truncateTo4Decimals(rebateNum),
+          commissionUsdt: truncateTo4Decimals(rebateNum),
+          fee: String(item.fee ?? 0),
+          rebateRate: String(item.rebateRate ?? 0),
+          // Note: This orderId is from rebate-list endpoint and may not match dashboard trade order IDs
+          // The dashboard shows actual trade order IDs (e.g., 100111...), but rebate-list returns rebate record IDs (e.g., 100029...)
+          orderId: item.orderId,
+          // rebateAmount = commission (they are the same in DeepCoin API) - truncated to 4 decimals
+          rebateAmount: truncateTo4Decimals(rebateNum),
+          createTime: item.createTime,
+        };
+      });
+
+      const durationMs = Date.now() - tStart;
+
+      if (mapped.length > 0) {
+        console.log(
+          "[DeepCoin] getTradingHistory: ✅ SUCCESS - Data Retrieved",
+          {
+            uid,
+            totalRecords: mapped.length,
+            durationMs: `${durationMs}ms`,
+            summaries,
+          }
+        );
+        // Log first mapped item to show rebateAmount is correctly set
+        console.log(
+          "[DeepCoin] getTradingHistory: First mapped item (showing rebateAmount)",
+          {
+            uid: mapped[0].uid,
+            orderId: mapped[0].orderId,
+            commission: mapped[0].commission,
+            rebateAmount: mapped[0].rebateAmount,
+            note: "rebateAmount = commission (they are the same in DeepCoin API)",
+          }
+        );
+      } else {
+        console.log("[DeepCoin] getTradingHistory: ⚠️ NO DATA - Empty Result", {
+          uid,
+          totalRecords: 0,
+          durationMs: `${durationMs}ms`,
+          summaries,
+        });
+      }
+
+      // Attach summaries to each trade (like LBank/OrangeX)
+      const resultWithSummaries = mapped.map((trade) => ({
+        ...trade,
+        _summaries: summaries,
       }));
+
+      return resultWithSummaries;
     } catch (error) {
-      throw error;
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.log("[DeepCoin] getTradingHistory: Error", {
+        uid,
+        error: errMsg,
+      });
+      // Return empty array on error (graceful degradation)
+      return [];
     }
   }
 
@@ -748,7 +1004,6 @@ export class DeepCoinAPI implements BrokerAPI {
     if (!this.isAPIActive()) return [];
 
     try {
-      const tStart = Date.now();
       const now = Date.now();
       const oneDayMs = 24 * 60 * 60 * 1000;
       const thirtyDaysMs = 30 * oneDayMs;
@@ -798,22 +1053,13 @@ export class DeepCoinAPI implements BrokerAPI {
       const recentMapped = mapRows(recentItems);
 
       // Compute 24h and 30d totals
-      const last24hStart = queryEndTime - oneDayMs + 1;
-      const rows24h = recentMapped.filter((r) => {
-        const createTime = parseInt(String(r.statsDate || 0));
-        return createTime >= last24hStart && createTime <= queryEndTime;
-      });
-      const last24h = sumCommission(rows24h);
+      // const last24hStart = queryEndTime - oneDayMs + 1;
+      // const rows24h = recentMapped.filter((r) => {
+      //   const createTime = parseInt(String(r.statsDate || 0));
+      //   return createTime >= last24hStart && createTime <= queryEndTime;
+      // });
+      // const last24h = sumCommission(rows24h);
       const last30d = sumCommission(recentMapped);
-
-      const durationMs = Date.now() - tStart;
-      console.log("[DeepCoin] Commission Summary", {
-        uid,
-        last24h: Number(last24h.toFixed(8)),
-        last30d: Number(last30d.toFixed(8)),
-        recordsFetched: recentMapped.length,
-        durationMs,
-      });
 
       // Background: fetch prior 30d to compute 60d; use cache if available
       const cache = DEEPCOIN_60D_CACHE.get(uid);
@@ -841,55 +1087,10 @@ export class DeepCoinAPI implements BrokerAPI {
             const olderSum = sumCommission(olderMapped);
             const full60Sum = last30d + olderSum;
             DEEPCOIN_60D_CACHE.set(uid, { value: full60Sum, ts: Date.now() });
-            console.log("[DeepCoin] Commission Summary (60d ready)", {
-              uid,
-              last60d: Number(full60Sum.toFixed(8)),
-              last30d: Number(last30d.toFixed(8)),
-              olderSum: Number(olderSum.toFixed(8)),
-              olderRecords: olderMapped.length,
-              dateRange: {
-                olderWindow: {
-                  from: new Date(fullStartTime).toISOString(),
-                  to: new Date(midPointTime - 1).toISOString(),
-                  fromSeconds: Math.floor(fullStartTime / 1000),
-                  toSeconds: Math.ceil((midPointTime - 1) / 1000),
-                  daysSpan: Math.round(
-                    (midPointTime - 1 - fullStartTime) / (24 * 60 * 60 * 1000)
-                  ),
-                },
-                recentWindow: {
-                  from: new Date(midPointTime).toISOString(),
-                  to: new Date(queryEndTime).toISOString(),
-                  daysSpan: Math.round(
-                    (queryEndTime - midPointTime) / (24 * 60 * 60 * 1000)
-                  ),
-                },
-                totalDaysSpan: Math.round(
-                  (queryEndTime - fullStartTime) / (24 * 60 * 60 * 1000)
-                ),
-              },
-            });
-            console.log("[DeepCoin] Commission Summary (final)", {
-              uid,
-              last24h: Number(last24h.toFixed(8)),
-              last30d: Number(last30d.toFixed(8)),
-              last60d: Number(full60Sum.toFixed(8)),
-            });
-          } catch (error) {
-            console.error("[DeepCoin] Background 60d fetch error:", error);
+          } catch {
+            // ignore background errors
           }
         })();
-      } else {
-        console.log("[DeepCoin] Commission Summary (cached 60d)", {
-          uid,
-          last60d: Number((cache?.value || 0).toFixed(8)),
-        });
-        console.log("[DeepCoin] Commission Summary (final)", {
-          uid,
-          last24h: Number(last24h.toFixed(8)),
-          last30d: Number(last30d.toFixed(8)),
-          last60d: Number((cache?.value || 0).toFixed(8)),
-        });
       }
 
       return recentMapped;

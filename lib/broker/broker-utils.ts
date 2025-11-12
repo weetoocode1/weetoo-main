@@ -46,6 +46,13 @@ export function hasBrokerCredentials(brokerType: BrokerType): boolean {
         process.env.ORANGEX_CLIENT_ID && process.env.ORANGEX_CLIENT_SECRET
       );
 
+    case "lbank":
+      return !!(
+        process.env.LBANK_API_KEY &&
+        process.env.LBANK_SECRET_KEY &&
+        process.env.LBANK_PASSPHRASE
+      );
+
     default:
       return false;
   }
