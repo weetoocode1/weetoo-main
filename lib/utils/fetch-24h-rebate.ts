@@ -21,8 +21,8 @@ export async function fetch24hRebateFromBroker(
       return { last24h: 0, success: false, error: "Broker API is not active" };
     }
 
-    // For LBank and OrangeX, use getTradingHistory to get accurate 24h summaries
-    if (broker === "lbank" || broker === "orangex") {
+    // For LBank, OrangeX, and DeepCoin, use getTradingHistory to get accurate 24h summaries
+    if (broker === "lbank" || broker === "orangex" || broker === "deepcoin") {
       try {
         const tradingHistory = await brokerInstance.getTradingHistory(uid);
 

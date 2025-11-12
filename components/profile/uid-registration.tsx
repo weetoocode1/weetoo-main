@@ -357,9 +357,11 @@ function UIDCard({
 
   // Get commission totals from API response (backend provides cached totals)
   const getCommissionTotals = () => {
-    // For LBank and OrangeX, use trading history summaries if available
+    // For LBank, OrangeX, and DeepCoin, use trading history summaries if available
     if (
-      (record.brokerId === "lbank" || record.brokerId === "orangex") &&
+      (record.brokerId === "lbank" ||
+        record.brokerId === "orangex" ||
+        record.brokerId === "deepcoin") &&
       tradingHistory.data &&
       Array.isArray(tradingHistory.data) &&
       tradingHistory.data.length > 0
@@ -368,6 +370,7 @@ function UIDCard({
         _summaries?: {
           last24h?: { commissionUsdt?: number };
           last30d?: { commissionUsdt?: number };
+          last60d?: { commissionUsdt?: number };
           last90d?: { commissionUsdt?: number };
         };
       };
@@ -376,7 +379,7 @@ function UIDCard({
         return {
           last24h: firstTrade._summaries.last24h?.commissionUsdt || 0,
           last30d: firstTrade._summaries.last30d?.commissionUsdt || 0,
-          last60d: 0,
+          last60d: firstTrade._summaries.last60d?.commissionUsdt || 0,
           last90d: firstTrade._summaries.last90d?.commissionUsdt || 0,
         };
       }
@@ -463,15 +466,19 @@ function UIDCard({
   const isTradingHistoryLoading =
     tradingHistory.isLoading || tradingHistory.isFetching;
 
-  // For LBank and OrangeX, use trading history loading state; for others, use commission loading
+  // For LBank, OrangeX, and DeepCoin, use trading history loading state; for others, use commission loading
   const isLoadingTotals =
-    record.brokerId === "lbank" || record.brokerId === "orangex"
+    record.brokerId === "lbank" ||
+    record.brokerId === "orangex" ||
+    record.brokerId === "deepcoin"
       ? isTradingHistoryLoading
       : isCommissionLoading;
 
-  // Displayed total: persisted accumulated + today's 24h (prefer DB; fallback to live for LBank/OrangeX)
+  // Displayed total: persisted accumulated + today's 24h (prefer DB; fallback to live for LBank/OrangeX/DeepCoin)
   const liveLast24h =
-    (record.brokerId === "lbank" || record.brokerId === "orangex") &&
+    (record.brokerId === "lbank" ||
+      record.brokerId === "orangex" ||
+      record.brokerId === "deepcoin") &&
     commissionTotals?.last24h
       ? Number(commissionTotals.last24h) || 0
       : 0;
@@ -821,7 +828,8 @@ function UIDCard({
                     <div className="text-xs space-y-1">
                       <p>{t("stats.totalAccumulatedPaybackTooltip")}</p>
                       {(record.brokerId === "lbank" ||
-                        record.brokerId === "orangex") &&
+                        record.brokerId === "orangex" ||
+                        record.brokerId === "deepcoin") &&
                         accumulatedPayback <= 0 &&
                         dbLast24h <= 0 &&
                         liveLast24h > 0 && (
@@ -835,8 +843,10 @@ function UIDCard({
                 </Tooltip>
               </TooltipProvider>
             </div>
-            {/* Live 24h value from trading history (LBank and OrangeX) */}
-            {(record.brokerId === "lbank" || record.brokerId === "orangex") &&
+            {/* Live 24h value from trading history (LBank, OrangeX, and DeepCoin) */}
+            {(record.brokerId === "lbank" ||
+              record.brokerId === "orangex" ||
+              record.brokerId === "deepcoin") &&
               commissionTotals.last24h > 0 && (
                 <div className="text-[0.75rem] text-emerald-500 dark:text-emerald-400 font-medium mt-1">
                   Last 24h: ${commissionTotals.last24h.toFixed(4)}
