@@ -1153,14 +1153,14 @@ export function TradingViewChartTest({
         if (datafeedRef.current && symbol) {
           datafeedRef.current.refreshCurrentPrice(symbol);
         }
-      }, 1000); // Small delay to ensure chart is fully ready
+      }, 500);
 
-      // Set up periodic refresh to keep chart synchronized
+      // Set up continuous refresh to keep chart moving in real-time
       const refreshInterval = setInterval(() => {
         if (datafeedRef.current && symbol) {
           datafeedRef.current.refreshCurrentPrice(symbol);
         }
-      }, 5000); // Refresh every 5 seconds
+      }, 1000);
 
       // Store interval for cleanup
       (datafeedRef as { refreshInterval?: NodeJS.Timeout }).refreshInterval =
@@ -1435,7 +1435,14 @@ export function TradingViewChartTest({
       } | null;
       const chart = tvw?.chart?.() ?? null;
       if (chart && typeof chart.setResolution === "function") {
-        chart.setResolution(res, () => {});
+        chart.setResolution(res, () => {
+          // After resolution change, ensure real-time updates continue
+          setTimeout(() => {
+            if (datafeedRef.current && symbol) {
+              datafeedRef.current.refreshCurrentPrice(symbol);
+            }
+          }, 500);
+        });
       }
     } catch {}
   };

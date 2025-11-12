@@ -54,6 +54,7 @@ interface SubscriptionData {
   interval: ResolutionString;
   lastTime?: number;
   lastBar?: Bar;
+  listenerGuid?: string;
 }
 
 export class BybitUdfDatafeed implements IDatafeedChartApi, IExternalDatafeed {
@@ -593,17 +594,22 @@ export class BybitUdfDatafeed implements IDatafeedChartApi, IExternalDatafeed {
     };
     const interval = intervalMap[resolution] || "30";
     const symbol = symbolInfo.name || "BTCUSDT";
-    this.subs.set(`${symbol}|${interval}`, {
+    const key = `${symbol}|${interval}`;
+    
+    this.subs.set(key, {
       cb: onTick,
       symbol,
       interval: resolution,
       lastTime: undefined,
       lastBar: undefined,
+      listenerGuid,
     });
+    
     try {
       this.wsClient.subscribeToKlines(symbol as string, interval as Interval);
       this.wsClient.subscribeToTicker(symbol as string);
     } catch {}
+    
     const last = this.lastPrice.get(symbol);
     if (Number.isFinite(last) && (last as number) > 0) {
       const intervalMs = this.intervalToMs(resolution);
@@ -620,8 +626,13 @@ export class BybitUdfDatafeed implements IDatafeedChartApi, IExternalDatafeed {
     }
   }
 
-  unsubscribeBars(_listenerGuid: string) {
-    this.subs.clear();
+  unsubscribeBars(listenerGuid: string) {
+    for (const [key, sub] of this.subs.entries()) {
+      if (sub.listenerGuid === listenerGuid) {
+        this.subs.delete(key);
+        break;
+      }
+    }
   }
 
   updatePriceType(newPriceType: "lastPrice" | "markPrice") {
@@ -637,53 +648,68 @@ export class BybitUdfDatafeed implements IDatafeedChartApi, IExternalDatafeed {
   // Force refresh current price for immediate chart update
   async refreshCurrentPrice(symbol: string): Promise<void> {
     try {
-      const response = await fetch(
-        `https://api.bybit.com/v5/market/tickers?category=linear&symbol=${symbol}`
-      );
-      const data = await response.json();
+      let selectedPrice: number | null = null;
 
-      if (data.retCode === 0 && data.result?.list?.[0]) {
-        const ticker = data.result.list[0];
-        const selectedPrice =
+      if (this.tickerDataCallback) {
+        const syncedData = this.tickerDataCallback(symbol);
+        const priceStr =
           this.priceType === "lastPrice"
-            ? Number(ticker.lastPrice || 0)
-            : Number(ticker.markPrice || 0);
-
-        if (Number.isFinite(selectedPrice) && selectedPrice > 0) {
-          this.lastPrice.set(symbol, selectedPrice);
-
-          // Force immediate update for all subscriptions
-          this.subs.forEach((sub) => {
-            if (sub.symbol !== symbol) return;
-
-            const intervalMs = this.intervalToMs(sub.interval);
-            const now = Date.now();
-            const periodStart = Math.floor(now / intervalMs) * intervalMs;
-
-            const liveBar: Bar = {
-              time: periodStart,
-              open:
-                sub.lastBar?.time === periodStart
-                  ? sub.lastBar.open
-                  : selectedPrice,
-              high:
-                sub.lastBar?.time === periodStart
-                  ? Math.max(sub.lastBar.high, selectedPrice)
-                  : selectedPrice,
-              low:
-                sub.lastBar?.time === periodStart
-                  ? Math.min(sub.lastBar.low, selectedPrice)
-                  : selectedPrice,
-              close: selectedPrice,
-              volume:
-                sub.lastBar?.time === periodStart ? sub.lastBar.volume : 0,
-            };
-
-            sub.lastBar = liveBar;
-            sub.lastTime = periodStart;
-            sub.cb(liveBar);
-          });
+            ? syncedData.lastPrice
+            : syncedData.markPrice;
+        
+        if (priceStr && priceStr !== "0" && priceStr !== "") {
+          selectedPrice = Number(priceStr);
         }
+      }
+
+      if (!selectedPrice || !Number.isFinite(selectedPrice) || selectedPrice <= 0) {
+        const response = await fetch(
+          `https://api.bybit.com/v5/market/tickers?category=linear&symbol=${symbol}`
+        );
+        const data = await response.json();
+
+        if (data.retCode === 0 && data.result?.list?.[0]) {
+          const ticker = data.result.list[0];
+          selectedPrice =
+            this.priceType === "lastPrice"
+              ? Number(ticker.lastPrice || 0)
+              : Number(ticker.markPrice || 0);
+        }
+      }
+
+      if (selectedPrice && Number.isFinite(selectedPrice) && selectedPrice > 0) {
+        this.lastPrice.set(symbol, selectedPrice);
+
+        this.subs.forEach((sub) => {
+          if (sub.symbol !== symbol) return;
+
+          const intervalMs = this.intervalToMs(sub.interval);
+          const now = Date.now();
+          const periodStart = Math.floor(now / intervalMs) * intervalMs;
+
+          const liveBar: Bar = {
+            time: periodStart,
+            open:
+              sub.lastBar?.time === periodStart
+                ? sub.lastBar.open
+                : selectedPrice,
+            high:
+              sub.lastBar?.time === periodStart
+                ? Math.max(sub.lastBar.high, selectedPrice)
+                : selectedPrice,
+            low:
+              sub.lastBar?.time === periodStart
+                ? Math.min(sub.lastBar.low, selectedPrice)
+                : selectedPrice,
+            close: selectedPrice,
+            volume:
+              sub.lastBar?.time === periodStart ? sub.lastBar.volume : 0,
+          };
+
+          sub.lastBar = liveBar;
+          sub.lastTime = periodStart;
+          sub.cb(liveBar);
+        });
       }
     } catch (error) {
       console.error("Failed to refresh current price:", error);
