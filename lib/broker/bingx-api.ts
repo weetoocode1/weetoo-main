@@ -2,6 +2,7 @@ import {
   BrokerAPI,
   CommissionData,
   ReferralData,
+  TradingHistory,
   UIDVerificationResult,
 } from "@/lib/broker/broker-types";
 import { signBingxHmacSha256 } from "@/lib/broker/bingx-signature";
@@ -682,9 +683,431 @@ export default class BingxAPI implements BrokerAPI {
     }
   }
 
-  async getTradingHistory(uid: string) {
-    // Optional for affiliate views; not strictly required by current UI
-    return [];
+  async getTradingHistory(
+    uid: string,
+    startTime?: number,
+    endTime?: number
+  ): Promise<TradingHistory[]> {
+    const tStart = Date.now();
+    console.log("=".repeat(80));
+    console.log("[BingX] getTradingHistory: METHOD CALLED!");
+    console.log("[BingX] getTradingHistory: Parameters", {
+      uid,
+      startTime: startTime ? new Date(startTime).toISOString() : "none",
+      endTime: endTime ? new Date(endTime).toISOString() : "none",
+      hasCreds: hasCreds(),
+    });
+    console.log("=".repeat(80));
+
+    if (!hasCreds()) {
+      console.log("[BingX] getTradingHistory: API credentials not configured");
+      return [];
+    }
+
+    try {
+      const now = Date.now();
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      const thirtyDaysMs = 30 * oneDayMs;
+      const ninetyDaysMs = 90 * oneDayMs;
+
+      // Convert time parameters to timestamps if needed
+      const convertToTimestamp = (time?: number): number | undefined => {
+        if (time === undefined) return undefined;
+        if (typeof time === "number") return time;
+        return undefined;
+      };
+
+      const startTimeNum = convertToTimestamp(startTime);
+      const endTimeNum = convertToTimestamp(endTime);
+
+      // BingX API requires 30-day windows, so we aggregate up to yesterday (T+1 settlement)
+      const queryEndTime = endTimeNum ?? now - oneDayMs;
+      const queryStartTime = startTimeNum ?? queryEndTime - ninetyDaysMs + 1;
+
+      // Get invitation code for this UID
+      let invitationCode = "";
+      try {
+        const verifyData = await doSignedGet<BingxInviteRelationCheck>(
+          "/openApi/agent/v1/account/inviteRelationCheck",
+          { uid: parseInt(uid) }
+        );
+        invitationCode =
+          verifyData?.invitationCode || verifyData?.inviteCode || "";
+        console.log("[BingX] getTradingHistory: Invitation code lookup", {
+          uid,
+          invitationCode: invitationCode || "NOT FOUND",
+          verifyData: verifyData ? "SUCCESS" : "EMPTY",
+        });
+      } catch (verifyError) {
+        const errMsg =
+          verifyError instanceof Error
+            ? verifyError.message
+            : String(verifyError);
+        console.log(
+          "[BingX] getTradingHistory: Invitation code lookup failed",
+          {
+            uid,
+            error: errMsg,
+          }
+        );
+      }
+
+      // Fetch all commission data (similar to getCommissionData but for trading history)
+      const allCommissionItems: BingxCommissionData[] = [];
+      const pageSize = 100;
+      const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+      let windowEnd = queryEndTime;
+
+      // Fetch in 30-day windows (BingX API requirement)
+      while (windowEnd > queryStartTime) {
+        const windowStart = Math.max(
+          queryStartTime,
+          windowEnd - THIRTY_DAYS + 1
+        );
+
+        let pageIndex = 1;
+        let hasMore = true;
+
+        while (hasMore && pageIndex <= 10) {
+          try {
+            if (pageIndex > 1) {
+              await new Promise((resolve) => setTimeout(resolve, 120));
+            }
+
+            const data = await doSignedGet<{
+              list: BingxCommissionData[];
+              total: number;
+            }>("/openApi/agent/v1/reward/commissionDataList", {
+              invitationCode: invitationCode || "",
+              pageIndex,
+              pageSize,
+              startTime: windowStart,
+              endTime: windowEnd,
+            });
+
+            const list = data?.list || [];
+            console.log(
+              `[BingX] getTradingHistory: API Response (window ${new Date(
+                windowStart
+              ).toISOString()} to ${new Date(
+                windowEnd
+              ).toISOString()}, page ${pageIndex})`,
+              {
+                totalInResponse: list.length,
+                totalFromAPI: data?.total || 0,
+                sampleUids: list.slice(0, 5).map((r) => r.uid),
+              }
+            );
+
+            const filtered = list.filter(
+              (row: BingxCommissionData) => row.uid.toString() === uid
+            );
+
+            console.log(
+              `[BingX] getTradingHistory: Filtered results for UID ${uid}`,
+              {
+                beforeFilter: list.length,
+                afterFilter: filtered.length,
+                matchedUids: filtered.map((r) => r.uid),
+              }
+            );
+
+            allCommissionItems.push(...filtered);
+
+            if (list.length < pageSize) {
+              hasMore = false;
+            } else {
+              pageIndex++;
+            }
+          } catch (apiError) {
+            const errorMessage =
+              apiError instanceof Error ? apiError.message : String(apiError);
+
+            console.log(
+              `[BingX] getTradingHistory: API Error (window ${new Date(
+                windowStart
+              ).toISOString()} to ${new Date(
+                windowEnd
+              ).toISOString()}, page ${pageIndex})`,
+              {
+                error: errorMessage,
+              }
+            );
+
+            if (errorMessage.includes("daysRange-over-30")) {
+              console.error(
+                `[BingX] getTradingHistory: Date range too large:`,
+                {
+                  windowStart: new Date(windowStart).toISOString(),
+                  windowEnd: new Date(windowEnd).toISOString(),
+                  days: (windowEnd - windowStart) / (24 * 60 * 60 * 1000),
+                }
+              );
+            }
+            break;
+          }
+        }
+
+        windowEnd = windowStart - 1;
+        await new Promise((resolve) => setTimeout(resolve, 120));
+      }
+
+      // Fallback: try with empty invitation code if no results found (like getCommissionData)
+      if (allCommissionItems.length === 0 && invitationCode) {
+        console.log(
+          "[BingX] getTradingHistory: No results with invitation code, trying fallback (empty invitation code)"
+        );
+
+        windowEnd = queryEndTime;
+        while (windowEnd > queryStartTime) {
+          const windowStart = Math.max(
+            queryStartTime,
+            windowEnd - THIRTY_DAYS + 1
+          );
+
+          try {
+            const fallbackData = await doSignedGet<{
+              list: BingxCommissionData[];
+              total: number;
+            }>("/openApi/agent/v1/reward/commissionDataList", {
+              invitationCode: "",
+              pageIndex: 1,
+              pageSize: 100,
+              startTime: windowStart,
+              endTime: windowEnd,
+            });
+
+            const fallbackList = fallbackData?.list || [];
+            console.log(
+              `[BingX] getTradingHistory: Fallback API Response (window ${new Date(
+                windowStart
+              ).toISOString()} to ${new Date(windowEnd).toISOString()})`,
+              {
+                totalInResponse: fallbackList.length,
+                totalFromAPI: fallbackData?.total || 0,
+                sampleUids: fallbackList.slice(0, 5).map((r) => r.uid),
+              }
+            );
+
+            const fallbackFiltered = fallbackList.filter(
+              (row: BingxCommissionData) => row.uid.toString() === uid
+            );
+
+            console.log(
+              `[BingX] getTradingHistory: Fallback filtered results for UID ${uid}`,
+              {
+                beforeFilter: fallbackList.length,
+                afterFilter: fallbackFiltered.length,
+                matchedUids: fallbackFiltered.map((r) => r.uid),
+              }
+            );
+
+            if (fallbackFiltered.length > 0) {
+              allCommissionItems.push(...fallbackFiltered);
+              console.log(
+                "[BingX] getTradingHistory: Fallback found data, breaking loop"
+              );
+              break;
+            }
+          } catch (fallbackError) {
+            const errMsg =
+              fallbackError instanceof Error
+                ? fallbackError.message
+                : String(fallbackError);
+            console.log(
+              `[BingX] getTradingHistory: Fallback API Error (window ${new Date(
+                windowStart
+              ).toISOString()} to ${new Date(windowEnd).toISOString()})`,
+              {
+                error: errMsg,
+              }
+            );
+          }
+
+          windowEnd = windowStart - 1;
+          await new Promise((resolve) => setTimeout(resolve, 150));
+        }
+      }
+
+      console.log("[BingX] getTradingHistory: Fetched commission data", {
+        uid,
+        totalItems: allCommissionItems.length,
+        timeWindow: {
+          start: new Date(queryStartTime).toISOString(),
+          end: new Date(queryEndTime).toISOString(),
+        },
+      });
+
+      // Calculate summaries from fetched data
+      const calculateSummary = (
+        items: BingxCommissionData[],
+        startTimeMs: number,
+        endTimeMs: number
+      ): number => {
+        return items.reduce((sum, item) => {
+          // Use commissionTime or createTime as timestamp
+          const itemTime =
+            item.commissionTime ?? item.createTime ?? item.updateTime ?? 0;
+
+          // Filter by time within the period
+          if (itemTime < startTimeMs || itemTime > endTimeMs) {
+            return sum;
+          }
+
+          // Use commissionAmount or commissionVolume as the commission value
+          const commission =
+            item.commissionAmount ??
+            (item.commissionVolume
+              ? parseFloat(String(item.commissionVolume))
+              : 0) ??
+            0;
+          const commissionNum =
+            typeof commission === "number"
+              ? commission
+              : parseFloat(String(commission)) || 0;
+          return sum + commissionNum;
+        }, 0);
+      };
+
+      // Calculate time windows for summaries
+      // BingX uses current time (not T+1) for commission display
+      const commissionEndTime = now;
+      const last24hStart = now - oneDayMs + 1;
+      const last30dStart = now - thirtyDaysMs + 1;
+      const last90dStart = now - ninetyDaysMs + 1;
+
+      // Calculate summaries from fetched data
+      const commission24h = calculateSummary(
+        allCommissionItems,
+        last24hStart,
+        commissionEndTime
+      );
+      const commission30d = calculateSummary(
+        allCommissionItems,
+        last30dStart,
+        commissionEndTime
+      );
+      const commission90d = calculateSummary(
+        allCommissionItems,
+        last90dStart,
+        commissionEndTime
+      );
+
+      console.log("[BingX] getTradingHistory: Calculated summaries", {
+        last24h: {
+          start: new Date(last24hStart).toISOString(),
+          end: new Date(commissionEndTime).toISOString(),
+          total: commission24h,
+        },
+        last30d: {
+          start: new Date(last30dStart).toISOString(),
+          end: new Date(commissionEndTime).toISOString(),
+          total: commission30d,
+        },
+        last90d: {
+          start: new Date(last90dStart).toISOString(),
+          end: new Date(commissionEndTime).toISOString(),
+          total: commission90d,
+        },
+      });
+
+      const summaries = {
+        last24h: {
+          commission: Number(commission24h.toFixed(8)),
+          commissionUsdt: Number(commission24h.toFixed(8)),
+        },
+        last30d: {
+          commission: Number(commission30d.toFixed(8)),
+          commissionUsdt: Number(commission30d.toFixed(8)),
+        },
+        last90d: {
+          commission: Number(commission90d.toFixed(8)),
+          commissionUsdt: Number(commission90d.toFixed(8)),
+        },
+      };
+
+      // Map commission items to TradingHistory format
+      const mapped: TradingHistory[] = allCommissionItems.map((item) => {
+        // Use commissionTime or createTime as timestamp
+        const itemTime =
+          item.commissionTime ?? item.createTime ?? item.updateTime ?? 0;
+        const itemTimeMs = itemTime > 1e12 ? itemTime : itemTime * 1000;
+
+        // Get commission amount
+        const commissionValue =
+          item.commissionAmount ??
+          (item.commissionVolume
+            ? parseFloat(String(item.commissionVolume))
+            : 0) ??
+          0;
+        const commissionNum =
+          typeof commissionValue === "number"
+            ? commissionValue
+            : parseFloat(String(commissionValue)) || 0;
+
+        // Get trading amount
+        const tradingValue =
+          item.tradingAmount ??
+          (item.tradingVolume ? parseFloat(String(item.tradingVolume)) : 0) ??
+          0;
+        const tradingNum =
+          typeof tradingValue === "number"
+            ? tradingValue
+            : parseFloat(String(tradingValue)) || 0;
+
+        return {
+          uid: String(item.uid ?? uid),
+          tradeAmount: String(tradingNum),
+          timestamp: itemTimeMs,
+          tradeTimeMs: itemTimeMs,
+          insertTimeMs: itemTimeMs,
+          commission: String(commissionNum),
+          commissionUsdt: String(commissionNum),
+          fee: "0",
+          rebateRate: item.commissionRate
+            ? String(item.commissionRate)
+            : undefined,
+          orderId: item.invitationCode,
+          commissionTime: item.commissionTime,
+          createTime: item.createTime,
+          updateTime: item.updateTime,
+        };
+      });
+
+      const durationMs = Date.now() - tStart;
+
+      if (mapped.length > 0) {
+        console.log("[BingX] getTradingHistory: ✅ SUCCESS - Data Retrieved", {
+          uid,
+          totalRecords: mapped.length,
+          durationMs: `${durationMs}ms`,
+          summaries,
+        });
+      } else {
+        console.log("[BingX] getTradingHistory: ⚠️ NO DATA - Empty Result", {
+          uid,
+          totalRecords: 0,
+          durationMs: `${durationMs}ms`,
+          summaries,
+        });
+      }
+
+      // Attach summaries to each trade (like LBank/OrangeX/DeepCoin)
+      const resultWithSummaries = mapped.map((trade) => ({
+        ...trade,
+        _summaries: summaries,
+      }));
+
+      return resultWithSummaries;
+    } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.log("[BingX] getTradingHistory: Error", {
+        uid,
+        error: errMsg,
+      });
+      // Return empty array on error (graceful degradation)
+      return [];
+    }
   }
 
   async getTradingVolume(uid: string): Promise<string> {
