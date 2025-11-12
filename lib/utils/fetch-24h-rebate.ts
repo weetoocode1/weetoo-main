@@ -40,10 +40,15 @@ export async function fetch24hRebateFromBroker(
         const last24h = firstTrade?._summaries?.last24h?.commissionUsdt || 0;
 
         return { last24h, success: true };
-      } catch (error) {
+      } catch (tradingHistoryError) {
         const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        console.error(`Error fetching ${broker} 24h rebate:`, errorMessage);
+          tradingHistoryError instanceof Error
+            ? tradingHistoryError.message
+            : String(tradingHistoryError);
+        console.error(
+          `Error fetching ${broker} 24h rebate from trading history:`,
+          errorMessage
+        );
         return { last24h: 0, success: false, error: errorMessage };
       }
     }
@@ -71,6 +76,7 @@ export async function fetch24hRebateFromBroker(
       return 0;
     };
 
+    // For other brokers (DeepCoin, BingX), calculate from commission data
     const rows24h = commissionData.filter((r: CommissionData) => {
       const statsDate = toNum(r.statsDate);
       return statsDate >= last24hStart && statsDate <= queryEndTime;

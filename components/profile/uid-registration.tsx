@@ -477,7 +477,7 @@ function UIDCard({
       : 0;
   const dbLast24h = record.last24hValue ?? 0;
   // Do NOT double-count: prefer accumulated (already includes today's 24h on registration),
-  // otherwise use DB last_24h_value, otherwise fallback to live for LBank.
+  // otherwise use DB last_24h_value, otherwise fallback to live for LBank/OrangeX.
   const displayedTotal =
     accumulatedPayback > 0
       ? accumulatedPayback
@@ -817,10 +817,9 @@ function UIDCard({
                   <TooltipTrigger asChild>
                     <Info className="w-3 h-3 cursor-help" />
                   </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-sm">
+                  <TooltipContent side="top" className="max-w-xs">
                     <div className="text-xs space-y-1">
                       <p>{t("stats.totalAccumulatedPaybackTooltip")}</p>
-
                       {(record.brokerId === "lbank" ||
                         record.brokerId === "orangex") &&
                         accumulatedPayback <= 0 &&

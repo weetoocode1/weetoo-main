@@ -467,8 +467,17 @@ export default class LbankAPI implements BrokerAPI {
     endTime?: number,
     userType: string = "ALL"
   ) {
-    // Minimal log: start
-    console.log("[LBank] getTradingHistory:start", { traderUid, userType });
+    console.log("=".repeat(80));
+    console.log("[LBank] getTradingHistory: METHOD CALLED!");
+    console.log("[LBank] getTradingHistory: Parameters", {
+      traderUid,
+      startTime,
+      endTime,
+      userType,
+      hasCreds: hasCreds(),
+      cachedCommissionUid: this.commissionUidCache || "none",
+    });
+    console.log("=".repeat(80));
 
     if (!hasCreds()) {
       console.log("[LBank] getTradingHistory: API credentials not configured");
@@ -492,7 +501,11 @@ export default class LbankAPI implements BrokerAPI {
     //   // shift back to UTC
     //   return localEndOfYesterday - UTC8_OFFSET;
     // };
-
+    // NOTE: Some partners report that LBank UI uses the commission time window ending at current time (UTC+8).
+    // To ensure we don't miss late-settled rows (e.g., 20:33 UTC+8), default to "now" when no explicit endTime is provided.
+    // Build window aligned to UI (Trade Time: yesterday -> today in UTC+8).
+    // Start: 00:00:00 of yesterday (UTC+8); End: 23:59:59.999 of today (UTC+8).
+    // Compute end of "today" (UTC+8). If a caller passes an earlier endTime, we still expand to end-of-today.
     const computeUtc8EndOfToday = (): number => {
       const UTC8_OFFSET_MS = 8 * 60 * 60 * 1000;
       const localNow = now + UTC8_OFFSET_MS;
@@ -503,7 +516,33 @@ export default class LbankAPI implements BrokerAPI {
     const utcEndOfToday = computeUtc8EndOfToday();
 
     // Hard-enforce end-of-today (UTC+8) to avoid upstream callers passing early endTime
-    // (trimmed detailed time-window logs)
+    console.log("=".repeat(80));
+    console.log("[LBank] getTradingHistory: TIME WINDOW ENFORCEMENT");
+    console.log("[LBank] getTradingHistory: Computed end-of-today (UTC+8):", {
+      utcEndOfToday: new Date(utcEndOfToday).toISOString(),
+      utcEndOfTodayMs: utcEndOfToday,
+      providedEndTime: endTime ? new Date(endTime).toISOString() : "none",
+      providedEndTimeMs: endTime,
+    });
+
+    if (endTime !== undefined && endTime < utcEndOfToday) {
+      console.log(
+        "[LBank] getTradingHistory: ⚠️ OVERRIDING provided endTime with end-of-today (UTC+8)",
+        {
+          providedEndTime: new Date(endTime).toISOString(),
+          enforcedEndTime: new Date(utcEndOfToday).toISOString(),
+        }
+      );
+    } else if (endTime === undefined) {
+      console.log(
+        "[LBank] getTradingHistory: Using computed end-of-today (UTC+8) as default"
+      );
+    } else {
+      console.log(
+        "[LBank] getTradingHistory: Provided endTime is already >= end-of-today, using as-is"
+      );
+    }
+    console.log("=".repeat(80));
 
     const defaultEndTime = utcEndOfToday;
     // Start from the beginning of "yesterday" in UTC+8 (00:00:00.000)
@@ -524,8 +563,10 @@ export default class LbankAPI implements BrokerAPI {
         passLabel: string
       ): Promise<LBankTradeItem[]> => {
         let start = 0;
+        // let pageCount = 0;
         const passTrades: LBankTradeItem[] = [];
         for (let page = 0; page < maxPages; page++) {
+          // pageCount++;
           const openIdToUse = this.commissionUidCache || traderUid;
           const requestParams: Record<string, unknown> = {
             openId: openIdToUse,
@@ -547,25 +588,56 @@ export default class LbankAPI implements BrokerAPI {
             requestParams.loginUid = traderUid;
           }
 
-          // (trimmed verbose per-page logs)
+          console.log("[LBank] getTradingHistory: Fetching page", {
+            pass: passLabel,
+            openIdUsed: openIdToUse,
+            traderUid,
+            page: page + 1,
+            start,
+            pageSize,
+            requestParams: {
+              ...requestParams,
+              startTime: new Date(
+                requestParams.startTime as number
+              ).toISOString(),
+              endTime: new Date(requestParams.endTime as number).toISOString(),
+            },
+          });
 
           const data = await doSignedGet<LBankTradePageResponse>(
             "/affiliate-api/v2/future/tradePage",
             requestParams
           );
 
-          if (data?.page?.openId && !this.commissionUidCache) {
-            this.commissionUidCache = data.page.openId;
-            discoveredCommissionUid = data.page.openId;
+          if (data?.page?.openId) {
+            if (!this.commissionUidCache) {
+              this.commissionUidCache = data.page.openId;
+              discoveredCommissionUid = data.page.openId;
+              console.log(
+                "[LBank] getTradingHistory: ✅ Discovered Commission UID from API response page.openId:",
+                this.commissionUidCache
+              );
+            }
           }
 
           const resultList = data?.resultList ?? [];
           passTrades.push(...resultList);
 
-          // (trimmed raw response log)
+          console.log("[LBank] getTradingHistory: Raw API Response", {
+            pass: passLabel,
+            hasData: !!data,
+            page: page + 1,
+            resultListLength: resultList.length,
+            totalCount: data?.totalCount,
+            hasNext: data?.hasNext,
+          });
 
           if (resultList.length < pageSize || !data?.hasNext) {
-            // (trimmed last page log)
+            console.log("[LBank] getTradingHistory: Reached last page", {
+              pass: passLabel,
+              totalPages: page + 1,
+              totalRecords: passTrades.length,
+            });
             break;
           }
           start += pageSize;
@@ -575,7 +647,22 @@ export default class LbankAPI implements BrokerAPI {
       };
 
       // First pass: default (no orderType)
-      const passDefault = await fetchPass({}, "default");
+      let passDefault: LBankTradeItem[] = [];
+      try {
+        passDefault = await fetchPass({}, "default");
+      } catch (defaultErr) {
+        const errMsg =
+          defaultErr instanceof Error ? defaultErr.message : String(defaultErr);
+        console.log(
+          "[LBank] getTradingHistory: default pass failed - returning empty result",
+          {
+            traderUid,
+            error: errMsg,
+          }
+        );
+        // Return empty array if default pass fails (e.g., permission error)
+        return [];
+      }
       // NOTE: Some environments are not authorized for orderType-scoped queries.
       // To avoid noisy permission errors, we rely on the default pass only.
       const passVoucher: LBankTradeItem[] = [];
@@ -603,7 +690,12 @@ export default class LbankAPI implements BrokerAPI {
       const finalCommissionUid =
         this.commissionUidCache || discoveredCommissionUid || "unknown";
 
-      // (trimmed processing log)
+      console.log("[LBank] getTradingHistory: Processing raw trades", {
+        commissionUid: finalCommissionUid,
+        traderUid,
+        totalRawTrades: allTrades.length,
+        willMapToRecords: allTrades.length,
+      });
 
       const mapped = allTrades.map((trade) => {
         const rawRebateRatio =
@@ -727,14 +819,43 @@ export default class LbankAPI implements BrokerAPI {
 
       // Keep only the requested trader's rows (fetch may return all traders)
       const filtered = mapped.filter((r) => r.uid === traderUid);
-      // const filteredOutCount = mapped.length - filtered.length;
+      const filteredOutCount = mapped.length - filtered.length;
       // By default, show only Distributed rows to match the UI's settled view
       const distributedOnly = filtered.filter(
         (r) => parseFloat(String(r.commissionUsdt ?? "0")) > 0
       );
       const used = distributedOnly.length > 0 ? distributedOnly : filtered;
 
-      // (trimmed per-trade entry logs)
+      // Print each trade entry one by one (concise per-trade line)
+      if (used.length > 0) {
+        console.log("[LBank] getTradingHistory: Trade Entries BEGIN", {
+          commissionUid: finalCommissionUid,
+          traderUid,
+          count: used.length,
+          filteredOutOtherTraders: filteredOutCount,
+        });
+        used.forEach((r, idx) => {
+          console.log("[LBank] Trade", {
+            index: idx + 1,
+            traderUid: r.uid,
+            tradeTime: r.tradeTimeMs
+              ? new Date(r.tradeTimeMs).toISOString()
+              : null,
+            settlementTime: r.rebateTimeMs
+              ? new Date(r.rebateTimeMs).toISOString()
+              : null,
+            commission: r.commission,
+            commissionUsdt: r.commissionUsdt,
+            status: r.status,
+            instrumentId: r.instrumentId,
+          });
+        });
+        console.log("[LBank] getTradingHistory: Trade Entries END", {
+          commissionUid: finalCommissionUid,
+          traderUid,
+          count: used.length,
+        });
+      }
 
       const now = Date.now();
       const oneDayMs = 24 * 60 * 60 * 1000;
@@ -873,24 +994,43 @@ export default class LbankAPI implements BrokerAPI {
         _summaries: summaries,
       }));
 
-      // const uniqueTraderUids = [
-      //   ...new Set(used.map((t) => t.uid).filter(Boolean)),
-      // ];
-      // const tradesByTrader = uniqueTraderUids.reduce((acc, traderUid) => {
-      //   const traderTrades = used.filter((t) => t.uid === traderUid);
-      //   const traderTotal = traderTrades.reduce(
-      //     (sum, t) =>
-      //       sum + parseFloat(String(t.commissionUsdt ?? t.commission ?? "0")),
-      //     0
-      //   );
-      //   acc[traderUid] = {
-      //     count: traderTrades.length,
-      //     totalCommission: traderTotal,
-      //   };
-      //   return acc;
-      // }, {} as Record<string, { count: number; totalCommission: number }>);
+      const uniqueTraderUids = [
+        ...new Set(used.map((t) => t.uid).filter(Boolean)),
+      ];
+      const tradesByTrader = uniqueTraderUids.reduce((acc, traderUid) => {
+        const traderTrades = used.filter((t) => t.uid === traderUid);
+        const traderTotal = traderTrades.reduce(
+          (sum, t) =>
+            sum + parseFloat(String(t.commissionUsdt ?? t.commission ?? "0")),
+          0
+        );
+        acc[traderUid] = {
+          count: traderTrades.length,
+          totalCommission: traderTotal,
+        };
+        return acc;
+      }, {} as Record<string, { count: number; totalCommission: number }>);
 
-      // (trimmed per-trader totals logs)
+      // Per-trader totals log for easy reading (separate each user's rebate)
+      if (uniqueTraderUids.length > 0) {
+        console.log("[LBank] getTradingHistory: Per-Trader Totals BEGIN", {
+          commissionUid: finalCommissionUid,
+          expectedTraderUid: traderUid,
+          traders: uniqueTraderUids.length,
+        });
+        uniqueTraderUids.forEach((uid) => {
+          const t = tradesByTrader[uid];
+          console.log("[LBank] Trader Total", {
+            traderUid: uid,
+            trades: t.count,
+            commissionUsdt: Number(t.totalCommission.toFixed(8)),
+          });
+        });
+        console.log("[LBank] getTradingHistory: Per-Trader Totals END", {
+          commissionUid: finalCommissionUid,
+          expectedTraderUid: traderUid,
+        });
+      }
 
       // For diagnostics, derive the earliest trade time we actually saw for this trader
       const earliestTradeMs =
@@ -902,18 +1042,32 @@ export default class LbankAPI implements BrokerAPI {
           undefined
         ) ?? defaultStartTime;
 
-      // Minimal log: summary
-      console.log("[LBank] getTradingHistory:summary", {
+      console.log("[LBank] getTradingHistory: Commission Summaries", {
         commissionUid: finalCommissionUid,
         traderUid,
+        summaries,
         totalRecords: used.length,
-        last24hUsdt: Number(summary24h.commissionUsdt.toFixed(8)),
-        last30dUsdt: Number(summary30d.commissionUsdt.toFixed(8)),
-        last90dUsdt: Number(summary90d.commissionUsdt.toFixed(8)),
+        uniqueTraders: uniqueTraderUids.length,
+        tradesByTrader,
+        allTraderUids: uniqueTraderUids,
         dateRange: {
+          // show the actual earliest record time if available to avoid confusing "May 14" start logs
           start: new Date(earliestTradeMs).toISOString(),
           end: new Date(defaultEndTime).toISOString(),
         },
+        explanation: `Commission UID ${finalCommissionUid} receiving commissions from Trader UID ${traderUid}`,
+        issue:
+          uniqueTraderUids.length === 0
+            ? `⚠️ WARNING: No trades found for Trader UID ${traderUid} under Commission UID ${finalCommissionUid}`
+            : uniqueTraderUids.length === 1 && uniqueTraderUids[0] === traderUid
+            ? `✅ Correct: Found trades from Trader UID ${traderUid}`
+            : uniqueTraderUids.length === 1 && uniqueTraderUids[0] !== traderUid
+            ? `⚠️ WARNING: Expected Trader UID ${traderUid}, but found ${uniqueTraderUids[0]}`
+            : uniqueTraderUids.length > 1
+            ? `⚠️ WARNING: Expected only Trader UID ${traderUid}, but found multiple traders: ${uniqueTraderUids.join(
+                ", "
+              )}`
+            : `No traders found`,
       });
 
       return resultWithSummaries;
