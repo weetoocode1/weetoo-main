@@ -21,6 +21,33 @@ export async function fetch24hRebateFromBroker(
       return { last24h: 0, success: false, error: "Broker API is not active" };
     }
 
+    // For LBank and OrangeX, use getTradingHistory to get accurate 24h summaries
+    if (broker === "lbank" || broker === "orangex") {
+      try {
+        const tradingHistory = await brokerInstance.getTradingHistory(uid);
+
+        if (!Array.isArray(tradingHistory) || tradingHistory.length === 0) {
+          return { last24h: 0, success: true };
+        }
+
+        // Extract 24h summary from the first trade's _summaries
+        const firstTrade = tradingHistory[0] as {
+          _summaries?: {
+            last24h?: { commissionUsdt?: number };
+          };
+        };
+
+        const last24h = firstTrade?._summaries?.last24h?.commissionUsdt || 0;
+
+        return { last24h, success: true };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        console.error(`Error fetching ${broker} 24h rebate:`, errorMessage);
+        return { last24h: 0, success: false, error: errorMessage };
+      }
+    }
+
     const commissionData = await brokerInstance.getCommissionData(
       uid,
       sourceType
@@ -44,71 +71,16 @@ export async function fetch24hRebateFromBroker(
       return 0;
     };
 
-    let last24h: number;
+    const rows24h = commissionData.filter((r: CommissionData) => {
+      const statsDate = toNum(r.statsDate);
+      return statsDate >= last24hStart && statsDate <= queryEndTime;
+    });
 
-    if (broker === "orangex") {
-      const { OrangeXAPI } = await import("@/lib/broker/orangex-api");
-      const orangexInstance = new OrangeXAPI();
-
-      const endTime = queryEndTime;
-      const start24 = endTime - oneDayMs + 1;
-
-      try {
-        const pageSize = 100;
-        let offset = 1;
-        const out: Array<{ myCommission: string }> = [];
-
-        for (let page = 0; page < 200; page++) {
-          const res = await (
-            orangexInstance as unknown as {
-              makeRequest: <T, R>(endpoint: string, params: T) => Promise<R>;
-            }
-          ).makeRequest<
-            {
-              offset: number;
-              count: number;
-              uid: string;
-              sourceType: string;
-              startTime: number;
-              endTime: number;
-            },
-            { result?: { data?: Array<{ myCommission: string }> } }
-          >("/multilevelPartnerDataStatistics/userCommissionStatistics", {
-            offset,
-            count: pageSize,
-            uid,
-            sourceType,
-            startTime: start24,
-            endTime: endTime,
-          });
-
-          const list = Array.isArray(res.result?.data) ? res.result.data : [];
-          out.push(...list);
-          if (list.length < pageSize) break;
-          offset += 1;
-          await new Promise((r) => setTimeout(r, 120));
-        }
-
-        last24h = out.reduce(
-          (sum, r) => sum + (parseFloat(String(r?.myCommission || 0)) || 0),
-          0
-        );
-      } catch (error) {
-        console.error(`Error fetching OrangeX 24h data:`, error);
-        last24h = 0;
-      }
-    } else {
-      const rows24h = commissionData.filter((r: CommissionData) => {
-        const statsDate = toNum(r.statsDate);
-        return statsDate >= last24hStart && statsDate <= queryEndTime;
-      });
-
-      last24h = rows24h.reduce(
-        (sum: number, r: CommissionData) =>
-          sum + (parseFloat(String(r?.commission || 0)) || 0),
-        0
-      );
-    }
+    const last24h = rows24h.reduce(
+      (sum: number, r: CommissionData) =>
+        sum + (parseFloat(String(r?.commission || 0)) || 0),
+      0
+    );
 
     return { last24h, success: true };
   } catch (error) {

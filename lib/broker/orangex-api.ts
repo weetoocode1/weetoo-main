@@ -313,29 +313,58 @@ export class OrangeXAPI implements BrokerAPI {
 
   async getTradingHistory(
     uid: string,
-    startTime?: string,
-    endTime?: string
+    startTime?: number,
+    endTime?: number,
+    userType?: string
   ): Promise<TradingHistory[]> {
-    try {
-      const response = await this.makeRequest<
-        {
-          offset: number;
-          count: number;
-          uid: string;
-          startTime?: string;
-          endTime?: string;
-        },
-        OrangeXTradingHistoryResult
-      >("/multilevelPartnerDataStatistics/historicalTransaction", {
-        offset: 1,
-        count: 100,
-        uid: uid,
-        startTime,
-        endTime,
-      });
+    const tStart = Date.now();
+    const now = Date.now();
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    const thirtyDaysMs = 30 * oneDayMs;
+    const ninetyDaysMs = 90 * oneDayMs;
 
-      const items = response.result?.data ?? [];
-      const mapped: TradingHistory[] = items.map((trade) => ({
+    const defaultEndTime = endTime ?? now - oneDayMs;
+    const defaultStartTime = startTime ?? defaultEndTime - ninetyDaysMs + 1;
+
+    try {
+      const pageSize = 100;
+      const maxPages = 200;
+      let offset = 1;
+      const allTrades: OrangeXTradingHistoryResponse["result"]["data"] = [];
+
+      for (let page = 0; page < maxPages; page++) {
+        const response = await this.makeRequest<
+          {
+            offset: number;
+            count: number;
+            uid: string;
+            startTime?: number;
+            endTime?: number;
+          },
+          OrangeXTradingHistoryResult
+        >("/multilevelPartnerDataStatistics/historicalTransaction", {
+          offset,
+          count: pageSize,
+          uid: uid,
+          startTime: defaultStartTime,
+          endTime: defaultEndTime,
+        });
+
+        const items = response.result?.data ?? [];
+        allTrades.push(...items);
+
+        if (
+          items.length < pageSize ||
+          offset >= (response.result?.totalPage ?? 1)
+        ) {
+          break;
+        }
+
+        offset += 1;
+        await new Promise((r) => setTimeout(r, 120));
+      }
+
+      const mapped: TradingHistory[] = allTrades.map((trade) => ({
         uid: trade.uid,
         tradeAmount: trade.amount,
         timestamp: trade.createTime,
@@ -349,11 +378,124 @@ export class OrangeXAPI implements BrokerAPI {
         feeCoinType: trade.feeCoinType,
         rpl: trade.rpl,
         role: trade.role,
+        commissionUsdt: "0",
+        status: "Not Distributed",
       }));
 
-      return mapped;
+      // const last24hStart = now - oneDayMs;
+      // const last30dStart = now - thirtyDaysMs;
+      // const last90dStart = now - ninetyDaysMs;
+
+      const endTimeForCommission = now - oneDayMs;
+      const start24ForCommission = endTimeForCommission - oneDayMs + 1;
+      const start30ForCommission = endTimeForCommission - thirtyDaysMs + 1;
+      const start90ForCommission = endTimeForCommission - ninetyDaysMs + 1;
+
+      const fetchCommissionRange = async (
+        startTime: number,
+        endTimeMs: number
+      ): Promise<number> => {
+        const pageSize = 100;
+        let offset = 1;
+        let total = 0;
+        for (let page = 0; page < 200; page++) {
+          const res = await this.makeRequest<
+            {
+              offset: number;
+              count: number;
+              uid: string;
+              sourceType: string;
+              startTime: number;
+              endTime: number;
+            },
+            OrangeXCommissionResult
+          >("/multilevelPartnerDataStatistics/userCommissionStatistics", {
+            offset,
+            count: pageSize,
+            uid,
+            sourceType: "PERPETUAL",
+            startTime,
+            endTime: endTimeMs,
+          });
+          const list = Array.isArray(res.result?.data) ? res.result.data : [];
+          total += list.reduce(
+            (sum, r) => sum + (parseFloat(String(r?.myCommission || 0)) || 0),
+            0
+          );
+          if (list.length < pageSize) break;
+          offset += 1;
+          await new Promise((r) => setTimeout(r, 120));
+        }
+        return total;
+      };
+
+      const [last24hCommission, last30dCommission] = await Promise.all([
+        fetchCommissionRange(start24ForCommission, endTimeForCommission),
+        fetchCommissionRange(start30ForCommission, endTimeForCommission),
+      ]);
+
+      const cached = OrangeXAPI.NINETY_DAY_CACHE.get(uid);
+      const cacheValid =
+        cached && Date.now() - cached.ts < OrangeXAPI.CACHE_TTL_MS;
+      const last90dCommission = cacheValid
+        ? cached.value
+        : await fetchCommissionRange(
+            start90ForCommission,
+            endTimeForCommission
+          );
+
+      const summary24h = {
+        commission: 0,
+        commissionUsdt: last24hCommission,
+      };
+      const summary30d = {
+        commission: 0,
+        commissionUsdt: last30dCommission,
+      };
+      const summary90d = {
+        commission: 0,
+        commissionUsdt: last90dCommission,
+      };
+
+      const summaries = {
+        last24h: summary24h,
+        last30d: summary30d,
+        last90d: summary90d,
+      };
+
+      const durationMs = Date.now() - tStart;
+      console.log("[OrangeX] getTradingHistory: Summary", {
+        uid,
+        totalRecords: mapped.length,
+        summaries: {
+          last24h: {
+            commissionUsdt: Number(summary24h.commissionUsdt.toFixed(8)),
+          },
+          last30d: {
+            commissionUsdt: Number(summary30d.commissionUsdt.toFixed(8)),
+          },
+          last90d: {
+            commissionUsdt: Number(summary90d.commissionUsdt.toFixed(8)),
+          },
+        },
+        durationMs: `${durationMs}ms`,
+      });
+
+      const resultWithSummaries = mapped.map((trade) => ({
+        ...trade,
+        _summaries: summaries,
+      }));
+
+      return resultWithSummaries;
     } catch (error) {
-      throw error;
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      console.error("[OrangeX] getTradingHistory: Error", {
+        uid,
+        error: errorMessage,
+        durationMs: Date.now() - tStart,
+      });
+      return [];
     }
   }
 
