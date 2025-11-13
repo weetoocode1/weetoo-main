@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Resolver, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -117,7 +118,7 @@ type UidFormData = {
 interface UidRegistrationDialogProps {
   title: string;
   trigger: React.ReactNode;
-  onUIDAdded: (uid: string, brokerId: string) => void;
+  onUIDAdded: (uid: string, brokerId: string) => Promise<void>;
   editingRecord?: {
     id: string;
     brokerId: string;
@@ -152,17 +153,23 @@ export function UidRegistrationDialog({
     defaultValues: { brokerId: "", uid: "" },
   });
 
-  const onSubmit = (data: UidFormData) => {
+  const onSubmit = async (data: UidFormData) => {
     if (editingRecord && onUIDUpdated) {
-      // Update existing
       onUIDUpdated(editingRecord.id, data.uid, data.brokerId);
-    } else {
-      // Add new
-      onUIDAdded(data.uid, data.brokerId);
+      form.reset();
+      setDialogIsOpen(false);
+      return;
     }
 
     form.reset();
     setDialogIsOpen(false);
+
+    onUIDAdded(data.uid, data.brokerId).catch((error) => {
+      console.error("Error adding UID:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to add UID"
+      );
+    });
   };
 
   const handleOpenChange = (open: boolean) => {

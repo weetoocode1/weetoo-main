@@ -318,15 +318,8 @@ export default class BingxAPI implements BrokerAPI {
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
 
-      if (BINGX_DEBUG) {
-        console.log(
-          `[BingX] getReferrals completed: ${results.length} referrals found`
-        );
-      }
-
       return results;
-    } catch (e: unknown) {
-      console.error("BingX getReferrals error:", e);
+    } catch (_e: unknown) {
       return [];
     }
   }
@@ -338,7 +331,6 @@ export default class BingxAPI implements BrokerAPI {
     if (!hasCreds()) return [];
 
     try {
-      const tStart = Date.now();
       const now = Date.now();
       const oneDayMs = 24 * 60 * 60 * 1000;
       const thirtyDaysMs = 30 * oneDayMs;
@@ -409,14 +401,7 @@ export default class BingxAPI implements BrokerAPI {
               apiError instanceof Error ? apiError.message : String(apiError);
 
             if (errorMessage.includes("daysRange-over-30")) {
-              console.error(
-                `[BingX] Date range still too large (should be impossible):`,
-                {
-                  windowStart: new Date(windowStart).toISOString(),
-                  windowEnd: new Date(windowEnd).toISOString(),
-                  days: (windowEnd - windowStart) / (24 * 60 * 60 * 1000),
-                }
-              );
+              // Date range too large error
             }
 
             // Quiet API error details; continue loop control below
@@ -535,7 +520,7 @@ export default class BingxAPI implements BrokerAPI {
       }
 
       // Compute summaries: last 24h, last 30d, last 90d (lifetime window)
-      const last24hStart = queryEndTime - oneDayMs + 1;
+      // const last24hStart = queryEndTime - oneDayMs + 1;
       const last30dStart = queryEndTime - thirtyDaysMs + 1;
       // const last90dStart = queryStartTime; // already 90d back
 
@@ -554,11 +539,11 @@ export default class BingxAPI implements BrokerAPI {
         return 0;
       };
 
-      const rows24h = allResultsFull.filter(
-        (r) =>
-          toNum(r.statsDate) >= last24hStart &&
-          toNum(r.statsDate) <= queryEndTime
-      );
+      // const rows24h = allResultsFull.filter(
+      //   (r) =>
+      //     toNum(r.statsDate) >= last24hStart &&
+      //     toNum(r.statsDate) <= queryEndTime
+      // );
       const rows30d = allResultsFull.filter(
         (r) =>
           toNum(r.statsDate) >= last30dStart &&
@@ -570,19 +555,9 @@ export default class BingxAPI implements BrokerAPI {
       //     toNum(r.statsDate) <= queryEndTime
       // );
 
-      const last24hTotal = sumCommission(rows24h);
+      // const last24hTotal = sumCommission(rows24h);
       const last30dTotal = sumCommission(rows30d);
       // const last90dTotal = sumCommission(rows90d);
-
-      // Single concise console for product metrics and timing (omit 90d until ready)
-      const durationMs = Date.now() - tStart;
-      console.log("[BingX] Commission Summary", {
-        uid,
-        last24h: Number(last24hTotal.toFixed(8)),
-        last30d: Number(last30dTotal.toFixed(8)),
-        recordsFetched: allResultsFull.length,
-        durationMs,
-      });
 
       // Background fetch prior 60d for full 90d, cached to reduce repeat latency
       const cache = BINGX_90D_CACHE.get(uid);
@@ -648,31 +623,10 @@ export default class BingxAPI implements BrokerAPI {
             const extra = bgTotals.reduce((a, b) => a + b, 0);
             const full90 = last30dTotal + extra;
             BINGX_90D_CACHE.set(uid, { value: full90, ts: Date.now() });
-            console.log("[BingX] Commission Summary (90d ready)", {
-              uid,
-              last90d: Number(full90.toFixed(8)),
-            });
-            console.log("[BingX] Commission Summary (final)", {
-              uid,
-              last24h: Number(last24hTotal.toFixed(8)),
-              last30d: Number(last30dTotal.toFixed(8)),
-              last90d: Number(full90.toFixed(8)),
-            });
           } catch {
             // ignore background errors
           }
         })();
-      } else {
-        console.log("[BingX] Commission Summary (cached 90d)", {
-          uid,
-          last90d: Number((cache?.value || 0).toFixed(8)),
-        });
-        console.log("[BingX] Commission Summary (final)", {
-          uid,
-          last24h: Number(last24hTotal.toFixed(8)),
-          last30d: Number(last30dTotal.toFixed(8)),
-          last90d: Number((cache?.value || 0).toFixed(8)),
-        });
       }
 
       // Return only last 30 days for UI consumption
@@ -970,11 +924,11 @@ export default class BingxAPI implements BrokerAPI {
       };
 
       // Calculate time windows for summaries
-      // BingX uses current time (not T+1) for commission display
-      const commissionEndTime = now;
-      const last24hStart = now - oneDayMs + 1;
-      const last30dStart = now - thirtyDaysMs + 1;
-      const last90dStart = now - ninetyDaysMs + 1;
+      // BingX aggregates up to yesterday to avoid partial/settlement-day effects
+      const commissionEndTime = now - oneDayMs;
+      const last24hStart = commissionEndTime - oneDayMs + 1;
+      const last30dStart = commissionEndTime - thirtyDaysMs + 1;
+      const last90dStart = commissionEndTime - ninetyDaysMs + 1;
 
       // Calculate summaries from fetched data
       const commission24h = calculateSummary(

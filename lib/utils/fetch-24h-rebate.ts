@@ -21,8 +21,8 @@ export async function fetch24hRebateFromBroker(
       return { last24h: 0, success: false, error: "Broker API is not active" };
     }
 
-    // For LBank, OrangeX, and DeepCoin, use getTradingHistory to get accurate 24h summaries
-    if (broker === "lbank" || broker === "orangex" || broker === "deepcoin") {
+    // For LBank, OrangeX, DeepCoin, and BingX, use getTradingHistory to get accurate 24h summaries
+    if (broker === "lbank" || broker === "orangex" || broker === "deepcoin" || broker === "bingx") {
       try {
         const tradingHistory = await brokerInstance.getTradingHistory(uid);
 
@@ -77,16 +77,16 @@ export async function fetch24hRebateFromBroker(
     };
 
     // For other brokers (DeepCoin, BingX), calculate from commission data
-    const rows24h = commissionData.filter((r: CommissionData) => {
-      const statsDate = toNum(r.statsDate);
-      return statsDate >= last24hStart && statsDate <= queryEndTime;
-    });
+      const rows24h = commissionData.filter((r: CommissionData) => {
+        const statsDate = toNum(r.statsDate);
+        return statsDate >= last24hStart && statsDate <= queryEndTime;
+      });
 
     const last24h = rows24h.reduce(
-      (sum: number, r: CommissionData) =>
-        sum + (parseFloat(String(r?.commission || 0)) || 0),
-      0
-    );
+        (sum: number, r: CommissionData) =>
+          sum + (parseFloat(String(r?.commission || 0)) || 0),
+        0
+      );
 
     return { last24h, success: true };
   } catch (error) {

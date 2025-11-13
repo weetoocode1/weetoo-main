@@ -678,6 +678,31 @@ export const PartnerExchangeComparison = () => {
                                 </>
                               )}
                             </div>
+                            {[
+                              "deepcoin",
+                              "orangex",
+                              "lbank",
+                              "bingx",
+                            ].includes(exchange.id) && (
+                              <div className="mt-4 rounded-lg bg-muted/30 p-4">
+                                <div className="space-y-2.5">
+                                  <h4 className="text-sm font-semibold text-foreground">
+                                    {t("paybackNotice.title")}
+                                  </h4>
+                                  <p className="text-sm text-muted-foreground leading-relaxed">
+                                    {t("paybackNotice.description")}
+                                  </p>
+                                  <div className="space-y-1.5 pt-2 border-t border-border/50">
+                                    <p className="text-xs font-medium text-foreground">
+                                      {t("paybackNotice.note")}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground leading-relaxed">
+                                      {t("paybackNotice.warning")}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -891,6 +916,28 @@ export const PartnerExchangeComparison = () => {
                     </>
                   )}
                 </div>
+                {["deepcoin", "orangex", "lbank", "bingx"].includes(
+                  exchange.id
+                ) && (
+                  <div className="mt-4 rounded-lg bg-muted/30 p-4">
+                    <div className="space-y-2.5">
+                      <h4 className="text-sm font-semibold text-foreground">
+                        {t("paybackNotice.title")}
+                      </h4>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {t("paybackNotice.description")}
+                      </p>
+                      <div className="space-y-1.5 pt-2 border-t border-border/50">
+                        <p className="text-xs font-medium text-foreground">
+                          {t("paybackNotice.note")}
+                        </p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          {t("paybackNotice.warning")}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}

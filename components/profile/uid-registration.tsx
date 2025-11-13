@@ -7,20 +7,31 @@ import {
   useBrokerTradingHistory,
   useBrokerUIDVerification,
 } from "@/hooks/broker/use-broker-api";
+import { useCreateBrokerRebateWithdrawal } from "@/hooks/use-broker-rebate-withdrawals";
 import { useAddUserUid, useUserUids } from "@/hooks/use-user-uids";
+import { prefetchUIDData } from "@/lib/utils/prefetch-uid-data";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   BadgeCheck,
-  ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Copy,
-  Info,
+  DollarSign,
+  ExternalLink,
   KeyRoundIcon,
+  Loader2,
   PlusIcon,
+  TrendingDown,
+  TrendingUp,
+  XCircle,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
-import { useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
 import {
   Tooltip,
   TooltipContent,
@@ -97,55 +108,55 @@ const REFERRAL_BACKUP_LINKS: Record<string, string> = {
 // };
 
 // Component for referral link with fallback mechanism
-function ReferralLinkWithFallback({ brokerId }: { brokerId: string }) {
-  const t = useTranslations("profile.uidRegistration");
-  const primaryLink = REFERRAL_LINKS[brokerId];
-  const backupLink = REFERRAL_BACKUP_LINKS[brokerId];
+// function ReferralLinkWithFallback({ brokerId }: { brokerId: string }) {
+//   const t = useTranslations("profile.uidRegistration");
+//   const primaryLink = REFERRAL_LINKS[brokerId];
+//   const backupLink = REFERRAL_BACKUP_LINKS[brokerId];
 
-  if (!primaryLink) return null;
+//   if (!primaryLink) return null;
 
-  // If no backup link, just show primary
-  if (!backupLink) {
-    return (
-      <a
-        href={primaryLink}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer mt-1 sm:mt-0"
-      >
-        <div className="w-1.5 h-1.5 bg-amber-500"></div>
-        <span className="text-muted-foreground">{t("status.notReferral")}</span>
-        <ChevronRight className="w-3 h-3 text-muted-foreground" />
-      </a>
-    );
-  }
+//   // If no backup link, just show primary
+//   if (!backupLink) {
+//     return (
+//       <a
+//         href={primaryLink}
+//         target="_blank"
+//         rel="noopener noreferrer"
+//         className="flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer mt-1 sm:mt-0"
+//       >
+//         <div className="w-1.5 h-1.5 bg-amber-500"></div>
+//         <span className="text-muted-foreground">{t("status.notReferral")}</span>
+//         <ChevronRight className="w-3 h-3 text-muted-foreground" />
+//       </a>
+//     );
+//   }
 
-  // If both links exist, show primary with backup option
-  return (
-    <div className="flex items-center gap-1.5 mt-1 sm:mt-0">
-      <a
-        href={primaryLink}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer"
-      >
-        <div className="w-1.5 h-1.5 bg-amber-500"></div>
-        <span className="text-muted-foreground">{t("status.notReferral")}</span>
-        <ChevronRight className="w-3 h-3 text-muted-foreground" />
-      </a>
-      <span className="text-muted-foreground text-xs">|</span>
-      <a
-        href={backupLink}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-xs text-muted-foreground hover:opacity-80 transition-opacity cursor-pointer"
-        title="Backup referral link"
-      >
-        Backup
-      </a>
-    </div>
-  );
-}
+//   // If both links exist, show primary with backup option
+//   return (
+//     <div className="flex items-center gap-1.5 mt-1 sm:mt-0">
+//       <a
+//         href={primaryLink}
+//         target="_blank"
+//         rel="noopener noreferrer"
+//         className="flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer"
+//       >
+//         <div className="w-1.5 h-1.5 bg-amber-500"></div>
+//         <span className="text-muted-foreground">{t("status.notReferral")}</span>
+//         <ChevronRight className="w-3 h-3 text-muted-foreground" />
+//       </a>
+//       <span className="text-muted-foreground text-xs">|</span>
+//       <a
+//         href={backupLink}
+//         target="_blank"
+//         rel="noopener noreferrer"
+//         className="text-xs text-muted-foreground hover:opacity-80 transition-opacity cursor-pointer"
+//         title="Backup referral link"
+//       >
+//         Backup
+//       </a>
+//     </div>
+//   );
+// }
 
 interface UidRecord {
   id: string;
@@ -172,10 +183,16 @@ type ServerUidRow = {
   withdrawable_balance?: number;
 };
 
+const MINIMUM_WITHDRAWAL = 50;
+
 export function UidRegistration() {
   const t = useTranslations("profile.uidRegistration");
   const { data: serverUids, isLoading } = useUserUids();
   const addMutation = useAddUserUid();
+  const queryClient = useQueryClient();
+  const [expandedUidId, setExpandedUidId] = useState<string>("");
+  const [amounts, setAmounts] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState<Record<string, boolean>>({});
 
   // Get all active UID IDs from server data
   const activeUidIds = new Set(
@@ -186,11 +203,49 @@ export function UidRegistration() {
 
   const handleUIDAdded = async (uid: string, brokerId: string) => {
     const broker = BROKERS.find((b) => b.id === brokerId);
-    if (!broker) return;
-    await addMutation.mutateAsync({
+    if (!broker) {
+      throw new Error(`Broker ${brokerId} not found`);
+    }
+
+    const createdUid = await addMutation.mutateAsync({
       uid,
       exchange_id: brokerId,
     });
+
+    if (!createdUid?.id) {
+      throw new Error("Failed to create UID");
+    }
+
+    prefetchUIDData(brokerId, uid)
+      .then((prefetchResult) => {
+        if (prefetchResult.success) {
+          const brokerLower = brokerId.toLowerCase();
+
+          if (prefetchResult.verification) {
+            queryClient.setQueryData(
+              ["broker", brokerLower, "verifyUID", uid],
+              prefetchResult.verification
+            );
+          }
+
+          if (prefetchResult.referrals) {
+            queryClient.setQueryData(
+              ["broker", brokerLower, "getReferrals"],
+              prefetchResult.referrals
+            );
+          }
+
+          if (prefetchResult.tradingHistory) {
+            queryClient.setQueryData(
+              ["broker", brokerLower, "getTradingHistory", uid],
+              prefetchResult.tradingHistory
+            );
+          }
+        }
+      })
+      .catch((error) => {
+        console.error("Error prefetching UID data:", error);
+      });
   };
 
   // Map server data to UI format
@@ -281,12 +336,18 @@ export function UidRegistration() {
         <div className="mt-8 space-y-4">
           <h2 className="text-lg font-medium">{t("yourUids")}</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
             {uidRecords.map((record) => (
               <UIDCard
                 key={record.id}
                 record={record}
                 isActiveUid={activeUidIds.has(record.id)}
+                expandedUidId={expandedUidId}
+                setExpandedUidId={setExpandedUidId}
+                amounts={amounts}
+                setAmounts={setAmounts}
+                isSubmitting={isSubmitting}
+                setIsSubmitting={setIsSubmitting}
               />
             ))}
           </div>
@@ -312,11 +373,24 @@ export function UidRegistration() {
 function UIDCard({
   record,
   isActiveUid,
+  expandedUidId,
+  setExpandedUidId,
+  amounts,
+  setAmounts,
+  isSubmitting,
+  setIsSubmitting,
 }: {
   record: UidRecord;
   isActiveUid: boolean;
+  expandedUidId: string;
+  setExpandedUidId: (id: string) => void;
+  amounts: Record<string, string>;
+  setAmounts: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  isSubmitting: Record<string, boolean>;
+  setIsSubmitting: React.Dispatch<
+    React.SetStateAction<Record<string, boolean>>
+  >;
 }) {
-  const t = useTranslations("profile.uidRegistration");
   const isBrokerActive = useBrokerAPIActive(record.brokerId);
 
   const uidVerification = useBrokerUIDVerification(
@@ -357,11 +431,12 @@ function UIDCard({
 
   // Get commission totals from API response (backend provides cached totals)
   const getCommissionTotals = () => {
-    // For LBank, OrangeX, and DeepCoin, use trading history summaries if available
+    // For LBank, OrangeX, DeepCoin, and BingX, use trading history summaries if available
     if (
       (record.brokerId === "lbank" ||
         record.brokerId === "orangex" ||
-        record.brokerId === "deepcoin") &&
+        record.brokerId === "deepcoin" ||
+        record.brokerId === "bingx") &&
       tradingHistory.data &&
       Array.isArray(tradingHistory.data) &&
       tradingHistory.data.length > 0
@@ -463,21 +538,22 @@ function UIDCard({
 
   const commissionTotals = getCommissionTotals();
   const isCommissionLoading = commission.isLoading || commission.isFetching;
-  const isTradingHistoryLoading =
-    tradingHistory.isLoading || tradingHistory.isFetching;
+  // const isTradingHistoryLoading =
+  //   tradingHistory.isLoading || tradingHistory.isFetching;
 
-  // For LBank, OrangeX, and DeepCoin, use trading history loading state; for others, use commission loading
-  const isLoadingTotals =
-    record.brokerId === "lbank" ||
-    record.brokerId === "orangex" ||
-    record.brokerId === "deepcoin"
-      ? isTradingHistoryLoading
-      : isCommissionLoading;
+  // For LBank, OrangeX, DeepCoin, and BingX, use trading history loading state; for others, use commission loading
+  // const isLoadingTotals =
+  //   record.brokerId === "lbank" ||
+  //   record.brokerId === "orangex" ||
+  //   record.brokerId === "deepcoin" ||
+  //   record.brokerId === "bingx"
+  //     ? isTradingHistoryLoading
+  //     : isCommissionLoading;
 
   // Displayed total: Always show accumulated_24h_payback (sum of all 24h periods)
   // This value is updated by the scheduler every 24h, adding the new 24h value to the accumulated total
   // accumulated_24h_payback = sum of all previous 24h periods
-  const displayedTotal = accumulatedPayback;
+  // const displayedTotal = accumulatedPayback;
   const hasRefetchedRef = useRef(false);
   const refetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -680,51 +756,175 @@ function UIDCard({
     isLBankVerified ||
     isBingxVerified;
 
+  const t = useTranslations("profile.uidRegistration");
+  const tWithdrawal = useTranslations("profile.paybackWithdrawal");
+  const createWithdrawal = useCreateBrokerRebateWithdrawal();
+
   // Determine if UID is actually active based on DB + overall verification
-  const isUidActuallyActive =
-    isActiveUid && (verifiedOverall || uidVerification.isLoading);
+  // const isUidActuallyActive =
+  //   isActiveUid && (verifiedOverall || uidVerification.isLoading);
+
+  const uidWithdrawable = withdrawableBalance;
+  const uidAccumulated = accumulatedPayback;
+  const uidWithdrawn = withdrawnAmount;
+  const uidCanWithdraw = uidWithdrawable >= MINIMUM_WITHDRAWAL;
+  const isExpanded = expandedUidId === record.id;
+  const amount = amounts[record.id] || "";
+  const amountNum = amount ? parseFloat(amount) : 0;
+  const isAmountValid =
+    amountNum >= MINIMUM_WITHDRAWAL && amountNum <= uidWithdrawable;
+  const isAmountBelowMinimum = amountNum > 0 && amountNum < MINIMUM_WITHDRAWAL;
+
+  const handleCardClick = (uidId: string, canWithdraw: boolean) => {
+    if (!canWithdraw) return;
+    if (expandedUidId === uidId) {
+      setExpandedUidId("");
+    } else {
+      setExpandedUidId(uidId);
+      if (!amounts[uidId]) {
+        setAmounts((prev) => ({ ...prev, [uidId]: "" }));
+      }
+    }
+  };
+
+  const handleSubmit = async (
+    e: React.FormEvent,
+    uidId: string,
+    withdrawableBalance: number
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const amount = amounts[uidId];
+    if (!amount) return;
+
+    const amountNum = parseFloat(amount);
+    if (amountNum < MINIMUM_WITHDRAWAL) {
+      toast.error(tWithdrawal("toast.minimumAmountError"));
+      return;
+    }
+
+    if (amountNum > withdrawableBalance) {
+      toast.error(tWithdrawal("toast.insufficientBalanceError"));
+      return;
+    }
+
+    setIsSubmitting((prev) => ({ ...prev, [uidId]: true }));
+    try {
+      await createWithdrawal.mutateAsync({
+        user_broker_uid_id: uidId,
+        amount_usd: amountNum,
+      });
+
+      setAmounts((prev) => ({ ...prev, [uidId]: "" }));
+      setExpandedUidId("");
+      toast.success(tWithdrawal("toast.success"));
+    } catch (_error) {
+      // Error is handled by the mutation
+    } finally {
+      setIsSubmitting((prev) => ({ ...prev, [uidId]: false }));
+    }
+  };
 
   return (
     <div
-      className={`relative bg-background border border-border transition-all duration-200 ${
-        isUidActuallyActive
-          ? "border-emerald-500/30 shadow-sm"
-          : "hover:border-border/60"
+      className={`relative border-2 transition-all duration-200 ${
+        isExpanded
+          ? "border-primary bg-primary/5 shadow-lg"
+          : uidCanWithdraw
+          ? "border-border hover:border-primary/50 bg-background cursor-pointer"
+          : "border-border/50 bg-muted/30"
       }`}
+      onClick={(e) => {
+        if (uidCanWithdraw) {
+          e.stopPropagation();
+          handleCardClick(record.id, uidCanWithdraw);
+        }
+      }}
     >
-      {/* Header */}
-      <div className="p-4 sm:p-5 pb-2 border-b border-border">
-        {/* Header Layout: stack on mobile, row on larger screens */}
-        <div className="flex flex-col sm:flex-row sm:items-start sm:flex-wrap gap-3 sm:gap-4 mb-3 w-full">
-          {/* Image on the left */}
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-muted flex items-center justify-center shrink-0 rounded-full overflow-hidden">
-            <Image
-              src={BROKERS.find((b) => b.id === record.brokerId)?.logo || ""}
-              alt={`${record.brokerName} logo`}
-              width={32}
-              height={32}
-              className="h-full w-full object-contain rounded-full"
-            />
+      {/* Broker Header */}
+      <div className="p-4 border-b border-border">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-muted flex items-center justify-center shrink-0 rounded-full overflow-hidden">
+            {BROKERS.find((b) => b.id === record.brokerId) ? (
+              <Image
+                src={BROKERS.find((b) => b.id === record.brokerId)?.logo || ""}
+                alt={`${record.brokerName} logo`}
+                width={40}
+                height={40}
+                className="object-contain rounded-full"
+              />
+            ) : (
+              <span className="text-xs font-medium">
+                {record.brokerId.charAt(0).toUpperCase()}
+              </span>
+            )}
           </div>
-
-          {/* Name and UID on the right */}
-          <div className="flex-1 flex flex-col justify-center min-w-0">
-            {/* Broker name */}
-            <div className="flex items-center gap-2 mb-1 min-w-0">
-              <h3 className="text-base font-medium text-foreground">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-foreground truncate">
                 {record.brokerName}
               </h3>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      {uidVerification.isLoading && !uidVerification.isError ? (
+                        <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+                      ) : verifiedOverall ||
+                        isDeepCoinVerified ||
+                        isLBankVerified ||
+                        isBingxVerified ? (
+                        <BadgeCheck className="h-4 w-4 text-emerald-500" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-red-500" />
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">
+                      {uidVerification.isLoading && !uidVerification.isError
+                        ? t("status.verifying")
+                        : verifiedOverall ||
+                          isDeepCoinVerified ||
+                          isLBankVerified ||
+                          isBingxVerified
+                        ? t("status.verified")
+                        : uidVerification.isSuccess &&
+                          uidVerification.data?.reason
+                        ? uidVerification.data.reason
+                        : t("status.notVerified")}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              {(referrals.isSuccess || isReferral !== undefined) &&
+                !isReferral &&
+                !(
+                  record.brokerId === "bingx" &&
+                  (bingxReferralFast || uidVerification.isLoading)
+                ) && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">{t("status.notReferral")}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
             </div>
-
-            {/* UID below the name */}
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-[10px] sm:text-xs text-muted-foreground font-mono bg-muted px-2 py-1 truncate max-w-[80%] sm:max-w-none">
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-xs text-muted-foreground font-mono truncate">
                 {record.uid}
-              </span>
+              </p>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   navigator.clipboard.writeText(record.uid);
                   toast.success(t("toast.uidCopied"));
                 }}
@@ -732,162 +932,249 @@ function UIDCard({
               >
                 <Copy className="h-3 w-3" />
               </Button>
+              {(referrals.isSuccess || isReferral !== undefined) &&
+                !isReferral &&
+                !(
+                  record.brokerId === "bingx" &&
+                  (bingxReferralFast || uidVerification.isLoading)
+                ) &&
+                REFERRAL_LINKS[record.brokerId] && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <a
+                          href={REFERRAL_LINKS[record.brokerId]}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="h-5 w-5 p-0 flex items-center justify-center text-primary hover:text-primary/80 hover:bg-primary/10 rounded transition-colors duration-200 shrink-0"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium">
+                            {t("referralLink.signUpWithReferral")}
+                          </p>
+                          {REFERRAL_BACKUP_LINKS[record.brokerId] && (
+                            <a
+                              href={REFERRAL_BACKUP_LINKS[record.brokerId]}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-muted-foreground hover:text-foreground underline"
+                            >
+                              {t("referralLink.alternateLink")}
+                            </a>
+                          )}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
             </div>
           </div>
-
-          {/* Status Indicators and Active/Inactive on the far right */}
-          <div className="flex flex-col sm:items-end gap-2 w-full sm:w-auto min-w-0 sm:min-w-[220px] sm:ml-auto">
-            {/* Active/Inactive Status - Top line */}
-            <div
-              className={`text-xs font-medium px-2 py-1 self-start sm:self-auto ${
-                isUidActuallyActive
-                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                  : "bg-muted text-muted-foreground"
-              }`}
-            >
-              {uidVerification.isLoading ? (
-                <div className="w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-              ) : isUidActuallyActive ? (
-                t("status.active")
+          {uidCanWithdraw && (
+            <div className="shrink-0">
+              {isExpanded ? (
+                <ChevronUp className="h-4 w-4 text-muted-foreground" />
               ) : (
-                t("status.inactive")
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
               )}
             </div>
+          )}
+        </div>
+      </div>
 
-            {/* Status Indicators - Bottom line */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-3 text-[11px] sm:text-xs text-muted-foreground w-full">
-              <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 whitespace-normal">
-                <div className="flex items-center gap-1.5">
-                  {uidVerification.isLoading && !uidVerification.isError ? (
-                    <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
-                  ) : (uidVerification.isSuccess &&
-                      uidVerification.data?.verified) ||
-                    isDeepCoinVerified ? (
-                    <BadgeCheck className="h-5 w-5 text-emerald-500" />
-                  ) : (
-                    <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
-                  )}
-                  <span>
-                    {uidVerification.isLoading && !uidVerification.isError
-                      ? t("status.verifying")
-                      : (uidVerification.isSuccess &&
-                          uidVerification.data?.verified) ||
-                        isDeepCoinVerified
-                      ? t("status.verified")
-                      : uidVerification.isSuccess &&
-                        uidVerification.data?.reason
-                      ? uidVerification.data.reason
-                      : t("status.notVerified")}
+      {/* Stats */}
+      <div className="p-4 space-y-3 min-h-[180px] flex flex-col">
+        {/* Total Accumulated Payback */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">
+              {t("stats.totalAccumulatedPayback")}
+            </span>
+            <TrendingUp className="h-3 w-3 text-emerald-500" />
+          </div>
+          {tradingHistory.isLoading && !tradingHistory.data ? (
+            <div className="h-7 w-32 bg-muted animate-pulse rounded" />
+          ) : (
+            <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+              ${uidAccumulated.toFixed(4)}
+            </p>
+          )}
+        </div>
+
+        {/* Withdrawable & Withdrawn */}
+        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border">
+          <div className="space-y-1">
+            <span className="text-xs text-muted-foreground">
+              {tWithdrawal("labels.withdrawable")}
+            </span>
+            {tradingHistory.isLoading && !tradingHistory.data ? (
+              <div className="h-5 w-24 bg-muted animate-pulse rounded" />
+            ) : (
+              <p className="text-sm font-semibold text-foreground font-mono">
+                ${uidWithdrawable.toFixed(4)}
+              </p>
+            )}
+          </div>
+          <div className="space-y-1">
+            <span className="text-xs text-muted-foreground">
+              {tWithdrawal("labels.withdrawn")}
+            </span>
+            {tradingHistory.isLoading && !tradingHistory.data ? (
+              <div className="h-5 w-24 bg-muted animate-pulse rounded" />
+            ) : (
+              <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 font-mono">
+                ${uidWithdrawn.toFixed(4)}
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="h-5 flex items-center justify-center">
+          {!uidCanWithdraw && (
+            <p className="text-xs text-muted-foreground text-center">
+              {tWithdrawal("labels.minimumWithdrawalNote")}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Status Badge */}
+      {!uidCanWithdraw && (
+        <div className="absolute top-2 right-2">
+          <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-medium px-2 py-1">
+            {tWithdrawal("labels.minAmount")}
+          </div>
+        </div>
+      )}
+
+      {/* Expanded Withdrawal Form */}
+      {isExpanded && uidCanWithdraw && (
+        <div
+          className="border-t border-border p-4 bg-muted/30 space-y-4"
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          <form
+            onSubmit={(e) => handleSubmit(e, record.id, uidWithdrawable)}
+            className="space-y-4"
+          >
+            {/* Amount Input */}
+            <div className="space-y-2">
+              <Label htmlFor={`amount-${record.id}`}>
+                {tWithdrawal("labels.withdrawalAmount")}
+              </Label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id={`amount-${record.id}`}
+                  type="number"
+                  step="0.01"
+                  min={MINIMUM_WITHDRAWAL}
+                  max={uidWithdrawable}
+                  value={amount}
+                  onChange={(e) =>
+                    setAmounts((prev) => ({
+                      ...prev,
+                      [record.id]: e.target.value,
+                    }))
+                  }
+                  onWheel={(e) => {
+                    e.currentTarget.blur();
+                  }}
+                  placeholder="0.00"
+                  required
+                  className={`pl-9 h-11 rounded-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield] ${
+                    isAmountBelowMinimum
+                      ? "border-red-500 focus-visible:ring-red-500 focus-visible:ring-offset-0"
+                      : ""
+                  }`}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span
+                  className={
+                    isAmountBelowMinimum
+                      ? "text-red-600 dark:text-red-400 font-semibold"
+                      : "text-muted-foreground"
+                  }
+                >
+                  {tWithdrawal("labels.minimum")}{" "}
+                  <span className="font-bold">
+                    ${MINIMUM_WITHDRAWAL.toFixed(2)}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAmounts((prev) => ({
+                      ...prev,
+                      [record.id]: uidWithdrawable.toFixed(2),
+                    }));
+                  }}
+                  className="text-primary hover:underline"
+                >
+                  {tWithdrawal("labels.max")}
+                </button>
+              </div>
+            </div>
+
+            {/* Summary - Only show if amount is valid (>= $50) */}
+            {amount && amountNum > 0 && isAmountValid && (
+              <div className="p-3 bg-background border border-border space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    {tWithdrawal("labels.withdrawalAmountLabel")}
+                  </span>
+                  <span className="font-semibold font-mono">
+                    ${amountNum.toFixed(4)}
                   </span>
                 </div>
-
-                {(referrals.isSuccess || isReferral !== undefined) &&
-                  !isReferral &&
-                  // For BingX, don't show Not referral if fast check is positive or loading
-                  !(
-                    record.brokerId === "bingx" &&
-                    (bingxReferralFast || uidVerification.isLoading)
-                  ) && <ReferralLinkWithFallback brokerId={record.brokerId} />}
-              </div>
-
-              {/* Referral link removed by request */}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="p-4 sm:p-5 pb-2">
-        <div className="grid grid-cols-1 gap-3">
-          {/* Total accumulated payback (includes today's 24h if available) */}
-          <div className="p-3 sm:p-4 border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 text-center">
-            <div className="text-xl sm:text-2xl font-semibold text-emerald-700 dark:text-emerald-300 font-mono mb-1 sm:mb-2">
-              ${displayedTotal.toFixed(4)}
-            </div>
-            <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1">
-              <span>{t("stats.totalAccumulatedPayback")}</span>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="w-3 h-3 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-sm">
-                    <div className="text-xs space-y-1">
-                      <p>{t("stats.totalAccumulatedPaybackTooltip")}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        This amount accumulates every 24 hours as new rebates
-                        are added to your account.
-                      </p>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            {/* Live 24h value from trading history (LBank, OrangeX, and DeepCoin) */}
-            {(record.brokerId === "lbank" ||
-              record.brokerId === "orangex" ||
-              record.brokerId === "deepcoin") &&
-              commissionTotals.last24h > 0 && (
-                <div className="text-[0.75rem] text-emerald-500 dark:text-emerald-400 font-medium mt-1">
-                  Last 24h: ${commissionTotals.last24h.toFixed(4)}
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    {tWithdrawal("labels.remainingBalance")}
+                  </span>
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
+                    ${(uidWithdrawable - amountNum).toFixed(4)}
+                  </span>
                 </div>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              disabled={isSubmitting[record.id] || !amount || !isAmountValid}
+              className="w-full h-11 rounded-none"
+            >
+              {isSubmitting[record.id] ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  {tWithdrawal("labels.processing")}
+                </>
+              ) : (
+                <>
+                  <TrendingDown className="h-4 w-4 mr-2" />
+                  {tWithdrawal("labels.requestWithdrawal")}
+                </>
               )}
-          </div>
+            </Button>
 
-          {/* Withdrawn and Withdrawable */}
-          <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            <div className="p-2.5 sm:p-3 border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 text-center">
-              <div className="text-base sm:text-lg font-semibold text-blue-700 dark:text-blue-300 font-mono mb-0.5 sm:mb-1">
-                ${withdrawnAmount.toFixed(4)}
-              </div>
-              <div className="text-[11px] sm:text-xs text-blue-600 dark:text-blue-400 font-medium">
-                {t("stats.withdrawnAmount")}
-              </div>
-            </div>
-
-            <div className="p-2.5 sm:p-3 border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 text-center">
-              <div className="text-base sm:text-lg font-semibold text-amber-700 dark:text-amber-300 font-mono mb-0.5 sm:mb-1">
-                ${withdrawableBalance.toFixed(4)}
-              </div>
-              <div className="text-[11px] sm:text-xs text-amber-600 dark:text-amber-400 font-medium">
-                {t("stats.withdrawableBalance")}
-              </div>
-            </div>
-          </div>
+            {/* Info */}
+            <p className="text-xs text-muted-foreground text-center">
+              {tWithdrawal("labels.processedWithin")}
+            </p>
+          </form>
         </div>
-      </div>
-      {/* Additional Info Footer */}
-      <div className="p-4 sm:p-5 border-t border-border">
-        <div className="space-y-2 text-[11px] sm:text-xs text-muted-foreground">
-          <div className="flex items-center justify-between gap-2">
-            <span>
-              {record.brokerId === "deepcoin"
-                ? t("stats.last60Days")
-                : t("stats.last90Days")}
-            </span>
-            {isLoadingTotals ? (
-              <div className="h-4 w-16 bg-muted animate-pulse rounded" />
-            ) : (
-              <span className="text-foreground font-medium font-mono">
-                $
-                {record.brokerId === "deepcoin"
-                  ? commissionTotals.last60d.toFixed(4)
-                  : commissionTotals.last90d.toFixed(4)}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center justify-between gap-2">
-            <span>{t("stats.last30Days")}</span>
-            {isLoadingTotals ? (
-              <div className="h-4 w-16 bg-muted animate-pulse rounded" />
-            ) : (
-              <span className="text-foreground font-medium font-mono">
-                ${commissionTotals.last30d.toFixed(4)}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

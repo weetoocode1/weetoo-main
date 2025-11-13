@@ -17,11 +17,11 @@ import {
   UserIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Profile } from "./profile";
-import dynamic from "next/dynamic";
 
 // Lazy load Referral component as well since it has heavy features
 const Referral = dynamic(
@@ -110,25 +110,25 @@ const UidRegistration = dynamic(
   }
 );
 
-const PaybackWithdrawal = dynamic(
-  () =>
-    import("./payback-withdrawal").then((mod) => ({
-      default: mod.PaybackWithdrawal,
-    })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-          <p className="text-sm text-muted-foreground">
-            Loading payback withdrawal...
-          </p>
-        </div>
-      </div>
-    ),
-  }
-);
+// const PaybackWithdrawal = dynamic(
+//   () =>
+//     import("./payback-withdrawal").then((mod) => ({
+//       default: mod.PaybackWithdrawal,
+//     })),
+//   {
+//     ssr: false,
+//     loading: () => (
+//       <div className="flex items-center justify-center h-64">
+//         <div className="text-center">
+//           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+//           <p className="text-sm text-muted-foreground">
+//             Loading payback withdrawal...
+//           </p>
+//         </div>
+//       </div>
+//     ),
+//   }
+// );
 
 const WithdrawalStatus = dynamic(
   () =>
@@ -187,12 +187,12 @@ const TABS = [
     icon: <KeyRoundIcon className="w-4 h-4" />,
     requiresVerification: true,
   },
-  {
-    key: "payback-withdrawal",
-    translationKey: "paybackWithdrawal",
-    icon: <CreditCardIcon className="w-4 h-4" />,
-    requiresVerification: true,
-  },
+  // {
+  //   key: "payback-withdrawal",
+  //   translationKey: "paybackWithdrawal",
+  //   icon: <CreditCardIcon className="w-4 h-4" />,
+  //   requiresVerification: true,
+  // },
   {
     key: "withdrawal-status",
     translationKey: "withdrawalStatus",
@@ -210,7 +210,7 @@ const TAB_COMPONENTS = {
   "all-transactions": <Transactions />,
   "kor-coins-withdrawal": <KORCoinsWithdrawal />,
   "uid-registration": <UidRegistration />,
-  "payback-withdrawal": <PaybackWithdrawal />,
+  // "payback-withdrawal": <PaybackWithdrawal />,
   "withdrawal-status": <WithdrawalStatus />,
 };
 
@@ -322,8 +322,6 @@ export function ProfileTabs() {
                   : tab.key === "kor-coins-withdrawal"
                   ? t("mobileLabels.korCoins")
                   : tab.key === "uid-registration"
-                  ? t("mobileLabels.uid")
-                  : tab.key === "payback-withdrawal"
                   ? t("mobileLabels.payback")
                   : tab.key === "withdrawal-status"
                   ? t("mobileLabels.withdrawalStatus") || "Status"
@@ -375,8 +373,6 @@ export function ProfileTabs() {
                         : tab.key === "kor-coins-withdrawal"
                         ? t("mobileLabels.korCoins")
                         : tab.key === "uid-registration"
-                        ? t("mobileLabels.uid")
-                        : tab.key === "payback-withdrawal"
                         ? t("mobileLabels.payback")
                         : tab.key === "withdrawal-status"
                         ? t("mobileLabels.withdrawalStatus") || "Status"

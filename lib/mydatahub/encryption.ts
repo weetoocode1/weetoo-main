@@ -22,24 +22,44 @@ export class MyDataHubEncryption {
 
     if (!this.encKey || this.encKey.length !== 32) {
       throw new Error(
-        `Encryption key must be 32 characters long. Current length: ${this.encKey?.length || 0}`
+        `Encryption key must be 32 characters long. Current length: ${
+          this.encKey?.length || 0
+        }`
       );
     }
 
     if (!this.encIV || this.encIV.length !== 16) {
       throw new Error(
-        `Encryption IV must be 16 characters long. Current length: ${this.encIV?.length || 0}`
+        `Encryption IV must be 16 characters long. Current length: ${
+          this.encIV?.length || 0
+        }`
       );
     }
   }
 
   encrypt(plainText: string): string {
     try {
-      const cipher = crypto.createCipheriv(
-        "aes-256-cbc",
-        Buffer.from(this.encKey, "utf8"),
-        Buffer.from(this.encIV, "utf8")
-      );
+      // Convert key and IV to buffers - use latin1 encoding to preserve exact bytes
+      // This ensures special characters in the key (like =) are handled correctly
+      const keyBuffer = Buffer.from(this.encKey, "latin1");
+      const ivBuffer = Buffer.from(this.encIV, "latin1");
+
+      if (keyBuffer.length !== 32) {
+        throw new Error(
+          `Encryption key buffer must be 32 bytes. Got: ${keyBuffer.length}`
+        );
+      }
+
+      if (ivBuffer.length !== 16) {
+        throw new Error(
+          `Encryption IV buffer must be 16 bytes. Got: ${ivBuffer.length}`
+        );
+      }
+
+      const cipher = crypto.createCipheriv("aes-256-cbc", keyBuffer, ivBuffer);
+
+      // Set auto padding (PKCS5Padding is default)
+      cipher.setAutoPadding(true);
 
       let encrypted = cipher.update(plainText, "utf8", "base64");
       encrypted += cipher.final("base64");
@@ -47,18 +67,39 @@ export class MyDataHubEncryption {
       return encrypted;
     } catch (error) {
       throw new Error(
-        `Encryption failed: ${error instanceof Error ? error.message : "Unknown error"}`
+        `Encryption failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
       );
     }
   }
 
   decrypt(encryptedText: string): string {
     try {
+      // Convert key and IV to buffers - use latin1 encoding to preserve exact bytes
+      const keyBuffer = Buffer.from(this.encKey, "latin1");
+      const ivBuffer = Buffer.from(this.encIV, "latin1");
+
+      if (keyBuffer.length !== 32) {
+        throw new Error(
+          `Encryption key buffer must be 32 bytes. Got: ${keyBuffer.length}`
+        );
+      }
+
+      if (ivBuffer.length !== 16) {
+        throw new Error(
+          `Encryption IV buffer must be 16 bytes. Got: ${ivBuffer.length}`
+        );
+      }
+
       const decipher = crypto.createDecipheriv(
         "aes-256-cbc",
-        Buffer.from(this.encKey, "utf8"),
-        Buffer.from(this.encIV, "utf8")
+        keyBuffer,
+        ivBuffer
       );
+
+      // Set auto padding (PKCS5Padding is default)
+      decipher.setAutoPadding(true);
 
       let decrypted = decipher.update(encryptedText, "base64", "utf8");
       decrypted += decipher.final("utf8");
@@ -66,7 +107,9 @@ export class MyDataHubEncryption {
       return decrypted;
     } catch (error) {
       throw new Error(
-        `Decryption failed: ${error instanceof Error ? error.message : "Unknown error"}`
+        `Decryption failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
       );
     }
   }
@@ -101,5 +144,35 @@ export class MyDataHubEncryption {
       return false;
     }
   }
-}
 
+  static testWithCustomData(
+    plainData: string,
+    expectedEncData: string
+  ): boolean {
+    try {
+      const encryption = new MyDataHubEncryption();
+      const encrypted = encryption.encrypt(plainData);
+
+      if (encrypted !== expectedEncData) {
+        console.error(
+          `Custom encryption test failed!\nExpected: ${expectedEncData}\nGot: ${encrypted}`
+        );
+        return false;
+      }
+
+      const decrypted = encryption.decrypt(encrypted);
+      if (decrypted !== plainData) {
+        console.error(
+          `Custom decryption test failed!\nExpected: ${plainData}\nGot: ${decrypted}`
+        );
+        return false;
+      }
+
+      console.log("✅ Custom encryption/decryption test passed!");
+      return true;
+    } catch (error) {
+      console.error("Custom encryption test error:", error);
+      return false;
+    }
+  }
+}

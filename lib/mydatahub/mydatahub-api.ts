@@ -56,6 +56,8 @@ export class MyDataHubAPI {
   private encryption: MyDataHubEncryption | null = null;
   private encryptEnabled: boolean;
 
+  private authHeaderFormat: "Token" | "Bearer" | "None";
+
   constructor() {
     if (process.env.MYDATAHUB_BASE_URL) {
       this.baseURL = process.env.MYDATAHUB_BASE_URL;
@@ -65,9 +67,19 @@ export class MyDataHubAPI {
           ? "https://api.mydatahub.co.kr"
           : "https://datahub-dev.scraping.co.kr";
     }
-    this.accessToken = process.env.MYDATAHUB_ACCESS_TOKEN || "";
+    this.accessToken = (process.env.MYDATAHUB_ACCESS_TOKEN || "").trim();
     this.fixieURL = process.env.FIXIE_URL || "";
     this.encryptEnabled = process.env.MYDATAHUB_ENCRYPT_ENABLED !== "false";
+
+    // Support different Authorization header formats
+    const authFormat = process.env.MYDATAHUB_AUTH_FORMAT?.toLowerCase();
+    if (authFormat === "bearer") {
+      this.authHeaderFormat = "Bearer";
+    } else if (authFormat === "none" || authFormat === "token-only") {
+      this.authHeaderFormat = "None";
+    } else {
+      this.authHeaderFormat = "Token"; // Default
+    }
 
     if (this.encryptEnabled) {
       try {
@@ -81,6 +93,17 @@ export class MyDataHubAPI {
           this.encryptEnabled = false;
           this.encryption = null;
         } else {
+          // Log encryption key info for debugging (without exposing full key)
+          console.log("MyDataHub API: Encryption keys configured", {
+            encKeyLength: encKey.length,
+            encKeyPrefix: encKey.substring(0, 4),
+            encKeySuffix: encKey.substring(encKey.length - 4),
+            encKeyHasEquals: encKey.includes("="),
+            encIVLength: encIV.length,
+            encIVPrefix: encIV.substring(0, 4),
+            encIVSuffix: encIV.substring(encIV.length - 4),
+          });
+
           this.encryption = new MyDataHubEncryption({
             encKey,
             encIV,
@@ -111,14 +134,47 @@ export class MyDataHubAPI {
     const url = `${this.baseURL}${endpoint}`;
     const isServerSide = typeof window === "undefined";
 
+    // Build Authorization header based on configured format
+    let authHeader: string;
+    if (this.authHeaderFormat === "Bearer") {
+      authHeader = `Bearer ${this.accessToken}`;
+    } else if (this.authHeaderFormat === "None") {
+      authHeader = this.accessToken;
+    } else {
+      authHeader = `Token ${this.accessToken}`; // Default
+    }
+
+    // MyData Hub documentation specifies charset=UTF-8
+    // But some APIs are sensitive to exact Content-Type format
     const fetchOptions: RequestInit = {
       method: "POST",
       headers: {
-        Authorization: `Token ${this.accessToken}`,
+        Authorization: authHeader,
         "Content-Type": "application/json;charset=UTF-8",
       },
       body: JSON.stringify(body),
     };
+
+    // Log the exact request body being sent (for debugging)
+    console.log("📤 MyData Hub Request Body (raw):", JSON.stringify(body));
+    console.log(
+      "📤 MyData Hub Request Body (formatted):",
+      JSON.stringify(body, null, 2)
+    );
+
+    // Log token info for debugging (without exposing full token)
+    if (!this.accessToken) {
+      console.error("MyDataHub API: Access token is empty or not set");
+    } else {
+      console.log("MyDataHub API: Token configured", {
+        tokenLength: this.accessToken.length,
+        tokenPrefix: this.accessToken.substring(0, 4),
+        tokenSuffix: this.accessToken.substring(this.accessToken.length - 4),
+        hasWhitespace: this.accessToken !== this.accessToken.trim(),
+        authFormat: this.authHeaderFormat,
+        authHeaderPreview: `${authHeader.substring(0, 20)}...`,
+      });
+    }
 
     if (isServerSide && this.fixieURL) {
       try {
@@ -179,8 +235,71 @@ export class MyDataHubAPI {
 
     const apiRequest: Record<string, unknown> = {};
 
-    apiRequest.ACCTNO = request.accountNo;
+    // Field order matters - set in the order MyData Hub expects
     apiRequest.BANKCODE = request.bankCode;
+
+    // Encrypt sensitive fields if encryption is enabled
+    if (this.encryptEnabled && this.encryption) {
+      // ACCTNO and UMINNUM must be encrypted according to MyData Hub documentation
+      // Ensure account number is trimmed and has no spaces
+      const cleanAccountNo = request.accountNo.trim().replace(/\s+/g, "");
+      const cleanUMINNUM = request.UMINNUM.trim().replace(/\s+/g, "");
+
+      // Encrypt the data
+      const encryptedACCTNO = this.encryption.encrypt(cleanAccountNo);
+      const encryptedUMINNUM = this.encryption.encrypt(cleanUMINNUM);
+
+      // Verify encryption/decryption round-trip works
+      try {
+        const decryptedACCTNO = this.encryption.decrypt(encryptedACCTNO);
+        const decryptedUMINNUM = this.encryption.decrypt(encryptedUMINNUM);
+        if (
+          decryptedACCTNO !== cleanAccountNo ||
+          decryptedUMINNUM !== cleanUMINNUM
+        ) {
+          console.error("⚠️ Encryption round-trip test FAILED!");
+          console.error("Original ACCTNO:", cleanAccountNo);
+          console.error("Decrypted ACCTNO:", decryptedACCTNO);
+          console.error("Original UMINNUM:", cleanUMINNUM);
+          console.error("Decrypted UMINNUM:", decryptedUMINNUM);
+        } else {
+          console.log("✅ Encryption round-trip test PASSED");
+        }
+      } catch (decryptError) {
+        console.error("⚠️ Failed to decrypt encrypted data:", decryptError);
+      }
+
+      // Set EncryptYN flag BEFORE encrypted fields (as per MyData Hub documentation)
+      apiRequest.EncryptYN = "Y";
+
+      // MyData Hub documentation REQUIRES newline at end of encrypted values
+      // JSON.stringify will escape \n to \\n in JSON, but when parsed by MyData Hub, it becomes \n again
+      // This is CRITICAL - the service expects the \n termination in the field
+      apiRequest.ACCTNO = encryptedACCTNO + "\n";
+      apiRequest.UMINNUM = encryptedUMINNUM + "\n";
+
+      console.log("🔐 Encryption details:", {
+        originalACCTNO: cleanAccountNo,
+        encryptedACCTNO: encryptedACCTNO,
+        encryptedACCTNOWithNewline: encryptedACCTNO + "\n",
+        originalUMINNUM: cleanUMINNUM,
+        encryptedUMINNUM: encryptedUMINNUM,
+        encryptedUMINNUMWithNewline: encryptedUMINNUM + "\n",
+        encryptYN: apiRequest.EncryptYN,
+        encryptionKeyPrefix: this.encryption
+          ? this.encryption["encKey"]?.substring(0, 8) + "..."
+          : "N/A",
+        encryptionIVPrefix: this.encryption
+          ? this.encryption["encIV"]?.substring(0, 8) + "..."
+          : "N/A",
+      });
+    } else {
+      // If encryption is disabled, send plain text (for testing only)
+      apiRequest.EncryptYN = "N";
+      apiRequest.ACCTNO = request.accountNo.trim().replace(/\s+/g, "");
+      apiRequest.UMINNUM = request.UMINNUM.trim().replace(/\s+/g, "");
+    }
+
     // authText is required by MyData Hub API
     // MyData Hub will validate bank account first, then process
     // If bank account is invalid, MyData Hub will return error (like ST09) before processing
@@ -190,9 +309,15 @@ export class MyDataHubAPI {
         "authText is required. MyData Hub API requires a non-empty authText value."
       );
     }
-    apiRequest.AUTHTEXT = request.authText;
+    apiRequest.AUTHTEXT = request.authText.trim();
 
     const requestBodyString = JSON.stringify(apiRequest);
+
+    // Log detailed request information for debugging
+    const acctNoValue =
+      typeof apiRequest.ACCTNO === "string" ? apiRequest.ACCTNO : "";
+    const uminnumValue =
+      typeof apiRequest.UMINNUM === "string" ? apiRequest.UMINNUM : "";
 
     console.log("MyDataHub API Request:", {
       endpoint: "/scrap/common/settlebank/accountOccupation",
@@ -201,14 +326,19 @@ export class MyDataHubAPI {
       hasEncryption: !!this.encryption,
       encryptEnabled: this.encryptEnabled,
       requestKeys: Object.keys(apiRequest),
-      acctNoLength:
-        typeof apiRequest.ACCTNO === "string" ? apiRequest.ACCTNO.length : 0,
-      acctNoValue:
-        typeof apiRequest.ACCTNO === "string"
-          ? apiRequest.ACCTNO.substring(0, 50)
-          : apiRequest.ACCTNO,
+      fieldOrder: Object.keys(apiRequest).join(", "),
+      acctNoLength: acctNoValue.length,
+      acctNoValue: acctNoValue,
+      acctNoEndsWithNewline: acctNoValue.endsWith("\n"),
+      uminnumLength: uminnumValue.length,
+      uminnumValue: uminnumValue,
+      uminnumEndsWithNewline: uminnumValue.endsWith("\n"),
+      encryptYN: apiRequest.EncryptYN,
       hasAuthText: !!apiRequest.AUTHTEXT,
       requestBodyJSON: requestBodyString,
+      requestBodyPreview:
+        requestBodyString.substring(0, 200) +
+        (requestBodyString.length > 200 ? "..." : ""),
     });
 
     const response = await this.makeRequest<
@@ -230,9 +360,42 @@ export class MyDataHubAPI {
     });
 
     if (response.errCode === "2010") {
-      throw new Error(
-        "MyDataHub API authentication failed. Please check your MYDATAHUB_ACCESS_TOKEN. The token may be invalid or expired. Contact MyData Hub support: mydatahub@kwic.co.kr"
-      );
+      const errorDetails = [
+        `MyDataHub API authentication failed (Error 2010)`,
+        ``,
+        `Configuration check:`,
+        `✓ Base URL: ${this.baseURL}`,
+        `✓ Token configured: ${this.accessToken ? "Yes" : "No"}`,
+        `✓ Token length: ${this.accessToken.length} characters`,
+        `✓ Encryption enabled: ${this.encryptEnabled}`,
+        ``,
+        `Possible causes:`,
+        `1. Token is invalid or expired`,
+        `2. Token is for wrong environment (test token with prod URL or vice versa)`,
+        `3. Token doesn't have permissions for 계좌점유인증 service`,
+        `4. Authorization header format might be incorrect`,
+        ``,
+        `Action required:`,
+        `1. Verify MYDATAHUB_ACCESS_TOKEN is set in your production environment (NOT in .env file)`,
+        `2. In production, set environment variables in your hosting platform:`,
+        `   - Vercel: Project Settings > Environment Variables`,
+        `   - AWS/Other: Set in your deployment configuration`,
+        `3. Ensure token matches the environment (test token with test URL, prod token with prod URL)`,
+        `4. Try alternative Authorization formats by setting MYDATAHUB_AUTH_FORMAT:`,
+        `   - Current: "${this.authHeaderFormat}" format`,
+        `   - Set MYDATAHUB_AUTH_FORMAT=bearer to try "Bearer {token}"`,
+        `   - Set MYDATAHUB_AUTH_FORMAT=none to try "{token}" (no prefix)`,
+        `   - Default (if not set): "Token {token}"`,
+        ``,
+        `Contact MyData Hub support:`,
+        `- Email: mydatahub@kwic.co.kr`,
+        `- Phone: 02-6281-7708`,
+        ``,
+        `Tell them: "I'm getting error 2010 (authentication failed) with my access token.`,
+        `Please verify my token is valid and has permissions for 계좌점유인증 service."`,
+      ].join("\n");
+
+      throw new Error(errorDetails);
     }
 
     if (response.errCode === "2002") {
@@ -275,37 +438,23 @@ export class MyDataHubAPI {
         const errorMsg = (data.OUTRSLTMSG as string) || "Unknown error";
         const errorCode = (data.OUTRSLTCD as string) || "UNKNOWN";
 
-        // Provide more helpful error messages for common errors
-        if (errorCode === "ST09") {
-          const acctNo = request.accountNo;
-          const bankCode = request.bankCode;
-          const authText = request.authText;
+        // Show the actual MyData Hub error first
+        const myDataHubError = `MyData Hub API Error: ${errorCode} - ${errorMsg}`;
 
-          const detailedError = [
-            `MyDataHub API error (ST09): Invalid request format`,
-            ``,
-            `Error message: ${errorMsg}`,
-            ``,
-            `Common causes:`,
-            `- Account number format is invalid (should be 10-14 digits for Korean banks)`,
-            `- Bank code is incorrect (must be exactly 3 digits)`,
-            `- Authentication text format is invalid`,
-            ``,
-            `Please verify:`,
-            `- Account Number: ${acctNo.substring(0, 20)}${
-              acctNo.length > 20 ? "..." : ""
-            } (length: ${acctNo.length})`,
-            `- Bank Code: ${bankCode}`,
-            `- Auth Text: ${authText.substring(0, 20)}${
-              authText.length > 20 ? "..." : ""
-            }`,
-            ``,
-            `If the issue persists, contact MyData Hub support: mydatahub@kwic.co.kr`,
-          ].join("\n");
-          throw new Error(detailedError);
+        // Provide brief context for common errors
+        if (errorCode === "ST09") {
+          // ST09 means MyData Hub cannot decrypt or validate the request
+          // Most likely: encryption keys don't match what their server expects
+          throw new Error(
+            `${myDataHubError}\n\n` +
+              `MyData Hub cannot decrypt the encrypted data. ` +
+              `This usually means the encryption keys don't match what their server expects.\n\n` +
+              `Contact MyData Hub support (mydatahub@kwic.co.kr) to verify your encryption keys are correct and activated for your account.`
+          );
         }
 
-        throw new Error(`MyDataHub API error (${errorCode}): ${errorMsg}`);
+        // For other errors, just show the MyData Hub error
+        throw new Error(myDataHubError);
       }
 
       if (data.RESULT === "SUCCESS") {
