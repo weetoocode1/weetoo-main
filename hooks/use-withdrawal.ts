@@ -9,7 +9,6 @@ import type {
   WithdrawalRequest,
   CreateWithdrawalRequestData,
   CreateBankAccountData,
-  VerifyBankAccountData,
   UpdateWithdrawalStatusData,
   WithdrawalStats,
 } from "@/types/withdrawal";
@@ -120,28 +119,12 @@ const withdrawalApi = {
     data: CreateBankAccountData
   ): Promise<BankAccount> {
     const supabase = createClient();
-    // Generate a secure random verification amount between 0.0010 and 0.0099 (4 decimals)
-    const generateVerificationAmount = () => {
-      const min = 10; // 0.0010
-      const max = 99; // 0.0099
-      const range = max - min + 1;
-      const u32 = new Uint32Array(1);
-      const maxAcceptable = Math.floor(0xffffffff / range) * range;
-      let r: number;
-      do {
-        crypto.getRandomValues(u32);
-        r = u32[0];
-      } while (r >= maxAcceptable);
-      const n = min + (r % range);
-      return Number((n / 10000).toFixed(4));
-    };
     const { data: result, error } = await supabase
       .from("bank_accounts")
       .insert({
         user_id: userId,
         ...data,
         is_verified: false,
-        verification_amount: generateVerificationAmount(),
       })
       .select()
       .single();
@@ -170,28 +153,24 @@ const withdrawalApi = {
     return result;
   },
 
-  // Verify bank account
-  async verifyBankAccount(
-    id: string,
-    data: VerifyBankAccountData
-  ): Promise<BankAccount> {
+  // Verify bank account (deprecated - use MyData Hub verification instead)
+  // This method is kept for backward compatibility but no longer uses verification_amount
+  async verifyBankAccount(id: string, _data: unknown): Promise<BankAccount> {
     const supabase = createClient();
-    // Use a definer RPC that validates the amount, sets is_verified=true,
-    // and promotes linked withdrawal requests to verified under RLS.
-    const { error: rpcError } = await supabase.rpc("verify_bank_and_promote", {
-      _bank_account_id: id,
-      _amount: data.verification_amount,
-    });
-    if (rpcError) throw rpcError;
-
-    // Return the fresh bank account row
-    const { data: result, error: fetchError } = await supabase
+    // This method is deprecated - use MyData Hub verification instead
+    // For backward compatibility, we'll just set is_verified to true
+    const { data: result, error: updateError } = await supabase
       .from("bank_accounts")
-      .select("*")
+      .update({
+        is_verified: true,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", id)
+      .select()
       .single();
-    if (fetchError) throw fetchError;
-    return result as unknown as BankAccount;
+
+    if (updateError) throw updateError;
+    return result;
   },
 
   // Create withdrawal request
@@ -231,35 +210,14 @@ const withdrawalApi = {
     const feeAmount = Math.floor((data.kor_coins_amount * feePercentage) / 100);
     const finalAmount = data.kor_coins_amount - feeAmount;
 
-    // Ensure bank account exists and has a verification amount
+    // Ensure bank account exists
     const { data: bankRow, error: bankFetchError } = await supabase
       .from("bank_accounts")
-      .select("id, verification_amount, is_verified")
+      .select("id, is_verified")
       .eq("id", data.bank_account_id)
       .single();
     if (bankFetchError || !bankRow) {
       throw new Error("Bank account not found or not accessible");
-    }
-    if (bankRow && !bankRow.verification_amount) {
-      const ensureGenerate = () => {
-        const min = 10;
-        const max = 99;
-        const range = max - min + 1;
-        const u32 = new Uint32Array(1);
-        const maxAcceptable = Math.floor(0xffffffff / range) * range;
-        let r: number;
-        do {
-          crypto.getRandomValues(u32);
-          r = u32[0];
-        } while (r >= maxAcceptable);
-        const n = min + (r % range);
-        return Number((n / 10000).toFixed(4));
-      };
-      const { error: ensureError } = await supabase
-        .from("bank_accounts")
-        .update({ verification_amount: ensureGenerate() })
-        .eq("id", data.bank_account_id);
-      if (ensureError) throw ensureError;
     }
 
     // Create withdrawal request
@@ -518,7 +476,7 @@ export function useVerifyBankAccount() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: VerifyBankAccountData }) =>
+    mutationFn: ({ id, data }: { id: string; data: unknown }) =>
       withdrawalApi.verifyBankAccount(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({

@@ -4,8 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 /**
  * Secure Bank Account Creation API
  *
- * This endpoint handles bank account creation with server-side verification amount generation
- * to prevent client-side manipulation and ensure security.
+ * This endpoint handles bank account creation.
  */
 
 export async function POST(request: NextRequest) {
@@ -23,7 +22,7 @@ export async function POST(request: NextRequest) {
 
     // 2. Parse request body
     const body = await request.json();
-    const { account_holder_name, account_number, bank_name } = body;
+    const { account_holder_name, account_number, bank_name, bank_code } = body;
 
     if (!account_holder_name || !account_number || !bank_name) {
       return NextResponse.json(
@@ -35,23 +34,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Server-side verification amount generation (secure)
-    const generateVerificationAmount = () => {
-      const min = 10; // 0.0010
-      const max = 99; // 0.0099
-      const range = max - min + 1;
-      const u32 = new Uint32Array(1);
-      const maxAcceptable = Math.floor(0xffffffff / range) * range;
-      let r: number;
-      do {
-        crypto.getRandomValues(u32);
-        r = u32[0];
-      } while (r >= maxAcceptable);
-      const n = min + (r % range);
-      return Number((n / 10000).toFixed(4));
-    };
-
-    // 4. Create bank account with server-generated verification amount
+    // 3. Create bank account
     const { data: bankAccount, error: createError } = await supabase
       .from("bank_accounts")
       .insert({
@@ -59,8 +42,8 @@ export async function POST(request: NextRequest) {
         account_holder_name: account_holder_name.trim(),
         account_number: account_number.trim(),
         bank_name: bank_name.trim(),
+        bank_code: bank_code?.trim() || null,
         is_verified: false,
-        verification_amount: generateVerificationAmount(), // Server-side generation
       })
       .select()
       .single();
@@ -73,7 +56,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Return success (DO NOT return verification amount for security)
+    // 4. Return success
     return NextResponse.json({
       success: true,
       bankAccount: {
@@ -81,11 +64,10 @@ export async function POST(request: NextRequest) {
         account_holder_name: bankAccount.account_holder_name,
         account_number: bankAccount.account_number,
         bank_name: bankAccount.bank_name,
+        bank_code: bankAccount.bank_code,
         is_verified: bankAccount.is_verified,
-        // ❌ verification_amount is NOT returned for security
       },
-      message:
-        "Bank account created successfully. Verification amount will be sent to your account.",
+      message: "Bank account created successfully.",
     });
   } catch (error) {
     console.error("Bank account API error:", error);
@@ -113,11 +95,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get user's bank accounts (without verification amounts for security)
+    // Get user's bank accounts
     const { data: bankAccounts, error } = await supabase
       .from("bank_accounts")
       .select(
-        "id, account_holder_name, account_number, bank_name, is_verified, created_at, updated_at"
+        "id, account_holder_name, account_number, bank_name, bank_code, is_verified, created_at, updated_at"
       )
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });

@@ -464,7 +464,20 @@
     "bankAccountNumber": "은행 계좌번호",
     "enterBankAccountNumber": "계좌번호를 입력하세요",
     "processing": "처리 중...",
-    "submitDepositRequest": "입금 요청 제출"
+    "submitDepositRequest": "입금 요청 제출",
+    "toasts": {
+      "dailyLimitReached": "일일 한도에 도달했습니다 ({dailyLimit}). 나중에 다시 시도해주세요.",
+      "resetsAt": "{time}에 재설정됩니다",
+      "submitFailedLater": "입금 요청 제출에 실패했습니다. 나중에 다시 시도해주세요.",
+      "fillRequiredFields": "모든 필수 필드를 입력해주세요.",
+      "submitFailed": "입금 요청 제출에 실패했습니다. 다시 시도해주세요.",
+      "selectBankAccount": "은행 계좌를 선택해주세요.",
+      "minAmount": "유효한 금액을 입력해주세요 (최소 {amount} KOR).",
+      "copiedReference": "결제 참조가 클립보드에 복사되었습니다!",
+      "copyFailed": "결제 참조 복사에 실패했습니다"
+    },
+    "unknownBank": "알 수 없는 은행",
+    "noAccountNumber": "계좌번호 없음"
   },
   "weetooMarket": {
     "weetooMarket": "위투 마켓",
@@ -1786,13 +1799,22 @@
         "amount": "금액",
         "amountPlaceholder": "금액 입력",
         "validation": {
-          "minWithdrawal": "최소 출금 금액은 100 KOR 입니다.",
+          "minWithdrawal": "최소 출금 금액은 10,000 KOR 입니다.",
           "maxWithdrawal": "최대 출금 금액은 15,000 KOR 입니다.",
           "insufficientBalance": "잔액이 부족합니다. 보유: {balance} KOR",
           "enterAmount": "유효한 금액을 입력해 주세요",
           "enterAccountHolder": "예금주명을 입력해 주세요",
           "enterAccountNumber": "계좌번호를 입력해 주세요",
-          "enterBankName": "은행명을 입력해 주세요"
+          "enterBankName": "은행명을 입력해 주세요",
+          "enterBankCode": "은행 코드를 입력해 주세요",
+          "enterBirthdateOrSSN": "생년월일(8자리) 또는 주민등록번호(13자리)를 입력해 주세요",
+          "invalidBirthdateOrSSN": "생년월일은 8자리(YYYYMMDD) 또는 주민등록번호는 13자리여야 합니다",
+          "invalidAccountNumberLength": "계좌번호는 10자리에서 20자리 사이여야 합니다",
+          "invalidBankCodeLength": "은행 코드는 정확히 3자리여야 합니다",
+          "enterAuthResponse": "인증 응답을 입력해 주세요",
+          "userNotAuthenticated": "사용자가 인증되지 않았습니다",
+          "missingRequiredFields": "필수 필드가 누락되었습니다: 예금주명, 계좌번호 또는 은행명",
+          "verificationFailed": "인증에 실패했습니다. 인증 응답을 확인해 주세요."
         },
         "feeBreakdown": {
           "amount": "금액:",
@@ -1820,7 +1842,7 @@
           "minWithdrawal": "최소 출금",
           "maxWithdrawal": "최대 출금",
           "processing": "처리 기간",
-          "minAmount": "100 KOR",
+          "minAmount": "10,000 KOR",
           "maxAmount": "15,000 KOR",
           "processingTime": "1-3일"
         },
@@ -1829,8 +1851,14 @@
           "accountHolderPlaceholder": "예금주명을 입력하세요",
           "bankName": "은행명",
           "bankNamePlaceholder": "은행명을 입력하세요",
+          "bankCode": "은행 코드",
+          "bankCodePlaceholder": "예: 004, 088, 020",
+          "bankCodeHelper": "3자리 은행 코드를 입력하세요",
           "bankAccountNumber": "은행 계좌번호",
-          "bankAccountPlaceholder": "계좌번호를 입력하세요"
+          "bankAccountPlaceholder": "계좌번호를 입력하세요",
+          "birthdateOrSSN": "생년월일 (8자리) 또는 주민등록번호 (13자리)",
+          "birthdateOrSSNPlaceholder": "YYYYMMDD 또는 13자리 주민등록번호",
+          "birthdateOrSSNHelper": "8자리 생년월일(YYYYMMDD) 또는 13자리 주민등록번호를 입력하세요"
         },
         "tips": {
           "title": "팁:",
@@ -1850,7 +1878,11 @@
         "userNotFoundTitle": "사용자를 찾을 수 없음",
         "userNotFoundMessage": "출금 기능을 사용하려면 로그인해 주세요.",
         "withdrawalSubmitted": "출금 요청이 제출되었습니다. 검토 완료 후 알려드리겠습니다.",
-        "withdrawalFailed": "출금 요청 제출에 실패했습니다"
+        "withdrawalFailed": "출금 요청 제출에 실패했습니다",
+        "authTextNotFound": "인증 텍스트를 찾을 수 없습니다. 인증 과정을 다시 시작해 주세요.",
+        "authTextMismatch": "입력하신 인증 코드가 올바르지 않습니다. 은행 거래 내역을 확인하고 다시 시도해 주세요.",
+        "bankAccountVerificationFailed": "입력하신 은행 계좌 정보가 올바르지 않습니다. 계좌번호, 은행 코드, 생년월일/주민등록번호를 확인하고 다시 시도해 주세요.",
+        "bankCodeRequired": "계좌 인증을 위해 은행 코드가 필요합니다."
       }
     },
     "uidRegistration": {
@@ -4983,6 +5015,7 @@
         "korCoins": "KOR 코인",
         "bankDetails": "은행 정보",
         "verificationWithdrawal": "검증/출금",
+        "withdrawalAmount": "출금 금액",
         "status": "상태",
         "actions": "작업"
       },
@@ -4997,12 +5030,14 @@
         "markAsSent": "전송됨으로 표시",
         "sent": "전송됨",
         "changeStatus": "상태 변경:",
-        "afterSending": "전송 후 '전송됨으로 표시'를 클릭하세요."
+        "afterSending": "전송 후 '전송됨으로 표시'를 클릭하세요.",
+        "notVerified": "미검증"
       },
       "mobile": {
         "korCoins": "KOR 코인",
         "accountNumber": "계좌번호",
         "verificationAmount": "검증 금액",
+        "verificationStatus": "검증 상태",
         "level": "레벨",
         "send": "전송:"
       },
@@ -5898,6 +5933,88 @@
         "failed": "후원에 실패했습니다",
         "userDonated": "{name} 님이 {amount} 코코인을 후원했습니다!"
       }
+    }
+  },
+  "seo": {
+    "title": "위투(WEETOO) | 실시간 트레이딩 방송 · 셀퍼럴 최고 요율 페이백",
+    "description": "국내 최초 실시간 트레이딩 방송 & 모의투자 커뮤니티, WEETOO! 바이낸스, 바이비트, OKX, 비트겟, 빙엑스, 엘뱅크 등 글로벌 거래소와 정식 제휴. 실력 공유, 실시간 방송, 최고 요율 페이백까지 — 모든 혜택을 WEETOO에서 한 번에!",
+    "keywords": [
+      "위투",
+      "WEETOO",
+      "트레이딩 커뮤니티",
+      "모의투자 플랫폼",
+      "실시간 투자 방송",
+      "페이백 커뮤니티",
+      "셀퍼럴",
+      "셀퍼럴 페이백",
+      "최고 요율 페이백",
+      "바이낸스",
+      "바이낸스 페이백",
+      "바이비트",
+      "바이비트 페이백",
+      "OKX 페이백",
+      "비트겟",
+      "비트겟 페이백",
+      "빙엑스",
+      "빙엑스 페이백",
+      "엘뱅크",
+      "엘뱅크 페이백",
+      "게이트아이오",
+      "게이트아이오 페이백",
+      "거래소 페이백",
+      "카피트레이딩",
+      "트레이더 커뮤니티",
+      "투자 커뮤니티",
+      "코인판",
+      "코인선물방송",
+      "선물방송",
+      "코인방송",
+      "투자방송",
+      "트레이딩방송",
+      "코인트레이딩",
+      "코갤",
+      "코인갤러리",
+      "테더맥스",
+      "시그비트",
+      "거래소페이백",
+      "테더페이백",
+      "코비",
+      "위프",
+      "더따리",
+      "테더메이트",
+      "셀퍼페이백",
+      "테더백",
+      "셀퍼럴엑스",
+      "오렌지X 페이백",
+      "탭비트 페이백",
+      "딥코인 페이백",
+      "Binance",
+      "Binance payback",
+      "Bybit",
+      "Bybit payback",
+      "OKX",
+      "OKX payback",
+      "Bitget",
+      "Bitget payback",
+      "BingX",
+      "BingX payback",
+      "LBank",
+      "LBank payback",
+      "Gate.io",
+      "Gate.io payback",
+      "OrangeX payback",
+      "Tapbit payback",
+      "Deepcoin payback",
+      "Exchange payback"
+    ],
+    "openGraph": {
+      "title": "위투(WEETOO) | 실시간 트레이딩 방송 · 셀퍼럴 최고 요율 페이백",
+      "description": "국내 최초 실시간 트레이딩 방송 & 모의투자 커뮤니티, WEETOO! 바이낸스, 바이비트, OKX, 비트겟, 빙엑스, 엘뱅크 등 글로벌 거래소와 정식 제휴. 실력 공유, 실시간 방송, 최고 요율 페이백까지 — 모든 혜택을 WEETOO에서 한 번에!",
+      "siteName": "위투(WEETOO)"
+    },
+    "twitter": {
+      "title": "위투(WEETOO) | 실시간 트레이딩 방송 · 셀퍼럴 최고 요율 페이백",
+      "description": "국내 최초 실시간 트레이딩 방송 & 모의투자 커뮤니티, WEETOO! 바이낸스, 바이비트, OKX, 비트겟, 빙엑스, 엘뱅크 등 글로벌 거래소와 정식 제휴. 실력 공유, 실시간 방송, 최고 요율 페이백까지 — 모든 혜택을 WEETOO에서 한 번에!"
     }
   }
 }

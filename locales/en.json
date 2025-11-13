@@ -181,21 +181,6 @@
       }
     }
   },
-  "korCoinsRecharge": {
-    "toasts": {
-      "dailyLimitReached": "Daily limit reached ({dailyLimit}). Please try again later.",
-      "resetsAt": "Resets at {time}",
-      "submitFailedLater": "Failed to submit deposit request. Please try again later.",
-      "fillRequiredFields": "Please fill in all required fields.",
-      "submitFailed": "Failed to submit deposit request. Please try again.",
-      "selectBankAccount": "Please select a bank account.",
-      "minAmount": "Please enter a valid amount (minimum {amount} KOR).",
-      "copiedReference": "Payment reference copied to clipboard!",
-      "copyFailed": "Failed to copy payment reference"
-    },
-    "unknownBank": "Unknown Bank",
-    "noAccountNumber": "No Account Number"
-  },
   "userDropdown": {
     "aria": {
       "openMenu": "Open user menu",
@@ -660,7 +645,20 @@
     "bankAccountNumber": "Bank Account Number",
     "enterBankAccountNumber": "Enter bank account number",
     "processing": "Processing...",
-    "submitDepositRequest": "Submit Deposit Request"
+    "submitDepositRequest": "Submit Deposit Request",
+    "toasts": {
+      "dailyLimitReached": "Daily limit reached ({dailyLimit}). Please try again later.",
+      "resetsAt": "Resets at {time}",
+      "submitFailedLater": "Failed to submit deposit request. Please try again later.",
+      "fillRequiredFields": "Please fill in all required fields.",
+      "submitFailed": "Failed to submit deposit request. Please try again.",
+      "selectBankAccount": "Please select a bank account.",
+      "minAmount": "Please enter a valid amount (minimum {amount} KOR).",
+      "copiedReference": "Payment reference copied to clipboard!",
+      "copyFailed": "Failed to copy payment reference"
+    },
+    "unknownBank": "Unknown Bank",
+    "noAccountNumber": "No Account Number"
   },
   "weetooMarket": {
     "weetooMarket": "Weetoo Market",
@@ -2424,6 +2422,16 @@
           "showing": "Showing {start}-{end} of {total} results",
           "previous": "Previous",
           "next": "Next"
+        },
+        "messages": {
+          "exportSuccess": "Exported {count} user data to CSV!"
+        },
+        "labels": {
+          "reason": "Reason"
+        },
+        "status": {
+          "banned": "Banned",
+          "active": "Active"
         }
       },
       "detailsDialog": {
@@ -3345,6 +3353,7 @@
           "korCoins": "KOR Coins",
           "bankDetails": "Bank Details",
           "verificationWithdrawal": "Verification/Withdrawal",
+          "withdrawalAmount": "Withdrawal Amount",
           "status": "Status",
           "actions": "Actions"
         },
@@ -3359,12 +3368,14 @@
           "markAsSent": "Mark as Sent",
           "sent": "Sent",
           "changeStatus": "Change Status:",
-          "afterSending": "After sending, click Mark as Sent to lock."
+          "afterSending": "After sending, click Mark as Sent to lock.",
+          "notVerified": "Not Verified"
         },
         "mobile": {
           "korCoins": "KOR Coins",
           "accountNumber": "Account Number",
           "verificationAmount": "Verification Amount",
+          "verificationStatus": "Verification Status",
           "level": "Level",
           "send": "Send:"
         },
@@ -3624,13 +3635,22 @@
         "amount": "Amount",
         "amountPlaceholder": "Enter amount",
         "validation": {
-          "minWithdrawal": "Minimum withdrawal is 100 KOR.",
+          "minWithdrawal": "Minimum withdrawal is 10,000 KOR.",
           "maxWithdrawal": "Maximum withdrawal is 15,000 KOR.",
           "insufficientBalance": "Insufficient balance. You have {balance} KOR.",
           "enterAmount": "Please enter a valid amount",
           "enterAccountHolder": "Please enter account holder name",
           "enterAccountNumber": "Please enter bank account number",
-          "enterBankName": "Please enter bank name"
+          "enterBankName": "Please enter bank name",
+          "enterBankCode": "Please enter bank code",
+          "enterBirthdateOrSSN": "Please enter birthdate (8 digits) or SSN (13 digits)",
+          "invalidBirthdateOrSSN": "Birthdate must be 8 digits (YYYYMMDD) or SSN must be 13 digits",
+          "invalidAccountNumberLength": "Bank account number must be between 10 and 20 digits",
+          "invalidBankCodeLength": "Bank code must be exactly 3 digits",
+          "enterAuthResponse": "Please enter the authentication response",
+          "userNotAuthenticated": "User not authenticated",
+          "missingRequiredFields": "Missing required fields: account holder name, account number, or bank name",
+          "verificationFailed": "Verification failed. Please check your authentication response."
         },
         "feeBreakdown": {
           "amount": "Amount:",
@@ -3658,7 +3678,7 @@
           "minWithdrawal": "Min Withdrawal",
           "maxWithdrawal": "Max Withdrawal",
           "processing": "Processing",
-          "minAmount": "100 KOR",
+          "minAmount": "10,000 KOR",
           "maxAmount": "15,000 KOR",
           "processingTime": "1-3 Days"
         },
@@ -3667,8 +3687,14 @@
           "accountHolderPlaceholder": "Enter account holder name",
           "bankName": "Bank Name",
           "bankNamePlaceholder": "Enter bank name",
+          "bankCode": "Bank Code",
+          "bankCodePlaceholder": "e.g., 004, 088, 020",
+          "bankCodeHelper": "Enter 3-digit bank code",
           "bankAccountNumber": "Bank Account Number",
-          "bankAccountPlaceholder": "Enter bank account number"
+          "bankAccountPlaceholder": "Enter bank account number",
+          "birthdateOrSSN": "Birthdate (8 digits) or SSN (13 digits)",
+          "birthdateOrSSNPlaceholder": "YYYYMMDD or 13-digit SSN",
+          "birthdateOrSSNHelper": "Enter your 8-digit birthdate (YYYYMMDD) or 13-digit SSN"
         },
         "tips": {
           "title": "Tip:",
@@ -3688,7 +3714,11 @@
         "userNotFoundTitle": "User Not Found",
         "userNotFoundMessage": "Please log in to access withdrawal features.",
         "withdrawalSubmitted": "Withdrawal request submitted. We'll notify you after manual review.",
-        "withdrawalFailed": "Failed to submit withdrawal request"
+        "withdrawalFailed": "Failed to submit withdrawal request",
+        "authTextNotFound": "Authentication text not found. Please start the verification process again.",
+        "authTextMismatch": "The authentication code you entered is incorrect. Please check your bank transaction and try again.",
+        "bankAccountVerificationFailed": "The bank account information you entered is incorrect. Please check your account number, bank code, and birthdate/SSN and try again.",
+        "bankCodeRequired": "Bank code is required for account verification."
       }
     },
     "uidRegistration": {
@@ -4682,6 +4712,94 @@
         "failed": "Donation failed",
         "userDonated": "{name} donated {amount} kor-coins!"
       }
+    }
+  },
+  "seo": {
+    "title": "WEETOO | Live Trading Broadcast · Highest Self-Referral Payback",
+    "description": "The first live trading broadcast & demo trading community in Korea, WEETOO! Officially partnered with Binance, Bybit, OKX, Bitget, BingX, and LBank. From skill sharing and live broadcasts to the highest self-referral payback — enjoy all the benefits in one place with WEETOO!",
+    "keywords": [
+      "Weetoo",
+      "Weetoo trading",
+      "Weetoo platform",
+      "Weetoo trading platform",
+      "Weetoo trading community",
+      "trading platform",
+      "cryptocurrency trading",
+      "forex trading",
+      "stock trading",
+      "risk-free trading",
+      "trading simulation",
+      "real-time market data",
+      "trading community",
+      "investment platform",
+      "trading education",
+      "paper trading",
+      "virtual trading",
+      "trading competition",
+      "trading rooms",
+      "live trading",
+      "trading signals",
+      "market analysis",
+      "trading tools",
+      "trading charts",
+      "trading indicators",
+      "portfolio management",
+      "trading strategies",
+      "financial markets",
+      "crypto exchange",
+      "trading bot",
+      "automated trading",
+      "social trading",
+      "copy trading",
+      "trading mentorship",
+      "trading courses",
+      "financial education",
+      "investment learning",
+      "trading psychology",
+      "risk management",
+      "trading software",
+      "mobile trading",
+      "web trading",
+      "trading app",
+      "financial technology",
+      "fintech",
+      "digital assets",
+      "blockchain trading",
+      "decentralized trading",
+      "trading analytics",
+      "market research",
+      "economic indicators",
+      "trading performance",
+      "profit tracking",
+      "loss prevention",
+      "trading discipline",
+      "Binance",
+      "Binance payback",
+      "Bybit",
+      "Bybit payback",
+      "OKX",
+      "OKX payback",
+      "Bitget",
+      "Bitget payback",
+      "BingX",
+      "BingX payback",
+      "LBank",
+      "LBank payback",
+      "Gate.io",
+      "Gate.io payback",
+      "OrangeX payback",
+      "Tapbit payback",
+      "Deepcoin payback",
+      "Exchange payback"
+    ],
+    "openGraph": {
+      "title": "WEETOO | Live Trading Broadcast · Highest Self-Referral Payback",
+      "description": "The first live trading broadcast & demo trading community in Korea, WEETOO! Officially partnered with Binance, Bybit, OKX, Bitget, BingX, and LBank. From skill sharing and live broadcasts to the highest self-referral payback — enjoy all the benefits in one place with WEETOO!",
+      "siteName": "WEETOO"
+    },
+    "twitter": {
+      "title": "WEETOO | Live Trading Broadcast · Highest Self-Referral Payback",
+      "description": "The first live trading broadcast & demo trading community in Korea, WEETOO! Officially partnered with Binance, Bybit, OKX, Bitget, BingX, and LBank. From skill sharing and live broadcasts to the highest self-referral payback — enjoy all the benefits in one place with WEETOO!"
     }
   }
 }

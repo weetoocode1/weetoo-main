@@ -5,7 +5,6 @@ export interface BankAccount {
   account_number: string;
   bank_name?: string;
   is_verified: boolean;
-  verification_amount?: number;
   created_at: string;
   updated_at: string;
 }
@@ -58,9 +57,6 @@ export interface CreateBankAccountData {
   bank_name?: string;
 }
 
-export interface VerifyBankAccountData {
-  verification_amount: number;
-}
 
 export interface UpdateWithdrawalStatusData {
   status: WithdrawalRequest["status"];

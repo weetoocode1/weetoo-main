@@ -61,10 +61,10 @@ export async function validateWithdrawalRequest(
     }
 
     // 2. Server-side amount validation
-    if (requestedAmount < 100) {
+    if (requestedAmount < 1000) {
       return {
         isValid: false,
-        errorMessage: "Minimum withdrawal amount is 100 KOR",
+        errorMessage: "Minimum withdrawal amount is 1,000 KOR",
         feeAmount: 0,
         finalAmount: 0,
         feePercentage: 0,
@@ -107,10 +107,10 @@ export async function validateWithdrawalRequest(
     const feeAmount = Math.floor((requestedAmount * feePercentage) / 100);
     const finalAmount = requestedAmount - feeAmount;
 
-    // 5. Validate bank account exists and is accessible
+    // 5. Validate bank account exists, is accessible, and is verified
     const { data: bankAccount, error: bankError } = await supabase
       .from("bank_accounts")
-      .select("id, user_id")
+      .select("id, user_id, is_verified")
       .eq("id", bankAccountId)
       .single();
 
@@ -129,6 +129,18 @@ export async function validateWithdrawalRequest(
       return {
         isValid: false,
         errorMessage: "Bank account does not belong to user",
+        feeAmount: 0,
+        finalAmount: 0,
+        feePercentage: 0,
+      };
+    }
+
+    // 7. Ensure bank account is verified before allowing withdrawal
+    // This prevents KOR coins from being deducted if bank account verification failed
+    if (!bankAccount.is_verified) {
+      return {
+        isValid: false,
+        errorMessage: "Bank account must be verified before withdrawal",
         feeAmount: 0,
         finalAmount: 0,
         feePercentage: 0,
