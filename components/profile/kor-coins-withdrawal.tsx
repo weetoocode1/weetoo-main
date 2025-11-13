@@ -3,14 +3,27 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock, Coins, Shield, User, Wallet } from "lucide-react";
+import { Clock, Coins, Info, Shield, User } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface WithdrawalFormData {
@@ -18,16 +31,18 @@ interface WithdrawalFormData {
   accountHolderName: string;
   bankName: string;
   bankAccountNumber: string;
+  bankCode: string;
+  birthdateOrSSN: string;
 }
 
 // Types for withdrawal requests and bank accounts
-interface WithdrawalRequest {
-  id: string;
-  status: string;
-  created_at: string;
-  kor_coins_amount?: number;
-  bank_account?: BankAccount;
-}
+// interface WithdrawalRequest {
+//   id: string;
+//   status: string;
+//   created_at: string;
+//   kor_coins_amount?: number;
+//   bank_account?: BankAccount;
+// }
 
 interface BankAccount {
   id: string;
@@ -36,6 +51,7 @@ interface BankAccount {
   verification_amount?: number;
   bank_name?: string;
   account_number?: string;
+  bank_code?: string;
 }
 
 // Secure API functions
@@ -78,6 +94,7 @@ const secureWithdrawalApi = {
     account_holder_name: string;
     account_number: string;
     bank_name: string;
+    bank_code?: string;
   }) {
     const response = await fetch("/api/secure-financial/bank-account", {
       method: "POST",
@@ -96,18 +113,20 @@ const secureWithdrawalApi = {
     return result.bankAccount;
   },
 
-  // Verify bank account
-  async verifyBankAccount(bankAccountId: string, verificationAmount: number) {
-    const response = await fetch("/api/secure-financial/verify-bank", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        bankAccountId,
-        verificationAmount,
-      }),
-    });
+  // Verify bank account via MyData Hub
+  async verifyBankAccountMyDataHub(bankAccountId: string) {
+    const response = await fetch(
+      "/api/secure-financial/verify-bank-mydatahub",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bankAccountId,
+        }),
+      }
+    );
 
     if (!response.ok) {
       const error = await response.json();
@@ -130,6 +149,55 @@ const secureWithdrawalApi = {
     const result = await response.json();
     return result.bankAccounts || [];
   },
+
+  // Initiate MyData Hub verification
+  async initiateMyDataHubVerification(data: {
+    bankCode: string;
+    accountNo: string;
+    birthdateOrSSN: string;
+  }) {
+    const response = await fetch("/api/mydatahub/verify-account", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to initiate verification");
+    }
+
+    return response.json();
+  },
+
+  // Complete MyData Hub verification
+  async completeMyDataHubVerification(data: {
+    callbackId: string;
+    callbackResponse: string;
+  }) {
+    const response = await fetch("/api/mydatahub/verify-account", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        bankCode: "",
+        accountNo: "",
+        birthdateOrSSN: "",
+        callbackId: data.callbackId,
+        callbackResponse: data.callbackResponse,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to complete verification");
+    }
+
+    return response.json();
+  },
 };
 
 export function KORCoinsWithdrawal() {
@@ -146,6 +214,8 @@ export function KORCoinsWithdrawal() {
       // Update the local state with the new amount
       const customEvent = event as CustomEvent;
       if (customEvent.detail?.newAmount !== undefined) {
+        // Invalidate user query to get fresh KOR coins value from useAuth()
+        queryClient.invalidateQueries({ queryKey: ["user"] });
         // Force a re-render to update KOR coins display
         setKorCoinsUpdateTrigger((prev) => prev + 1);
       }
@@ -156,7 +226,7 @@ export function KORCoinsWithdrawal() {
     return () => {
       window.removeEventListener("kor-coins-updated", handleKorCoinsUpdated);
     };
-  }, []);
+  }, [queryClient]);
 
   // Real-time subscription to user's KOR coins updates
   useEffect(() => {
@@ -180,6 +250,8 @@ export function KORCoinsWithdrawal() {
             "Withdraw: KOR coins updated via real-time:",
             newData.kor_coins
           );
+          // Invalidate user query to get fresh KOR coins value from useAuth()
+          queryClient.invalidateQueries({ queryKey: ["user"] });
           // Force a re-render to update KOR coins display
           setKorCoinsUpdateTrigger((prev) => prev + 1);
         }
@@ -204,12 +276,6 @@ export function KORCoinsWithdrawal() {
     enabled: !!user,
   });
 
-  const { data: userRequests } = useQuery({
-    queryKey: ["withdrawal-requests"],
-    queryFn: secureWithdrawalApi.getUserWithdrawals,
-    enabled: !!user,
-  });
-
   const createBankAccountMutation = useMutation({
     mutationFn: secureWithdrawalApi.createBankAccount,
     onSuccess: () => {
@@ -230,6 +296,7 @@ export function KORCoinsWithdrawal() {
       queryClient.invalidateQueries({ queryKey: ["user"] }); // Refresh user data for KOR coins
 
       // Dispatch custom event for immediate KOR coins update
+      // Only dispatch if withdrawal was successfully created (KOR coins deducted)
       if (user?.id) {
         window.dispatchEvent(
           new CustomEvent("kor-coins-updated", {
@@ -242,55 +309,28 @@ export function KORCoinsWithdrawal() {
         );
       }
     },
-  });
-
-  const verifyBankAccountMutation = useMutation({
-    mutationFn: ({
-      bankAccountId,
-      verificationAmount,
-    }: {
-      bankAccountId: string;
-      verificationAmount: number;
-    }) =>
-      secureWithdrawalApi.verifyBankAccount(bankAccountId, verificationAmount),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bank-accounts"] });
-      queryClient.invalidateQueries({ queryKey: ["withdrawal-requests"] });
+    onError: (error) => {
+      // If withdrawal creation fails, KOR coins are NOT deducted
+      // Don't dispatch kor-coins-updated event
+      console.error("Withdrawal creation failed:", error);
     },
   });
 
-  // Latest pending/verification_sent request
-  const latestPending = useMemo(() => {
-    if (
-      !userRequests?.withdrawalRequests ||
-      userRequests.withdrawalRequests.length === 0
-    )
-      return null as WithdrawalRequest | null;
-    const pendingLike = (userRequests.withdrawalRequests as WithdrawalRequest[])
-      .filter(
-        (r) =>
-          (r.status === "pending" || r.status === "verification_sent") &&
-          // If the linked bank account is already verified, do not treat it as pending
-          !(r.bank_account?.is_verified === true)
-      )
-      .sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      )[0];
-    return pendingLike || null;
-  }, [userRequests]);
-
   const [isClient, setIsClient] = useState(false);
-  const [showFormOverride] = useState(false);
   useEffect(() => setIsClient(true), []);
 
   const [submitting, setSubmitting] = useState(false);
-  const [verifyAmount, setVerifyAmount] = useState("");
+  const [authText, setAuthText] = useState("");
+  const [callbackId, setCallbackId] = useState<string | null>(null);
+  const [callbackResponse, setCallbackResponse] = useState("");
+  const [showVerificationDialog, setShowVerificationDialog] = useState(false);
   const [formData, setFormData] = useState<WithdrawalFormData>({
     amount: 0,
     accountHolderName: "",
     bankName: "",
     bankAccountNumber: "",
+    bankCode: "",
+    birthdateOrSSN: "",
   });
 
   // Calculate withdrawal fee based on level
@@ -315,7 +355,11 @@ export function KORCoinsWithdrawal() {
       formData.amount > 0 &&
       formData.accountHolderName.trim() &&
       formData.bankAccountNumber.trim() &&
-      formData.bankName.trim()
+      formData.bankName.trim() &&
+      formData.bankCode.trim() &&
+      formData.birthdateOrSSN.trim() &&
+      (formData.birthdateOrSSN.length === 8 ||
+        formData.birthdateOrSSN.length === 13)
     );
   };
 
@@ -350,36 +394,232 @@ export function KORCoinsWithdrawal() {
       return;
     }
 
+    if (!formData.bankCode.trim()) {
+      toast.error(t("withdrawalRequest.validation.enterBankCode"));
+      return;
+    }
+
+    if (!formData.birthdateOrSSN.trim()) {
+      toast.error(t("withdrawalRequest.validation.enterBirthdateOrSSN"));
+      return;
+    }
+
+    if (
+      formData.birthdateOrSSN.length !== 8 &&
+      formData.birthdateOrSSN.length !== 13
+    ) {
+      toast.error(t("withdrawalRequest.validation.invalidBirthdateOrSSN"));
+      return;
+    }
+
     if (formData.amount <= 0) {
       toast.error(t("withdrawalRequest.validation.enterAmount"));
       return;
     }
 
+    // Validate account number length (Korean bank accounts are typically 10-14 digits)
+    if (
+      formData.bankAccountNumber.trim().length < 10 ||
+      formData.bankAccountNumber.trim().length > 20
+    ) {
+      toast.error(t("withdrawalRequest.validation.invalidAccountNumberLength"));
+      return;
+    }
+
+    // Validate bank code (must be exactly 3 digits)
+    if (formData.bankCode.trim().length !== 3) {
+      toast.error(t("withdrawalRequest.validation.invalidBankCodeLength"));
+      return;
+    }
+
     setSubmitting(true);
     try {
-      // 1) Ensure a bank account exists (find by exact match, else create)
-      let bankAccountId: string | null = null;
+      // 1) Check if bank account exists and is verified
       const existing = (bankAccounts || []).find(
         (b: BankAccount) =>
           b.account_holder_name?.trim() === formData.accountHolderName.trim() &&
           b.account_number?.trim() === formData.bankAccountNumber.trim() &&
-          (b.bank_name?.trim() || "") === formData.bankName.trim()
+          (b.bank_name?.trim() || "") === formData.bankName.trim() &&
+          (b.bank_code?.trim() || "") === formData.bankCode.trim()
       );
+
+      // 2) If bank account exists and is verified, proceed with withdrawal
+      if (existing && existing.is_verified) {
+        await createWithdrawalMutation.mutateAsync({
+          amount: formData.amount,
+          bankAccountId: existing.id,
+        });
+
+        toast.success(t("errors.withdrawalSubmitted"));
+        setFormData({
+          amount: 0,
+          accountHolderName: "",
+          bankName: "",
+          bankAccountNumber: "",
+          bankCode: "",
+          birthdateOrSSN: "",
+        });
+        setSubmitting(false);
+        return;
+      }
+
+      // 3) If bank account needs verification (not verified or doesn't exist), initiate MyData Hub verification
+      // DO NOT create bank account yet - wait for successful verification
+      if (formData.bankCode.trim()) {
+        try {
+          // Step 1: Initiate MyData Hub verification (this validates the bank account info)
+          const step1Result =
+            await secureWithdrawalApi.initiateMyDataHubVerification({
+              bankCode: formData.bankCode.trim(),
+              accountNo: formData.bankAccountNumber.trim(),
+              birthdateOrSSN: formData.birthdateOrSSN.trim(),
+            });
+
+          if (step1Result.callbackId) {
+            setCallbackId(step1Result.callbackId);
+            if (step1Result.authText) {
+              setAuthText(step1Result.authText);
+            }
+            // Show verification dialog after successful initiation
+            setShowVerificationDialog(true);
+            // DO NOT create bank account or withdrawal yet - wait for verification to complete
+            setSubmitting(false);
+            return;
+          } else {
+            throw new Error(
+              "Failed to initiate verification: No callbackId received"
+            );
+          }
+        } catch (verificationError) {
+          console.error(
+            "MyData Hub verification initiation error:",
+            verificationError
+          );
+
+          // If verification fails, show simple error and DO NOT create bank account
+          toast.error(t("errors.bankAccountVerificationFailed"));
+          setSubmitting(false);
+          return;
+        }
+      }
+
+      // 4) If no bank_code provided, we can't verify - show error
+      toast.error(t("errors.bankCodeRequired"));
+      setSubmitting(false);
+    } catch (err: Error | unknown) {
+      console.error("Withdrawal submission error:", err);
+      toast.error(
+        err instanceof Error ? err.message : t("errors.withdrawalFailed")
+      );
+      setSubmitting(false);
+    }
+  };
+
+  const handleCompleteVerification = async () => {
+    if (!callbackId || !callbackResponse) {
+      toast.error(t("withdrawalRequest.validation.enterAuthResponse"));
+      return;
+    }
+
+    if (!authText) {
+      toast.error(t("errors.authTextNotFound"));
+      return;
+    }
+
+    // Validate that callbackResponse matches authText
+    const trimmedResponse = callbackResponse.trim();
+    const trimmedAuthText = authText.trim();
+
+    if (trimmedResponse !== trimmedAuthText) {
+      toast.error(t("errors.authTextMismatch"));
+      return;
+    }
+
+    if (!user) {
+      toast.error(t("withdrawalRequest.validation.userNotAuthenticated"));
+      return;
+    }
+
+    // Validate all required form fields are present
+    if (
+      !formData.accountHolderName?.trim() ||
+      !formData.bankAccountNumber?.trim() ||
+      !formData.bankName?.trim()
+    ) {
+      toast.error(t("withdrawalRequest.validation.missingRequiredFields"));
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // Step 1: Complete MyData Hub verification
+      // This validates the bank account information - if it fails, we don't save to DB
+      const step2Result =
+        await secureWithdrawalApi.completeMyDataHubVerification({
+          callbackId,
+          callbackResponse: callbackResponse.trim(),
+        });
+
+      if (!step2Result.verified) {
+        // Verification failed - don't create bank account or withdrawal, show error
+        // KOR coins are NOT deducted when verification fails
+        toast.error(t("withdrawalRequest.validation.verificationFailed"));
+        setSubmitting(false);
+        return;
+      }
+
+      // Step 2: Verification succeeded - now we can safely create bank account
+      // First, refresh the bank accounts query to get the latest data
+      await queryClient.invalidateQueries({
+        queryKey: ["bank-accounts"],
+      });
+      // Fetch fresh bank accounts using the API
+      const refreshedBankAccounts =
+        await secureWithdrawalApi.getUserBankAccounts();
+
+      let bankAccountId: string | null = null;
+      const existing = (refreshedBankAccounts || []).find(
+        (b: BankAccount) =>
+          b.account_holder_name?.trim() === formData.accountHolderName.trim() &&
+          b.account_number?.trim() === formData.bankAccountNumber.trim() &&
+          (b.bank_name?.trim() || "") === formData.bankName.trim() &&
+          (b.bank_code?.trim() || "") === formData.bankCode.trim()
+      );
+
       if (existing) {
         bankAccountId = existing.id;
       } else {
+        // Create bank account with all required fields (only after successful verification)
         const created = await createBankAccountMutation.mutateAsync({
           account_holder_name: formData.accountHolderName.trim(),
           account_number: formData.bankAccountNumber.trim(),
           bank_name: formData.bankName.trim(),
+          bank_code: formData.bankCode.trim() || undefined,
         });
         bankAccountId = created.id;
+        // Refresh again after creation
+        await queryClient.invalidateQueries({
+          queryKey: ["bank-accounts"],
+        });
       }
 
-      if (!bankAccountId)
-        throw new Error("Bank account could not be determined");
+      if (!bankAccountId) {
+        throw new Error("Bank account could not be created or found");
+      }
 
-      // 2) Call secure API for withdrawal validation and creation
+      // Step 3: Update bank account to verified
+      // If this fails, we don't create withdrawal (KOR coins not deducted)
+      try {
+        await secureWithdrawalApi.verifyBankAccountMyDataHub(bankAccountId);
+      } catch (verifyError) {
+        console.error("Bank account verification update error:", verifyError);
+        toast.error(t("withdrawalRequest.validation.verificationFailed"));
+        setSubmitting(false);
+        return;
+      }
+
+      // Step 4: Only create withdrawal request AFTER successful verification
+      // This is when KOR coins are deducted
       await createWithdrawalMutation.mutateAsync({
         amount: formData.amount,
         bankAccountId: bankAccountId,
@@ -387,70 +627,27 @@ export function KORCoinsWithdrawal() {
 
       toast.success(t("errors.withdrawalSubmitted"));
 
+      // Clear form and verification state
       setFormData({
         amount: 0,
         accountHolderName: "",
         bankName: "",
         bankAccountNumber: "",
+        bankCode: "",
+        birthdateOrSSN: "",
       });
+      setCallbackId(null);
+      setCallbackResponse("");
+      setAuthText("");
+      setShowVerificationDialog(false);
     } catch (err: Error | unknown) {
+      console.error("Complete verification error:", err);
       toast.error(
         err instanceof Error ? err.message : t("errors.withdrawalFailed")
       );
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleVerifyAmountChange = (value: string) => {
-    setVerifyAmount(value);
-  };
-
-  const handleVerifyNow = async () => {
-    const ba = latestPending?.bank_account;
-    const expected =
-      typeof ba?.verification_amount === "number"
-        ? Number(ba.verification_amount.toFixed(4))
-        : null;
-
-    if (!verifyAmount) {
-      toast.error(t("withdrawalRequest.verification.enterReceivedAmount"));
-      return;
-    }
-
-    const entered = Number(parseFloat(verifyAmount).toFixed(4));
-    if (expected === null || entered !== expected) {
-      toast.error(t("withdrawalRequest.verification.amountMismatch"));
-      return;
-    }
-
-    try {
-      if (!ba?.id) {
-        toast.error(t("withdrawalRequest.verification.bankAccountNotFound"));
-        return;
-      }
-      await verifyBankAccountMutation.mutateAsync({
-        bankAccountId: ba.id,
-        verificationAmount: entered,
-      });
-      toast.success(t("withdrawalRequest.verification.verificationSuccess"));
-      setVerifyAmount("");
-    } catch (e: Error | unknown) {
-      const errorMessage =
-        e instanceof Error
-          ? e.message
-          : t("withdrawalRequest.verification.verificationFailed");
-      toast.error(errorMessage);
-    }
-  };
-
-  const handleUnifiedSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (latestPending && !showFormOverride) {
-      await handleVerifyNow();
-      return;
-    }
-    await handleSubmit(e);
   };
 
   if (!isClient || authLoading) {
@@ -490,22 +687,9 @@ export function KORCoinsWithdrawal() {
   const { feePercentage } = calculateFee(formData.amount, userLevel);
   const fullName = computed?.fullName || user.email || "User";
 
-  // Data for verification panel (avoid inline declarations in JSX)
-  const pendingLike = latestPending;
-  const pendingBankAccount = pendingLike?.bank_account;
-  const expectedVerificationAmount =
-    typeof pendingBankAccount?.verification_amount === "number"
-      ? Number(pendingBankAccount.verification_amount.toFixed(4))
-      : null;
-
   return (
     <div className="flex flex-col h-full p-4 space-y-6">
-      <div className="flex items-center gap-3">
-        <Wallet className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-semibold text-foreground">{t("title")}</h1>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
         <Card className="bg-card border border-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -626,193 +810,143 @@ export function KORCoinsWithdrawal() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleUnifiedSubmit} className="space-y-6">
-              {!latestPending && (
-                <div className="space-y-3">
-                  <Label htmlFor="amount">
-                    {t("withdrawalRequest.amount")}
-                  </Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    min="100"
-                    max="15000"
-                    step="100"
-                    value={formData.amount || ""}
-                    onChange={(e) => handleAmountChange(e.target.value)}
-                    placeholder={t("withdrawalRequest.amountPlaceholder")}
-                    className={`h-10 ${
-                      formData.amount > 0 && formData.amount > userKorCoins
-                        ? "border-red-500 focus:border-red-500"
-                        : ""
-                    }`}
-                  />
-                  {formData.amount > 0 && formData.amount < 100 && (
-                    <div className="text-xs text-red-600">
-                      {t("withdrawalRequest.validation.minWithdrawal")}
-                    </div>
-                  )}
-                  {formData.amount > 15000 && (
-                    <div className="text-xs text-red-600">
-                      {t("withdrawalRequest.validation.maxWithdrawal")}
-                    </div>
-                  )}
-                  {formData.amount > 0 && formData.amount > userKorCoins && (
-                    <div className="text-xs text-red-600">
-                      {t("withdrawalRequest.validation.insufficientBalance", {
-                        balance: userKorCoins.toLocaleString(),
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {!latestPending && formData.amount > 0 && (
-                <div className="p-4 bg-muted/30 rounded-lg">
-                  <div className="flex justify-between text-sm mb-2">
-                    <span>{t("withdrawalRequest.feeBreakdown.amount")}</span>
-                    <span className="font-medium">
-                      {formData.amount.toLocaleString()} KOR
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm text-red-500 dark:text-red-400 mb-2">
-                    <span>
-                      {t("withdrawalRequest.feeBreakdown.estimatedFee", {
-                        percentage:
-                          userLevel <= 25
-                            ? 40
-                            : userLevel <= 50
-                            ? 30
-                            : userLevel <= 75
-                            ? 20
-                            : 10,
-                      })}
-                    </span>
-                    <span className="font-medium">
-                      {Math.floor(
-                        (formData.amount *
-                          (userLevel <= 25
-                            ? 40
-                            : userLevel <= 50
-                            ? 30
-                            : userLevel <= 75
-                            ? 20
-                            : 10)) /
-                          100
-                      ).toFixed(0)}{" "}
-                      KOR
-                    </span>
-                  </div>
-                  <div className="border-t border-border pt-2 flex justify-between font-semibold">
-                    <span>
-                      {t("withdrawalRequest.feeBreakdown.estimatedReceive")}
-                    </span>
-                    <span className="text-success text-lg">
-                      ₩
-                      {Math.floor(
-                        formData.amount -
-                          (formData.amount *
-                            (userLevel <= 25
-                              ? 40
-                              : userLevel <= 50
-                              ? 30
-                              : userLevel <= 75
-                              ? 20
-                              : 10)) /
-                            100
-                      )}
-                    </span>
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-2 text-center">
-                    {t("withdrawalRequest.feeBreakdown.serverNote")}
-                  </div>
-                </div>
-              )}
-
-              {/* If there is a recent pending/sent request, show verify panel like PayPal */}
-              {latestPending &&
-                !showFormOverride &&
-                pendingBankAccount?.is_verified !== true && (
-                  <div className="mt-4 p-4 border border-border rounded-lg bg-muted/20 space-y-3">
-                    <div className="text-sm font-medium">
-                      {t("withdrawalRequest.verification.title")}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                      <div className="space-y-1">
-                        <div className="text-muted-foreground">
-                          {t("withdrawalRequest.verification.requestId")}
-                        </div>
-                        <div className="font-mono break-all">
-                          {latestPending.id}
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="text-muted-foreground">
-                          {t("withdrawalRequest.verification.korCoins")}
-                        </div>
-                        <div className="font-medium">
-                          {latestPending.kor_coins_amount?.toLocaleString?.() ||
-                            latestPending.kor_coins_amount}{" "}
-                          KOR
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="text-muted-foreground">
-                          {t("withdrawalRequest.verification.bank")}
-                        </div>
-                        <div className="font-medium">
-                          {pendingBankAccount?.bank_name || "-"}
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="text-muted-foreground">
-                          {t("withdrawalRequest.verification.accountNumber")}
-                        </div>
-                        <div className="font-mono">
-                          {pendingBankAccount?.account_number || "-"}
-                        </div>
-                      </div>
-                    </div>
-                    {expectedVerificationAmount !== null && (
-                      <div className="text-xs text-muted-foreground">
-                        {t("withdrawalRequest.verification.verificationNote")}
-                      </div>
-                    )}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-                      <div className="md:col-span-2">
-                        <Label htmlFor="verifyNow" className="mb-2">
-                          {t("withdrawalRequest.verification.enterAmount")}
-                        </Label>
-                        <Input
-                          id="verifyNow"
-                          type="number"
-                          step="0.0001"
-                          placeholder={t(
-                            "withdrawalRequest.verification.amountPlaceholder"
-                          )}
-                          className="h-10"
-                          value={verifyAmount}
-                          onChange={(e) =>
-                            handleVerifyAmountChange(e.target.value)
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              void handleVerifyNow();
-                            }
-                          }}
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        className="h-10"
-                        onClick={handleVerifyNow}
-                      >
-                        {t("withdrawalRequest.verification.verifyNow")}
-                      </Button>
-                    </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-3">
+                <Label htmlFor="amount">{t("withdrawalRequest.amount")}</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  min="10000"
+                  max="15000"
+                  step="100"
+                  value={formData.amount || ""}
+                  onChange={(e) => handleAmountChange(e.target.value)}
+                  placeholder={t("withdrawalRequest.amountPlaceholder")}
+                  className={`h-10 ${
+                    formData.amount > 0 && formData.amount > userKorCoins
+                      ? "border-red-500 focus:border-red-500"
+                      : ""
+                  }`}
+                />
+                {formData.amount > 0 && formData.amount < 10000 && (
+                  <div className="text-xs text-red-600">
+                    {t("withdrawalRequest.validation.minWithdrawal")}
                   </div>
                 )}
+                {formData.amount > 15000 && (
+                  <div className="text-xs text-red-600">
+                    {t("withdrawalRequest.validation.maxWithdrawal")}
+                  </div>
+                )}
+                {formData.amount > 0 && formData.amount > userKorCoins && (
+                  <div className="text-xs text-red-600">
+                    {t("withdrawalRequest.validation.insufficientBalance", {
+                      balance: userKorCoins.toLocaleString(),
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {formData.amount > 0 && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center justify-between px-3 py-2.5 bg-muted/20 rounded-md cursor-help hover:bg-muted/30 transition-colors">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">
+                            {t(
+                              "withdrawalRequest.feeBreakdown.estimatedReceive"
+                            )}
+                          </span>
+                          <Info className="w-3.5 h-3.5 text-muted-foreground" />
+                        </div>
+                        <span className="text-base font-bold text-success">
+                          ₩
+                          {Math.floor(
+                            formData.amount -
+                              (formData.amount *
+                                (userLevel <= 25
+                                  ? 40
+                                  : userLevel <= 50
+                                  ? 30
+                                  : userLevel <= 75
+                                  ? 20
+                                  : 10)) /
+                                100
+                          ).toLocaleString()}
+                        </span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="bottom"
+                      align="start"
+                      className="w-64 p-3 bg-popover border border-border shadow-lg"
+                    >
+                      <div className="space-y-2 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">
+                            {t("withdrawalRequest.feeBreakdown.amount")}
+                          </span>
+                          <span className="font-medium text-primary">
+                            {formData.amount.toLocaleString()} KOR
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-red-500 dark:text-red-400">
+                          <span>
+                            {t("withdrawalRequest.feeBreakdown.estimatedFee", {
+                              percentage:
+                                userLevel <= 25
+                                  ? 40
+                                  : userLevel <= 50
+                                  ? 30
+                                  : userLevel <= 75
+                                  ? 20
+                                  : 10,
+                            })}
+                          </span>
+                          <span className="font-medium">
+                            -{" "}
+                            {Math.floor(
+                              (formData.amount *
+                                (userLevel <= 25
+                                  ? 40
+                                  : userLevel <= 50
+                                  ? 30
+                                  : userLevel <= 75
+                                  ? 20
+                                  : 10)) /
+                                100
+                            ).toLocaleString()}{" "}
+                            KOR
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t border-border">
+                          <span className="font-medium text-foreground">
+                            {t(
+                              "withdrawalRequest.feeBreakdown.estimatedReceive"
+                            )}
+                          </span>
+                          <span className="font-semibold text-success">
+                            ₩
+                            {Math.floor(
+                              formData.amount -
+                                (formData.amount *
+                                  (userLevel <= 25
+                                    ? 40
+                                    : userLevel <= 50
+                                    ? 30
+                                    : userLevel <= 75
+                                    ? 20
+                                    : 10)) /
+                                  100
+                            ).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 bg-muted/20 rounded-lg text-center border border-border">
@@ -841,77 +975,132 @@ export function KORCoinsWithdrawal() {
                 </div>
               </div>
 
-              {!latestPending && (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="accountHolderName">
-                        {t("withdrawalRequest.form.accountHolderName")}
-                      </Label>
-                      <Input
-                        id="accountHolderName"
-                        value={formData.accountHolderName}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            accountHolderName: e.target.value,
-                          }))
-                        }
-                        placeholder={t(
-                          "withdrawalRequest.form.accountHolderPlaceholder"
-                        )}
-                        className="h-10"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="bankName">
-                        {t("withdrawalRequest.form.bankName")}
-                      </Label>
-                      <Input
-                        id="bankName"
-                        value={formData.bankName}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            bankName: e.target.value,
-                          }))
-                        }
-                        placeholder={t(
-                          "withdrawalRequest.form.bankNamePlaceholder"
-                        )}
-                        className="h-10"
-                        required
-                      />
-                    </div>
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="accountHolderName">
+                      {t("withdrawalRequest.form.accountHolderName")}
+                    </Label>
+                    <Input
+                      id="accountHolderName"
+                      value={formData.accountHolderName}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          accountHolderName: e.target.value,
+                        }))
+                      }
+                      placeholder={t(
+                        "withdrawalRequest.form.accountHolderPlaceholder"
+                      )}
+                      className="h-10"
+                      required
+                    />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bankName">
+                      {t("withdrawalRequest.form.bankName")}
+                    </Label>
+                    <Input
+                      id="bankName"
+                      value={formData.bankName}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          bankName: e.target.value,
+                        }))
+                      }
+                      placeholder={t(
+                        "withdrawalRequest.form.bankNamePlaceholder"
+                      )}
+                      className="h-10"
+                      required
+                    />
+                  </div>
+                </div>
 
-                  <Label htmlFor="bankAccountNumber">
-                    {t("withdrawalRequest.form.bankAccountNumber")}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="bankCode">
+                      {t("withdrawalRequest.form.bankCode")}
+                    </Label>
+                    <Input
+                      id="bankCode"
+                      value={formData.bankCode}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, "");
+                        if (value.length <= 3) {
+                          setFormData((prev) => ({
+                            ...prev,
+                            bankCode: value,
+                          }));
+                        }
+                      }}
+                      placeholder={t(
+                        "withdrawalRequest.form.bankCodePlaceholder"
+                      )}
+                      maxLength={3}
+                      className="h-10"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {t("withdrawalRequest.form.bankCodeHelper")}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bankAccountNumber">
+                      {t("withdrawalRequest.form.bankAccountNumber")}
+                    </Label>
+                    <Input
+                      id="bankAccountNumber"
+                      value={formData.bankAccountNumber}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          bankAccountNumber: e.target.value,
+                        }))
+                      }
+                      placeholder={t(
+                        "withdrawalRequest.form.bankAccountPlaceholder"
+                      )}
+                      className="h-10"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="birthdateOrSSN">
+                    {t("withdrawalRequest.form.birthdateOrSSN")}
                   </Label>
                   <Input
-                    id="bankAccountNumber"
-                    value={formData.bankAccountNumber}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        bankAccountNumber: e.target.value,
-                      }))
-                    }
+                    id="birthdateOrSSN"
+                    value={formData.birthdateOrSSN}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, "");
+                      if (value.length <= 13) {
+                        setFormData((prev) => ({
+                          ...prev,
+                          birthdateOrSSN: value,
+                        }));
+                      }
+                    }}
                     placeholder={t(
-                      "withdrawalRequest.form.bankAccountPlaceholder"
+                      "withdrawalRequest.form.birthdateOrSSNPlaceholder"
                     )}
+                    maxLength={13}
                     className="h-10"
                     required
                   />
-
-                  {/* No verification input before submit. It only appears in the post-submit panel. */}
+                  <p className="text-xs text-muted-foreground">
+                    {t("withdrawalRequest.form.birthdateOrSSNHelper")}
+                  </p>
                 </div>
-              )}
+              </div>
 
               <div className="p-3 bg-muted/20 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full mt-2 flex-shrink-0"></div>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full shrink-0"></div>
                   <div className="text-xs text-muted-foreground">
                     <span className="font-medium text-foreground">
                       {t("withdrawalRequest.tips.title")}
@@ -923,7 +1112,7 @@ export function KORCoinsWithdrawal() {
 
               <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
                 <div className="flex items-start gap-2">
-                  <Shield className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <Shield className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                   <p className="text-xs text-muted-foreground">
                     <span className="font-medium text-foreground">
                       {t("withdrawalRequest.security.title")}
@@ -933,28 +1122,92 @@ export function KORCoinsWithdrawal() {
                 </div>
               </div>
 
-              {!latestPending && (
-                <Button
-                  type="submit"
-                  className="w-full h-12"
-                  disabled={submitting || !isWithdrawalValid()}
-                >
-                  {submitting ||
-                  createBankAccountMutation.isPending ||
-                  createWithdrawalMutation.isPending ? (
-                    <>
-                      <Clock className="h-4 w-4 mr-2 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    "Submit Withdrawal Request"
-                  )}
-                </Button>
-              )}
+              <Button
+                type="submit"
+                className="w-full h-12"
+                disabled={submitting || !isWithdrawalValid()}
+              >
+                {submitting ||
+                createBankAccountMutation.isPending ||
+                createWithdrawalMutation.isPending ? (
+                  <>
+                    <Clock className="h-4 w-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  "Submit Withdrawal Request"
+                )}
+              </Button>
             </form>
           </CardContent>
         </Card>
       </div>
+
+      {/* Verification Dialog */}
+      <Dialog
+        open={showVerificationDialog}
+        onOpenChange={setShowVerificationDialog}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Bank Account Verification</DialogTitle>
+            <DialogDescription>
+              A 1-won transaction has been sent to your bank account. Please
+              check your bank transaction and enter the authentication code
+              below.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="dialog-callback-response">
+                Authentication Response
+              </Label>
+              <Input
+                id="dialog-callback-response"
+                type="text"
+                value={callbackResponse}
+                onChange={(e) => setCallbackResponse(e.target.value)}
+                placeholder="Enter the numbers from your bank transaction"
+                className="h-10"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && callbackId && callbackResponse) {
+                    e.preventDefault();
+                    void handleCompleteVerification();
+                  }
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter the authentication code that appears in your bank
+                transaction.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-3 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setShowVerificationDialog(false)}
+              disabled={submitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCompleteVerification}
+              disabled={!callbackResponse || submitting}
+            >
+              {submitting ? (
+                <>
+                  <Clock className="h-4 w-4 mr-2 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                "Complete Verification"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

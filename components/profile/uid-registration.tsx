@@ -474,23 +474,10 @@ function UIDCard({
       ? isTradingHistoryLoading
       : isCommissionLoading;
 
-  // Displayed total: persisted accumulated + today's 24h (prefer DB; fallback to live for LBank/OrangeX/DeepCoin)
-  const liveLast24h =
-    (record.brokerId === "lbank" ||
-      record.brokerId === "orangex" ||
-      record.brokerId === "deepcoin") &&
-    commissionTotals?.last24h
-      ? Number(commissionTotals.last24h) || 0
-      : 0;
-  const dbLast24h = record.last24hValue ?? 0;
-  // Do NOT double-count: prefer accumulated (already includes today's 24h on registration),
-  // otherwise use DB last_24h_value, otherwise fallback to live for LBank/OrangeX.
-  const displayedTotal =
-    accumulatedPayback > 0
-      ? accumulatedPayback
-      : dbLast24h > 0
-      ? dbLast24h
-      : liveLast24h;
+  // Displayed total: Always show accumulated_24h_payback (sum of all 24h periods)
+  // This value is updated by the scheduler every 24h, adding the new 24h value to the accumulated total
+  // accumulated_24h_payback = sum of all previous 24h periods
+  const displayedTotal = accumulatedPayback;
   const hasRefetchedRef = useRef(false);
   const refetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -824,20 +811,13 @@ function UIDCard({
                   <TooltipTrigger asChild>
                     <Info className="w-3 h-3 cursor-help" />
                   </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs">
+                  <TooltipContent side="top" className="max-w-sm">
                     <div className="text-xs space-y-1">
                       <p>{t("stats.totalAccumulatedPaybackTooltip")}</p>
-                      {(record.brokerId === "lbank" ||
-                        record.brokerId === "orangex" ||
-                        record.brokerId === "deepcoin") &&
-                        accumulatedPayback <= 0 &&
-                        dbLast24h <= 0 &&
-                        liveLast24h > 0 && (
-                          <p className="text-emerald-600 dark:text-emerald-400">
-                            Includes today&apos;s 24h (live): $
-                            {liveLast24h.toFixed(4)}
-                          </p>
-                        )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        This amount accumulates every 24 hours as new rebates
+                        are added to your account.
+                      </p>
                     </div>
                   </TooltipContent>
                 </Tooltip>

@@ -297,11 +297,11 @@ export function ProfileTabs() {
     return (
       <>
         {/* Mobile: Horizontal scrollable tabs, Desktop: Vertical tabs */}
-        <div className="w-full lg:w-[250px] p-2 lg:p-4 border-b lg:border-r lg:border-b-0 flex flex-row lg:flex-col text-sm gap-1 lg:gap-2 bg-background flex-shrink-0 overflow-x-auto lg:overflow-x-visible min-h-[60px] lg:min-h-0 sticky top-14 z-30 lg:static">
+        <div className="w-full lg:w-[250px] p-2 lg:p-4 border-b lg:border-r lg:border-b-0 flex flex-row lg:flex-col text-sm gap-1 lg:gap-2 bg-background shrink-0 overflow-x-auto lg:overflow-x-visible min-h-[60px] lg:min-h-0 sticky top-14 z-30 lg:static">
           {TABS.map((tab) => (
             <button
               key={tab.key}
-              className={`text-left h-10 px-3 lg:px-4 transition font-medium flex gap-2 items-center cursor-pointer whitespace-nowrap flex-shrink-0 bg-background
+              className={`text-left h-10 px-3 lg:px-4 transition font-medium flex gap-2 items-center cursor-pointer whitespace-nowrap shrink-0 bg-background
                 ${
                   selectedTab === tab.key
                     ? "border font-semibold bg-accent"
@@ -343,7 +343,7 @@ export function ProfileTabs() {
   return (
     <>
       {/* Mobile: Horizontal scrollable tabs, Desktop: Vertical tabs */}
-      <div className="w-full lg:w-[250px] p-2 lg:p-4 border-b lg:border-r lg:border-b-0 flex flex-row lg:flex-col text-sm gap-1 lg:gap-2 bg-background flex-shrink-0 overflow-x-auto lg:overflow-x-visible min-h-[60px] lg:min-h-0 sticky top-14 z-30 lg:static">
+      <div className="w-full lg:w-[250px] p-2 lg:p-4 border-b lg:border-r lg:border-b-0 flex flex-row lg:flex-col text-sm gap-1 lg:gap-2 bg-background shrink-0 overflow-x-auto lg:overflow-x-visible min-h-[60px] lg:min-h-0 sticky top-14 z-30 lg:static">
         {TABS.map((tab) => {
           const isDisabled =
             tab.requiresVerification && user && !user.identity_verified;
@@ -352,7 +352,7 @@ export function ProfileTabs() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    className={`text-left h-10 px-3 lg:px-4 transition font-medium flex gap-2 items-center cursor-pointer whitespace-nowrap flex-shrink-0 bg-background
+                    className={`text-left h-10 px-3 lg:px-4 transition font-medium flex gap-2 items-center cursor-pointer whitespace-nowrap shrink-0 bg-background
                       ${
                         selectedTab === tab.key
                           ? "border font-semibold bg-accent"

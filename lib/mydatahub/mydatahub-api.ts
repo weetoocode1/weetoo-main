@@ -28,6 +28,7 @@ interface VerificationStep1Response {
   callbackType: "SIMPLE";
   callbackData: string;
   timeout: number;
+  authText?: string; // AuthText that MyData Hub uses (may be returned in response)
 }
 
 interface VerificationStep2Request {
@@ -61,9 +62,8 @@ export class MyDataHubAPI {
     } else {
       this.baseURL =
         process.env.NODE_ENV === "production"
-          ? process.env.MYDATAHUB_PROD_URL || "https://api.mydatahub.co.kr"
-          : process.env.MYDATAHUB_DEV_URL ||
-            "https://datahub-dev.scraping.co.kr";
+          ? "https://api.mydatahub.co.kr"
+          : "https://datahub-dev.scraping.co.kr";
     }
     this.accessToken = process.env.MYDATAHUB_ACCESS_TOKEN || "";
     this.fixieURL = process.env.FIXIE_URL || "";
@@ -181,6 +181,15 @@ export class MyDataHubAPI {
 
     apiRequest.ACCTNO = request.accountNo;
     apiRequest.BANKCODE = request.bankCode;
+    // authText is required by MyData Hub API
+    // MyData Hub will validate bank account first, then process
+    // If bank account is invalid, MyData Hub will return error (like ST09) before processing
+    // If valid, MyData Hub will process and use this authText for the 1-won transaction
+    if (!request.authText || request.authText.trim() === "") {
+      throw new Error(
+        "authText is required. MyData Hub API requires a non-empty authText value."
+      );
+    }
     apiRequest.AUTHTEXT = request.authText;
 
     const requestBodyString = JSON.stringify(apiRequest);
@@ -265,17 +274,52 @@ export class MyDataHubAPI {
       if (data.RESULT === "FAILURE") {
         const errorMsg = (data.OUTRSLTMSG as string) || "Unknown error";
         const errorCode = (data.OUTRSLTCD as string) || "UNKNOWN";
+
+        // Provide more helpful error messages for common errors
+        if (errorCode === "ST09") {
+          const acctNo = request.accountNo;
+          const bankCode = request.bankCode;
+          const authText = request.authText;
+
+          const detailedError = [
+            `MyDataHub API error (ST09): Invalid request format`,
+            ``,
+            `Error message: ${errorMsg}`,
+            ``,
+            `Common causes:`,
+            `- Account number format is invalid (should be 10-14 digits for Korean banks)`,
+            `- Bank code is incorrect (must be exactly 3 digits)`,
+            `- Authentication text format is invalid`,
+            ``,
+            `Please verify:`,
+            `- Account Number: ${acctNo.substring(0, 20)}${
+              acctNo.length > 20 ? "..." : ""
+            } (length: ${acctNo.length})`,
+            `- Bank Code: ${bankCode}`,
+            `- Auth Text: ${authText.substring(0, 20)}${
+              authText.length > 20 ? "..." : ""
+            }`,
+            ``,
+            `If the issue persists, contact MyData Hub support: mydatahub@kwic.co.kr`,
+          ].join("\n");
+          throw new Error(detailedError);
+        }
+
         throw new Error(`MyDataHub API error (${errorCode}): ${errorMsg}`);
       }
 
       if (data.RESULT === "SUCCESS") {
         const trdno = (data.TRDNO as string) || "";
         if (trdno) {
+          // Check if authText is returned in response (MyData Hub may return it)
+          const authTextFromResponse =
+            (data.AUTHTEXT as string) || request.authText || "";
           return {
             callbackId: trdno,
             callbackType: "SIMPLE",
             callbackData: "",
             timeout: 0,
+            authText: authTextFromResponse,
           };
         }
       }
@@ -283,11 +327,16 @@ export class MyDataHubAPI {
       const callbackData = response.data as CallbackResponse;
 
       if (callbackData && callbackData.callbackId) {
+        // Check if authText is returned in response (MyData Hub may return it)
+        const dataObj = response.data as unknown as Record<string, unknown>;
+        const authTextFromResponse =
+          (dataObj.AUTHTEXT as string) || request.authText || "";
         return {
           callbackId: callbackData.callbackId,
           callbackType: callbackData.callbackType || "SIMPLE",
           callbackData: callbackData.callbackData || "",
           timeout: callbackData.timeout || 0,
+          authText: authTextFromResponse,
         };
       }
 
@@ -319,11 +368,17 @@ export class MyDataHubAPI {
       );
     }
 
+    // Check if authText is returned in response (MyData Hub may return it)
+    const dataObj = response.data as unknown as Record<string, unknown>;
+    const authTextFromResponse =
+      (dataObj.AUTHTEXT as string) || request.authText || "";
+
     return {
       callbackId: callbackData.callbackId,
       callbackType: callbackData.callbackType,
       callbackData: callbackData.callbackData || "",
       timeout: callbackData.timeout || 0,
+      authText: authTextFromResponse,
     };
   }
 

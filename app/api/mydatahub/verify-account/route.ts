@@ -1,15 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MyDataHubAPI } from "@/lib/mydatahub/mydatahub-api";
 
-function generateAuthText(): string {
-  const timestamp = Date.now().toString().slice(-6);
-  const random = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
-  return `${timestamp}${random}`;
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError);
+      return NextResponse.json(
+        {
+          error: "Invalid request body. Please ensure the request contains valid JSON.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!body || typeof body !== "object") {
+      return NextResponse.json(
+        {
+          error: "Request body is required and must be a valid JSON object.",
+        },
+        { status: 400 }
+      );
+    }
+
     const { bankCode, accountNo, birthdateOrSSN, authText, callbackId, callbackResponse } =
       body;
 
@@ -63,19 +78,27 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Generate minimal authText (required by API)
+    // MyData Hub will validate the bank account first, then process the request
+    // If bank account is invalid, MyData Hub will return an error (like ST09) BEFORE processing
+    // If valid, MyData Hub will process and use the authText for the 1-won transaction
+    const minimalAuthText = authText || `${Date.now().toString().slice(-9)}${Math.floor(Math.random() * 100).toString().padStart(2, "0")}`;
+    
     const step1Result = await myDataHubAPI.initiateAccountVerification({
       bankCode,
       accountNo,
       UMINNUM: birthdateOrSSN,
-      authText: authText || generateAuthText(),
+      authText: minimalAuthText,
     });
 
+    // If we reach here, bank account validation passed and MyData Hub processed the request
+    // The authText that was sent is what MyData Hub used for the 1-won transaction
     return NextResponse.json({
       success: true,
       callbackId: step1Result.callbackId,
       callbackType: step1Result.callbackType,
       timeout: step1Result.timeout,
-      authText: authText || "", // echo back if client sent it
+      authText: step1Result.authText || minimalAuthText, // Return authText from response or the one we sent
       message:
         "Verification initiated. Please complete authentication and submit callbackResponse.",
     });

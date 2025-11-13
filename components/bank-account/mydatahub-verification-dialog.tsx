@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { useMyDataHubVerification } from "@/hooks/use-mydatahub-verification";
 import {
@@ -108,9 +108,12 @@ export function MyDataHubVerificationDialog({
   const [birthdateOrSSN, setBirthdateOrSSN] = useState("");
   const [authText, setAuthText] = useState("");
   const [callbackResponse, setCallbackResponse] = useState("");
+  
+  // Start at birthdate step if bank code and account number are provided
+  const initialStep = initialBankCode && initialAccountNo ? "birthdate" : "account-info";
   const [step, setStep] = useState<
     "account-info" | "birthdate" | "auth-text" | "complete"
-  >("account-info");
+  >(initialStep);
 
   const {
     initiateVerification,
@@ -125,10 +128,21 @@ export function MyDataHubVerificationDialog({
     setBirthdateOrSSN("");
     setAuthText("");
     setCallbackResponse("");
-    setStep("account-info");
+    setStep(initialBankCode && initialAccountNo ? "birthdate" : "account-info");
     resetCallbackId();
     onClose();
   };
+
+  // Update step when dialog opens with provided bank code and account number
+  useEffect(() => {
+    if (isOpen && initialBankCode && initialAccountNo) {
+      setBankCode(initialBankCode);
+      setAccountNo(initialAccountNo);
+      setStep("birthdate");
+    } else if (isOpen && !initialBankCode && !initialAccountNo) {
+      setStep("account-info");
+    }
+  }, [isOpen, initialBankCode, initialAccountNo]);
 
   const handleAccountInfoSubmit = () => {
     if (!bankCode || !accountNo) {
@@ -198,9 +212,9 @@ export function MyDataHubVerificationDialog({
             {step === "account-info"
               ? "Enter your account information to start verification"
               : step === "birthdate"
-              ? `Verify your ${bankName} account (${accountNo}) using 1-won authentication`
+              ? `Verify your ${bankName} account (${accountNo}) using 1-won authentication. Enter your birthdate or SSN to continue.`
               : step === "auth-text"
-              ? `Complete authentication for your ${bankName} account`
+              ? `Complete authentication for your ${bankName} account. Enter the authentication response code.`
               : "Verification complete"}
           </DialogDescription>
         </DialogHeader>

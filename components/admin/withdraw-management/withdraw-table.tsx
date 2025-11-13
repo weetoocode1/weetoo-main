@@ -35,7 +35,8 @@ interface WithdrawRequest {
   accountHolderName: string;
   accountNumber: string;
   bankName?: string;
-  verificationAmount?: number | null;
+  bankCode?: string;
+  isVerified: boolean; // Bank account verification status
   status: "pending" | "sent" | "verified" | "failed";
   userLevel: number;
   withdrawalAmount: number; // KOR coins user wants to withdraw
@@ -54,7 +55,8 @@ interface RawWithdrawalData {
     account_holder_name?: string;
     account_number?: string;
     bank_name?: string;
-    verification_amount?: string | number | null;
+    bank_code?: string;
+    is_verified?: boolean;
   };
   user?: {
     first_name?: string;
@@ -214,20 +216,24 @@ export function WithdrawTable() {
         return "pending";
       };
 
+      const isBankAccountVerified = r.bank_account?.is_verified || false;
+      const dbStatus = mapStatus(r.status);
+      
+      // If bank account is verified and withdrawal status is pending, show as verified
+      const displayStatus: WithdrawRequest["status"] = 
+        isBankAccountVerified && dbStatus === "pending" 
+          ? "verified" 
+          : dbStatus;
+
       return {
         id: r.id,
         accountHolderName:
           r.bank_account?.account_holder_name || r.user?.first_name || "-",
         accountNumber: r.bank_account?.account_number || "-",
         bankName: r.bank_account?.bank_name || "-",
-        verificationAmount: (() => {
-          const amount = r.bank_account?.verification_amount;
-          if (amount == null) return null;
-          if (typeof amount === "string") return parseFloat(amount);
-          if (typeof amount === "number") return amount;
-          return null;
-        })(),
-        status: mapStatus(r.status),
+        bankCode: r.bank_account?.bank_code || "-",
+        isVerified: isBankAccountVerified,
+        status: displayStatus,
         userLevel: r.user?.level || 0,
         withdrawalAmount: r.kor_coins_amount || 0,
         avatarUrl: (r as RawWithdrawalData).user?.avatar_url || undefined,
@@ -485,7 +491,7 @@ export function WithdrawTable() {
                       {t("columns.bankDetails")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
-                      {t("columns.verificationWithdrawal")}
+                      {t("columns.withdrawalAmount")}
                     </th>
                     <th className="px-6 py-4 text-left font-medium text-xs uppercase tracking-wider">
                       {t("columns.status")}
@@ -538,6 +544,11 @@ export function WithdrawTable() {
                         <div className="flex flex-col">
                           <span className="text-sm font-medium">
                             {request.bankName}
+                            {request.bankCode && request.bankCode !== "-" && (
+                              <span className="ml-2 text-xs text-muted-foreground">
+                                ({request.bankCode})
+                              </span>
+                            )}
                           </span>
                           <span className="font-mono text-xs text-muted-foreground">
                             {request.accountNumber}
@@ -546,23 +557,13 @@ export function WithdrawTable() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-center">
-                          {request.status === "verified" ? (
-                            // For verified: just show the final amount to send
-                            <div className="text-lg font-bold text-green-600">
-                              ₩
-                              {calculateWithdrawalFee(
-                                request.userLevel,
-                                request.withdrawalAmount
-                              ).finalAmount.toLocaleString()}
-                            </div>
-                          ) : (
-                            // For pending/sent: just show verification amount
-                            <div className="text-lg font-bold text-blue-600">
-                              {typeof request.verificationAmount === "number"
-                                ? `₩${request.verificationAmount.toFixed(4)}`
-                                : "-"}
-                            </div>
-                          )}
+                          <div className="text-lg font-bold text-green-600">
+                            ₩
+                            {calculateWithdrawalFee(
+                              request.userLevel,
+                              request.withdrawalAmount
+                            ).finalAmount.toLocaleString()}
+                          </div>
                           {request.status === "verified" &&
                             (request as WithdrawRequest).payout_sent && (
                               <div className="mt-1 text-xs text-emerald-600 font-medium">
@@ -575,6 +576,11 @@ export function WithdrawTable() {
                                 {t("actions.afterSending")}
                               </div>
                             )}
+                          {!request.isVerified && (
+                            <div className="mt-1 text-xs text-amber-600 font-medium">
+                              {t("actions.notVerified")}
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -693,16 +699,21 @@ export function WithdrawTable() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-yellow-600" />
+                      <Shield className="h-4 w-4 text-muted-foreground" />
                       <div>
                         <div className="text-xs text-muted-foreground">
-                          {t("mobile.verificationAmount")}
+                          {t("mobile.verificationStatus")}
                         </div>
-                        <div className="font-mono font-medium">
-                          <span className="text-sm">₩</span>{" "}
-                          {typeof request.verificationAmount === "number"
-                            ? request.verificationAmount.toFixed(4)
-                            : "-"}
+                        <div className="font-medium text-sm">
+                          {request.isVerified ? (
+                            <span className="text-emerald-600">
+                              {t("status.verified")}
+                            </span>
+                          ) : (
+                            <span className="text-amber-600">
+                              {t("status.pending")}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -710,29 +721,20 @@ export function WithdrawTable() {
 
                   {/* Simple Fee Breakdown for Mobile */}
                   <div className="p-3 bg-muted/30 rounded-lg border">
-                    {request.status === "verified" ? (
-                      // For verified: just show final amount
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-green-600">
-                          {t("mobile.send")} ₩
-                          {calculateWithdrawalFee(
-                            request.userLevel,
-                            request.withdrawalAmount
-                          ).finalAmount.toLocaleString()}
-                        </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-green-600">
+                        {t("mobile.send")} ₩
+                        {calculateWithdrawalFee(
+                          request.userLevel,
+                          request.withdrawalAmount
+                        ).finalAmount.toLocaleString()}
                       </div>
-                    ) : (
-                      // For pending/sent: just show verification amount
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-blue-600">
-                          {typeof request.verificationAmount === "number"
-                            ? `${t(
-                                "mobile.send"
-                              )} ₩${request.verificationAmount.toFixed(4)}`
-                            : `${t("mobile.send")} -`}
+                      {!request.isVerified && (
+                        <div className="mt-1 text-xs text-amber-600 font-medium">
+                          {t("actions.notVerified")}
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
 
                   {/* Mobile Status Change */}

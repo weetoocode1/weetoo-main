@@ -1,20 +1,10 @@
-"use client";
-
-import { AdminRealtimeToasts } from "@/components/realtime/admin-realtime-toasts";
-import SchedulerInitializer from "@/components/scheduler-initializer";
-import { AuthRealtimeGuard } from "@/components/user/auth-realtime-guard";
-import { BanDialog } from "@/components/user/ban-dialog";
-import { UserRealtimeToasts } from "@/components/user/user-realtime-toasts";
-import { LanguageProvider } from "@/providers/language-provider";
-import { QueryProvider } from "@/providers/query-provider";
-import { ThemeProvider } from "@/providers/theme-provider";
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
-import { useEffect, useState } from "react";
-import { Toaster } from "sonner";
+import { cookies } from "next/headers";
+import ClientLayout from "./client-layout";
 import "./globals.css";
+import { getSeoKeywords } from "./seo-keywords";
+import { Metadata } from "next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,91 +16,115 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-import enMessages from "../locales/en.json";
+const getLocale = async () => {
+  try {
+    const cookieStore = await cookies();
+    const locale = cookieStore.get("locale")?.value;
+    return locale === "ko" ? "ko" : "en";
+  } catch {
+    return "en";
+  }
+};
 
-export default function RootLayout({
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  const seo = getSeoKeywords(locale as "en" | "ko");
+
+  return {
+    metadataBase: new URL(
+      process.env.NEXT_PUBLIC_SITE_URL || "https://www.weetoo.net"
+    ),
+    title: seo.title,
+    description: seo.description,
+    keywords: seo.keywords.join(", "),
+    authors: [{ name: "Weetoo Team" }],
+    creator: "Weetoo",
+    publisher: "Weetoo",
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-video-preview": -1,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+      },
+    },
+    openGraph: {
+      title: seo.openGraph.title,
+      description: seo.openGraph.description,
+      type: seo.openGraph.type,
+      url: seo.openGraph.url,
+      images: [
+        {
+          url: "/logo.png",
+          width: 1200,
+          height: 630,
+          alt: "Weetoo Trading Platform",
+        },
+      ],
+      locale: seo.openGraph.locale,
+      alternateLocale: seo.openGraph.localeAlternate,
+      siteName: seo.openGraph.siteName,
+    },
+    twitter: {
+      card: seo.twitter.card,
+      title: seo.twitter.title,
+      description: seo.twitter.description,
+    },
+    alternates: {
+      canonical: "/",
+    },
+    category: "Finance",
+    classification: "Trading Platform",
+    other: {
+      "application-name": "Weetoo",
+      "apple-mobile-web-app-title": "Weetoo",
+      "apple-mobile-web-app-capable": "yes",
+      "apple-mobile-web-app-status-bar-style": "default",
+      "format-detection": "telephone=no",
+      "mobile-web-app-capable": "yes",
+      "msapplication-TileColor": "#000000",
+      "msapplication-config": "/browserconfig.xml",
+      "theme-color": "#000000",
+    },
+  };
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [currentLang, setCurrentLang] = useState("en");
-
-  // Update language when component mounts or language changes
-  useEffect(() => {
-    const savedLocale = localStorage.getItem("locale") || "en";
-    setCurrentLang(savedLocale);
-
-    // Update HTML lang attribute
-    document.documentElement.lang = savedLocale;
-
-    // Listen for language changes
-    const handleLanguageChange = () => {
-      const newLocale = localStorage.getItem("locale") || "en";
-      setCurrentLang(newLocale);
-      document.documentElement.lang = newLocale;
-    };
-
-    window.addEventListener("storage", handleLanguageChange);
-
-    // Also listen for custom events if language changes within the same window
-    const handleCustomLanguageChange = (event: CustomEvent) => {
-      const newLocale = event.detail?.locale || "en";
-      setCurrentLang(newLocale);
-      document.documentElement.lang = newLocale;
-    };
-
-    window.addEventListener(
-      "languageChanged",
-      handleCustomLanguageChange as EventListener
-    );
-
-    return () => {
-      window.removeEventListener("storage", handleLanguageChange);
-      window.removeEventListener(
-        "languageChanged",
-        handleCustomLanguageChange as EventListener
-      );
-    };
-  }, []);
+  const locale = await getLocale();
 
   return (
     <html
-      lang={currentLang}
+      lang={locale}
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full`}
     >
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta charSet="utf-8" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.__INITIAL_LOCALE__ = ${JSON.stringify(locale)};
+              if (typeof Storage !== 'undefined' && !localStorage.getItem('locale')) {
+                localStorage.setItem('locale', ${JSON.stringify(locale)});
+              }
+            `,
+          }}
+        />
       </head>
       <body suppressHydrationWarning className={`bg-background`}>
         <Script
           src="https://cdn.portone.io/v2/browser-sdk.js"
           strategy="afterInteractive"
         />
-        <SchedulerInitializer />
-        {/* <WebSocketHealthMonitor /> */}
-        <QueryProvider>
-          <LanguageProvider messages={enMessages}>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="dark"
-              enableSystem
-              disableTransitionOnChange
-            >
-              {children}
-              <AuthRealtimeGuard />
-              <AdminRealtimeToasts />
-              <UserRealtimeToasts />
-              <BanDialog />
-              <Toaster richColors position="top-center" />
-            </ThemeProvider>
-          </LanguageProvider>
-        </QueryProvider>
-
-        <SpeedInsights />
-        <Analytics />
-        {/* <WebSocketHealthMonitor /> */}
+        <ClientLayout initialLocale={locale}>{children}</ClientLayout>
       </body>
     </html>
   );

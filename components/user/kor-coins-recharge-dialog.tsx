@@ -44,7 +44,7 @@ import {
   Copy,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Icons } from "../icons";
 
@@ -202,7 +202,7 @@ const secureDepositApi = {
 export function KorCoinsRechargeDialog() {
   const t = useTranslations("korCoinsRecharge");
   const tIV = useTranslations("identityVerification");
-  const { user } = useAuth();
+  const { user, computed, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const [mounted, setMounted] = useState(false);
   const formatNumber = (n: number) =>
@@ -210,8 +210,6 @@ export function KorCoinsRechargeDialog() {
 
   const [open, setOpen] = useState(false);
   const [korCoinsAmount, setKorCoinsAmount] = useState("");
-  const [userKorCoins, setUserKorCoins] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
   const [bankName, setBankName] = useState("");
   const [bankAccountNumber, setBankAccountNumber] = useState("");
   const [depositorName, setDepositorName] = useState("");
@@ -224,10 +222,11 @@ export function KorCoinsRechargeDialog() {
   const [currentDepositRequest, setCurrentDepositRequest] =
     useState<DepositRequest | null>(null);
   const [copiedReference, setCopiedReference] = useState(false);
-  const [, setKorCoinsUpdateTrigger] = useState(0);
-  const lastSessionId = useRef<string | null>(null);
 
-  // Listen for identity verification completion and KOR coins updates
+  // Use kor_coins from useAuth() hook - this ensures consistency across all components
+  const userKorCoins = computed?.kor_coins ?? 0;
+
+  // Listen for identity verification completion
   useEffect(() => {
     setMounted(true);
     const handleIdentityVerified = (event: Event) => {
@@ -235,62 +234,12 @@ export function KorCoinsRechargeDialog() {
       // This is handled by the event dispatch in handleVerificationSuccess
     };
 
-    const handleKorCoinsUpdated = (event: Event) => {
-      // Update the local KOR coins state with the new amount
-      const customEvent = event as CustomEvent;
-      if (customEvent.detail?.newAmount !== undefined) {
-        setUserKorCoins(customEvent.detail.newAmount);
-      }
-      // Also force a re-render to update KOR coins display
-      setKorCoinsUpdateTrigger((prev) => prev + 1);
-    };
-
     window.addEventListener("identity-verified", handleIdentityVerified);
-    window.addEventListener("kor-coins-updated", handleKorCoinsUpdated);
 
     return () => {
       window.removeEventListener("identity-verified", handleIdentityVerified);
-      window.removeEventListener("kor-coins-updated", handleKorCoinsUpdated);
     };
   }, []);
-
-  // Real-time subscription to user's KOR coins updates
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const supabase = createClient();
-
-    // Subscribe to real-time updates for this user's KOR coins
-    const channel = supabase.channel(`user-kor-coins-dialog-${user.id}`).on(
-      "postgres_changes",
-      {
-        event: "UPDATE",
-        schema: "public",
-        table: "users",
-        filter: `id=eq.${user.id}`,
-      },
-      (payload) => {
-        const newData = payload.new as { kor_coins?: number };
-        if (newData?.kor_coins !== undefined) {
-          console.log(
-            "KorCoinsRechargeDialog: KOR coins updated via real-time:",
-            newData.kor_coins
-          );
-          setUserKorCoins(newData.kor_coins);
-        }
-      }
-    );
-
-    channel.subscribe();
-
-    return () => {
-      try {
-        supabase.removeChannel(channel);
-      } catch (error) {
-        console.error("Error removing channel:", error);
-      }
-    };
-  }, [user?.id]);
 
   // TanStack Query hooks for secure operations
   const { data: bankAccounts } = useQuery({
@@ -316,9 +265,10 @@ export function KorCoinsRechargeDialog() {
         new CustomEvent("kor-coins-updated", {
           detail: {
             userId: user?.id,
-            oldAmount: user?.kor_coins || 0,
+            oldAmount: computed?.kor_coins || 0,
             newAmount:
-              (user?.kor_coins || 0) + response.depositRequest.kor_coins_amount,
+              (computed?.kor_coins || 0) +
+              response.depositRequest.kor_coins_amount,
           },
         })
       );
@@ -361,65 +311,6 @@ export function KorCoinsRechargeDialog() {
     },
   });
 
-  useEffect(() => {
-    let mounted = true;
-    const supabase = createClient();
-    setLoading(true);
-    supabase.auth.getUser().then(({ data }) => {
-      const sessionId = data.user?.id || null;
-      if (lastSessionId.current === sessionId && userKorCoins !== null) {
-        setLoading(false);
-        return;
-      }
-      lastSessionId.current = sessionId;
-      if (!sessionId) {
-        if (mounted) setLoading(false);
-        setUserKorCoins(null);
-        return;
-      }
-      supabase
-        .from("users")
-        .select("id, kor_coins")
-        .eq("id", sessionId)
-        .single()
-        .then(({ data, error }) => {
-          if (mounted) {
-            setUserKorCoins(error ? 0 : data?.kor_coins ?? 0);
-            setLoading(false);
-          }
-        });
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        const sessionId = session?.user?.id || null;
-        if (lastSessionId.current === sessionId && userKorCoins !== null) {
-          setLoading(false);
-          return;
-        }
-        lastSessionId.current = sessionId;
-        if (!sessionId) {
-          setUserKorCoins(null);
-          setLoading(false);
-          return;
-        }
-        setLoading(true);
-        supabase
-          .from("users")
-          .select("id, kor_coins")
-          .eq("id", sessionId)
-          .single()
-          .then(({ data, error }) => {
-            setUserKorCoins(error ? 0 : data?.kor_coins ?? 0);
-            setLoading(false);
-          });
-      }
-    );
-    return () => {
-      mounted = false;
-      listener?.subscription.unsubscribe();
-    };
-  }, []); // Removed userKorCoins dependency to prevent infinite loop
-
   // Handle bank account selection
   const handleBankAccountSelect = (accountId: string) => {
     setSelectedBankAccount(accountId);
@@ -450,6 +341,12 @@ export function KorCoinsRechargeDialog() {
       return;
     }
 
+    const amount = Number(korCoinsAmount);
+    if (!korCoinsAmount || !Number.isFinite(amount) || amount < 100) {
+      toast.error(t("toasts.minAmount", { amount: 100 }));
+      return;
+    }
+
     setSubmitting(true);
     try {
       const supabase = createClient();
@@ -476,7 +373,7 @@ export function KorCoinsRechargeDialog() {
       // Create deposit request using the secure API
       createDepositMutation.mutate(
         {
-          korCoinsAmount: Number(korCoinsAmount),
+          korCoinsAmount: amount,
           bankAccountId: bankAccount.id,
         },
         {
@@ -502,7 +399,8 @@ export function KorCoinsRechargeDialog() {
       return;
     }
 
-    if (!korCoinsAmount || Number(korCoinsAmount) < 100) {
+    const amount = Number(korCoinsAmount);
+    if (!korCoinsAmount || !Number.isFinite(amount) || amount < 100) {
       toast.error(t("toasts.minAmount", { amount: 100 }));
       return;
     }
@@ -517,7 +415,7 @@ export function KorCoinsRechargeDialog() {
       // Create deposit request using the secure API
       createDepositMutation.mutate(
         {
-          korCoinsAmount: Number(korCoinsAmount),
+          korCoinsAmount: amount,
           bankAccountId: selectedAccount.id,
         },
         {
@@ -782,15 +680,15 @@ export function KorCoinsRechargeDialog() {
                   </Label>
                   <div className="space-y-2 text-sm text-muted-foreground">
                     <div className="flex items-start gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
+                      <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 shrink-0"></span>
                       <span>{t("importantNoteExactAmount")}</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
+                      <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 shrink-0"></span>
                       <span>{t("importantNoteIncludeReference")}</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
+                      <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 shrink-0"></span>
                       <span>{t("importantNoteCreditedAfterConfirmation")}</span>
                     </div>
                   </div>
@@ -827,16 +725,16 @@ export function KorCoinsRechargeDialog() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="flex items-center gap-2">
-                  {loading ? (
+                  {authLoading ? (
                     <Skeleton className="w-6 h-6 rounded-full" />
                   ) : (
                     <div className="relative">
-                      {(userKorCoins ?? 0) <= LOW_BALANCE_THRESHOLD ? (
+                      {userKorCoins <= LOW_BALANCE_THRESHOLD ? (
                         <Icons.lowCoins className="w-6 h-6" />
                       ) : (
                         <Icons.coins className="w-6 h-6 text-yellow-400 drop-shadow-[0_0_2px_rgba(255,215,0,0.5)]" />
                       )}
-                      {(userKorCoins ?? 0) <= LOW_BALANCE_THRESHOLD && (
+                      {userKorCoins <= LOW_BALANCE_THRESHOLD && (
                         <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                       )}
                     </div>
@@ -856,10 +754,10 @@ export function KorCoinsRechargeDialog() {
                       {t("identityVerificationRequiredTooltip")}
                     </p>
                   </div>
-                ) : loading ? (
+                ) : authLoading ? (
                   t("loading")
                 ) : (
-                  `${t("korCoins")}: ${formatNumber(userKorCoins ?? 0)}`
+                  `${t("korCoins")}: ${formatNumber(userKorCoins)}`
                 )}
               </TooltipContent>
             </Tooltip>
@@ -915,16 +813,16 @@ export function KorCoinsRechargeDialog() {
             <DialogHeader className="flex gap-0 sticky top-0 bg-background z-10 p-4 border-b">
               <DialogTitle className="text-lg font-bold flex items-center gap-1.5">
                 {/* Icon and balance inside dialog */}
-                {loading ? (
+                {authLoading ? (
                   <Skeleton className="w-5 h-5 rounded-full" />
                 ) : (
                   <div className="relative">
-                    {(userKorCoins ?? 0) <= LOW_BALANCE_THRESHOLD ? (
+                    {userKorCoins <= LOW_BALANCE_THRESHOLD ? (
                       <Icons.lowCoins className="w-5 h-5 mr-1" />
                     ) : (
                       <Icons.coins className="w-5 h-5 mr-1 text-yellow-400 drop-shadow-[0_0_2px_rgba(255,215,0,0.5)]" />
                     )}
-                    {(userKorCoins ?? 0) <= LOW_BALANCE_THRESHOLD && (
+                    {userKorCoins <= LOW_BALANCE_THRESHOLD && (
                       <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                     )}
                   </div>
@@ -1160,40 +1058,43 @@ export function KorCoinsRechargeDialog() {
                   {selectedBankAccount === "new" && (
                     <>
                       {/* Bank Name Input */}
-                      <div className="space-y-1">
-                        <Label htmlFor="bank-name" className="text-sm">
-                          {t("bankName")}{" "}
-                          <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="bank-name"
-                          type="text"
-                          placeholder={t("enterBankName")}
-                          value={bankName}
-                          onChange={(e) => setBankName(e.target.value)}
-                          required
-                          className={cn("w-full h-10")}
-                        />
-                      </div>
-
-                      {/* Bank Account Number Input */}
-                      <div className="space-y-1">
-                        <Label
-                          htmlFor="bank-account-number"
-                          className="text-sm"
-                        >
-                          {t("bankAccountNumber")}{" "}
-                          <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="bank-account-number"
-                          type="text"
-                          placeholder={t("enterBankAccountNumber")}
-                          value={bankAccountNumber}
-                          onChange={(e) => setBankAccountNumber(e.target.value)}
-                          required
-                          className={cn("w-full h-10")}
-                        />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="bank-name" className="text-sm">
+                            {t("bankName")}{" "}
+                            <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="bank-name"
+                            type="text"
+                            placeholder={t("enterBankName")}
+                            value={bankName}
+                            onChange={(e) => setBankName(e.target.value)}
+                            required
+                            className={cn("w-full h-10")}
+                          />
+                        </div>
+                        {/* Bank Account Number Input */}
+                        <div className="space-y-1">
+                          <Label
+                            htmlFor="bank-account-number"
+                            className="text-sm"
+                          >
+                            {t("bankAccountNumber")}{" "}
+                            <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="bank-account-number"
+                            type="text"
+                            placeholder={t("enterBankAccountNumber")}
+                            value={bankAccountNumber}
+                            onChange={(e) =>
+                              setBankAccountNumber(e.target.value)
+                            }
+                            required
+                            className={cn("w-full h-10")}
+                          />
+                        </div>
                       </div>
 
                       {/* Depositor's Name and Mobile Number */}

@@ -1,7 +1,15 @@
 "use client";
 
 import { NextIntlClientProvider } from "next-intl";
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useTransition,
+} from "react";
+import { useRouter } from "next/navigation";
+import { getSeoKeywords } from "@/app/seo-keywords";
 
 type LanguageContextType = {
   locale: string;
@@ -15,37 +23,73 @@ const LanguageContext = createContext<LanguageContextType | undefined>(
 export function LanguageProvider({
   children,
   messages,
+  initialLocale,
 }: {
   children: React.ReactNode;
   messages: any;
+  initialLocale?: string;
 }) {
-  const [locale, setLocale] = useState("en");
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+
+  const getInitialLocale = () => {
+    if (typeof window !== "undefined") {
+      return (
+        (window as any).__INITIAL_LOCALE__ ||
+        localStorage.getItem("locale") ||
+        initialLocale ||
+        "en"
+      );
+    }
+    return initialLocale || "en";
+  };
+
+  const initialLocaleValue =
+    initialLocale ||
+    (typeof window !== "undefined" ? getInitialLocale() : "en");
+  const [locale, setLocale] = useState(initialLocaleValue);
   const [clientMessages, setClientMessages] = useState(messages);
 
+  const setLocaleCookie = (locale: string) => {
+    document.cookie = `locale=${locale}; path=/; max-age=31536000; SameSite=Lax`;
+  };
+
   useEffect(() => {
-    // Detect browser language on mount
-    const browserLang = navigator.language.split("-")[0];
-    const detectedLocale = browserLang === "ko" ? "ko" : "en";
+    if (typeof window === "undefined") return;
 
-    // Check if user has a saved preference
-    const savedLocale = localStorage.getItem("locale");
-    const initialLocale = savedLocale || detectedLocale;
+    document.documentElement.lang = locale;
 
-    setLocale(initialLocale);
+    const seo = getSeoKeywords(locale as "en" | "ko");
+    document.title = seo.title;
 
-    // Update HTML lang attribute
-    document.documentElement.lang = initialLocale;
-
-    // Load messages for the detected locale
-    if (initialLocale !== "en") {
-      import(`../locales/${initialLocale}.json`).then((module) => {
-        const newMessages = module.default;
-        setClientMessages(newMessages);
-      });
+    if (!localStorage.getItem("locale")) {
+      localStorage.setItem("locale", locale);
     }
-  }, []);
+  }, [locale]);
 
-  // Sync locale changes across tabs via localStorage events only
+  const handleSetLocale = async (newLocale: string) => {
+    const newMessages = await import(`../locales/${newLocale}.json`).then(
+      (m) => m.default
+    );
+
+    const seo = getSeoKeywords(newLocale as "en" | "ko");
+    document.title = seo.title;
+
+    setLocale(newLocale);
+    setClientMessages(newMessages);
+    localStorage.setItem("locale", newLocale);
+    setLocaleCookie(newLocale);
+    document.documentElement.lang = newLocale;
+
+    window.dispatchEvent(
+      new CustomEvent("languageChanged", { detail: { locale: newLocale } })
+    );
+
+    startTransition(() => {
+      router.refresh();
+    });
+  };
+
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "locale" && e.newValue && e.newValue !== locale) {
@@ -58,24 +102,6 @@ export function LanguageProvider({
       window.removeEventListener("storage", handleStorage);
     };
   }, [locale]);
-
-  const handleSetLocale = async (newLocale: string) => {
-    setLocale(newLocale);
-    localStorage.setItem("locale", newLocale);
-
-    // Update HTML lang attribute
-    document.documentElement.lang = newLocale;
-
-    // Load messages for the new locale
-    if (newLocale === "en") {
-      setClientMessages(messages);
-    } else {
-      const newMessages = await import(`../locales/${newLocale}.json`).then(
-        (m) => m.default
-      );
-      setClientMessages(newMessages);
-    }
-  };
 
   return (
     <LanguageContext.Provider value={{ locale, setLocale: handleSetLocale }}>
