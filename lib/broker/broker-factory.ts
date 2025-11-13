@@ -8,11 +8,11 @@ const BROKER_REGISTRY: Record<string, string> = {
   deepcoin: "./deepcoin-api",
   orangex: "./orangex-api",
   lbank: "./lbank-api",
+  bingx: "./bingx-api",
 } as const;
 
 // Unimplemented brokers
 const UNIMPLEMENTED_BROKERS: Set<BrokerType> = new Set([
-  "bingx",
   "okx",
   "bybit",
   "gate",
@@ -36,16 +36,16 @@ export class BrokerFactory {
 
     // Check if broker is unimplemented
     if (UNIMPLEMENTED_BROKERS.has(brokerType)) {
-      console.warn(`${brokerType} API not yet implemented`);
-      return null;
+          console.warn(`${brokerType} API not yet implemented`);
+          return null;
     }
 
     // Get module path from registry
     const modulePath = BROKER_REGISTRY[brokerType];
     if (!modulePath) {
-      console.error(`Unknown broker type: ${brokerType}`);
-      return null;
-    }
+          console.error(`Unknown broker type: ${brokerType}`);
+          return null;
+      }
 
     try {
       // Dynamically import and instantiate the broker API

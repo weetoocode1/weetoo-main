@@ -494,11 +494,14 @@ if (shouldRunScheduler && !globalAny.__schedulerStarted) {
         const { fetch24hRebateFromBroker } = await import(
           "@/lib/utils/fetch-24h-rebate"
         );
+        const { fetch90d60dRebateFromBroker } = await import(
+          "@/lib/utils/fetch-90d-60d-rebate"
+        );
 
         const { data: allUids, error: fetchError } = await supabase
           .from("user_broker_uids")
           .select(
-            "id, exchange_id, uid, accumulated_24h_payback, last_24h_fetch_date"
+            "id, exchange_id, uid, accumulated_24h_payback, last_24h_fetch_date, initial_90d_60d_fetched_date"
           )
           .not("exchange_id", "is", null);
 
@@ -545,13 +548,85 @@ if (shouldRunScheduler && !globalAny.__schedulerStarted) {
               continue;
             }
 
-            // Skip if we've already updated this UID today
+            const needsInitialization = !uidRecord.initial_90d_60d_fetched_date;
+
+            if (needsInitialization) {
+              console.log(
+                `🔄 Initializing ${broker} UID ${uidRecord.uid} with 90d/60d rebate data...`
+              );
+
+              const initResult = await fetch90d60dRebateFromBroker(
+                broker,
+                uidRecord.uid
+              );
+
+              if (!initResult.success) {
+                console.error(
+                  `❌ Failed to fetch 90d/60d rebate for ${broker} UID ${uidRecord.uid}:`,
+                  initResult.error
+                );
+                errors++;
+                continue;
+              }
+
+              const initial90d60dValue = initResult.rebate90d60d || 0;
+
+              const { data: initUpdateData, error: initUpdateError } =
+                await supabase
+                  .from("user_broker_uids")
+                  .update({
+                    accumulated_24h_payback: initial90d60dValue,
+                    initial_90d_60d_fetched_date: today,
+                  })
+                  .eq("id", uidRecord.id)
+                  .select("id, accumulated_24h_payback");
+
+              if (initUpdateError) {
+                console.error(
+                  `❌ Failed to initialize 90d/60d rebate for ${broker} UID ${uidRecord.uid}:`,
+                  initUpdateError
+                );
+                errors++;
+                continue;
+              } else if (!initUpdateData || initUpdateData.length === 0) {
+                console.error(
+                  `❌ No rows updated for initialization of ${broker} UID ${uidRecord.uid} (ID: ${uidRecord.id})`
+                );
+                errors++;
+                continue;
+              } else {
+                updated++;
+                const periodLabel = broker === "deepcoin" ? "60d" : "90d";
+                console.log(
+                  `✅ Initialized ${broker} UID ${
+                    uidRecord.uid
+                  } with ${periodLabel} rebate: $${initial90d60dValue.toFixed(
+                    4
+                  )}`
+                );
+              }
+
+              await new Promise((resolve) => setTimeout(resolve, 500));
+              continue;
+            }
+
             if (
               uidRecord.last_24h_fetch_date &&
               String(uidRecord.last_24h_fetch_date) === today
             ) {
               console.log(
                 `⏭️ Skipping ${broker} UID ${uidRecord.uid} - already updated for ${today}`
+              );
+              continue;
+            }
+
+            const initialFetchDate = uidRecord.initial_90d_60d_fetched_date
+              ? String(uidRecord.initial_90d_60d_fetched_date)
+              : null;
+
+            if (initialFetchDate === today && !uidRecord.last_24h_fetch_date) {
+              console.log(
+                `⏭️ Skipping ${broker} UID ${uidRecord.uid} - registered today, 24h data already included in 90d/60d`
               );
               continue;
             }

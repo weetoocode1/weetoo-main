@@ -1746,6 +1746,12 @@
     "signUp": "Sign Up",
     "uidRegistrationComingSoon": "UID Registration Coming Soon",
     "signUpComingSoon": "Sign Up Coming Soon",
+    "paybackNotice": {
+      "title": "Payback Benefit Notice",
+      "description": "After creating your broker account using the WEETOO referral code, you must register your UID immediately to receive your payback benefits.",
+      "note": "Please note:",
+      "warning": "If you register your UID more than 90 days after joining, any trading activity that occurred during that period cannot be retrieved or included in your payback calculation due to broker API limitations."
+    },
     "cancel": "Cancel",
     "saveChanges": "Save Changes",
     "saving": "Saving...",
@@ -3737,6 +3743,11 @@
         "notVerified": "UID not verified",
         "notReferral": "Not referral"
       },
+      "referralLink": {
+        "signUpWithReferral": "Sign Up with Referral",
+        "signUpWithReferralDesc": "Create a new account using our referral link to receive payback benefits",
+        "alternateLink": "Alternate Link"
+      },
       "stats": {
         "totalAccumulatedPayback": "Total Accumulated Payback",
         "totalAccumulatedPaybackTooltip": "This amount accumulates automatically every 24 hours based on your trading activity and broker rebates.",
@@ -3796,7 +3807,8 @@
         "remainingBalance": "Remaining Balance",
         "processing": "Processing...",
         "requestWithdrawal": "Request Withdrawal",
-        "processedWithin": "Processed within 24-48 hours"
+        "processedWithin": "Processed within 24-48 hours",
+        "minimumWithdrawalNote": "Minimum $50 required to withdraw"
       },
       "form": {
         "selectUid": "Select UID",

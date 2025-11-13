@@ -1522,6 +1522,12 @@
     "signUp": "가입하기",
     "uidRegistrationComingSoon": "UID 등록 준비 중",
     "signUpComingSoon": "가입 준비 중",
+    "paybackNotice": {
+      "title": "페이백 혜택 안내",
+      "description": "브로커 계정을 WEETOO 추천코드로 가입한 후, UID를 즉시 등록해야 페이백 혜택을 받을 수 있습니다.",
+      "note": "참고해주세요:",
+      "warning": "가입 후 90일이 지나 UID를 등록할시 그 기간동안 발생한 과거 거래 내역은 조회 및 반영이 불가능합니다."
+    },
     "verifiedPartner": "검증된 파트너",
     "off": "할인",
     "perUser": "사용자당",
@@ -1901,6 +1907,11 @@
         "notVerified": "UID 미검증",
         "notReferral": "추천 미연결"
       },
+      "referralLink": {
+        "signUpWithReferral": "추천 링크로 가입",
+        "signUpWithReferralDesc": "추천 링크를 사용하여 새 계정을 만들고 페이백 혜택을 받으세요",
+        "alternateLink": "대체 링크"
+      },
       "stats": {
         "totalAccumulatedPayback": "총 누적 페이백",
         "totalAccumulatedPaybackTooltip": "이 금액은 거래 활동 및 브로커 리베이트를 기반으로 24시간마다 자동으로 누적됩니다.",
@@ -1983,7 +1994,8 @@
         "remainingBalance": "남은 잔액",
         "processing": "처리 중...",
         "requestWithdrawal": "출금 요청",
-        "processedWithin": "24-48시간 내 처리됩니다"
+        "processedWithin": "24-48시간 내 처리됩니다",
+        "minimumWithdrawalNote": "최소 $50 필요"
       },
       "form": {
         "selectUid": "UID 선택",

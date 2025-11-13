@@ -34,57 +34,57 @@ export function useUserUids() {
 
       channel = supabase
         .channel(`user-uids-realtime-${user.id}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "user_broker_uids",
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "user_broker_uids",
             filter: `user_id=eq.${user.id}`,
-          },
-          (payload) => {
-            console.log(
-              "Realtime update received for user_broker_uids:",
+        },
+        (payload) => {
+          console.log(
+            "Realtime update received for user_broker_uids:",
               payload.new
-            );
-            // Invalidate and refetch the query to get updated data
-            queryClient.invalidateQueries({ queryKey: ["user-uids"] });
-          }
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "user_broker_uids",
+          );
+          // Invalidate and refetch the query to get updated data
+          queryClient.invalidateQueries({ queryKey: ["user-uids"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "user_broker_uids",
             filter: `user_id=eq.${user.id}`,
-          },
-          (payload) => {
-            console.log(
-              "Realtime insert received for user_broker_uids:",
+        },
+        (payload) => {
+          console.log(
+            "Realtime insert received for user_broker_uids:",
               payload.new
-            );
-            // Invalidate and refetch the query to get updated data
-            queryClient.invalidateQueries({ queryKey: ["user-uids"] });
-          }
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "DELETE",
-            schema: "public",
-            table: "user_broker_uids",
+          );
+          // Invalidate and refetch the query to get updated data
+          queryClient.invalidateQueries({ queryKey: ["user-uids"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "user_broker_uids",
             filter: `user_id=eq.${user.id}`,
-          },
-          (payload) => {
-            console.log(
-              "Realtime delete received for user_broker_uids:",
+        },
+        (payload) => {
+          console.log(
+            "Realtime delete received for user_broker_uids:",
               payload.old
-            );
-            // Invalidate and refetch the query to get updated data
-            queryClient.invalidateQueries({ queryKey: ["user-uids"] });
-          }
-        )
+          );
+          // Invalidate and refetch the query to get updated data
+          queryClient.invalidateQueries({ queryKey: ["user-uids"] });
+        }
+      )
         .subscribe((status) => {
           if (status === "SUBSCRIBED") {
             console.log("✅ Realtime subscription active for user_broker_uids");
@@ -96,7 +96,7 @@ export function useUserUids() {
 
     return () => {
       if (channel) {
-        supabase.removeChannel(channel);
+      supabase.removeChannel(channel);
       }
     };
   }, [queryClient]);

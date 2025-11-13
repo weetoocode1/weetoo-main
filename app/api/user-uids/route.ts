@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
-import { fetch24hRebateFromBroker } from "@/lib/utils/fetch-24h-rebate";
 
 const UID_REGEX = /^[0-9]{3,20}$/;
 const LBANK_UID_REGEX = /^[A-Za-z0-9_-]{1,64}$/;
@@ -185,6 +184,7 @@ export async function POST(req: NextRequest) {
       accumulated_24h_payback?: number;
       last_24h_value?: number;
       last_24h_fetch_date?: string;
+      initial_90d_60d_fetched_date?: string;
     } = {
       user_id: userId,
       uid: sanitizedUid,
@@ -196,38 +196,39 @@ export async function POST(req: NextRequest) {
     const today = new Date().toISOString().split("T")[0];
 
     try {
-      const rebateResult = await fetch24hRebateFromBroker(
-        sanitizedExchangeId as "deepcoin" | "orangex" | "lbank" | "bingx",
-        sanitizedUid,
-        "PERPETUAL"
+      const { fetch90d60dRebateFromBroker } = await import(
+        "@/lib/utils/fetch-90d-60d-rebate"
       );
 
-      if (rebateResult.success && rebateResult.last24h > 0) {
-        insertData.accumulated_24h_payback = rebateResult.last24h;
-        insertData.last_24h_value = rebateResult.last24h;
-        insertData.last_24h_fetch_date = today;
+      const initResult = await fetch90d60dRebateFromBroker(
+        sanitizedExchangeId as "deepcoin" | "orangex" | "lbank" | "bingx",
+        sanitizedUid
+      );
+
+      if (initResult.success) {
+        const periodLabel = sanitizedExchangeId === "deepcoin" ? "60d" : "90d";
+        insertData.accumulated_24h_payback = initResult.rebate90d60d || 0;
+        insertData.initial_90d_60d_fetched_date = today;
         console.log(
-          `[UID Registration] Initial 24h rebate for ${sanitizedExchangeId} UID ${sanitizedUid}: $${rebateResult.last24h}`
+          `[UID Registration] Initial ${periodLabel} rebate for ${sanitizedExchangeId} UID ${sanitizedUid}: $${initResult.rebate90d60d}`
         );
       } else {
         insertData.accumulated_24h_payback = 0;
-        insertData.last_24h_value = 0;
-        insertData.last_24h_fetch_date = today;
-        if (rebateResult.error) {
+        insertData.initial_90d_60d_fetched_date = today;
+        if (initResult.error) {
           console.warn(
-            `[UID Registration] Failed to fetch initial 24h rebate for ${sanitizedExchangeId} UID ${sanitizedUid}:`,
-            rebateResult.error
+            `[UID Registration] Failed to fetch initial 90d/60d rebate for ${sanitizedExchangeId} UID ${sanitizedUid}:`,
+            initResult.error
           );
         }
       }
     } catch (rebateError) {
       console.error(
-        `[UID Registration] Error fetching initial 24h rebate:`,
+        `[UID Registration] Error fetching initial 90d/60d rebate:`,
         rebateError
       );
       insertData.accumulated_24h_payback = 0;
-      insertData.last_24h_value = 0;
-      insertData.last_24h_fetch_date = today;
+      insertData.initial_90d_60d_fetched_date = today;
     }
 
     const { data, error } = await supabase
