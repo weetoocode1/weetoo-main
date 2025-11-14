@@ -1,5 +1,17 @@
 import { MyDataHubEncryption } from "./encryption";
 
+/**
+ * Generates an authText for MyData Hub verification in the format: "위투" + 6-digit number
+ * Format: 위투123456 (위투 = 2 Korean characters = 4 bytes, + 6 numeric digits)
+ * @returns Generated authText string
+ */
+export function generateMyDataHubAuthText(): string {
+  const sixDigitNumber = Math.floor(Math.random() * 1000000)
+    .toString()
+    .padStart(6, "0");
+  return `위투${sixDigitNumber}`;
+}
+
 interface MyDataHubApiResponse<T = unknown> {
   errCode: string;
   errMsg: string;
@@ -238,50 +250,43 @@ export class MyDataHubAPI {
     // Field order matters - set in the order MyData Hub expects
     apiRequest.BANKCODE = request.bankCode;
 
-    // Encrypt sensitive fields if encryption is enabled
-    if (this.encryptEnabled && this.encryption) {
-      // ACCTNO and UMINNUM must be encrypted according to MyData Hub documentation
-      // Ensure account number is trimmed and has no spaces
-      const cleanAccountNo = request.accountNo.trim().replace(/\s+/g, "");
-      const cleanUMINNUM = request.UMINNUM.trim().replace(/\s+/g, "");
+    // ACCTNO must be sent as plain text (NOT encrypted) per MyData Hub requirements
+    // Only UMINNUM should be encrypted
+    const cleanAccountNo = request.accountNo.trim().replace(/\s+/g, "");
+    const cleanUMINNUM = request.UMINNUM.trim().replace(/\s+/g, "");
 
-      // Encrypt the data
-      const encryptedACCTNO = this.encryption.encrypt(cleanAccountNo);
+    // ACCTNO is always sent as plain text
+    apiRequest.ACCTNO = cleanAccountNo;
+
+    // Encrypt UMINNUM if encryption is enabled
+    if (this.encryptEnabled && this.encryption) {
+      // Only UMINNUM needs to be encrypted
       const encryptedUMINNUM = this.encryption.encrypt(cleanUMINNUM);
 
-      // Verify encryption/decryption round-trip works
+      // Verify encryption/decryption round-trip works for UMINNUM
       try {
-        const decryptedACCTNO = this.encryption.decrypt(encryptedACCTNO);
         const decryptedUMINNUM = this.encryption.decrypt(encryptedUMINNUM);
-        if (
-          decryptedACCTNO !== cleanAccountNo ||
-          decryptedUMINNUM !== cleanUMINNUM
-        ) {
-          console.error("⚠️ Encryption round-trip test FAILED!");
-          console.error("Original ACCTNO:", cleanAccountNo);
-          console.error("Decrypted ACCTNO:", decryptedACCTNO);
+        if (decryptedUMINNUM !== cleanUMINNUM) {
+          console.error("⚠️ Encryption round-trip test FAILED for UMINNUM!");
           console.error("Original UMINNUM:", cleanUMINNUM);
           console.error("Decrypted UMINNUM:", decryptedUMINNUM);
         } else {
-          console.log("✅ Encryption round-trip test PASSED");
+          console.log("✅ Encryption round-trip test PASSED for UMINNUM");
         }
       } catch (decryptError) {
-        console.error("⚠️ Failed to decrypt encrypted data:", decryptError);
+        console.error("⚠️ Failed to decrypt encrypted UMINNUM:", decryptError);
       }
 
-      // Set EncryptYN flag BEFORE encrypted fields (as per MyData Hub documentation)
+      // Set EncryptYN flag to "Y" since we're encrypting UMINNUM
       apiRequest.EncryptYN = "Y";
 
       // MyData Hub documentation REQUIRES newline at end of encrypted values
       // JSON.stringify will escape \n to \\n in JSON, but when parsed by MyData Hub, it becomes \n again
-      // This is CRITICAL - the service expects the \n termination in the field
-      apiRequest.ACCTNO = encryptedACCTNO + "\n";
       apiRequest.UMINNUM = encryptedUMINNUM + "\n";
 
       console.log("🔐 Encryption details:", {
         originalACCTNO: cleanAccountNo,
-        encryptedACCTNO: encryptedACCTNO,
-        encryptedACCTNOWithNewline: encryptedACCTNO + "\n",
+        acctnoSentAsPlainText: true,
         originalUMINNUM: cleanUMINNUM,
         encryptedUMINNUM: encryptedUMINNUM,
         encryptedUMINNUMWithNewline: encryptedUMINNUM + "\n",
@@ -294,10 +299,9 @@ export class MyDataHubAPI {
           : "N/A",
       });
     } else {
-      // If encryption is disabled, send plain text (for testing only)
+      // If encryption is disabled, send UMINNUM as plain text (for testing only)
       apiRequest.EncryptYN = "N";
-      apiRequest.ACCTNO = request.accountNo.trim().replace(/\s+/g, "");
-      apiRequest.UMINNUM = request.UMINNUM.trim().replace(/\s+/g, "");
+      apiRequest.UMINNUM = cleanUMINNUM;
     }
 
     // authText is required by MyData Hub API
@@ -329,10 +333,13 @@ export class MyDataHubAPI {
       fieldOrder: Object.keys(apiRequest).join(", "),
       acctNoLength: acctNoValue.length,
       acctNoValue: acctNoValue,
-      acctNoEndsWithNewline: acctNoValue.endsWith("\n"),
+      acctnoIsPlainText:
+        !acctNoValue.includes("=") && !acctNoValue.endsWith("\n"),
       uminnumLength: uminnumValue.length,
       uminnumValue: uminnumValue,
       uminnumEndsWithNewline: uminnumValue.endsWith("\n"),
+      uminnumIsEncrypted:
+        uminnumValue.includes("=") && uminnumValue.endsWith("\n"),
       encryptYN: apiRequest.EncryptYN,
       hasAuthText: !!apiRequest.AUTHTEXT,
       requestBodyJSON: requestBodyString,
@@ -444,12 +451,13 @@ export class MyDataHubAPI {
         // Provide brief context for common errors
         if (errorCode === "ST09") {
           // ST09 means MyData Hub cannot decrypt or validate the request
-          // Most likely: encryption keys don't match what their server expects
+          // Common causes: ACCTNO was encrypted (should be plain text), or UMINNUM encryption keys don't match
           throw new Error(
             `${myDataHubError}\n\n` +
-              `MyData Hub cannot decrypt the encrypted data. ` +
-              `This usually means the encryption keys don't match what their server expects.\n\n` +
-              `Contact MyData Hub support (mydatahub@kwic.co.kr) to verify your encryption keys are correct and activated for your account.`
+              `Invalid request format. Common causes:\n` +
+              `- ACCTNO (account number) must be sent as plain text (not encrypted)\n` +
+              `- UMINNUM encryption keys may not match what MyData Hub expects\n\n` +
+              `Contact MyData Hub support (mydatahub@kwic.co.kr) if the issue persists.`
           );
         }
 
@@ -561,11 +569,7 @@ export class MyDataHubAPI {
     birthdateOrSSN: string,
     authText?: string
   ): Promise<{ verified: boolean; callbackId?: string }> {
-    const generatedAuthText =
-      authText ||
-      `${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000)
-        .toString()
-        .padStart(3, "0")}`;
+    const generatedAuthText = authText || generateMyDataHubAuthText();
     const step1Response = await this.initiateAccountVerification({
       bankCode,
       accountNo,

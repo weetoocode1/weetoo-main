@@ -545,13 +545,18 @@ export default class LbankAPI implements BrokerAPI {
     console.log("=".repeat(80));
 
     const defaultEndTime = utcEndOfToday;
-    // Start from the beginning of "yesterday" in UTC+8 (00:00:00.000)
-    const UTC8_OFFSET_MS = 8 * 60 * 60 * 1000;
-    const utc8Now = defaultEndTime + UTC8_OFFSET_MS;
-    const utc8StartOfToday = Math.floor(utc8Now / oneDayMs) * oneDayMs;
-    const utc8StartOfYesterday = utc8StartOfToday - oneDayMs;
-    const computedStartUtc = utc8StartOfYesterday - UTC8_OFFSET_MS;
-    const defaultStartTime = startTime ?? computedStartUtc;
+    // For accurate 90d summaries, we need to fetch 90 days of data
+    // Start from 90 days ago to ensure we have all data for summaries
+    // const UTC8_OFFSET_MS = 8 * 60 * 60 * 1000;
+    // const utc8Now = defaultEndTime + UTC8_OFFSET_MS;
+    // const utc8StartOfToday = Math.floor(utc8Now / oneDayMs) * oneDayMs;
+    // const utc8StartOfYesterday = utc8StartOfToday - oneDayMs;
+    // const computedStartUtc = utc8StartOfYesterday - UTC8_OFFSET_MS;
+
+    // Expand fetch window to 90 days for accurate summaries
+    const ninetyDaysMs = 90 * oneDayMs;
+    const expandedStartTime = startTime ?? defaultEndTime - ninetyDaysMs + 1;
+    const defaultStartTime = expandedStartTime;
 
     try {
       const pageSize = 100;
@@ -857,18 +862,21 @@ export default class LbankAPI implements BrokerAPI {
         });
       }
 
-      const now = Date.now();
       const oneDayMs = 24 * 60 * 60 * 1000;
       const thirtyDaysMs = 30 * oneDayMs;
       const ninetyDaysMs = 90 * oneDayMs;
 
-      const last24hStart = now - oneDayMs;
-      const last30dStart = now - thirtyDaysMs;
-      const last90dStart = now - ninetyDaysMs;
+      // Use defaultEndTime (end-of-today in UTC+8) as the reference point for summaries
+      // This aligns with LBank's T+1 settlement cycle where commissions are settled after 10:00 on T+1
+      const summaryEndTime = defaultEndTime;
+      const last24hStart = summaryEndTime - oneDayMs + 1;
+      const last30dStart = summaryEndTime - thirtyDaysMs + 1;
+      const last90dStart = summaryEndTime - ninetyDaysMs + 1;
 
       const calculateSummary = (
         trades: typeof mapped,
         startTime: number,
+        endTime: number,
         useSettlementTime: boolean = true
       ) => {
         return trades.reduce(
@@ -877,7 +885,8 @@ export default class LbankAPI implements BrokerAPI {
               ? trade.rebateTimeMs ?? trade.settlementTime
               : trade.tradeTimeMs ?? trade.insertTimeMs ?? trade.timestamp;
 
-            if (!timeToUse || timeToUse < startTime) return acc;
+            if (!timeToUse || timeToUse < startTime || timeToUse > endTime)
+              return acc;
 
             // Summaries should reflect settled amounts only (commissionUsdt)
             const commission = 0;
@@ -896,9 +905,24 @@ export default class LbankAPI implements BrokerAPI {
         );
       };
 
-      const summary24h = calculateSummary(used, last24hStart, true);
-      const summary30d = calculateSummary(used, last30dStart, true);
-      const summary90d = calculateSummary(used, last90dStart, true);
+      const summary24h = calculateSummary(
+        used,
+        last24hStart,
+        summaryEndTime,
+        true
+      );
+      const summary30d = calculateSummary(
+        used,
+        last30dStart,
+        summaryEndTime,
+        true
+      );
+      const summary90d = calculateSummary(
+        used,
+        last90dStart,
+        summaryEndTime,
+        true
+      );
 
       if (used.length > 0) {
         console.log("[LBank] getTradingHistory: ✅ SUCCESS - Data Retrieved", {
