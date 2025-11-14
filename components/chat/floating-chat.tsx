@@ -461,7 +461,9 @@ export function FloatingChat() {
       todayMidnightUTC.setUTCHours(0, 0, 0, 0);
       const { data: msgs } = await supabase
         .from("global_chat_messages")
-        .select("*, user:users(id, first_name, last_name, avatar_url)")
+        .select(
+          "*, user:users(id, first_name, last_name, nickname, avatar_url)"
+        )
         .gte("created_at", todayMidnightUTC.toISOString())
         .order("created_at", { ascending: true })
         .limit(50);
@@ -472,9 +474,11 @@ export function FloatingChat() {
             sender: {
               id: msg.user?.id || msg.user_id,
               name:
+                msg.user?.nickname ||
                 `${msg.user?.first_name || ""} ${
                   msg.user?.last_name || ""
-                }`.trim() || "User",
+                }`.trim() ||
+                "User",
               avatar: msg.user?.avatar_url || "",
             },
             content: msg.content,
@@ -522,7 +526,7 @@ export function FloatingChat() {
           console.log("New message event:", newMsg);
           supabase
             .from("users")
-            .select("id, first_name, last_name, avatar_url")
+            .select("id, first_name, last_name, nickname, avatar_url")
             .eq("id", newMsg.user_id)
             .single()
             .then(({ data: userData }) => {
@@ -565,9 +569,11 @@ export function FloatingChat() {
                   sender: {
                     id: userData?.id || newMsg.user_id,
                     name:
+                      userData?.nickname ||
                       `${userData?.first_name || ""} ${
                         userData?.last_name || ""
-                      }`.trim() || "User",
+                      }`.trim() ||
+                      "User",
                     avatar: userData?.avatar_url || "",
                   },
                   content: displayContent,
@@ -711,7 +717,9 @@ export function FloatingChat() {
       sender: {
         id: user.id,
         name:
-          `${user.first_name || ""} ${user.last_name || ""}`.trim() || "User",
+          user.nickname ||
+          `${user.first_name || ""} ${user.last_name || ""}`.trim() ||
+          "User",
         avatar: user.avatar_url || "",
       },
       content: originalText,
@@ -879,11 +887,12 @@ export function FloatingChat() {
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-xs truncate sm:text-sm">
-                          {user.first_name || user.last_name
-                            ? `${user.first_name || ""} ${
-                                user.last_name || ""
-                              }`.trim()
-                            : user.nickname || user.email || "User"}
+                          {user.nickname ||
+                            (user.first_name || user.last_name
+                              ? `${user.first_name || ""} ${
+                                  user.last_name || ""
+                                }`.trim()
+                              : user.email || "User")}
                         </h4>
                         <div className="flex items-center gap-2 mt-0.5 sm:gap-4 sm:mt-1">
                           <div className="flex items-center gap-1">
