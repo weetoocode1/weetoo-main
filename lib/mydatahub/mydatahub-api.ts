@@ -333,13 +333,11 @@ export class MyDataHubAPI {
       fieldOrder: Object.keys(apiRequest).join(", "),
       acctNoLength: acctNoValue.length,
       acctNoValue: acctNoValue,
-      acctnoIsPlainText:
-        !acctNoValue.includes("=") && !acctNoValue.endsWith("\n"),
+      acctnoIsPlainText: !acctNoValue.includes("=") && !acctNoValue.endsWith("\n"),
       uminnumLength: uminnumValue.length,
       uminnumValue: uminnumValue,
       uminnumEndsWithNewline: uminnumValue.endsWith("\n"),
-      uminnumIsEncrypted:
-        uminnumValue.includes("=") && uminnumValue.endsWith("\n"),
+      uminnumIsEncrypted: uminnumValue.includes("=") && uminnumValue.endsWith("\n"),
       encryptYN: apiRequest.EncryptYN,
       hasAuthText: !!apiRequest.AUTHTEXT,
       requestBodyJSON: requestBodyString,

@@ -246,9 +246,12 @@ export function MyDataHubVerificationDialog({
                   value={accountNo}
                   onChange={(e) => {
                     const value = e.target.value.replace(/\D/g, "");
-                    setAccountNo(value);
+                    if (value.length <= 20) {
+                      setAccountNo(value);
+                    }
                   }}
                   placeholder="Enter your account number"
+                  maxLength={20}
                 />
                 <p className="text-xs text-muted-foreground">
                   Enter your bank account number
