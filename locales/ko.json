@@ -1858,7 +1858,7 @@
           "accountHolderPlaceholder": "예금주명을 입력하세요",
           "bankName": "은행명",
           "bankNamePlaceholder": "은행명을 입력하세요",
-          "bankCode": "은행 코드",
+          "bankCode": "은행명 및 코드",
           "bankCodePlaceholder": "은행 선택",
           "bankCodeHelper": "은행을 선택하세요",
           "banks": {
