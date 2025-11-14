@@ -91,6 +91,7 @@ type ChatUser = {
   id: string;
   first_name?: string | null;
   last_name?: string | null;
+  nickname?: string | null;
   avatar_url?: string | null;
 };
 
@@ -188,7 +189,7 @@ export function StreamChat({
             .single(),
           supabase.current
             .from("users")
-            .select("id, first_name, last_name, avatar_url")
+            .select("id, first_name, last_name, nickname, avatar_url")
             .eq("id", data.user.id)
             .single(),
         ]);
@@ -248,7 +249,7 @@ export function StreamChat({
           supabase.current
             .from("trading_room_messages")
             .select(
-              "id, room_id, user_id, message, created_at, user:users!trading_room_messages_user_id_fkey(id, first_name, last_name, avatar_url)"
+              "id, room_id, user_id, message, created_at, user:users!trading_room_messages_user_id_fkey(id, first_name, last_name, nickname, avatar_url)"
             )
             .eq("room_id", roomId)
             .order("created_at", { ascending: true })
@@ -256,7 +257,7 @@ export function StreamChat({
           supabase.current
             .from("trading_room_donations")
             .select(
-              "id, room_id, user_id, amount, message, created_at, user:users(id, first_name, last_name, avatar_url)"
+              "id, room_id, user_id, amount, message, created_at, user:users(id, first_name, last_name, nickname, avatar_url)"
             )
             .eq("room_id", roomId)
             .order("created_at", { ascending: true })
@@ -440,14 +441,16 @@ export function StreamChat({
           messages.map((m) => {
             const isDonation =
               typeof m.donationAmount === "number" && m.donationAmount! > 0;
-            const fullName = m.user
-              ? `${m.user.first_name || ""} ${m.user.last_name || ""}`.trim()
+            const displayName = m.user
+              ? m.user.nickname ||
+                `${m.user.first_name || ""} ${m.user.last_name || ""}`.trim() ||
+                ""
               : "";
             // Only show fallback for other users' messages, never for own messages
             const isOwnMessage = userId && m.user_id === userId;
-            const name = fullName || (isOwnMessage ? "" : t("labels.user"));
-            const initials = fullName
-              ? fullName
+            const name = displayName || (isOwnMessage ? "" : t("labels.user"));
+            const initials = displayName
+              ? displayName
                   .split(" ")
                   .filter(Boolean)
                   .slice(0, 2)
@@ -524,7 +527,7 @@ export function StreamChat({
                     src={m.user?.avatar_url || undefined}
                     alt={name}
                   />
-                  {fullName && initials ? (
+                  {displayName && initials ? (
                     <AvatarFallback
                       className={`text-xs font-semibold ${
                         isHost
@@ -538,13 +541,13 @@ export function StreamChat({
                 </Avatar>
                 <div className="min-w-0 flex-1 space-y-0.5">
                   <div className="flex items-center gap-2 min-w-0">
-                    {fullName ? (
+                    {displayName ? (
                       <span
                         className={`text-sm font-semibold truncate ${
                           isHost ? "text-amber-500" : "text-foreground"
                         }`}
                       >
-                        {fullName}
+                        {displayName}
                       </span>
                     ) : null}
                     {isHost && (
@@ -675,7 +678,7 @@ export function StreamChat({
             try {
               const { data: u } = await supabase.current
                 .from("users")
-                .select("id, first_name, last_name, avatar_url")
+                .select("id, first_name, last_name, nickname, avatar_url")
                 .eq("id", msg.user_id)
                 .single();
               const user = (u as unknown as ChatUser) || null;
@@ -863,7 +866,7 @@ export function StreamChat({
               try {
                 const { data: u } = await supabase.current
                   .from("users")
-                  .select("id, first_name, last_name, avatar_url")
+                  .select("id, first_name, last_name, nickname, avatar_url")
                   .eq("id", d.user_id)
                   .single();
                 const user = (u as unknown as ChatUser) || null;
@@ -937,7 +940,7 @@ export function StreamChat({
         try {
           const { data: u } = await supabase.current
             .from("users")
-            .select("id, first_name, last_name, avatar_url")
+            .select("id, first_name, last_name, nickname, avatar_url")
             .eq("id", userId)
             .single();
           if (u) {

@@ -1624,8 +1624,8 @@
       "referral": "추천인",
       "allAccounts": "전체 계좌",
       "allTransactions": "거래 내역",
-      "korCoinsWithdrawal": "코코인 출금",
-      "uidRegistration": "UID 등록",
+      "korCoinsWithdrawal": "Kor 코인 출금",
+      "uidRegistration": "UID",
       "paybackWithdrawal": "페이백 출금",
       "withdrawalStatus": "출금 상태"
     },
