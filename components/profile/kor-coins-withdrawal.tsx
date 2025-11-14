@@ -118,13 +118,13 @@ const secureWithdrawalApi = {
     const response = await fetch(
       "/api/secure-financial/verify-bank-mydatahub",
       {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          bankAccountId,
-        }),
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        bankAccountId,
+      }),
       }
     );
 
@@ -445,17 +445,17 @@ export function KORCoinsWithdrawal() {
 
       // 2) If bank account exists and is verified, proceed with withdrawal
       if (existing && existing.is_verified) {
-        await createWithdrawalMutation.mutateAsync({
-          amount: formData.amount,
+      await createWithdrawalMutation.mutateAsync({
+        amount: formData.amount,
           bankAccountId: existing.id,
-        });
+      });
 
-        toast.success(t("errors.withdrawalSubmitted"));
-        setFormData({
-          amount: 0,
-          accountHolderName: "",
-          bankName: "",
-          bankAccountNumber: "",
+      toast.success(t("errors.withdrawalSubmitted"));
+      setFormData({
+        amount: 0,
+        accountHolderName: "",
+        bankName: "",
+        bankAccountNumber: "",
           bankCode: "",
           birthdateOrSSN: "",
         });
@@ -605,7 +605,7 @@ export function KORCoinsWithdrawal() {
 
       if (!bankAccountId) {
         throw new Error("Bank account could not be created or found");
-      }
+    }
 
       // Step 3: Update bank account to verified
       // If this fails, we don't create withdrawal (KOR coins not deducted)
@@ -615,8 +615,8 @@ export function KORCoinsWithdrawal() {
         console.error("Bank account verification update error:", verifyError);
         toast.error(t("withdrawalRequest.validation.verificationFailed"));
         setSubmitting(false);
-        return;
-      }
+      return;
+    }
 
       // Step 4: Only create withdrawal request AFTER successful verification
       // This is when KOR coins are deducted
@@ -811,41 +811,41 @@ export function KORCoinsWithdrawal() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-3">
+                <div className="space-y-3">
                 <Label htmlFor="amount">{t("withdrawalRequest.amount")}</Label>
-                <Input
-                  id="amount"
-                  type="number"
+                  <Input
+                    id="amount"
+                    type="number"
                   min="10000"
-                  max="15000"
-                  step="100"
-                  value={formData.amount || ""}
-                  onChange={(e) => handleAmountChange(e.target.value)}
-                  placeholder={t("withdrawalRequest.amountPlaceholder")}
-                  className={`h-10 ${
-                    formData.amount > 0 && formData.amount > userKorCoins
-                      ? "border-red-500 focus:border-red-500"
-                      : ""
-                  }`}
-                />
+                    max="15000"
+                    step="100"
+                    value={formData.amount || ""}
+                    onChange={(e) => handleAmountChange(e.target.value)}
+                    placeholder={t("withdrawalRequest.amountPlaceholder")}
+                    className={`h-10 ${
+                      formData.amount > 0 && formData.amount > userKorCoins
+                        ? "border-red-500 focus:border-red-500"
+                        : ""
+                    }`}
+                  />
                 {formData.amount > 0 && formData.amount < 10000 && (
-                  <div className="text-xs text-red-600">
-                    {t("withdrawalRequest.validation.minWithdrawal")}
-                  </div>
-                )}
-                {formData.amount > 15000 && (
-                  <div className="text-xs text-red-600">
-                    {t("withdrawalRequest.validation.maxWithdrawal")}
-                  </div>
-                )}
-                {formData.amount > 0 && formData.amount > userKorCoins && (
-                  <div className="text-xs text-red-600">
-                    {t("withdrawalRequest.validation.insufficientBalance", {
-                      balance: userKorCoins.toLocaleString(),
-                    })}
-                  </div>
-                )}
-              </div>
+                    <div className="text-xs text-red-600">
+                      {t("withdrawalRequest.validation.minWithdrawal")}
+                    </div>
+                  )}
+                  {formData.amount > 15000 && (
+                    <div className="text-xs text-red-600">
+                      {t("withdrawalRequest.validation.maxWithdrawal")}
+                    </div>
+                  )}
+                  {formData.amount > 0 && formData.amount > userKorCoins && (
+                    <div className="text-xs text-red-600">
+                      {t("withdrawalRequest.validation.insufficientBalance", {
+                        balance: userKorCoins.toLocaleString(),
+                      })}
+                    </div>
+                  )}
+                </div>
 
               {formData.amount > 0 && (
                 <TooltipProvider>
@@ -888,65 +888,65 @@ export function KORCoinsWithdrawal() {
                             {t("withdrawalRequest.feeBreakdown.amount")}
                           </span>
                           <span className="font-medium text-primary">
-                            {formData.amount.toLocaleString()} KOR
-                          </span>
-                        </div>
+                      {formData.amount.toLocaleString()} KOR
+                    </span>
+                  </div>
                         <div className="flex items-center justify-between text-red-500 dark:text-red-400">
-                          <span>
-                            {t("withdrawalRequest.feeBreakdown.estimatedFee", {
-                              percentage:
-                                userLevel <= 25
-                                  ? 40
-                                  : userLevel <= 50
-                                  ? 30
-                                  : userLevel <= 75
-                                  ? 20
-                                  : 10,
-                            })}
-                          </span>
-                          <span className="font-medium">
+                    <span>
+                      {t("withdrawalRequest.feeBreakdown.estimatedFee", {
+                        percentage:
+                          userLevel <= 25
+                            ? 40
+                            : userLevel <= 50
+                            ? 30
+                            : userLevel <= 75
+                            ? 20
+                            : 10,
+                      })}
+                    </span>
+                    <span className="font-medium">
                             -{" "}
-                            {Math.floor(
-                              (formData.amount *
-                                (userLevel <= 25
-                                  ? 40
-                                  : userLevel <= 50
-                                  ? 30
-                                  : userLevel <= 75
-                                  ? 20
-                                  : 10)) /
-                                100
+                      {Math.floor(
+                        (formData.amount *
+                          (userLevel <= 25
+                            ? 40
+                            : userLevel <= 50
+                            ? 30
+                            : userLevel <= 75
+                            ? 20
+                            : 10)) /
+                          100
                             ).toLocaleString()}{" "}
-                            KOR
-                          </span>
-                        </div>
+                      KOR
+                    </span>
+                  </div>
                         <div className="flex items-center justify-between pt-2 border-t border-border">
                           <span className="font-medium text-foreground">
                             {t(
                               "withdrawalRequest.feeBreakdown.estimatedReceive"
                             )}
-                          </span>
+                    </span>
                           <span className="font-semibold text-success">
-                            ₩
-                            {Math.floor(
-                              formData.amount -
-                                (formData.amount *
-                                  (userLevel <= 25
-                                    ? 40
-                                    : userLevel <= 50
-                                    ? 30
-                                    : userLevel <= 75
-                                    ? 20
-                                    : 10)) /
-                                  100
+                      ₩
+                      {Math.floor(
+                        formData.amount -
+                          (formData.amount *
+                            (userLevel <= 25
+                              ? 40
+                              : userLevel <= 50
+                              ? 30
+                              : userLevel <= 75
+                              ? 20
+                              : 10)) /
+                            100
                             ).toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
+                    </span>
+                  </div>
+                  </div>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-              )}
+                )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 bg-muted/20 rounded-lg text-center border border-border">
@@ -975,49 +975,49 @@ export function KORCoinsWithdrawal() {
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="accountHolderName">
-                      {t("withdrawalRequest.form.accountHolderName")}
-                    </Label>
-                    <Input
-                      id="accountHolderName"
-                      value={formData.accountHolderName}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          accountHolderName: e.target.value,
-                        }))
-                      }
-                      placeholder={t(
-                        "withdrawalRequest.form.accountHolderPlaceholder"
-                      )}
-                      className="h-10"
-                      required
-                    />
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="accountHolderName">
+                        {t("withdrawalRequest.form.accountHolderName")}
+                      </Label>
+                      <Input
+                        id="accountHolderName"
+                        value={formData.accountHolderName}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            accountHolderName: e.target.value,
+                          }))
+                        }
+                        placeholder={t(
+                          "withdrawalRequest.form.accountHolderPlaceholder"
+                        )}
+                        className="h-10"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="bankName">
+                        {t("withdrawalRequest.form.bankName")}
+                      </Label>
+                      <Input
+                        id="bankName"
+                        value={formData.bankName}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            bankName: e.target.value,
+                          }))
+                        }
+                        placeholder={t(
+                          "withdrawalRequest.form.bankNamePlaceholder"
+                        )}
+                        className="h-10"
+                        required
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="bankName">
-                      {t("withdrawalRequest.form.bankName")}
-                    </Label>
-                    <Input
-                      id="bankName"
-                      value={formData.bankName}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          bankName: e.target.value,
-                        }))
-                      }
-                      placeholder={t(
-                        "withdrawalRequest.form.bankNamePlaceholder"
-                      )}
-                      className="h-10"
-                      required
-                    />
-                  </div>
-                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-2">
@@ -1048,25 +1048,29 @@ export function KORCoinsWithdrawal() {
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="bankAccountNumber">
-                      {t("withdrawalRequest.form.bankAccountNumber")}
-                    </Label>
-                    <Input
-                      id="bankAccountNumber"
-                      value={formData.bankAccountNumber}
-                      onChange={(e) =>
+                  <Label htmlFor="bankAccountNumber">
+                    {t("withdrawalRequest.form.bankAccountNumber")}
+                  </Label>
+                  <Input
+                    id="bankAccountNumber"
+                    value={formData.bankAccountNumber}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, "");
+                      if (value.length <= 20) {
                         setFormData((prev) => ({
                           ...prev,
-                          bankAccountNumber: e.target.value,
-                        }))
+                          bankAccountNumber: value,
+                        }));
                       }
-                      placeholder={t(
-                        "withdrawalRequest.form.bankAccountPlaceholder"
-                      )}
-                      className="h-10"
-                      required
-                    />
-                  </div>
+                    }}
+                    placeholder={t(
+                      "withdrawalRequest.form.bankAccountPlaceholder"
+                    )}
+                    maxLength={20}
+                    className="h-10"
+                    required
+                  />
+                </div>
                 </div>
 
                 <div className="space-y-2">
@@ -1122,22 +1126,22 @@ export function KORCoinsWithdrawal() {
                 </div>
               </div>
 
-              <Button
-                type="submit"
-                className="w-full h-12"
-                disabled={submitting || !isWithdrawalValid()}
-              >
-                {submitting ||
-                createBankAccountMutation.isPending ||
-                createWithdrawalMutation.isPending ? (
-                  <>
-                    <Clock className="h-4 w-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  "Submit Withdrawal Request"
-                )}
-              </Button>
+                <Button
+                  type="submit"
+                  className="w-full h-12"
+                  disabled={submitting || !isWithdrawalValid()}
+                >
+                  {submitting ||
+                  createBankAccountMutation.isPending ||
+                  createWithdrawalMutation.isPending ? (
+                    <>
+                      <Clock className="h-4 w-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    "Submit Withdrawal Request"
+                  )}
+                </Button>
             </form>
           </CardContent>
         </Card>

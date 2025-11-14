@@ -557,13 +557,13 @@ export function WithdrawTable() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-center">
-                          <div className="text-lg font-bold text-green-600">
-                            ₩
-                            {calculateWithdrawalFee(
-                              request.userLevel,
-                              request.withdrawalAmount
-                            ).finalAmount.toLocaleString()}
-                          </div>
+                            <div className="text-lg font-bold text-green-600">
+                              ₩
+                              {calculateWithdrawalFee(
+                                request.userLevel,
+                                request.withdrawalAmount
+                              ).finalAmount.toLocaleString()}
+                            </div>
                           {request.status === "verified" &&
                             (request as WithdrawRequest).payout_sent && (
                               <div className="mt-1 text-xs text-emerald-600 font-medium">
@@ -579,8 +579,8 @@ export function WithdrawTable() {
                           {!request.isVerified && (
                             <div className="mt-1 text-xs text-amber-600 font-medium">
                               {t("actions.notVerified")}
-                            </div>
-                          )}
+                              </div>
+                            )}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -721,19 +721,19 @@ export function WithdrawTable() {
 
                   {/* Simple Fee Breakdown for Mobile */}
                   <div className="p-3 bg-muted/30 rounded-lg border">
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-green-600">
-                        {t("mobile.send")} ₩
-                        {calculateWithdrawalFee(
-                          request.userLevel,
-                          request.withdrawalAmount
-                        ).finalAmount.toLocaleString()}
-                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-green-600">
+                          {t("mobile.send")} ₩
+                          {calculateWithdrawalFee(
+                            request.userLevel,
+                            request.withdrawalAmount
+                          ).finalAmount.toLocaleString()}
+                        </div>
                       {!request.isVerified && (
                         <div className="mt-1 text-xs text-amber-600 font-medium">
                           {t("actions.notVerified")}
-                        </div>
-                      )}
+                      </div>
+                    )}
                     </div>
                   </div>
 
