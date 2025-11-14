@@ -560,7 +560,7 @@ export const PartnerExchangeComparison = () => {
                           <div className="flex flex-col gap-4 rounded-lg border border-border/40 bg-gradient-to-r from-muted/40 to-muted/20 p-4">
                             {(exchange.description ||
                               descriptionOverrides[exchange.id]) && (
-                              <div className="text-sm text-foreground/90 text-left break-words leading-relaxed">
+                              <div className="text-sm text-foreground/90 text-left break-words leading-relaxed whitespace-pre-line">
                                 {exchange.description ||
                                   descriptionOverrides[exchange.id]}
                               </div>
@@ -678,12 +678,9 @@ export const PartnerExchangeComparison = () => {
                                 </>
                               )}
                             </div>
-                            {[
-                              "deepcoin",
-                              "orangex",
-                              "lbank",
-                              "bingx",
-                            ].includes(exchange.id) && (
+                            {["deepcoin", "orangex", "lbank", "bingx"].includes(
+                              exchange.id
+                            ) && (
                               <div className="mt-4 rounded-lg bg-muted/30 p-4">
                                 <div className="space-y-2.5">
                                   <h4 className="text-sm font-semibold text-foreground">
