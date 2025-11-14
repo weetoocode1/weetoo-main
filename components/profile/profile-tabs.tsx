@@ -13,7 +13,6 @@ import {
   CreditCardIcon,
   HistoryIcon,
   KeyRoundIcon,
-  TicketIcon,
   UserIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -24,20 +23,20 @@ import { toast } from "sonner";
 import { Profile } from "./profile";
 
 // Lazy load Referral component as well since it has heavy features
-const Referral = dynamic(
-  () => import("./referral").then((mod) => ({ default: mod.Referral })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-          <p className="text-sm text-muted-foreground">Loading referral...</p>
-        </div>
-      </div>
-    ),
-  }
-);
+// const Referral = dynamic(
+//   () => import("./referral").then((mod) => ({ default: mod.Referral })),
+//   {
+//     ssr: false,
+//     loading: () => (
+//       <div className="flex items-center justify-center h-64">
+//         <div className="text-center">
+//           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+//           <p className="text-sm text-muted-foreground">Loading referral...</p>
+//         </div>
+//       </div>
+//     ),
+//   }
+// );
 
 // Lazy load heavy components to reduce initial bundle size
 const AllAccounts = dynamic(
@@ -157,12 +156,12 @@ const TABS = [
     icon: <UserIcon className="w-4 h-4" />,
     requiresVerification: false,
   },
-  {
-    key: "referral",
-    translationKey: "referral",
-    icon: <TicketIcon className="w-4 h-4" />,
-    requiresVerification: false,
-  },
+  // {
+  //   key: "referral",
+  //   translationKey: "referral",
+  //   icon: <TicketIcon className="w-4 h-4" />,
+  //   requiresVerification: false,
+  // },
   {
     key: "all-accounts",
     translationKey: "allAccounts",
@@ -205,7 +204,7 @@ type TabKey = (typeof TABS)[number]["key"];
 
 const TAB_COMPONENTS = {
   profile: <Profile />,
-  referral: <Referral />,
+  // referral: <Referral />,
   "all-accounts": <AllAccounts />,
   "all-transactions": <Transactions />,
   "kor-coins-withdrawal": <KORCoinsWithdrawal />,

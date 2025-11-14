@@ -182,7 +182,7 @@ export function WeetooMarketDialog() {
           {/* KOR Coins Balance */}
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-muted-foreground">
-              Your Balance
+              {t("yourBalance")}
             </span>
             <span className="text-lg font-bold tabular-nums text-yellow-500">
               {(computed?.kor_coins || 0).toLocaleString()} {t("korCoins")}

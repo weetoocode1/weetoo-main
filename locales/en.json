@@ -672,6 +672,7 @@
     "korCoins": "Kor-coins",
     "cash": "cash",
     "total": "Total",
+    "yourBalance": "Your Balance",
     "purchase": "Purchase"
   },
 
@@ -3630,10 +3631,10 @@
         "withdrawalFee": "Your Current Withdrawal Fee",
         "feeStructure": "Fee Structure by Level",
         "tiers": {
-          "bronze": "Bronze (1-25)",
-          "silver": "Silver (26-50)",
-          "gold": "Gold (51-75)",
-          "platinum": "Platinum (76-99)"
+          "bronze": "Bronze (1-25 Lv)",
+          "silver": "Silver (26-50 Lv)",
+          "gold": "Gold (51-75 Lv)",
+          "platinum": "Platinum (76-99 Lv)"
         }
       },
       "withdrawalRequest": {
@@ -3694,8 +3695,36 @@
           "bankName": "Bank Name",
           "bankNamePlaceholder": "Enter bank name",
           "bankCode": "Bank Code",
-          "bankCodePlaceholder": "e.g., 004, 088, 020",
-          "bankCodeHelper": "Enter 3-digit bank code",
+          "bankCodePlaceholder": "Select Bank",
+          "bankCodeHelper": "Select a bank",
+          "banks": {
+            "select": "Select Bank",
+            "001": "Bank of Korea",
+            "002": "Industrial Bank of Korea",
+            "003": "Korea Development Bank",
+            "004": "KB Kookmin Bank",
+            "007": "Suhyup Bank",
+            "011": "NH Bank",
+            "020": "Woori Bank",
+            "023": "SC First Bank",
+            "027": "Citibank Korea",
+            "031": "Daegu Bank",
+            "032": "Busan Bank",
+            "034": "Gwangju Bank",
+            "035": "Jeju Bank",
+            "037": "Jeonbuk Bank",
+            "039": "Gyeongnam Bank",
+            "045": "Credit Union",
+            "048": "Shinhyup",
+            "050": "Savings Bank Central",
+            "054": "HSBC Bank",
+            "055": "Deutsche Bank",
+            "071": "Korea Post",
+            "081": "Hana Bank",
+            "088": "Shinhan Bank",
+            "089": "K Bank",
+            "090": "Kakao Bank"
+          },
           "bankAccountNumber": "Bank Account Number",
           "bankAccountPlaceholder": "Enter bank account number",
           "birthdateOrSSN": "Birthdate (8 digits) or SSN (13 digits)",
@@ -3713,6 +3742,17 @@
         "buttons": {
           "processing": "Processing...",
           "submitRequest": "Submit Withdrawal Request"
+        },
+        "verificationDialog": {
+          "title": "Bank Account Verification",
+          "description": "A 1-won transaction has been sent to your bank account. Please check your bank transaction and enter the authentication code below.",
+          "authResponseLabel": "Authentication Response",
+          "authResponsePlaceholder": "Enter 6-digit number",
+          "authResponseHelper": "Enter the 6-digit number that appears in your bank transaction.",
+          "cancel": "Cancel",
+          "verifying": "Verifying...",
+          "completeVerification": "Complete Verification",
+          "authTextPrefix": "위투"
         }
       },
       "errors": {

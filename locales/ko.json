@@ -491,6 +491,7 @@
     "korCoins": "Kor-coins",
     "cash": "코코인",
     "total": "총계",
+    "yourBalance": "잔액",
     "purchase": "구매"
   },
 
@@ -1794,10 +1795,10 @@
         "withdrawalFee": "현재 출금 수수료",
         "feeStructure": "레벨별 수수료 구조",
         "tiers": {
-          "bronze": "브론즈 (1-25)",
-          "silver": "실버 (26-50)",
-          "gold": "골드 (51-75)",
-          "platinum": "플래티넘 (76-99)"
+          "bronze": "브론즈 (1-25 Lv)",
+          "silver": "실버 (26-50 Lv)",
+          "gold": "골드 (51-75 Lv)",
+          "platinum": "플래티넘 (76-99 Lv)"
         }
       },
       "withdrawalRequest": {
@@ -1858,8 +1859,36 @@
           "bankName": "은행명",
           "bankNamePlaceholder": "은행명을 입력하세요",
           "bankCode": "은행 코드",
-          "bankCodePlaceholder": "예: 004, 088, 020",
-          "bankCodeHelper": "3자리 은행 코드를 입력하세요",
+          "bankCodePlaceholder": "은행 선택",
+          "bankCodeHelper": "은행을 선택하세요",
+          "banks": {
+            "select": "은행 선택",
+            "001": "한국은행",
+            "002": "산업은행",
+            "003": "기업은행",
+            "004": "국민은행",
+            "007": "수협은행",
+            "011": "농협은행",
+            "020": "우리은행",
+            "023": "SC제일은행",
+            "027": "한국씨티은행",
+            "031": "대구은행",
+            "032": "부산은행",
+            "034": "광주은행",
+            "035": "제주은행",
+            "037": "전북은행",
+            "039": "경남은행",
+            "045": "새마을금고",
+            "048": "신협",
+            "050": "저축은행중앙회",
+            "054": "HSBC은행",
+            "055": "도이치은행",
+            "071": "우체국",
+            "081": "하나은행",
+            "088": "신한은행",
+            "089": "케이뱅크",
+            "090": "카카오뱅크"
+          },
           "bankAccountNumber": "은행 계좌번호",
           "bankAccountPlaceholder": "계좌번호를 입력하세요",
           "birthdateOrSSN": "생년월일 (8자리) 또는 주민등록번호 (13자리)",
@@ -1877,6 +1906,17 @@
         "buttons": {
           "processing": "처리 중...",
           "submitRequest": "출금 요청 제출"
+        },
+        "verificationDialog": {
+          "title": "은행 계좌 인증",
+          "description": "1원 거래가 귀하의 은행 계좌로 전송되었습니다. 은행 거래 내역을 확인하고 아래 인증 코드를 입력해 주세요.",
+          "authResponseLabel": "인증 응답",
+          "authResponsePlaceholder": "6자리 숫자 입력",
+          "authResponseHelper": "은행 거래 내역에 표시된 6자리 숫자를 입력하세요.",
+          "cancel": "취소",
+          "verifying": "인증 중...",
+          "completeVerification": "인증 완료",
+          "authTextPrefix": "위투"
         }
       },
       "errors": {

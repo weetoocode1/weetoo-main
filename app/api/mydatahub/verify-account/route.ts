@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MyDataHubAPI, generateMyDataHubAuthText } from "@/lib/mydatahub/mydatahub-api";
+import {
+  MyDataHubAPI,
+  generateMyDataHubAuthText,
+} from "@/lib/mydatahub/mydatahub-api";
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,7 +13,8 @@ export async function POST(request: NextRequest) {
       console.error("JSON parse error:", parseError);
       return NextResponse.json(
         {
-          error: "Invalid request body. Please ensure the request contains valid JSON.",
+          error:
+            "Invalid request body. Please ensure the request contains valid JSON.",
         },
         { status: 400 }
       );
@@ -25,8 +29,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { bankCode, accountNo, birthdateOrSSN, authText, callbackId, callbackResponse } =
-      body;
+    const {
+      bankCode,
+      accountNo,
+      birthdateOrSSN,
+      authText,
+      callbackId,
+      callbackResponse,
+    } = body;
 
     if (!callbackId && (!bankCode || !accountNo || !birthdateOrSSN)) {
       return NextResponse.json(
@@ -83,7 +93,7 @@ export async function POST(request: NextRequest) {
     // If bank account is invalid, MyData Hub will return an error (like ST09) BEFORE processing
     // If valid, MyData Hub will process and use the authText for the 1-won transaction
     const minimalAuthText = authText || generateMyDataHubAuthText();
-    
+
     const step1Result = await myDataHubAPI.initiateAccountVerification({
       bankCode,
       accountNo,
@@ -93,12 +103,16 @@ export async function POST(request: NextRequest) {
 
     // If we reach here, bank account validation passed and MyData Hub processed the request
     // The authText that was sent is what MyData Hub used for the 1-won transaction
+    // Extract only the 6 digits from authText for frontend (e.g., "위투068072" -> "068072")
+    const fullAuthText = step1Result.authText || minimalAuthText;
+    const digitsOnly = fullAuthText.replace(/\D/g, "").slice(-6);
+
     return NextResponse.json({
       success: true,
       callbackId: step1Result.callbackId,
       callbackType: step1Result.callbackType,
       timeout: step1Result.timeout,
-      authText: step1Result.authText || minimalAuthText, // Return authText from response or the one we sent
+      authText: digitsOnly.length === 6 ? digitsOnly : fullAuthText, // Return only 6 digits to frontend
       message:
         "Verification initiated. Please complete authentication and submit callbackResponse.",
     });
@@ -107,14 +121,15 @@ export async function POST(request: NextRequest) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error occurred";
 
-    const statusCode = errorMessage.includes("authentication") ||
+    const statusCode =
+      errorMessage.includes("authentication") ||
       errorMessage.includes("token") ||
       errorMessage.includes("2010")
-      ? 401
-      : errorMessage.includes("Missing required") ||
-        errorMessage.includes("Invalid")
-      ? 400
-      : 500;
+        ? 401
+        : errorMessage.includes("Missing required") ||
+          errorMessage.includes("Invalid")
+        ? 400
+        : 500;
 
     return NextResponse.json(
       {
@@ -127,4 +142,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
