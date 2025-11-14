@@ -4,6 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -13,12 +21,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Tooltip,
   TooltipContent,
@@ -27,8 +33,18 @@ import {
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock, Coins, Info, Shield, User } from "lucide-react";
+import {
+  Check,
+  ChevronsUpDown,
+  Clock,
+  Coins,
+  Info,
+  Shield,
+  User,
+} from "lucide-react";
+import enMessages from "@/locales/en.json";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -332,6 +348,8 @@ export function KORCoinsWithdrawal() {
   const [, setCallbackResponse] = useState("");
   const [authResponseDigits, setAuthResponseDigits] = useState("");
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
+  const [bankComboboxOpen, setBankComboboxOpen] = useState(false);
+  const [bankSearchValue, setBankSearchValue] = useState("");
   const [formData, setFormData] = useState<WithdrawalFormData>({
     amount: 0,
     accountHolderName: "",
@@ -363,7 +381,6 @@ export function KORCoinsWithdrawal() {
       formData.amount > 0 &&
       formData.accountHolderName.trim() &&
       formData.bankAccountNumber.trim() &&
-      formData.bankName.trim() &&
       formData.bankCode.trim() &&
       formData.birthdateOrSSN.trim() &&
       (formData.birthdateOrSSN.length === 8 ||
@@ -400,14 +417,25 @@ export function KORCoinsWithdrawal() {
       return;
     }
 
-    if (!formData.bankName.trim()) {
-      toast.error(t("withdrawalRequest.validation.enterBankName"));
-      return;
-    }
-
     if (!formData.bankCode.trim()) {
       toast.error(t("withdrawalRequest.validation.enterBankCode"));
       return;
+    }
+
+    // Bank name is auto-filled from bank code selection, but verify it exists (use English for database)
+    if (!formData.bankName.trim()) {
+      // If bank name is missing, try to get it from the selected bank code (English)
+      const bankNameEnglish =
+        (
+          enMessages.profile?.korCoinsWithdrawal?.withdrawalRequest?.form
+            ?.banks as Record<string, string>
+        )?.[formData.bankCode] || "";
+      if (bankNameEnglish) {
+        setFormData((prev) => ({ ...prev, bankName: bankNameEnglish }));
+      } else {
+        toast.error(t("withdrawalRequest.validation.enterBankCode"));
+        return;
+      }
     }
 
     if (!formData.birthdateOrSSN.trim()) {
@@ -577,10 +605,22 @@ export function KORCoinsWithdrawal() {
     if (
       !formData.accountHolderName?.trim() ||
       !formData.bankAccountNumber?.trim() ||
-      !formData.bankName?.trim()
+      !formData.bankCode?.trim()
     ) {
       toast.error(t("withdrawalRequest.validation.missingRequiredFields"));
       return;
+    }
+
+    // Ensure bank name is set from bank code if missing (use English for database)
+    if (!formData.bankName?.trim() && formData.bankCode.trim()) {
+      const bankNameEnglish =
+        (
+          enMessages.profile?.korCoinsWithdrawal?.withdrawalRequest?.form
+            ?.banks as Record<string, string>
+        )?.[formData.bankCode] || "";
+      if (bankNameEnglish) {
+        setFormData((prev) => ({ ...prev, bankName: bankNameEnglish }));
+      }
     }
 
     setSubmitting(true);
@@ -1015,47 +1055,25 @@ export function KORCoinsWithdrawal() {
               </div>
 
               <div className="space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="accountHolderName">
-                      {t("withdrawalRequest.form.accountHolderName")}
-                    </Label>
-                    <Input
-                      id="accountHolderName"
-                      value={formData.accountHolderName}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          accountHolderName: e.target.value,
-                        }))
-                      }
-                      placeholder={t(
-                        "withdrawalRequest.form.accountHolderPlaceholder"
-                      )}
-                      className="h-10"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="bankName">
-                      {t("withdrawalRequest.form.bankName")}
-                    </Label>
-                    <Input
-                      id="bankName"
-                      value={formData.bankName}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          bankName: e.target.value,
-                        }))
-                      }
-                      placeholder={t(
-                        "withdrawalRequest.form.bankNamePlaceholder"
-                      )}
-                      className="h-10"
-                      required
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="accountHolderName">
+                    {t("withdrawalRequest.form.accountHolderName")}
+                  </Label>
+                  <Input
+                    id="accountHolderName"
+                    value={formData.accountHolderName}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        accountHolderName: e.target.value,
+                      }))
+                    }
+                    placeholder={t(
+                      "withdrawalRequest.form.accountHolderPlaceholder"
+                    )}
+                    className="h-10"
+                    required
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1063,101 +1081,152 @@ export function KORCoinsWithdrawal() {
                     <Label htmlFor="bankCode">
                       {t("withdrawalRequest.form.bankCode")}
                     </Label>
-                    <Select
-                      value={formData.bankCode}
-                      onValueChange={(value) => {
-                        setFormData((prev) => ({
-                          ...prev,
-                          bankCode: value,
-                        }));
-                      }}
-                      required
+                    <Popover
+                      open={bankComboboxOpen}
+                      onOpenChange={setBankComboboxOpen}
                     >
-                      <SelectTrigger id="bankCode" className="h-10">
-                        <SelectValue
-                          placeholder={t(
-                            "withdrawalRequest.form.bankCodePlaceholder"
-                          )}
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="001">
-                          {t("withdrawalRequest.form.banks.001")} – 001
-                        </SelectItem>
-                        <SelectItem value="002">
-                          {t("withdrawalRequest.form.banks.002")} – 002
-                        </SelectItem>
-                        <SelectItem value="003">
-                          {t("withdrawalRequest.form.banks.003")} – 003
-                        </SelectItem>
-                        <SelectItem value="004">
-                          {t("withdrawalRequest.form.banks.004")} – 004
-                        </SelectItem>
-                        <SelectItem value="007">
-                          {t("withdrawalRequest.form.banks.007")} – 007
-                        </SelectItem>
-                        <SelectItem value="011">
-                          {t("withdrawalRequest.form.banks.011")} – 011
-                        </SelectItem>
-                        <SelectItem value="020">
-                          {t("withdrawalRequest.form.banks.020")} – 020
-                        </SelectItem>
-                        <SelectItem value="023">
-                          {t("withdrawalRequest.form.banks.023")} – 023
-                        </SelectItem>
-                        <SelectItem value="027">
-                          {t("withdrawalRequest.form.banks.027")} – 027
-                        </SelectItem>
-                        <SelectItem value="031">
-                          {t("withdrawalRequest.form.banks.031")} – 031
-                        </SelectItem>
-                        <SelectItem value="032">
-                          {t("withdrawalRequest.form.banks.032")} – 032
-                        </SelectItem>
-                        <SelectItem value="034">
-                          {t("withdrawalRequest.form.banks.034")} – 034
-                        </SelectItem>
-                        <SelectItem value="035">
-                          {t("withdrawalRequest.form.banks.035")} – 035
-                        </SelectItem>
-                        <SelectItem value="037">
-                          {t("withdrawalRequest.form.banks.037")} – 037
-                        </SelectItem>
-                        <SelectItem value="039">
-                          {t("withdrawalRequest.form.banks.039")} – 039
-                        </SelectItem>
-                        <SelectItem value="045">
-                          {t("withdrawalRequest.form.banks.045")} – 045
-                        </SelectItem>
-                        <SelectItem value="048">
-                          {t("withdrawalRequest.form.banks.048")} – 048
-                        </SelectItem>
-                        <SelectItem value="050">
-                          {t("withdrawalRequest.form.banks.050")} – 050
-                        </SelectItem>
-                        <SelectItem value="054">
-                          {t("withdrawalRequest.form.banks.054")} – 054
-                        </SelectItem>
-                        <SelectItem value="055">
-                          {t("withdrawalRequest.form.banks.055")} – 055
-                        </SelectItem>
-                        <SelectItem value="071">
-                          {t("withdrawalRequest.form.banks.071")} – 071
-                        </SelectItem>
-                        <SelectItem value="081">
-                          {t("withdrawalRequest.form.banks.081")} – 081
-                        </SelectItem>
-                        <SelectItem value="088">
-                          {t("withdrawalRequest.form.banks.088")} – 088
-                        </SelectItem>
-                        <SelectItem value="089">
-                          {t("withdrawalRequest.form.banks.089")} – 089
-                        </SelectItem>
-                        <SelectItem value="090">
-                          {t("withdrawalRequest.form.banks.090")} – 090
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <PopoverTrigger asChild>
+                        <Button
+                          id="bankCode"
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={bankComboboxOpen}
+                          className="h-10 w-full justify-between"
+                        >
+                          {formData.bankCode
+                            ? `${t(
+                                `withdrawalRequest.form.banks.${formData.bankCode}`
+                              )} – ${formData.bankCode}`
+                            : t("withdrawalRequest.form.bankCodePlaceholder")}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        align="start"
+                        sideOffset={4}
+                        className="w-[var(--radix-popover-trigger-width)] p-0"
+                      >
+                        <Command shouldFilter={false}>
+                          <CommandInput
+                            placeholder={t(
+                              "withdrawalRequest.form.bankCodePlaceholder"
+                            )}
+                            className="h-9"
+                            value={bankSearchValue}
+                            onValueChange={setBankSearchValue}
+                          />
+                          <CommandList>
+                            <CommandEmpty>
+                              {t("withdrawalRequest.form.bankCodePlaceholder")}
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {[
+                                { code: "004", name: "Kookmin Bank" },
+                                { code: "088", name: "Shinhan Bank" },
+                                { code: "020", name: "Woori Bank" },
+                                { code: "081", name: "Hana Bank" },
+                                {
+                                  code: "011",
+                                  name: "NongHyup Bank (NH Bank)",
+                                },
+                                {
+                                  code: "003",
+                                  name: "Industrial Bank of Korea (IBK)",
+                                },
+                                { code: "090", name: "KakaoBank" },
+                                { code: "089", name: "K Bank" },
+                                {
+                                  code: "023",
+                                  name: "SC Bank Korea (Standard Chartered Korea)",
+                                },
+                                { code: "027", name: "Citibank Korea" },
+                                { code: "032", name: "Busan Bank" },
+                                { code: "031", name: "Daegu Bank" },
+                                { code: "039", name: "Gyeongnam Bank" },
+                                { code: "034", name: "Gwangju Bank" },
+                                { code: "037", name: "Jeonbuk Bank" },
+                                { code: "035", name: "Jeju Bank" },
+                                {
+                                  code: "007",
+                                  name: "Suhyup Bank (National Federation of Fisheries Cooperatives)",
+                                },
+                                {
+                                  code: "071",
+                                  name: "Korea Post (Postal Savings)",
+                                },
+                                {
+                                  code: "045",
+                                  name: "Saemaul Geumgo (Saemaul Finance)",
+                                },
+                                {
+                                  code: "048",
+                                  name: "Credit Union (Shinhyup)",
+                                },
+                                {
+                                  code: "002",
+                                  name: "Korea Development Bank (KDB)",
+                                },
+                                { code: "001", name: "Bank of Korea" },
+                                {
+                                  code: "050",
+                                  name: "Korea Federation of Savings Banks",
+                                },
+                                { code: "054", name: "HSBC Korea" },
+                                { code: "055", name: "Deutsche Bank Korea" },
+                              ]
+                                .filter((bank) => {
+                                  if (!bankSearchValue) return true;
+                                  const searchLower =
+                                    bankSearchValue.toLowerCase();
+                                  const bankName = t(
+                                    `withdrawalRequest.form.banks.${bank.code}`
+                                  ).toLowerCase();
+                                  const bankCode = bank.code.toLowerCase();
+                                  return (
+                                    bankName.includes(searchLower) ||
+                                    bankCode.includes(searchLower)
+                                  );
+                                })
+                                .map((bank) => (
+                                  <CommandItem
+                                    key={bank.code}
+                                    value={bank.code}
+                                    onSelect={() => {
+                                      // Use English bank name for database storage
+                                      const bankNameEnglish =
+                                        (
+                                          enMessages.profile?.korCoinsWithdrawal
+                                            ?.withdrawalRequest?.form
+                                            ?.banks as Record<string, string>
+                                        )?.[bank.code] || bank.name;
+                                      setFormData((prev) => ({
+                                        ...prev,
+                                        bankCode: bank.code,
+                                        bankName: bankNameEnglish,
+                                      }));
+                                      setBankComboboxOpen(false);
+                                      setBankSearchValue("");
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        formData.bankCode === bank.code
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      )}
+                                    />
+                                    {t(
+                                      `withdrawalRequest.form.banks.${bank.code}`
+                                    )}{" "}
+                                    – {bank.code}
+                                  </CommandItem>
+                                ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <p className="text-xs text-muted-foreground">
                       {t("withdrawalRequest.form.bankCodeHelper")}
                     </p>
