@@ -71,10 +71,10 @@ export async function validateWithdrawalRequest(
       };
     }
 
-    if (requestedAmount > 15000) {
+    if (requestedAmount > 1000000) {
       return {
         isValid: false,
-        errorMessage: "Maximum withdrawal amount is 15,000 KOR",
+        errorMessage: "Maximum withdrawal amount is 1,000,000 KOR",
         feeAmount: 0,
         finalAmount: 0,
         feePercentage: 0,

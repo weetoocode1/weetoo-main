@@ -40,7 +40,7 @@ export function AllAccounts() {
   const handleWithdraw = async (accountId: string) => {
     const raw = amountByAccountId[accountId] ?? "";
     const amount = Math.floor(parseFloat(raw) || 0);
-    if (amount < 100 || amount > 15000) {
+    if (amount < 100 || amount > 1000000) {
       toast.error(t("validation.amountRange"));
       return;
     }
@@ -192,7 +192,7 @@ export function AllAccounts() {
                           className="h-10"
                           type="number"
                           min={100}
-                          max={15000}
+                          max={1000000}
                           step={100}
                           value={amountByAccountId[acc.id] ?? ""}
                           onChange={(e) =>

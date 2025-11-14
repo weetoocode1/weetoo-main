@@ -916,7 +916,7 @@ export function KorCoinsRechargeDialog() {
                           {baseKor > 0 ? formatNumber(totalAmount) : "-"}
                         </span>
                         <span className="text-xs font-medium text-muted-foreground ml-1">
-                          won
+                          {t("won")}
                         </span>
                       </span>
                     </div>
