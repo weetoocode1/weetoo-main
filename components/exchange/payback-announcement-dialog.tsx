@@ -47,22 +47,47 @@ const brokers = [
   },
 ];
 
+const STORAGE_KEY = "payback-announcement-dismissed";
+const HOURS_TO_HIDE = 24;
+
 export function PaybackAnnouncementDialog() {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    const hasSeenDialog = localStorage.getItem("payback-announcement-seen");
-    if (!hasSeenDialog) {
-      const timer = setTimeout(() => {
+    const dismissedTimestamp = localStorage.getItem(STORAGE_KEY);
+    let timer: NodeJS.Timeout | null = null;
+    
+    if (!dismissedTimestamp) {
+      timer = setTimeout(() => {
         setIsOpen(true);
       }, 500);
-      return () => clearTimeout(timer);
+    } else {
+      const dismissedTime = parseInt(dismissedTimestamp, 10);
+      const currentTime = Date.now();
+      const hoursSinceDismissed = (currentTime - dismissedTime) / (1000 * 60 * 60);
+
+      if (hoursSinceDismissed >= HOURS_TO_HIDE) {
+        localStorage.removeItem(STORAGE_KEY);
+        timer = setTimeout(() => {
+          setIsOpen(true);
+        }, 500);
+      }
     }
+
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+    }
+    };
   }, []);
+
+  const handleDontShowToday = () => {
+    setIsOpen(false);
+    localStorage.setItem(STORAGE_KEY, Date.now().toString());
+  };
 
   const handleClose = () => {
     setIsOpen(false);
-    localStorage.setItem("payback-announcement-seen", "true");
   };
 
   if (!isOpen) return null;
@@ -152,7 +177,7 @@ export function PaybackAnnouncementDialog() {
 
             <div className="flex gap-3 pt-6 border-t border-zinc-800/70">
               <button
-                onClick={handleClose}
+                onClick={handleDontShowToday}
                 className="flex-1 py-3 px-4 rounded-lg bg-linear-to-r from-zinc-800/90 to-zinc-800/70 hover:from-zinc-800 hover:to-zinc-700 border border-zinc-700/50 text-zinc-300 text-sm font-medium transition-all hover:border-zinc-600 hover:scale-[1.02]"
               >
                 Don&apos;t show today

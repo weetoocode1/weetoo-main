@@ -58,9 +58,23 @@ export function ExchangeEditDialog({
         .filter((t) => t.length > 0);
       const deduped = Array.from(new Set(tags));
 
+      // Normalize empty strings to empty string (will be converted to null in API)
+      const normalizeField = (value: string | null | undefined): string => {
+        if (!value || value.trim() === "" || value === "-") {
+          return "";
+        }
+        return value;
+      };
+
       const payload: Exchange = {
         ...editedExchange,
         tags: deduped.length === 0 ? ["BASIC"] : deduped,
+        tradingDiscount: normalizeField(editedExchange.tradingDiscount),
+        limitOrderFee: normalizeField(editedExchange.limitOrderFee),
+        marketOrderFee: normalizeField(editedExchange.marketOrderFee),
+        event: normalizeField(editedExchange.event),
+        averageRebatePerUser: normalizeField(editedExchange.averageRebatePerUser),
+        description: normalizeField(editedExchange.description) || undefined,
       };
 
       await onSave(payload);
@@ -88,15 +102,27 @@ export function ExchangeEditDialog({
     });
   };
 
+  // Helper function to format null/empty values
+  const formatValue = (value: string | null | undefined, defaultValue = "—"): string => {
+    if (!value || value.trim() === "" || value === "-" || value === "null") {
+      return defaultValue;
+    }
+    return value;
+  };
+
   // Calculate score breakdown
   const calculateScoreBreakdown = (exchange: Exchange) => {
     const paybackPoints = Math.min(exchange.paybackRate * 0.4, 40);
-    const discountPoints = exchange.tradingDiscount !== "-" ? 20 : 0;
+    const tradingDiscount = formatValue(exchange.tradingDiscount);
+    const discountPoints = tradingDiscount !== "—" && tradingDiscount !== "0%" ? 20 : 0;
+    const limitFeeStr = formatValue(exchange.limitOrderFee, "0%");
+    const marketFeeStr = formatValue(exchange.marketOrderFee, "0%");
     const totalFees =
-      parseFloat(exchange.limitOrderFee.replace("%", "")) +
-      parseFloat(exchange.marketOrderFee.replace("%", ""));
+      (parseFloat(limitFeeStr.replace("%", "")) || 0) +
+      (parseFloat(marketFeeStr.replace("%", "")) || 0);
     const feePoints = Math.max(0, 20 - totalFees * 2);
-    const eventPoints = exchange.event && exchange.event !== "-" ? 20 : 0;
+    const event = formatValue(exchange.event);
+    const eventPoints = event !== "—" ? 20 : 0;
     const totalScore = Math.round(
       paybackPoints + discountPoints + feePoints + eventPoints
     );
@@ -128,6 +154,7 @@ export function ExchangeEditDialog({
     { id: "EXCLUSIVE", i18nKey: "customTags.exclusive" },
     { id: "RECOMMENDED", i18nKey: "customTags.recommended" },
     { id: "BEST_SELLER", i18nKey: "customTags.best_seller" },
+    { id: "EVENT", i18nKey: "customTags.event" },
   ];
 
   const togglePredefinedTag = (tagId: string) => {
@@ -137,7 +164,7 @@ export function ExchangeEditDialog({
       const has = current.includes(tagId);
       const nextTags = has
         ? current.filter((t) => t !== tagId)
-        : current.length >= 4
+        : current.length >= 3
         ? current
         : [...current, tagId];
       const next: Exchange = { ...prev, tags: nextTags };
@@ -170,6 +197,8 @@ export function ExchangeEditDialog({
         "bg-violet-100 text-violet-800 border-violet-300 dark:bg-violet-900/20 dark:text-violet-300 dark:border-violet-700/40",
       BEST_SELLER:
         "bg-yellow-100 text-yellow-900 border-yellow-300 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700/40",
+      EVENT:
+        "bg-fuchsia-100 text-fuchsia-800 border-fuchsia-300 dark:bg-fuchsia-900/20 dark:text-fuchsia-300 dark:border-fuchsia-700/40",
     };
     return map[tagId] || "bg-primary/10 text-primary border-primary/40";
   };

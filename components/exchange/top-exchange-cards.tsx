@@ -509,7 +509,8 @@ export const TopExchangeCards = ({
   const displayExchanges = propExchanges || exchanges;
 
   // Create card data from the top 3 exchanges
-  const CARD_DATA = createCardData(displayExchanges);
+  const { cardData: CARD_DATA, sortedExchanges: top3Exchanges } =
+    createCardData(displayExchanges);
 
   if (loading) {
     return (
@@ -524,16 +525,26 @@ export const TopExchangeCards = ({
     );
   }
 
+  // Map card rank to exchange index in sorted top3 array
+  // Rank 2 (left) -> index 1 (2nd place)
+  // Rank 1 (center) -> index 0 (1st place)
+  // Rank 3 (right) -> index 2 (3rd place)
+  const getExchangeForRank = (rank: number): Exchange | undefined => {
+    if (rank === 1) return top3Exchanges[0];
+    if (rank === 2) return top3Exchanges[1];
+    if (rank === 3) return top3Exchanges[2];
+    return undefined;
+  };
+
   return (
-    <div className="relative min-h-[700px] px-4">
+    <div className="relative min-h-[700px] px-4 lg:mt-10">
       {/* Desktop Layout */}
       <div
         className="hidden md:flex items-center justify-center gap-12"
         style={{ perspective: "1200px" }}
       >
         {CARD_DATA.map((cardData) => {
-          const exchangeIndex = cardData.rank - 1;
-          const exchange = displayExchanges[exchangeIndex];
+          const exchange = getExchangeForRank(cardData.rank);
 
           if (!exchange || cardData.rank > 3) return null;
 
@@ -550,8 +561,7 @@ export const TopExchangeCards = ({
       {/* Mobile Layout */}
       <div className="md:hidden space-y-4">
         {CARD_DATA.map((cardData) => {
-          const exchangeIndex = cardData.rank - 1;
-          const exchange = displayExchanges[exchangeIndex];
+          const exchange = getExchangeForRank(cardData.rank);
 
           if (!exchange || cardData.rank > 3) return null;
 
