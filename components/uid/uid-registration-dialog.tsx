@@ -166,9 +166,7 @@ export function UidRegistrationDialog({
 
     onUIDAdded(data.uid, data.brokerId).catch((error) => {
       console.error("Error adding UID:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to add UID"
-      );
+      toast.error(error instanceof Error ? error.message : "Failed to add UID");
     });
   };
 

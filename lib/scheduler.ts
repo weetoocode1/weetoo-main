@@ -548,11 +548,33 @@ if (shouldRunScheduler && !globalAny.__schedulerStarted) {
               continue;
             }
 
+            // ===== RE-SYNC CHECK - MUST RUN BEFORE 24H CHECK =====
             const needsInitialization = !uidRecord.initial_90d_60d_fetched_date;
 
-            if (needsInitialization) {
+            // Parse date - handle any format
+            let initialFetchDateStr: string | null = null;
+            if (uidRecord.initial_90d_60d_fetched_date) {
+              const raw = uidRecord.initial_90d_60d_fetched_date;
+              if (raw instanceof Date) {
+                initialFetchDateStr = raw.toISOString().split("T")[0];
+              } else {
+                const str = String(raw).trim();
+                initialFetchDateStr = str.substring(0, 10); // Get YYYY-MM-DD
+              }
+            }
+
+            // RE-SYNC if date exists and is NOT today
+            const needsResync =
+              initialFetchDateStr !== null && initialFetchDateStr !== today;
+
+            // EXECUTE RE-SYNC FIRST - before any other checks
+            if (needsInitialization || needsResync) {
+              const actionLabel = needsInitialization
+                ? "Initializing"
+                : "Re-syncing";
+              const periodLabel = broker === "deepcoin" ? "60d" : "90d";
               console.log(
-                `🔄 Initializing ${broker} UID ${uidRecord.uid} with 90d/60d rebate data...`
+                `🔄 ${actionLabel} ${broker} UID ${uidRecord.uid} with ${periodLabel} rebate data...`
               );
 
               const initResult = await fetch90d60dRebateFromBroker(
@@ -562,20 +584,22 @@ if (shouldRunScheduler && !globalAny.__schedulerStarted) {
 
               if (!initResult.success) {
                 console.error(
-                  `❌ Failed to fetch 90d/60d rebate for ${broker} UID ${uidRecord.uid}:`,
+                  `❌ Failed to fetch ${periodLabel} rebate for ${broker} UID ${uidRecord.uid}:`,
                   initResult.error
                 );
                 errors++;
                 continue;
               }
 
-              const initial90d60dValue = initResult.rebate90d60d || 0;
+              const current90d60dValue = initResult.rebate90d60d || 0;
+              const oldAccumulated =
+                Number(uidRecord.accumulated_24h_payback) || 0;
 
               const { data: initUpdateData, error: initUpdateError } =
                 await supabase
                   .from("user_broker_uids")
                   .update({
-                    accumulated_24h_payback: initial90d60dValue,
+                    accumulated_24h_payback: current90d60dValue,
                     initial_90d_60d_fetched_date: today,
                   })
                   .eq("id", uidRecord.id)
@@ -583,27 +607,40 @@ if (shouldRunScheduler && !globalAny.__schedulerStarted) {
 
               if (initUpdateError) {
                 console.error(
-                  `❌ Failed to initialize 90d/60d rebate for ${broker} UID ${uidRecord.uid}:`,
+                  `❌ Failed to ${
+                    needsInitialization ? "initialize" : "re-sync"
+                  } ${periodLabel} rebate for ${broker} UID ${uidRecord.uid}:`,
                   initUpdateError
                 );
                 errors++;
                 continue;
               } else if (!initUpdateData || initUpdateData.length === 0) {
                 console.error(
-                  `❌ No rows updated for initialization of ${broker} UID ${uidRecord.uid} (ID: ${uidRecord.id})`
+                  `❌ No rows updated for ${
+                    needsInitialization ? "initialization" : "re-sync"
+                  } of ${broker} UID ${uidRecord.uid} (ID: ${uidRecord.id})`
                 );
                 errors++;
                 continue;
               } else {
                 updated++;
-                const periodLabel = broker === "deepcoin" ? "60d" : "90d";
-                console.log(
-                  `✅ Initialized ${broker} UID ${
-                    uidRecord.uid
-                  } with ${periodLabel} rebate: $${initial90d60dValue.toFixed(
-                    4
-                  )}`
-                );
+                if (needsResync) {
+                  console.log(
+                    `✅ Re-synced ${broker} UID ${
+                      uidRecord.uid
+                    } ${periodLabel} rebate: old $${oldAccumulated.toFixed(
+                      4
+                    )} → new $${current90d60dValue.toFixed(4)}`
+                  );
+                } else {
+                  console.log(
+                    `✅ Initialized ${broker} UID ${
+                      uidRecord.uid
+                    } with ${periodLabel} rebate: $${current90d60dValue.toFixed(
+                      4
+                    )}`
+                  );
+                }
               }
 
               await new Promise((resolve) => setTimeout(resolve, 500));
@@ -620,11 +657,10 @@ if (shouldRunScheduler && !globalAny.__schedulerStarted) {
               continue;
             }
 
-            const initialFetchDate = uidRecord.initial_90d_60d_fetched_date
-              ? String(uidRecord.initial_90d_60d_fetched_date)
-              : null;
-
-            if (initialFetchDate === today && !uidRecord.last_24h_fetch_date) {
+            if (
+              initialFetchDateStr === today &&
+              !uidRecord.last_24h_fetch_date
+            ) {
               console.log(
                 `⏭️ Skipping ${broker} UID ${uidRecord.uid} - registered today, 24h data already included in 90d/60d`
               );
