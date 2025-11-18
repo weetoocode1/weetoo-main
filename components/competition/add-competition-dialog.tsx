@@ -154,7 +154,7 @@ export function AddCompetitionDialog({
   };
 
   const wordCount = countWords(competitionDescription);
-  const isOverLimit = wordCount > 200;
+  const isOverLimit = wordCount > 1000;
 
   // Check if start time is in the past
   const isStartTimeInPast = isTimeInPast(
@@ -340,12 +340,12 @@ export function AddCompetitionDialog({
                 className={
                   isOverLimit
                     ? "text-red-500"
-                    : wordCount > 180
+                    : wordCount > 900
                     ? "text-yellow-500"
                     : "text-muted-foreground"
                 }
               >
-                {wordCount}/200 {t("words")}
+                {wordCount}/1000 {t("words")}
               </span>
               {isOverLimit && (
                 <span className="text-red-500 font-medium">

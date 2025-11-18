@@ -3,7 +3,7 @@ import koMessages from "../locales/ko.json";
 
 type Locale = "en" | "ko";
 
-export const getSeoKeywords = (locale: Locale = "en") => {
+export const getSeoKeywords = (locale: Locale = "ko") => {
   const messages = locale === "ko" ? koMessages : enMessages;
   const seo = messages.seo;
 
