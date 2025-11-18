@@ -38,15 +38,15 @@ export function LanguageProvider({
         (window as any).__INITIAL_LOCALE__ ||
         localStorage.getItem("locale") ||
         initialLocale ||
-        "en"
+        "ko"
       );
     }
-    return initialLocale || "en";
+    return initialLocale || "ko";
   };
 
   const initialLocaleValue =
     initialLocale ||
-    (typeof window !== "undefined" ? getInitialLocale() : "en");
+    (typeof window !== "undefined" ? getInitialLocale() : "ko");
   const [locale, setLocale] = useState(initialLocaleValue);
   const [clientMessages, setClientMessages] = useState(messages);
 

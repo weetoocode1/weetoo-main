@@ -20,9 +20,9 @@ const getLocale = async () => {
   try {
     const cookieStore = await cookies();
     const locale = cookieStore.get("locale")?.value;
-    return locale === "ko" ? "ko" : "en";
+    return locale === "en" ? "en" : "ko";
   } catch {
-    return "en";
+    return "ko";
   }
 };
 
@@ -107,6 +107,10 @@ export default async function RootLayout({
     >
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta
+          name="naver-site-verification"
+          content="988018304a28b32de36b676cdaf2bcf8cc3dbe23"
+        />
         <meta charSet="utf-8" />
         <script
           dangerouslySetInnerHTML={{

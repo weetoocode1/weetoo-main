@@ -41,20 +41,20 @@ export default function ClientLayout({
       localStorage.getItem("locale") ||
       (typeof window !== "undefined" && window.__INITIAL_LOCALE__) ||
       initialLocale ||
-      "en";
+      "ko";
     setCurrentLang(savedLocale);
     document.documentElement.lang = savedLocale;
     setLocaleCookie(savedLocale);
 
     const handleLanguageChange = () => {
-      const newLocale = localStorage.getItem("locale") || "en";
+      const newLocale = localStorage.getItem("locale") || "ko";
       setCurrentLang(newLocale);
       document.documentElement.lang = newLocale;
       setLocaleCookie(newLocale);
     };
 
     const handleCustomLanguageChange = (event: CustomEvent) => {
-      const newLocale = event.detail?.locale || "en";
+      const newLocale = event.detail?.locale || "ko";
       setCurrentLang(newLocale);
       document.documentElement.lang = newLocale;
       setLocaleCookie(newLocale);
