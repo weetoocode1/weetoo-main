@@ -11,19 +11,31 @@ import {
   ChevronDown,
   Crown,
   Edit3,
+  HelpCircle,
   Star,
-  Target,
+  TrendingDown,
   TrendingUp,
-  Zap,
+  Trophy,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { UidRegistrationDialog } from "../uid/uid-registration-dialog";
 import { ExchangeEditDialog } from "./exchange-edit-dialog";
 import { type Exchange } from "./exchanges-data";
+
+// Helper function to format null/empty values nicely
+const formatValue = (
+  value: string | null | undefined,
+  defaultValue = "—"
+): string => {
+  if (!value || value.trim() === "" || value === "-" || value === "null") {
+    return defaultValue;
+  }
+  return value;
+};
 
 // Calculate score based on objective metrics
 const calculateScore = (exchange: Exchange): number => {
@@ -33,17 +45,21 @@ const calculateScore = (exchange: Exchange): number => {
   score += Math.min(exchange.paybackRate * 0.4, 40);
 
   // Trading discount contribution (max 20 points)
-  if (exchange.tradingDiscount !== "-") {
+  const tradingDiscount = formatValue(exchange.tradingDiscount);
+  if (tradingDiscount !== "—" && tradingDiscount !== "0%") {
     score += 20;
   }
 
   // Fee structure contribution (max 20 points)
-  const limitFee = parseFloat(exchange.limitOrderFee.replace("%", ""));
-  const marketFee = parseFloat(exchange.marketOrderFee.replace("%", ""));
+  const limitFeeStr = formatValue(exchange.limitOrderFee, "0%");
+  const marketFeeStr = formatValue(exchange.marketOrderFee, "0%");
+  const limitFee = parseFloat(limitFeeStr.replace("%", "")) || 0;
+  const marketFee = parseFloat(marketFeeStr.replace("%", "")) || 0;
   score += Math.max(0, 20 - (limitFee + marketFee) * 2);
 
   // Event bonus (max 20 points)
-  if (exchange.event && exchange.event !== "-") {
+  const event = formatValue(exchange.event);
+  if (event !== "—") {
     score += 20;
   }
 
@@ -52,6 +68,7 @@ const calculateScore = (exchange: Exchange): number => {
 
 export const PartnerExchangeComparison = () => {
   const t = useTranslations("exchange");
+  const locale = useLocale();
   const [activeFilter, setActiveFilter] = useState("all");
   const { isSuperAdmin } = useAuth();
   const [selectedExchange, setSelectedExchange] = useState<Exchange | null>(
@@ -86,7 +103,28 @@ export const PartnerExchangeComparison = () => {
   const [uidDialogBrokerId, setUidDialogBrokerId] = useState<
     string | undefined
   >(undefined);
+  const [scoreInfoDialogOpen, setScoreInfoDialogOpen] = useState(false);
+  const [scoreInfoDialogClosing, setScoreInfoDialogClosing] = useState(false);
   const addUidMutation = useAddUserUid();
+
+  useEffect(() => {
+    if (scoreInfoDialogOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [scoreInfoDialogOpen]);
+
+  const handleCloseScoreDialog = () => {
+    setScoreInfoDialogClosing(true);
+    setTimeout(() => {
+      setScoreInfoDialogOpen(false);
+      setScoreInfoDialogClosing(false);
+    }, 300);
+  };
 
   const handleUIDAdded = async (uid: string, brokerId: string) => {
     try {
@@ -148,73 +186,51 @@ export const PartnerExchangeComparison = () => {
 
   const filteredAndSortedExchanges = useMemo(() => {
     const exchangesWithUidAndSignup = ["deepcoin", "orangex", "lbank", "bingx"];
+
     let filtered = exchanges.filter((exchange) =>
       exchangesWithUidAndSignup.includes(exchange.id)
     );
 
     switch (activeFilter) {
-      case "recommended":
+      case "event":
         filtered = filtered.filter(
-          (exchange) =>
-            exchange.tags.includes("TOP") ||
-            exchange.tags.includes("LEADER") ||
-            exchange.tags.includes("PREMIUM")
+          (exchange) => exchange.tags && exchange.tags.includes("EVENT")
         );
-        break;
-      case "highest-cashback":
-        filtered.sort((a, b) => b.paybackRate - a.paybackRate);
-        break;
-      case "highest-rebate":
-        filtered.sort((a, b) => {
-          const rebateA = parseFloat(
-            a.averageRebatePerUser.replace(/[$,]/g, "")
-          );
-          const rebateB = parseFloat(
-            b.averageRebatePerUser.replace(/[$,]/g, "")
-          );
-          return rebateB - rebateA;
-        });
-        break;
-      case "highest-discount":
-        filtered.sort((a, b) => {
-          const discountA = parseFloat(a.tradingDiscount.replace("%", ""));
-          const discountB = parseFloat(b.tradingDiscount.replace("%", ""));
-          return discountB - discountA;
-        });
-        break;
-      case "lowest-cashback":
-        filtered.sort((a, b) => a.paybackRate - b.paybackRate);
-        break;
-      case "no-discount":
-        filtered = filtered.filter(
-          (exchange) => exchange.tradingDiscount === "0%"
-        );
-        break;
-      case "best-score":
         filtered.sort((a, b) => calculateScore(b) - calculateScore(a));
         break;
-      case "trending":
-        filtered = filtered.filter(
-          (exchange) =>
-            exchange.tags.includes("TRENDING") || exchange.tags.includes("FAST")
-        );
+      case "limit-order-fee-desc":
+        filtered.sort((a, b) => {
+          const feeAStr = formatValue(a.limitOrderFee, "0%");
+          const feeBStr = formatValue(b.limitOrderFee, "0%");
+          const feeA = parseFloat(feeAStr.replace("%", "")) || 0;
+          const feeB = parseFloat(feeBStr.replace("%", "")) || 0;
+          return feeB - feeA;
+        });
+        break;
+      case "market-order-fee-desc":
+        filtered.sort((a, b) => {
+          const feeAStr = formatValue(a.marketOrderFee, "0%");
+          const feeBStr = formatValue(b.marketOrderFee, "0%");
+          const feeA = parseFloat(feeAStr.replace("%", "")) || 0;
+          const feeB = parseFloat(feeBStr.replace("%", "")) || 0;
+          return feeB - feeA;
+        });
+        break;
+      case "payback-asc":
+        filtered.sort((a, b) => a.paybackRate - b.paybackRate);
+        break;
+      case "avg-rebate-asc":
+        filtered.sort((a, b) => {
+          const rebateAStr = formatValue(a.averageRebatePerUser, "$0");
+          const rebateBStr = formatValue(b.averageRebatePerUser, "$0");
+          const rebateA = parseFloat(rebateAStr.replace(/[$,]/g, "")) || 0;
+          const rebateB = parseFloat(rebateBStr.replace(/[$,]/g, "")) || 0;
+          return rebateA - rebateB;
+        });
         break;
       default:
-        // "all" - no filtering, keep original order
+        filtered.sort((a, b) => calculateScore(b) - calculateScore(a));
         break;
-    }
-
-    // Always sort by score for filters that don't have their own sorting
-    if (
-      ![
-        "highest-cashback",
-        "highest-rebate",
-        "highest-discount",
-        "lowest-cashback",
-        "best-score",
-      ].includes(activeFilter)
-    ) {
-      filtered.sort((a, b) => calculateScore(b) - calculateScore(a));
     }
 
     return filtered;
@@ -227,6 +243,7 @@ export const PartnerExchangeComparison = () => {
     "px-3 py-1.5 text-xs font-medium text-purple-700 bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 dark:text-purple-300 dark:from-purple-950/30 dark:to-purple-900/20 dark:border-purple-800/30 rounded-none shadow-sm",
     "px-3 py-1.5 text-xs font-medium text-green-700 bg-gradient-to-r from-green-50 to-green-100 border border-green-200 dark:text-green-300 dark:from-green-950/30 dark:to-green-900/20 dark:border-green-800/30 rounded-none shadow-sm",
     "px-3 py-1.5 text-xs font-medium text-cyan-700 bg-gradient-to-r from-cyan-50 to-cyan-100 border border-cyan-200 dark:text-cyan-300 dark:from-cyan-950/30 dark:to-cyan-900/20 dark:border-cyan-800/30 rounded-none shadow-sm",
+    "px-3 py-1.5 text-xs font-medium text-fuchsia-700 bg-gradient-to-r from-fuchsia-50 to-fuchsia-100 border border-fuchsia-200 dark:text-fuchsia-300 dark:from-fuchsia-950/30 dark:to-fuchsia-900/20 dark:border-fuchsia-800/30 rounded-none shadow-sm",
     "px-3 py-1.5 text-xs font-medium text-muted-foreground bg-gradient-to-r dark:from-muted/60 dark:to-muted/40 border border-border/50 rounded-none shadow-sm",
   ];
 
@@ -238,7 +255,8 @@ export const PartnerExchangeComparison = () => {
       LEADER: tagPalette[3],
       TRENDING: tagPalette[4],
       FAST: tagPalette[5],
-      BASIC: tagPalette[6],
+      EVENT: tagPalette[6],
+      BASIC: tagPalette[7],
     };
     if (known[tag]) return known[tag];
     // Deterministic pick from palette for custom tags
@@ -266,6 +284,7 @@ export const PartnerExchangeComparison = () => {
       EXCLUSIVE: "customTags.exclusive",
       RECOMMENDED: "customTags.recommended",
       BEST_SELLER: "customTags.best_seller",
+      EVENT: "customTags.event",
     };
     const key = knownMap[raw];
     if (!key) return raw;
@@ -280,13 +299,31 @@ export const PartnerExchangeComparison = () => {
   const filterOptions = [
     { id: "all", label: t("allExchanges"), icon: ArrowUpDown },
     { id: "recommended", label: t("recommended"), icon: Star },
-    { id: "highest-cashback", label: t("highestCashback"), icon: TrendingUp },
-    { id: "highest-rebate", label: t("highestRebate"), icon: Award },
-    { id: "highest-discount", label: t("highestDiscount"), icon: Target },
-    { id: "lowest-cashback", label: t("lowestCashback"), icon: TrendingUp },
-    { id: "no-discount", label: t("noDiscount"), icon: Target },
-    { id: "best-score", label: t("bestScore"), icon: Zap },
-    { id: "trending", label: t("trending"), icon: TrendingUp },
+    {
+      id: "event",
+      label: t("eventFilter"),
+      icon: Trophy,
+    },
+    {
+      id: "payback-asc",
+      label: t("paybackAscSort"),
+      icon: TrendingUp,
+    },
+    {
+      id: "limit-order-fee-desc",
+      label: t("limitOrderFeeSort"),
+      icon: TrendingDown,
+    },
+    {
+      id: "market-order-fee-desc",
+      label: t("marketOrderFeeSort"),
+      icon: TrendingDown,
+    },
+    {
+      id: "avg-rebate-asc",
+      label: t("avgRebateAscSort"),
+      icon: Award,
+    },
   ];
 
   if (loading) {
@@ -339,18 +376,25 @@ export const PartnerExchangeComparison = () => {
           {filterOptions.map((option) => {
             const Icon = option.icon;
             const isActive = activeFilter === option.id;
+            const shouldHideIcon =
+              locale === "ko" &&
+              (option.id === "event" ||
+                option.id === "limit-order-fee-desc" ||
+                option.id === "payback-asc" ||
+                option.id === "market-order-fee-desc" ||
+                option.id === "avg-rebate-asc");
 
             return (
               <button
                 key={option.id}
                 onClick={() => setActiveFilter(option.id)}
-                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-all duration-200 border ${
+                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-all duration-200 border cursor-pointer ${
                   isActive
                     ? "bg-primary/10 text-primary border-primary/40"
                     : "bg-transparent text-muted-foreground border-border/30 hover:bg-muted/20 hover:text-foreground hover:border-border/50"
                 }`}
               >
-                <Icon className="w-3.5 h-3.5" />
+                {!shouldHideIcon && <Icon className="w-3.5 h-3.5" />}
                 {option.label}
               </button>
             );
@@ -363,7 +407,7 @@ export const PartnerExchangeComparison = () => {
         <div className="overflow-x-auto rounded-none border border-border/50 bg-card shadow-lg">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-border/50 bg-gradient-to-r from-muted/40 to-muted/20">
+              <tr className="border-b border-border/50 bg-linear-to-r from-muted/40 to-muted/20">
                 <th className="text-center p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
                   {t("ranking")}
                 </th>
@@ -371,7 +415,16 @@ export const PartnerExchangeComparison = () => {
                   {t("exchange")}
                 </th>
                 <th className="text-center p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
-                  {t("score")}
+                  <div className="flex items-center justify-center gap-2">
+                    {t("score")}
+                    <button
+                      onClick={() => setScoreInfoDialogOpen(true)}
+                      className="w-4 h-4 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted/80 transition-colors cursor-pointer"
+                      aria-label={t("scoreInfo.ariaLabel")}
+                    >
+                      <HelpCircle className="w-3 h-3 text-muted-foreground" />
+                    </button>
+                  </div>
                 </th>
                 <th className="text-center p-5 font-semibold text-foreground text-sm uppercase tracking-wide min-w-[140px]">
                   {t("cashbackRate")}
@@ -485,39 +538,66 @@ export const PartnerExchangeComparison = () => {
                         </div>
                         <div className="w-full bg-muted/50 rounded-full h-2 shadow-inner">
                           <div
-                            className="bg-gradient-to-r from-green-400 to-green-500 h-2 rounded-full transition-all duration-500 ease-out shadow-sm"
+                            className="bg-linear-to-r from-green-400 to-green-500 h-2 rounded-full transition-all duration-500 ease-out shadow-sm"
                             style={{ width: `${exchange.paybackRate}%` }}
                           ></div>
                         </div>
                       </td>
                       <td className="text-center p-5">
-                        <span className="font-medium text-foreground bg-muted/20 px-3 py-1.5 rounded-none">
-                          {exchange.tradingDiscount}
+                        <span
+                          className={`font-medium bg-muted/20 px-3 py-1.5 rounded-none ${
+                            formatValue(exchange.tradingDiscount) === "—"
+                              ? "text-muted-foreground/60 italic"
+                              : "text-foreground"
+                          }`}
+                        >
+                          {formatValue(exchange.tradingDiscount, "—")}
                         </span>
                       </td>
                       <td className="text-center p-5">
-                        <span className="font-medium text-foreground bg-muted/20 px-3 py-1.5 rounded-none">
-                          {exchange.limitOrderFee}
+                        <span
+                          className={`font-medium bg-muted/20 px-3 py-1.5 rounded-none ${
+                            formatValue(exchange.limitOrderFee) === "—"
+                              ? "text-muted-foreground/60 italic"
+                              : "text-foreground"
+                          }`}
+                        >
+                          {formatValue(exchange.limitOrderFee, "—")}
                         </span>
                       </td>
                       <td className="text-center p-5">
-                        <span className="font-medium text-foreground bg-muted/20 px-3 py-1.5 rounded-none">
-                          {exchange.marketOrderFee}
+                        <span
+                          className={`font-medium bg-muted/20 px-3 py-1.5 rounded-none ${
+                            formatValue(exchange.marketOrderFee) === "—"
+                              ? "text-muted-foreground/60 italic"
+                              : "text-foreground"
+                          }`}
+                        >
+                          {formatValue(exchange.marketOrderFee, "—")}
                         </span>
                       </td>
                       <td className="text-center p-5">
                         <div className="flex items-center justify-center">
-                          <span className="font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/20 px-3 py-1.5 rounded-none flex items-center gap-1.5">
-                            <div className="w-4 h-4 text-green-500">
-                              <svg fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                  fillRule="evenodd"
-                                  d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                            </div>
-                            {exchange.averageRebatePerUser}
+                          <span
+                            className={`font-medium px-3 py-1.5 rounded-none flex items-center gap-1.5 ${
+                              formatValue(exchange.averageRebatePerUser) === "—"
+                                ? "text-muted-foreground/60 bg-muted/20 italic"
+                                : "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/20"
+                            }`}
+                          >
+                            {formatValue(exchange.averageRebatePerUser) !==
+                              "—" && (
+                              <div className="w-4 h-4 text-green-500">
+                                <svg fill="currentColor" viewBox="0 0 20 20">
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              </div>
+                            )}
+                            {formatValue(exchange.averageRebatePerUser, "—")}
                           </span>
                         </div>
                       </td>
@@ -547,7 +627,7 @@ export const PartnerExchangeComparison = () => {
                               e.stopPropagation();
                               handleEdit(exchange);
                             }}
-                            className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground hover:bg-gradient-to-r hover:from-primary/20 hover:to-primary/10 transition-all duration-200 rounded-none"
+                            className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground hover:bg-linear-to-r hover:from-primary/20 hover:to-primary/10 transition-all duration-200 rounded-none"
                           >
                             <Edit3 className="h-4 w-4" />
                           </Button>
@@ -579,16 +659,34 @@ export const PartnerExchangeComparison = () => {
                                 <div className="text-xs text-muted-foreground mb-1">
                                   {t("tradingDiscount")}
                                 </div>
-                                <div className="text-sm font-semibold">
-                                  {exchange.tradingDiscount}
+                                <div
+                                  className={`text-sm font-semibold ${
+                                    formatValue(exchange.tradingDiscount) ===
+                                    "—"
+                                      ? "text-muted-foreground/60 italic"
+                                      : ""
+                                  }`}
+                                >
+                                  {formatValue(exchange.tradingDiscount, "—")}
                                 </div>
                               </div>
                               <div className="rounded border border-border/40 p-4 bg-background">
                                 <div className="text-xs text-muted-foreground mb-1">
                                   {t("avgRebatePerUser")}
                                 </div>
-                                <div className="text-sm font-semibold">
-                                  {exchange.averageRebatePerUser}
+                                <div
+                                  className={`text-sm font-semibold ${
+                                    formatValue(
+                                      exchange.averageRebatePerUser
+                                    ) === "—"
+                                      ? "text-muted-foreground/60 italic"
+                                      : ""
+                                  }`}
+                                >
+                                  {formatValue(
+                                    exchange.averageRebatePerUser,
+                                    "—"
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -788,8 +886,14 @@ export const PartnerExchangeComparison = () => {
                       <div className="text-xs text-muted-foreground mb-1">
                         {t("tradingDiscount")}
                       </div>
-                      <div className="text-sm font-semibold text-card-foreground">
-                        {exchange.tradingDiscount}
+                      <div
+                        className={`text-sm font-semibold ${
+                          formatValue(exchange.tradingDiscount) === "—"
+                            ? "text-muted-foreground/60 italic"
+                            : "text-card-foreground"
+                        }`}
+                      >
+                        {formatValue(exchange.tradingDiscount, "—")}
                       </div>
                     </div>
                   </div>
@@ -800,24 +904,42 @@ export const PartnerExchangeComparison = () => {
                       <span className="text-muted-foreground">
                         {t("limitPrice")}
                       </span>
-                      <span className="font-medium text-card-foreground">
-                        {exchange.limitOrderFee}
+                      <span
+                        className={`font-medium ${
+                          formatValue(exchange.limitOrderFee) === "—"
+                            ? "text-muted-foreground/60 italic"
+                            : "text-card-foreground"
+                        }`}
+                      >
+                        {formatValue(exchange.limitOrderFee, "—")}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">
                         {t("marketPrice")}
                       </span>
-                      <span className="font-medium text-card-foreground">
-                        {exchange.marketOrderFee}
+                      <span
+                        className={`font-medium ${
+                          formatValue(exchange.marketOrderFee) === "—"
+                            ? "text-muted-foreground/60 italic"
+                            : "text-card-foreground"
+                        }`}
+                      >
+                        {formatValue(exchange.marketOrderFee, "—")}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">
                         {t("avgRebatePerUser")}
                       </span>
-                      <span className="font-medium text-card-foreground">
-                        {exchange.averageRebatePerUser}
+                      <span
+                        className={`font-medium ${
+                          formatValue(exchange.averageRebatePerUser) === "—"
+                            ? "text-muted-foreground/60 italic"
+                            : "text-card-foreground"
+                        }`}
+                      >
+                        {formatValue(exchange.averageRebatePerUser, "—")}
                       </span>
                     </div>
                   </div>
@@ -956,6 +1078,75 @@ export const PartnerExchangeComparison = () => {
         onOpenChange={setUidDialogOpen}
         defaultBrokerId={uidDialogBrokerId}
       />
+
+      {/* Score Info Dialog */}
+      {scoreInfoDialogOpen && (
+        <>
+          <style>{`
+            @keyframes slideUpFromBottom {
+              from {
+                transform: translateY(100%);
+              }
+              to {
+                transform: translateY(0);
+              }
+            }
+            @keyframes slideDownToBottom {
+              from {
+                transform: translateY(0);
+              }
+              to {
+                transform: translateY(100%);
+              }
+            }
+          `}</style>
+          <div
+            className="fixed inset-0 z-50 flex items-end justify-center p-4 pb-6"
+            onClick={handleCloseScoreDialog}
+          >
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
+              onClick={handleCloseScoreDialog}
+            />
+            <div
+              className="relative w-full max-w-lg bg-card border border-border rounded-2xl shadow-2xl overflow-hidden"
+              style={{
+                animation: scoreInfoDialogClosing
+                  ? "slideDownToBottom 0.3s ease-out"
+                  : "slideUpFromBottom 0.3s ease-out",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-border to-transparent" />
+              <div className="p-8">
+                <p className="text-base text-foreground text-left leading-relaxed mb-6 whitespace-pre-line">
+                  {(() => {
+                    const description = t("scoreInfo.description");
+                    const highlightText = t("scoreInfo.highlightText");
+                    const parts = description.split(highlightText);
+                    return parts.map((part, index) => (
+                      <Fragment key={index}>
+                        {part}
+                        {index < parts.length - 1 && (
+                          <span className="text-yellow-500 dark:text-yellow-400 font-semibold">
+                            {highlightText}
+                          </span>
+                        )}
+                      </Fragment>
+                    ));
+                  })()}
+                </p>
+                <Button
+                  onClick={handleCloseScoreDialog}
+                  className="w-full py-6 rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors font-medium text-base"
+                >
+                  {t("scoreInfo.confirm")}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

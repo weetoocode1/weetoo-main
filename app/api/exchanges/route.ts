@@ -34,6 +34,14 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Helper function to normalize empty strings to null
+    const normalizeToNull = (value: string | null | undefined): string | null => {
+      if (!value || value.trim() === "" || value === "-") {
+        return null;
+      }
+      return value;
+    };
+
     // Save to database
     const { error } = await supabase
       .from("exchanges")
@@ -42,17 +50,17 @@ export async function PUT(request: NextRequest) {
         name: exchange.name,
         logo: exchange.logo,
         logo_color: exchange.logoColor,
-        logo_image: exchange.logoImage,
+        logo_image: exchange.logoImage || null,
         website: exchange.website,
         payback_rate: exchange.paybackRate,
-        trading_discount: exchange.tradingDiscount,
-        limit_order_fee: exchange.limitOrderFee,
-        market_order_fee: exchange.marketOrderFee,
-        event: exchange.event,
-        average_rebate_per_user: exchange.averageRebatePerUser,
-        tags: exchange.tags,
-        description: exchange.description,
-        features: exchange.features,
+        trading_discount: normalizeToNull(exchange.tradingDiscount),
+        limit_order_fee: normalizeToNull(exchange.limitOrderFee),
+        market_order_fee: normalizeToNull(exchange.marketOrderFee),
+        event: normalizeToNull(exchange.event),
+        average_rebate_per_user: normalizeToNull(exchange.averageRebatePerUser),
+        tags: exchange.tags || [],
+        description: normalizeToNull(exchange.description),
+        features: exchange.features || [],
       })
       .eq("id", exchange.id);
 
@@ -101,16 +109,16 @@ export async function GET() {
       name: exchange.name,
       logo: exchange.logo,
       logoColor: exchange.logo_color,
-      logoImage: exchange.logo_image,
+      logoImage: exchange.logo_image || undefined,
       website: exchange.website,
       paybackRate: exchange.payback_rate,
-      tradingDiscount: exchange.trading_discount,
-      limitOrderFee: exchange.limit_order_fee,
-      marketOrderFee: exchange.market_order_fee,
-      event: exchange.event,
-      averageRebatePerUser: exchange.average_rebate_per_user,
+      tradingDiscount: exchange.trading_discount || "",
+      limitOrderFee: exchange.limit_order_fee || "",
+      marketOrderFee: exchange.market_order_fee || "",
+      event: exchange.event || "",
+      averageRebatePerUser: exchange.average_rebate_per_user || "",
       tags: exchange.tags || [],
-      description: exchange.description,
+      description: exchange.description || undefined,
       features: exchange.features || [],
     }));
 

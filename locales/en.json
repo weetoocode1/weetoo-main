@@ -118,6 +118,10 @@
   "exchange": {
     "allExchanges": "All Exchanges",
     "recommended": "Recommended",
+    "limitOrderFeeSort": "Limit Order Fee",
+    "marketOrderFeeSort": "Market Order Fee",
+    "avgRebateAscSort": "Average Refund per User",
+    "paybackAscSort": "Highest Cashback",
     "highestCashback": "Highest Cashback",
     "highestRebate": "Highest Rebate",
     "highestDiscount": "Highest Discount",
@@ -1695,6 +1699,11 @@
     "loadingTopExchanges": "Loading top exchanges...",
     "allExchanges": "All Exchanges",
     "recommended": "Recommended",
+    "eventFilter": "Competition/Event",
+    "limitOrderFeeSort": "Limit Order Fee",
+    "marketOrderFeeSort": "Market Order Fee",
+    "avgRebateAscSort": "Average Refund per User",
+    "paybackAscSort": "Highest Cashback",
     "highestCashback": "Highest Cashback",
     "highestRebate": "Highest Rebate",
     "highestDiscount": "Highest Discount",
@@ -1703,6 +1712,7 @@
     "bestScore": "Best Score",
     "trending": "Trending",
     "exchange": "Exchange",
+    "ranking": "Ranking",
     "score": "Score",
     "cashbackRate": "Cashback Rate",
     "limitPrice": "Limit Price",
@@ -1741,7 +1751,8 @@
       "limited_offer": "Limited Offer",
       "exclusive": "Exclusive",
       "recommended": "Recommended",
-      "best_seller": "Best Seller"
+      "best_seller": "Best Seller",
+      "event": "Event"
     },
     "registerUid": "Register UID",
     "verifiedPartner": "Verified Partner",
@@ -1773,6 +1784,12 @@
       "lbank": "LBank is a platform that lists a wide variety of altcoins from around the world, offering opportunities to trade rare coins. It supports the Travel Rule, providing a secure trading environment.",
       "gateio": "Gate.io is a long-established exchange in the global crypto market, known for its stability and high liquidity, supporting a wide variety of coins. It supports the Travel Rule, providing a secure trading environment.",
       "binance": "Binance is the world's largest exchange, boasting billions of dollars in daily trading volume and the largest global user base. In addition to spot, futures, and options trading, it offers Launchpad, Earn, NFT, and other services, leading the crypto ecosystem. It supports the Travel Rule, providing a secure trading environment."
+    },
+    "scoreInfo": {
+      "ariaLabel": "View score information",
+      "description": "The score calculated by Weetoo is based on objective metrics related to the exchange.",
+      "highlightText": "objective metrics",
+      "confirm": "Confirm"
     }
   },
   "admin": {

@@ -20,7 +20,10 @@ const getLocale = async () => {
   try {
     const cookieStore = await cookies();
     const locale = cookieStore.get("locale")?.value;
-    return locale === "en" ? "en" : "ko";
+    if (locale === "en") {
+      return "en";
+    }
+    return "ko";
   } catch {
     return "ko";
   }
@@ -75,6 +78,11 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     alternates: {
       canonical: "/",
+      languages: {
+        ko: "https://www.weetoo.net",
+        en: "https://www.weetoo.net",
+        "x-default": "https://www.weetoo.net",
+      },
     },
     category: "Finance",
     classification: "Trading Platform",
@@ -107,6 +115,7 @@ export default async function RootLayout({
     >
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta httpEquiv="content-language" content={locale} />
         <meta
           name="naver-site-verification"
           content="988018304a28b32de36b676cdaf2bcf8cc3dbe23"
