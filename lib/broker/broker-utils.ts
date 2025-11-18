@@ -24,7 +24,7 @@ export function validateUID(uid: string): { isValid: boolean; error?: string } {
     const error = validator(uid);
     if (error) {
       return { isValid: false, error };
-    }
+  }
   }
   return { isValid: true };
 }
@@ -48,6 +48,12 @@ const BROKER_CREDENTIALS_REGISTRY: Record<string, CredentialChecker> = {
       process.env.LBANK_PASSPHRASE
     ),
   bingx: () => !!(process.env.BINGX_API_KEY && process.env.BINGX_API_SECRET),
+  okx: () =>
+    !!(
+      process.env.OKX_API_KEY &&
+      process.env.OKX_API_SECRET &&
+      process.env.OKX_API_PASSPHRASE
+    ),
 };
 
 /**

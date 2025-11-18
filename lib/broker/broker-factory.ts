@@ -9,11 +9,11 @@ const BROKER_REGISTRY: Record<string, string> = {
   orangex: "./orangex-api",
   lbank: "./lbank-api",
   bingx: "./bingx-api",
+  okx: "./okx-api",
 } as const;
 
 // Unimplemented brokers
 const UNIMPLEMENTED_BROKERS: Set<BrokerType> = new Set([
-  "okx",
   "bybit",
   "gate",
   "kucoin",

@@ -365,7 +365,7 @@ export const PartnerExchangeComparison = () => {
             <thead>
               <tr className="border-b border-border/50 bg-gradient-to-r from-muted/40 to-muted/20">
                 <th className="text-center p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
-                  #
+                  {t("ranking")}
                 </th>
                 <th className="text-center p-5 font-semibold text-foreground text-sm uppercase tracking-wide">
                   {t("exchange")}
@@ -557,10 +557,10 @@ export const PartnerExchangeComparison = () => {
                     {expandedExchangeId === exchange.id && (
                       <tr className="bg-muted/10">
                         <td colSpan={isSuperAdmin ? 10 : 9} className="p-5">
-                          <div className="flex flex-col gap-4 rounded-lg border border-border/40 bg-gradient-to-r from-muted/40 to-muted/20 p-4">
+                          <div className="flex flex-col gap-4 rounded-lg border border-border/40 bg-linear-to-r from-muted/40 to-muted/20 p-4">
                             {(exchange.description ||
                               descriptionOverrides[exchange.id]) && (
-                              <div className="text-sm text-foreground/90 text-left break-words leading-relaxed whitespace-pre-line">
+                              <div className="text-sm text-foreground/90 text-left wrap-break-word leading-relaxed whitespace-pre-line">
                                 {exchange.description ||
                                   descriptionOverrides[exchange.id]}
                               </div>

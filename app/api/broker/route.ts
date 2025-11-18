@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 
 // Input validation schema
 const brokerApiSchema = z.object({
-  broker: z.enum(["deepcoin", "orangex", "lbank", "bingx"]),
+  broker: z.enum(["deepcoin", "orangex", "lbank", "bingx", "okx"]),
   action: z.string().min(1).max(50),
   uid: z
     .string()
@@ -97,6 +97,10 @@ export async function POST(request: NextRequest) {
 
           if (action === "getReferrals") {
             params = [];
+            console.log("[API Broker] Calling getReferrals", {
+              broker,
+              action,
+            });
           } else if (action === "getDailyRebates") {
             params = [uid, date];
           } else if (
