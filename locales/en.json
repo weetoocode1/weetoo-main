@@ -212,8 +212,19 @@
     "toasts": {
       "logoutFailed": "Failed to log out. Please try again.",
       "logoutSuccess": "Logged out successfully."
+    },
+    "tabs": {
+      "profile": "Profile",
+      "referral": "Referral",
+      "allAccounts": "All Accounts",
+      "allTransactions": "All Transactions",
+      "korCoinsWithdrawal": "KOR Coins Withdrawal",
+      "uidRegistration": "UID Registration",
+      "paybackWithdrawal": "Payback Withdrawal",
+      "withdrawalStatus": "Withdrawal Status"
     }
   },
+
   "user": {
     "realtimeToasts": {
       "generic": {
@@ -555,6 +566,13 @@
     "exp": "EXP",
     "xp": "XP",
     "profile": "Profile",
+    "referral": "Referral",
+    "allAccounts": "All Accounts",
+    "allTransactions": "All Transactions",
+    "korCoinsWithdrawal": "KOR Coins Withdrawal",
+    "uidRegistration": "UID Registration",
+    "paybackWithdrawal": "Payback Withdrawal",
+    "withdrawalStatus": "Withdrawal Status",
     "goToAdminDashboard": "Go to Admin Dashboard",
     "loggingOut": "Logging out...",
     "logOut": "Log Out",
@@ -1720,6 +1738,7 @@
     "avgRebatePerUser": "Avg Rebate per User",
     "tags": "Tags",
     "actions": "Actions",
+    "alternateLink": "Alternate link",
     "points": "points",
     "off": "off",
     "perUser": "per user",

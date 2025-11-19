@@ -161,11 +161,11 @@ export const PartnerExchangeComparison = () => {
       console.log("API response status:", response.status);
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         console.error("API error:", errorData);
-        throw new Error(
-          `Failed to save exchange: ${errorData.error || response.statusText}`
-        );
+        const errorMessage =
+          errorData.details || errorData.error || response.statusText;
+        throw new Error(`Failed to save exchange: ${errorMessage}`);
       }
 
       const result = await response.json();
@@ -1014,7 +1014,7 @@ export const PartnerExchangeComparison = () => {
                           rel="noopener noreferrer"
                           className="text-xs text-muted-foreground text-center hover:underline"
                         >
-                          Alternate link
+                          {t("alternateLink")}
                         </a>
                       )}
                     </>

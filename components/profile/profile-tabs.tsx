@@ -163,15 +163,9 @@ const TABS = [
   //   requiresVerification: false,
   // },
   {
-    key: "all-accounts",
-    translationKey: "allAccounts",
-    icon: <BanknoteIcon className="w-4 h-4" />,
-    requiresVerification: true,
-  },
-  {
-    key: "all-transactions",
-    translationKey: "allTransactions",
-    icon: <HistoryIcon className="w-4 h-4" />,
+    key: "uid-registration",
+    translationKey: "uidRegistration",
+    icon: <KeyRoundIcon className="w-4 h-4" />,
     requiresVerification: true,
   },
   {
@@ -180,12 +174,20 @@ const TABS = [
     icon: <CreditCardIcon className="w-4 h-4" />,
     requiresVerification: true,
   },
+
   {
-    key: "uid-registration",
-    translationKey: "uidRegistration",
-    icon: <KeyRoundIcon className="w-4 h-4" />,
+    key: "all-transactions",
+    translationKey: "allTransactions",
+    icon: <HistoryIcon className="w-4 h-4" />,
     requiresVerification: true,
   },
+  {
+    key: "all-accounts",
+    translationKey: "allAccounts",
+    icon: <BanknoteIcon className="w-4 h-4" />,
+    requiresVerification: true,
+  },
+
   // {
   //   key: "payback-withdrawal",
   //   translationKey: "paybackWithdrawal",

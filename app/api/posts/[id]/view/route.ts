@@ -2,12 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import crypto from "crypto";
 
+import { z } from "zod";
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const supabase = await createClient();
   const { id: postId } = await params;
+
+  // Validate UUID format for postId
+  if (!z.string().uuid().safeParse(postId).success) {
+    return NextResponse.json({ error: "Invalid post ID" }, { status: 400 });
+  }
 
   // Get user info
   const {

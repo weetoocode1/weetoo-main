@@ -35,39 +35,48 @@ export async function PUT(request: NextRequest) {
     }
 
     // Helper function to normalize empty strings to null
-    const normalizeToNull = (value: string | null | undefined): string | null => {
+    const normalizeToNull = (
+      value: string | null | undefined
+    ): string | null => {
       if (!value || value.trim() === "" || value === "-") {
         return null;
       }
       return value;
     };
 
+    // Helper function to normalize empty strings to empty string (for NOT NULL fields)
+    const normalizeToEmptyString = (
+      value: string | null | undefined
+    ): string => {
+      if (!value || value.trim() === "" || value === "-" || value === "null") {
+        return "";
+      }
+      return value;
+    };
+
     // Save to database
-    const { error } = await supabase
-      .from("exchanges")
-      .upsert({
-        id: exchange.id,
-        name: exchange.name,
-        logo: exchange.logo,
-        logo_color: exchange.logoColor,
-        logo_image: exchange.logoImage || null,
-        website: exchange.website,
-        payback_rate: exchange.paybackRate,
-        trading_discount: normalizeToNull(exchange.tradingDiscount),
-        limit_order_fee: normalizeToNull(exchange.limitOrderFee),
-        market_order_fee: normalizeToNull(exchange.marketOrderFee),
-        event: normalizeToNull(exchange.event),
-        average_rebate_per_user: normalizeToNull(exchange.averageRebatePerUser),
-        tags: exchange.tags || [],
-        description: normalizeToNull(exchange.description),
-        features: exchange.features || [],
-      })
-      .eq("id", exchange.id);
+    const { error } = await supabase.from("exchanges").upsert({
+      id: exchange.id,
+      name: exchange.name,
+      logo: exchange.logo,
+      logo_color: exchange.logoColor,
+      logo_image: exchange.logoImage || null,
+      website: exchange.website,
+      payback_rate: exchange.paybackRate,
+      trading_discount: normalizeToEmptyString(exchange.tradingDiscount),
+      limit_order_fee: normalizeToNull(exchange.limitOrderFee),
+      market_order_fee: normalizeToNull(exchange.marketOrderFee),
+      event: normalizeToNull(exchange.event),
+      average_rebate_per_user: normalizeToNull(exchange.averageRebatePerUser),
+      tags: exchange.tags || [],
+      description: normalizeToNull(exchange.description),
+      features: exchange.features || [],
+    });
 
     if (error) {
       console.error("Database error:", error);
       return NextResponse.json(
-        { error: "Failed to save to database" },
+        { error: "Failed to save to database", details: error.message },
         { status: 500 }
       );
     }

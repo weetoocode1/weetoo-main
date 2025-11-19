@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+import { z } from "zod";
+
+const profileUpdateSchema = z.object({
+  first_name: z.string().min(1, "First name is required").trim(),
+  last_name: z.string().min(1, "Last name is required").trim(),
+  nickname: z.string().trim().optional().nullable(),
+});
+
 export async function PATCH(req: NextRequest) {
   try {
     const supabase = await createClient();
@@ -9,11 +17,16 @@ export async function PATCH(req: NextRequest) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
     // Server-side ban guard: block banned users from mutating profile
     const { data: banRow } = await supabase
       .from("users")
       .select("banned, ban_reason, banned_at")
-      .eq("id", user!.id)
+      .eq("id", user.id)
       .single();
     if (banRow?.banned) {
       return NextResponse.json(
@@ -26,26 +39,14 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    if (!user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
     const body = await req.json();
-    const { first_name, last_name, nickname } = body;
-
-    // Validate required fields
-    if (!first_name?.trim() || !last_name?.trim()) {
-      return NextResponse.json(
-        { error: "First name and last name are required" },
-        { status: 400 }
-      );
-    }
+    const validatedData = profileUpdateSchema.parse(body);
 
     // Sanitize inputs
     const sanitizedData = {
-      first_name: first_name.trim(),
-      last_name: last_name.trim(),
-      nickname: nickname?.trim() || null,
+      first_name: validatedData.first_name,
+      last_name: validatedData.last_name,
+      nickname: validatedData.nickname || null,
       updated_at: new Date().toISOString(),
     };
 
@@ -97,6 +98,12 @@ export async function PATCH(req: NextRequest) {
       user: data,
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation error", details: error.issues },
+        { status: 400 }
+      );
+    }
     console.error("Error in profile update:", error);
     return NextResponse.json(
       { error: "Internal server error" },

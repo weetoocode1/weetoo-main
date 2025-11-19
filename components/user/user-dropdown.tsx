@@ -18,9 +18,13 @@ import { createClient } from "@/lib/supabase/client";
 import {
   AlertTriangle,
   BadgeCheckIcon,
+  BanknoteIcon,
   Coins,
+  CreditCardIcon,
   Eye,
   EyeOff,
+  HistoryIcon,
+  KeyRoundIcon,
   LogOutIcon,
   ShieldIcon,
   Star,
@@ -405,6 +409,35 @@ export function UserDropdown() {
                 {t("profile")}
               </div>
             </Link>
+
+            <Link href="/profile?tab=uid-registration">
+              <div className="cursor-pointer rounded-lg px-3 py-2.5 hover:bg-accent transition-colors flex items-center text-sm">
+                <KeyRoundIcon className="w-4 h-4 mr-3 text-muted-foreground" />
+                {t("uidRegistration")}
+              </div>
+            </Link>
+
+            <Link href="/profile?tab=kor-coins-withdrawal">
+              <div className="cursor-pointer rounded-lg px-3 py-2.5 hover:bg-accent transition-colors flex items-center text-sm">
+                <CreditCardIcon className="w-4 h-4 mr-3 text-muted-foreground" />
+                {t("korCoinsWithdrawal")}
+              </div>
+            </Link>
+
+            <Link href="/profile?tab=all-transactions">
+              <div className="cursor-pointer rounded-lg px-3 py-2.5 hover:bg-accent transition-colors flex items-center text-sm">
+                <HistoryIcon className="w-4 h-4 mr-3 text-muted-foreground" />
+                {t("allTransactions")}
+              </div>
+            </Link>
+
+            <Link href="/profile?tab=all-accounts">
+              <div className="cursor-pointer rounded-lg px-3 py-2.5 hover:bg-accent transition-colors flex items-center text-sm">
+                <BanknoteIcon className="w-4 h-4 mr-3 text-muted-foreground" />
+                {t("allAccounts")}
+              </div>
+            </Link>
+
             {/* <Link href="/inbox">
               <div className="cursor-pointer rounded-lg px-3 py-2.5 hover:bg-accent transition-colors">
                 <InboxIcon className="w-4 h-4 mr-3 text-muted-foreground" />
