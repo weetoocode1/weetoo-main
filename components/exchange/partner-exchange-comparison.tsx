@@ -204,7 +204,7 @@ export const PartnerExchangeComparison = () => {
           const feeBStr = formatValue(b.limitOrderFee, "0%");
           const feeA = parseFloat(feeAStr.replace("%", "")) || 0;
           const feeB = parseFloat(feeBStr.replace("%", "")) || 0;
-          return feeB - feeA;
+          return feeA - feeB;
         });
         break;
       case "market-order-fee-desc":
@@ -213,11 +213,11 @@ export const PartnerExchangeComparison = () => {
           const feeBStr = formatValue(b.marketOrderFee, "0%");
           const feeA = parseFloat(feeAStr.replace("%", "")) || 0;
           const feeB = parseFloat(feeBStr.replace("%", "")) || 0;
-          return feeB - feeA;
+          return feeA - feeB;
         });
         break;
       case "payback-asc":
-        filtered.sort((a, b) => a.paybackRate - b.paybackRate);
+        filtered.sort((a, b) => b.paybackRate - a.paybackRate);
         break;
       case "avg-rebate-asc":
         filtered.sort((a, b) => {
@@ -225,7 +225,7 @@ export const PartnerExchangeComparison = () => {
           const rebateBStr = formatValue(b.averageRebatePerUser, "$0");
           const rebateA = parseFloat(rebateAStr.replace(/[$,]/g, "")) || 0;
           const rebateB = parseFloat(rebateBStr.replace(/[$,]/g, "")) || 0;
-          return rebateA - rebateB;
+          return rebateB - rebateA;
         });
         break;
       default:
