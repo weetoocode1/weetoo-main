@@ -1,56 +1,76 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+import { z } from "zod";
+
+const createPostSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  content: z.string().min(1, "Content is required"),
+  board: z.string().min(1, "Board is required"),
+  images: z.array(z.string()).optional().default([]),
+  tags: z.array(z.string()).optional().default([]),
+  excerpt: z.string().optional(),
+});
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
-  const { title, content, board, images, tags, excerpt } = await req.json();
 
-  if (!title || !content || !board) {
-    return NextResponse.json(
-      { error: "Missing required fields" },
-      { status: 400 }
-    );
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user)
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-
-  const { data, error } = await supabase
-    .from("posts")
-    .insert([
-      {
-        title,
-        content,
-        board,
-        images,
-        tags,
-        excerpt,
-        author_id: user.id,
-      },
-    ])
-    .select()
-    .single();
-
-  if (error)
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  // Try to award post creation reward via secure RPC. Do not block post creation on reward errors.
-  let reward: { id: string } | null = null;
   try {
-    const { data: rewardData, error: rewardError } = await supabase.rpc(
-      "award_post_creation",
-      { p_user_id: user.id, p_post_id: data.id }
-    );
-    if (!rewardError) {
-      reward = rewardData;
-    }
-  } catch (_) {
-    // swallow to avoid impacting post creation response
-  }
+    const body = await req.json();
+    const validatedData = createPostSchema.parse(body);
 
-  return NextResponse.json({ post: data, reward }, { status: 201 });
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user)
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+
+    const { data, error } = await supabase
+      .from("posts")
+      .insert([
+        {
+          title: validatedData.title,
+          content: validatedData.content,
+          board: validatedData.board,
+          images: validatedData.images,
+          tags: validatedData.tags,
+          excerpt: validatedData.excerpt,
+          author_id: user.id,
+        },
+      ])
+      .select()
+      .single();
+
+    if (error)
+      return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // Try to award post creation reward via secure RPC. Do not block post creation on reward errors.
+    let reward: { id: string } | null = null;
+    try {
+      const { data: rewardData, error: rewardError } = await supabase.rpc(
+        "award_post_creation",
+        { p_user_id: user.id, p_post_id: data.id }
+      );
+      if (!rewardError) {
+        reward = rewardData;
+      }
+    } catch (_) {
+      // swallow to avoid impacting post creation response
+    }
+
+    return NextResponse.json({ post: data, reward }, { status: 201 });
+  } catch (e) {
+    if (e instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation error", details: e.issues },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
 }
 
 export async function GET(req: NextRequest) {

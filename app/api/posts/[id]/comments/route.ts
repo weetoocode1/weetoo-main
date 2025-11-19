@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+import { z } from "zod";
+
+const createCommentSchema = z.object({
+  content: z.string().min(1, "Content is required"),
+  parent_id: z.string().uuid().optional().nullable(),
+});
+
 // POST: Add a comment to a post
 export async function POST(
   req: NextRequest,
@@ -9,71 +16,84 @@ export async function POST(
   const supabase = await createClient();
   const { id } = await params;
   const postId = id;
-  const { content, parent_id } = await req.json();
 
-  // Auth required
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user)
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  if (!content || !postId)
-    return NextResponse.json(
-      { error: "Missing content or postId" },
-      { status: 400 }
-    );
-
-  // Call atomic function to add comment and increment counter
-  const { data: newCommentId, error: fnError } = await supabase.rpc(
-    "add_post_comment",
-    {
-      post_id_input: postId,
-      user_id_input: user.id,
-      content_input: content,
-      parent_id_input: parent_id || null,
-    }
-  );
-  if (fnError)
-    return NextResponse.json({ error: fnError.message }, { status: 500 });
-
-  // Fetch the new comment with user info
-  const { data: comment, error: commentError } = await supabase
-    .from("post_comments")
-    .select(
-      "*, user:users!user_id(id, first_name, last_name, nickname, avatar_url)"
-    )
-    .eq("id", newCommentId)
-    .single();
-  if (commentError)
-    return NextResponse.json({ error: commentError.message }, { status: 500 });
-
-  // Fetch the new comment count from posts table
-  const { data: postData, error: postError } = await supabase
-    .from("posts")
-    .select("comments")
-    .eq("id", postId)
-    .single();
-  if (postError)
-    return NextResponse.json({ error: postError.message }, { status: 500 });
-
-  // Attempt to award comment reward. Do not block comment creation on reward errors.
-  let reward: { id: string } | null = null;
   try {
-    const { data: rewardData, error: rewardError } = await supabase.rpc(
-      "award_post_comment",
-      { p_user_id: user.id, p_post_id: postId, p_comment_id: newCommentId }
-    );
-    if (!rewardError) {
-      reward = rewardData;
-    }
-  } catch (_) {
-    // ignore
-  }
+    const body = await req.json();
+    const validatedData = createCommentSchema.parse(body);
 
-  return NextResponse.json(
-    { comment, commentCount: postData.comments, reward },
-    { status: 201 }
-  );
+    // Auth required
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user)
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+
+    // Call atomic function to add comment and increment counter
+    const { data: newCommentId, error: fnError } = await supabase.rpc(
+      "add_post_comment",
+      {
+        post_id_input: postId,
+        user_id_input: user.id,
+        content_input: validatedData.content,
+        parent_id_input: validatedData.parent_id || null,
+      }
+    );
+    if (fnError)
+      return NextResponse.json({ error: fnError.message }, { status: 500 });
+
+    // Fetch the new comment with user info
+    const { data: comment, error: commentError } = await supabase
+      .from("post_comments")
+      .select(
+        "*, user:users!user_id(id, first_name, last_name, nickname, avatar_url)"
+      )
+      .eq("id", newCommentId)
+      .single();
+    if (commentError)
+      return NextResponse.json(
+        { error: commentError.message },
+        { status: 500 }
+      );
+
+    // Fetch the new comment count from posts table
+    const { data: postData, error: postError } = await supabase
+      .from("posts")
+      .select("comments")
+      .eq("id", postId)
+      .single();
+    if (postError)
+      return NextResponse.json({ error: postError.message }, { status: 500 });
+
+    // Attempt to award comment reward. Do not block comment creation on reward errors.
+    let reward: { id: string } | null = null;
+    try {
+      const { data: rewardData, error: rewardError } = await supabase.rpc(
+        "award_post_comment",
+        { p_user_id: user.id, p_post_id: postId, p_comment_id: newCommentId }
+      );
+      if (!rewardError) {
+        reward = rewardData;
+      }
+    } catch (_) {
+      // ignore
+    }
+
+    return NextResponse.json(
+      { comment, commentCount: postData.comments, reward },
+      { status: 201 }
+    );
+  } catch (e) {
+    if (e instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation error", details: e.issues },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
 }
 
 // GET: Fetch all comments for a post (threaded)

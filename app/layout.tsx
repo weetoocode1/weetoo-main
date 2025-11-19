@@ -99,6 +99,7 @@ export async function generateMetadata(): Promise<Metadata> {
       canonical: "/",
       languages: {
         ko: "https://www.weetoo.net",
+        "ko-KR": "https://www.weetoo.net",
         en: "https://www.weetoo.net",
         "x-default": "https://www.weetoo.net",
       },
@@ -134,7 +135,8 @@ export default async function RootLayout({
     >
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta httpEquiv="content-language" content={locale} />
+        <meta httpEquiv="content-language" content={locale === "ko" ? "ko-KR" : "en-US"} />
+        <meta name="language" content={locale === "ko" ? "ko-KR" : "en-US"} />
         <meta
           name="naver-site-verification"
           content="988018304a28b32de36b676cdaf2bcf8cc3dbe23"

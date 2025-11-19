@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-
+import { z } from "zod";
 // Utility function to sync like counts
 async function syncLikeCount(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -36,12 +36,20 @@ async function syncLikeCount(
   }
 }
 
+// ... (existing syncLikeCount function)
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const supabase = await createClient();
   const { id: postId } = await params;
+
+  // Validate UUID format for postId
+  if (!z.string().uuid().safeParse(postId).success) {
+    return NextResponse.json({ error: "Invalid post ID" }, { status: 400 });
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -90,6 +98,11 @@ export async function POST(
 ) {
   const supabase = await createClient();
   const { id: postId } = await params;
+
+  // Validate UUID format for postId
+  if (!z.string().uuid().safeParse(postId).success) {
+    return NextResponse.json({ error: "Invalid post ID" }, { status: 400 });
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -254,6 +267,12 @@ export async function DELETE(
 ) {
   const supabase = await createClient();
   const { id: postId } = await params;
+
+  // Validate UUID format for postId
+  if (!z.string().uuid().safeParse(postId).success) {
+    return NextResponse.json({ error: "Invalid post ID" }, { status: 400 });
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
