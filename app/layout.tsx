@@ -1,6 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import ClientLayout from "./client-layout";
 import "./globals.css";
 import { getSeoKeywords } from "./seo-keywords";
@@ -19,10 +19,29 @@ const geistMono = Geist_Mono({
 const getLocale = async () => {
   try {
     const cookieStore = await cookies();
-    const locale = cookieStore.get("locale")?.value;
-    if (locale === "en") {
+    const headersList = await headers();
+    const userAgent = headersList.get("user-agent") || "";
+    const acceptLanguage = headersList.get("accept-language") || "";
+
+    const isCrawler =
+      /bot|crawler|spider|crawling|naver|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandexbot|sogou|exabot|facebot|ia_archiver/i.test(
+        userAgent
+      );
+
+    const cookieLocale = cookieStore.get("locale")?.value;
+
+    if (cookieLocale === "en") {
       return "en";
     }
+
+    if (isCrawler) {
+      return "ko";
+    }
+
+    if (acceptLanguage.includes("ko") && !acceptLanguage.includes("en")) {
+      return "ko";
+    }
+
     return "ko";
   } catch {
     return "ko";
